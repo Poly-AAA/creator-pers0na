@@ -71,12 +71,24 @@
   .slider-row span.label { font-size:10px; color:#9aa; }
   .slider-row span.num { font-size:10px; color:#6fd8c8; text-align:right; font-variant-numeric: tabular-nums; }
   .slider-row input[type=range] { width:100%; accent-color:#6fd8c8; }
+  .facing-pad {
+    display:grid;
+    grid-template-columns: repeat(3, 44px);
+    grid-template-rows: repeat(3, 40px);
+    gap:6px; justify-content:center; margin:4px 0 8px;
+  }
+  .facing-pad .ctrl-btn { width:44px; height:40px; padding:0; font-size:11px; justify-self:center; }
+  .facing-center {
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; color:#6fd8c8; font-weight:700;
+  }
+  .rot-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="topbar">NEURO CORE — Phase 1 · Corps customisable par tronçon</div>
-  <div class="info" id="info">Utilise les onglets en bas : Corps · Équipements · Grille</div>
+  <div class="topbar">NEURO CORE — Phase 2 · 8 rotations isométriques</div>
+  <div class="info" id="info">Onglets : Corps · Équipements · Rotation · Grille</div>
   <div class="stage">
     <svg id="scene"></svg>
   </div>
@@ -84,6 +96,7 @@
     <div class="tabs" id="mainTabs" role="tablist">
       <button class="tab-btn active" type="button" role="tab" data-tab="corps" aria-selected="true">Corps</button>
       <button class="tab-btn" type="button" role="tab" data-tab="equip" aria-selected="false">Équipements</button>
+      <button class="tab-btn" type="button" role="tab" data-tab="rotation" aria-selected="false">Rotation</button>
       <button class="tab-btn" type="button" role="tab" data-tab="grille" aria-selected="false">Grille</button>
     </div>
 
@@ -146,6 +159,29 @@
         </div>
       </div>
 
+      <!-- ONGLET ROTATION (Phase 2) -->
+      <div class="tab-panel" id="panel-rotation" role="tabpanel">
+        <div class="section-title"><span>Direction (8 angles · 45°)</span></div>
+        <div class="facing-pad" id="facingPad" aria-label="Sélecteur de direction">
+          <button class="ctrl-btn" type="button" data-facing="4" title="Nord-Ouest">NO</button>
+          <button class="ctrl-btn" type="button" data-facing="5" title="Nord">N</button>
+          <button class="ctrl-btn" type="button" data-facing="6" title="Nord-Est">NE</button>
+          <button class="ctrl-btn" type="button" data-facing="3" title="Ouest">O</button>
+          <div class="facing-center" id="facingLabel">SE</div>
+          <button class="ctrl-btn" type="button" data-facing="7" title="Est">E</button>
+          <button class="ctrl-btn" type="button" data-facing="2" title="Sud-Ouest">SO</button>
+          <button class="ctrl-btn active" type="button" data-facing="0" title="Sud-Est">SE</button>
+          <button class="ctrl-btn" type="button" data-facing="1" title="Sud">S</button>
+        </div>
+        <div class="rot-row">
+          <button class="ctrl-btn" type="button" id="rotLeft">↺ −45°</button>
+          <button class="ctrl-btn" type="button" id="rotRight">+45° ↻</button>
+        </div>
+        <div class="row" style="justify-content:center; margin-top:4px;">
+          <span class="val" id="facingDeg" style="min-width:auto;">Angle : 45° · vue 3/4 avant</span>
+        </div>
+      </div>
+
       <!-- ONGLET GRILLE -->
       <div class="tab-panel" id="panel-grille" role="tabpanel">
         <div class="row">
@@ -173,14 +209,16 @@
 
 <script>
 /* ============================================================
-   NEURO CORE — Phase 1+
-   Superposition Z-Index + customisation par tronçon anatomique
+   NEURO CORE — Phase 1 + Phase 2
+   Superposition Z-Index + tronçons + 8 rotations isométriques
    ============================================================
    Architecture :
    - MORPHS ……………… presets de base (heavy / standard / light)
    - BODY_CUSTOM ……… réglages indépendants par tronçon
+   - FACINGS …………… 8 angles (45°) : mirror / view / facingBack
    - resolveMorph() …… fusionne morpho + custom → profil final
-   - LAYERS ……………… ordre de dessin SVG
+   - applyFacing() …… adapte le profil à l'angle courant
+   - LAYERS ……………… ordre de dessin SVG (inversé si dos)
    - ANCHORS ……………… points d'ancrage (suivent le profil résolu)
    - EQUIPMENT …………… pantalon IN/OVER, tunique, casquette
    ============================================================ */
@@ -225,6 +263,7 @@ const state = {
   selected: { row: 2, col: 2 },
   morph: "heavy",
   body: defaultBodyCustom(),
+  facing: 0,          // Phase 2 : index 0..7 (SE par défaut)
   pants: "none",
   torso: "none",
   hat: "none",
@@ -233,6 +272,64 @@ const state = {
   hatColor: "#3d2b1f",
   showAnchors: true,
 };
+
+/* ============================================================
+   PHASE 2 — 8 FACINGS ISOMÉTRIQUES (tous les 45°)
+   Index 0 = SE (vue 3/4 avant-droite, art de base).
+   mirror ……… scaleX(-1) pour les directions à gauche
+   view ……… threeQuarter | front | side → déforme la silhouette
+   facingBack … dos : yeux masqués, calques membres inversés
+   ============================================================ */
+const FACINGS = [
+  { id: 0, key: "SE", label: "SE", deg: 45,  mirror: false, view: "threeQuarter", facingBack: false },
+  { id: 1, key: "S",  label: "S",  deg: 90,  mirror: false, view: "front",        facingBack: false },
+  { id: 2, key: "SW", label: "SO", deg: 135, mirror: true,  view: "threeQuarter", facingBack: false },
+  { id: 3, key: "W",  label: "O",  deg: 180, mirror: true,  view: "side",         facingBack: false },
+  { id: 4, key: "NW", label: "NO", deg: 225, mirror: true,  view: "threeQuarter", facingBack: true  },
+  { id: 5, key: "N",  label: "N",  deg: 270, mirror: false, view: "front",        facingBack: true  },
+  { id: 6, key: "NE", label: "NE", deg: 315, mirror: false, view: "threeQuarter", facingBack: true  },
+  { id: 7, key: "E",  label: "E",  deg: 0,   mirror: false, view: "side",         facingBack: false },
+];
+
+function getFacing(id = state.facing) {
+  return FACINGS[((id % 8) + 8) % 8];
+}
+
+/**
+ * Adapte le morph résolu à l'angle de vue.
+ * Les équipements lisent ce profil → ils suivent la rotation.
+ */
+function applyFacing(m, facingId = state.facing) {
+  const f = getFacing(facingId);
+  const out = { ...m, facing: f };
+
+  if (f.view === "front") {
+    // Face / dos caméra : silhouette plus large, peu d'écart pieds
+    out.shoulderW *= 1.18;
+    out.hipW *= 1.12;
+    out.waistW *= 1.12;
+    out.footSpread *= 0.38;
+    out.headRx *= 1.08;
+  } else if (f.view === "side") {
+    // Profil : silhouette comprimée en X
+    out.shoulderW *= 0.42;
+    out.hipW *= 0.48;
+    out.waistW *= 0.50;
+    out.footSpread *= 0.12;
+    out.headRx *= 0.78;
+    out.biceps *= 0.85;
+    out.forearm *= 0.85;
+  }
+  // threeQuarter = proportions de base (art SE)
+
+  if (f.facingBack) {
+    // Dos : fesses un peu plus visibles, poitrine moins
+    out.glutes = Math.min(1.6, out.glutes * 1.25 + 0.1);
+    out.chestSize *= 0.35;
+  }
+
+  return out;
+}
 
 /* ============================================================
    1. PROFILS MORPHOLOGIQUES (presets)
@@ -766,6 +863,8 @@ function buildTorso(m, w) {
 
 function buildHead(m, w) {
   const nodes = [];
+  const back = m.facing && m.facing.facingBack;
+
   nodes.push(createPath(
     `M ${px(-m.neckW, w)} ${px(m.shoulderY - 0.02, w)}
      L ${px(m.neckW, w)} ${px(m.shoulderY - 0.02, w)}
@@ -774,20 +873,36 @@ function buildHead(m, w) {
     SKIN, OUTLINE, 1.5
   ));
   nodes.push(createEllipse(0, m.headY * w, m.headRx * w, m.headRy * w, SKIN, OUTLINE, 1.5));
-  if (m.id === "heavy" || m.neckW > 0.075) {
-    nodes.push(createPath(
-      `M ${px(-m.headRx * 0.9, w)} ${px(m.headY + 0.05, w)}
-       L ${px(-m.headRx * 0.8, w)} ${px(m.headY + m.headRy * 0.55, w)}
-       L ${px(m.headRx * 0.8, w)} ${px(m.headY + m.headRy * 0.55, w)}
-       L ${px(m.headRx * 0.9, w)} ${px(m.headY + 0.05, w)} Z`,
-      SKIN, OUTLINE, 1.5
+
+  if (back) {
+    // Dos de la tête / cheveux sommaires
+    nodes.push(createEllipse(
+      0, (m.headY - m.headRy * 0.15) * w,
+      m.headRx * 0.92 * w, m.headRy * 0.75 * w,
+      darken(SKIN, 0.12), OUTLINE, 1.2
     ));
+  } else {
+    if (m.id === "heavy" || m.neckW > 0.075) {
+      nodes.push(createPath(
+        `M ${px(-m.headRx * 0.9, w)} ${px(m.headY + 0.05, w)}
+         L ${px(-m.headRx * 0.8, w)} ${px(m.headY + m.headRy * 0.55, w)}
+         L ${px(m.headRx * 0.8, w)} ${px(m.headY + m.headRy * 0.55, w)}
+         L ${px(m.headRx * 0.9, w)} ${px(m.headY + 0.05, w)} Z`,
+        SKIN, OUTLINE, 1.5
+      ));
+    }
+    const eyeY = m.headY - 0.02;
+    const eyeRx = m.headRx * 0.2;
+    const eyeRy = m.headRy * 0.12;
+    // En vue de profil (side), un seul œil visible
+    const side = m.facing && m.facing.view === "side";
+    if (!side) {
+      nodes.push(createEllipse(-m.headRx * 0.4 * w, eyeY * w, eyeRx * w, eyeRy * w, "#1a1a1a", OUTLINE, 1));
+      nodes.push(createEllipse( m.headRx * 0.4 * w, eyeY * w, eyeRx * w, eyeRy * w, "#1a1a1a", OUTLINE, 1));
+    } else {
+      nodes.push(createEllipse(m.headRx * 0.25 * w, eyeY * w, eyeRx * 0.9 * w, eyeRy * w, "#1a1a1a", OUTLINE, 1));
+    }
   }
-  const eyeY = m.headY - 0.02;
-  const eyeRx = m.headRx * 0.2;
-  const eyeRy = m.headRy * 0.12;
-  nodes.push(createEllipse(-m.headRx * 0.4 * w, eyeY * w, eyeRx * w, eyeRy * w, "#1a1a1a", OUTLINE, 1));
-  nodes.push(createEllipse( m.headRx * 0.4 * w, eyeY * w, eyeRx * w, eyeRy * w, "#1a1a1a", OUTLINE, 1));
   return nodes;
 }
 
@@ -924,25 +1039,46 @@ function buildAnchorMarkers(m, w) {
 }
 
 /* ============================================================
-   8. ASSEMBLEUR
+   8. ASSEMBLEUR (avec facing Phase 2)
    ============================================================ */
+function layerOrderForFacing(f) {
+  // Dos : on inverse l'ordre des membres (ex-premier plan passe derrière)
+  if (f && f.facingBack) {
+    return ["legFront", "armFront", "torso", "head", "armBack", "legBack", "anchors", "meta"];
+  }
+  return LAYER_ORDER;
+}
+
 function createCharacter(cx, cy, tileW, morphId) {
-  const m = resolveMorph(morphId, state.body);
+  const base = resolveMorph(morphId, state.body);
+  const m = applyFacing(base, state.facing);
+  const f = m.facing;
   const w = tileW;
+
   const root = el("g", {
     class: "character",
     transform: `translate(${cx}, ${cy})`,
     "data-morph": morphId,
     "data-chest": m.chestShape,
+    "data-facing": f.key,
   });
   root.style.pointerEvents = "none";
 
+  // Miroir horizontal pour SO / O / NO — le pivot reste au pied (0,0)
+  const bodyWrap = el("g", {
+    class: "body-facing",
+    transform: f.mirror ? "scale(-1, 1)" : "",
+  });
+  root.appendChild(bodyWrap);
+
   const layers = {};
-  for (const name of LAYER_ORDER) {
+  const order = layerOrderForFacing(f);
+  for (const name of order) {
     layers[name] = el("g", { class: `layer layer-${name}`, "data-layer": name });
-    root.appendChild(layers[name]);
+    bodyWrap.appendChild(layers[name]);
   }
 
+  // Peau — si dos, le contenu "front" est dessiné en premier (voir order)
   for (const n of buildLegBack(m, w))  layers.legBack.appendChild(n);
   for (const n of buildArmBack(m, w))  layers.armBack.appendChild(n);
   for (const n of buildTorso(m, w))    layers.torso.appendChild(n);
@@ -968,6 +1104,13 @@ function createCharacter(cx, cy, tileW, morphId) {
     for (const n of buildAnchorMarkers(m, w)) layers.anchors.appendChild(n);
   }
 
+  // Meta hors miroir pour que le texte reste lisible
+  // (on retire meta du bodyWrap et on le remet sur root)
+  if (layers.meta.parentNode === bodyWrap) {
+    bodyWrap.removeChild(layers.meta);
+    root.appendChild(layers.meta);
+  }
+
   const pivot = createEllipse(0, 0, 0.03 * w, 0.03 * w, "#ff0044", "#ff0044", 1.5);
   pivot.setAttribute("opacity", "0.7");
   layers.meta.appendChild(pivot);
@@ -981,7 +1124,7 @@ function createCharacter(cx, cy, tileW, morphId) {
     "font-weight": "bold",
     "font-family": "Arial",
   });
-  label.textContent = m.label;
+  label.textContent = `${m.label} · ${f.label}`;
   layers.meta.appendChild(label);
 
   return root;
@@ -1144,7 +1287,7 @@ hatColorInput.addEventListener("input", () => { state.hatColor = hatColorInput.v
 gridSizeInput.addEventListener("input", draw);
 tileWInput.addEventListener("input", draw);
 
-/* Onglets Corps / Équipements / Grille */
+/* Onglets Corps / Équipements / Rotation / Grille */
 document.querySelectorAll("#mainTabs .tab-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     const tab = btn.dataset.tab;
@@ -1155,12 +1298,51 @@ document.querySelectorAll("#mainTabs .tab-btn").forEach((btn) => {
     document.querySelectorAll(".tab-panel").forEach((panel) => {
       panel.classList.toggle("active", panel.id === `panel-${tab}`);
     });
-    const titles = { corps: "Corps & morphologie", equip: "Équipements", grille: "Grille & ancres" };
+    const titles = {
+      corps: "Corps & morphologie",
+      equip: "Équipements",
+      rotation: "Rotation 8 directions",
+      grille: "Grille & ancres",
+    };
     info.textContent = `Onglet : ${titles[tab] || tab}`;
   });
 });
 
+/* Phase 2 — Rotation */
+function syncFacingUI() {
+  const f = getFacing(state.facing);
+  document.querySelectorAll("#facingPad .ctrl-btn").forEach((btn) => {
+    btn.classList.toggle("active", parseInt(btn.dataset.facing, 10) === state.facing);
+  });
+  const label = document.getElementById("facingLabel");
+  if (label) label.textContent = f.label;
+  const deg = document.getElementById("facingDeg");
+  if (deg) {
+    const viewTxt = {
+      threeQuarter: f.facingBack ? "vue 3/4 dos" : "vue 3/4 avant",
+      front: f.facingBack ? "vue dos" : "vue face",
+      side: "vue profil",
+    }[f.view];
+    deg.textContent = `Angle : ${f.deg}° · ${viewTxt}`;
+  }
+}
+
+function setFacing(id) {
+  state.facing = ((id % 8) + 8) % 8;
+  syncFacingUI();
+  const f = getFacing();
+  info.textContent = `Direction ${f.label} (${f.deg}°)`;
+  draw();
+}
+
+document.querySelectorAll("#facingPad .ctrl-btn").forEach((btn) => {
+  btn.addEventListener("click", () => setFacing(parseInt(btn.dataset.facing, 10)));
+});
+document.getElementById("rotLeft").addEventListener("click", () => setFacing(state.facing - 1));
+document.getElementById("rotRight").addEventListener("click", () => setFacing(state.facing + 1));
+
 buildBodySlidersUI();
+syncFacingUI();
 draw();
 </script>
 </body>
