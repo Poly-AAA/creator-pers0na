@@ -176,6 +176,9 @@
           <button class="ctrl-btn" type="button" id="rotLeft">↺ −45°</button>
           <button class="ctrl-btn" type="button" id="rotRight">+45° ↻</button>
         </div>
+        <div class="rot-row" style="margin-top:6px;">
+          <button class="ctrl-btn" type="button" id="galleryMorphs">Galerie 3 morphos</button>
+        </div>
         <div class="row" style="justify-content:center;">
           <span class="val" id="facingDeg" style="min-width:auto;">3/4 face-droit · SE · 45°</span>
         </div>
@@ -263,6 +266,7 @@ const state = {
   torsoColor: "#3b6ea5",
   hatColor: "#2d3748",
   showAnchors: false,
+  galleryMorphs: false,
 };
 
 /* ============================================================
@@ -494,10 +498,11 @@ function drawGrid(parent, gridSize, tileW, tileH, ox, oy) {
    Structure inchangée : pivot / Y / facing / calques
    ============================================================ */
 function buildShadow(m, w) {
-  // Double ombre : contact + sol (ancrée au pivot)
+  // Ombre proportionnelle à l'écartement des pieds + taille
+  const s = (m.footSpread || 0.16) / 0.16;
   return [
-    oval(0.02 * w, 0.03 * w, 0.32 * w, 0.10 * w, "rgba(0,0,0,0.18)", "none", 0),
-    oval(0, 0.015 * w, 0.22 * w, 0.065 * w, "rgba(0,0,0,0.32)", "none", 0),
+    oval(0.02 * w, 0.03 * w, 0.30 * s * w, 0.095 * w, "rgba(0,0,0,0.16)", "none", 0),
+    oval(0, 0.012 * w, 0.20 * s * w, 0.06 * w, "rgba(0,0,0,0.34)", "none", 0),
   ];
 }
 
@@ -645,50 +650,56 @@ function buildArm(m, w, side, far, kind) {
   const nodes = [];
   const c = limbColors(far);
   const shx = side * m.shoulderW;
-  // Épaisseur réelle (déjà × hauteur dans resolveMorph)
-  const bi = Math.max(0.03, m.biceps) * (kind === "side" ? 0.9 : 1.15);
-  const fo = Math.max(0.025, m.forearm) * (kind === "side" ? 0.9 : 1.15);
-  // Portée horizontale : grandit avec l'épaisseur ET la longueur du segment
-  const reach = kind === "side" ? 0.22 : (0.55 + 0.45 * (m.upperLen || 1));
-  const reachF = kind === "side" ? 0.28 : (0.5 + 0.5 * (m.foreLen || 1));
-  const elbowX = shx + side * (bi * 0.35 + m.shoulderW * reach * 0.5);
-  const wristX = elbowX + side * (fo * 0.25 + m.shoulderW * reachF * 0.35);
+  const h = m.charHeight || 1;
+  const bi = Math.max(0.028, m.biceps) * (kind === "side" ? 1.0 : 1.12);
+  const fo = Math.max(0.024, m.forearm) * (kind === "side" ? 1.0 : 1.12);
 
-  // Deltoïde — suit shoulderCap × épaisseur bras
-  if (m.shoulderCap > 0.1) {
-    const r = (0.03 + m.shoulderCap * 0.045 + bi * 0.25) * w;
-    nodes.push(oval(shx * w, (m.shoulder + 0.02) * w, r, r * 0.85, c.fill));
+  // Placement X selon la vue — profil = bras le long du corps
+  let elbowX, wristX;
+  if (kind === "side") {
+    elbowX = shx + side * bi * 0.25;
+    wristX = shx + side * fo * 0.15;
+  } else if (kind === "front" || kind === "back") {
+    elbowX = shx + side * (m.shoulderW * 0.15 + bi * 0.5);
+    wristX = elbowX + side * (fo * 0.35);
+  } else {
+    // 3/4
+    const reach = 0.5 + 0.4 * (m.upperLen || 1);
+    const reachF = 0.45 + 0.4 * (m.foreLen || 1);
+    elbowX = shx + side * (bi * 0.3 + m.shoulderW * reach * 0.45);
+    wristX = elbowX + side * (fo * 0.22 + m.shoulderW * reachF * 0.3);
   }
 
-  // Biceps / bras supérieur
+  if (m.shoulderCap > 0.1) {
+    const r = (0.028 + m.shoulderCap * 0.042 + bi * 0.22) * w;
+    nodes.push(oval(shx * w, (m.shoulder + 0.015 * h) * w, r, r * 0.82, c.fill));
+  }
+
   nodes.push(path(
-    `M ${px(shx - side * bi * 0.35, w)} ${px(m.shoulder, w)}
-     Q ${px(elbowX - side * bi * 0.7, w)} ${px((m.shoulder + m.elbow) / 2, w)}
-       ${px(elbowX - side * bi * 0.45, w)} ${px(m.elbow, w)}
-     L ${px(elbowX + side * bi * 0.55, w)} ${px(m.elbow + 0.03 * m.charHeight, w)}
-     Q ${px(shx + side * bi * 0.55, w)} ${px((m.shoulder + m.elbow) / 2, w)}
-       ${px(shx + side * bi * 0.4, w)} ${px(m.shoulder + 0.05 * m.charHeight, w)} Z`,
+    `M ${px(shx - side * bi * 0.32, w)} ${px(m.shoulder, w)}
+     Q ${px(elbowX - side * bi * 0.65, w)} ${px((m.shoulder + m.elbow) / 2, w)}
+       ${px(elbowX - side * bi * 0.4, w)} ${px(m.elbow, w)}
+     L ${px(elbowX + side * bi * 0.5, w)} ${px(m.elbow + 0.025 * h, w)}
+     Q ${px(shx + side * bi * 0.5, w)} ${px((m.shoulder + m.elbow) / 2, w)}
+       ${px(shx + side * bi * 0.38, w)} ${px(m.shoulder + 0.04 * h, w)} Z`,
     c.fill
   ));
 
-  // Coude
-  const er = Math.max(0.018, 0.02 + m.elbowBulk * 0.55) * w;
-  nodes.push(oval(elbowX * w, (m.elbow + 0.015 * m.charHeight) * w, er, er * 0.85, c.mid));
+  const er = Math.max(0.016, 0.018 + m.elbowBulk * 0.5) * w;
+  nodes.push(oval(elbowX * w, (m.elbow + 0.012 * h) * w, er, er * 0.82, c.mid));
 
-  // Avant-bras
   nodes.push(path(
-    `M ${px(elbowX - side * bi * 0.35, w)} ${px(m.elbow, w)}
-     Q ${px(wristX - side * fo * 0.55, w)} ${px((m.elbow + m.wrist) / 2, w)}
-       ${px(wristX - side * fo * 0.35, w)} ${px(m.wrist, w)}
-     L ${px(wristX + side * fo * 0.45, w)} ${px(m.wrist + 0.025 * m.charHeight, w)}
-     Q ${px(elbowX + side * fo * 0.4, w)} ${px((m.elbow + m.wrist) / 2, w)}
-       ${px(elbowX + side * bi * 0.45, w)} ${px(m.elbow + 0.03 * m.charHeight, w)} Z`,
+    `M ${px(elbowX - side * bi * 0.32, w)} ${px(m.elbow, w)}
+     Q ${px(wristX - side * fo * 0.5, w)} ${px((m.elbow + m.wrist) / 2, w)}
+       ${px(wristX - side * fo * 0.32, w)} ${px(m.wrist, w)}
+     L ${px(wristX + side * fo * 0.42, w)} ${px(m.wrist + 0.02 * h, w)}
+     Q ${px(elbowX + side * fo * 0.38, w)} ${px((m.elbow + m.wrist) / 2, w)}
+       ${px(elbowX + side * bi * 0.42, w)} ${px(m.elbow + 0.025 * h, w)} Z`,
     c.mid
   ));
 
-  // Main — suit handSize
-  const hr = Math.max(0.018, (m.handSize || fo * 0.45)) * w;
-  nodes.push(oval(wristX * w, m.wrist * w, hr, hr * 0.82, c.fill));
+  const hr = Math.max(0.016, (m.handSize || fo * 0.42)) * w;
+  nodes.push(oval(wristX * w, m.wrist * w, hr, hr * 0.8, c.fill));
   return nodes;
 }
 
@@ -886,75 +897,89 @@ function buildHead(m, w, kind) {
 function buildPants(m, w, side, far, mode, color, kind) {
   const nodes = [];
   const fill = far ? darken(color, 0.18) : color;
+  const stitch = darken(color, 0.32);
+  const h = m.charHeight || 1;
   const sx = side * m.footSpread;
-  const hipX = side * m.hipW * (kind === "side" ? 0.2 : 0.55);
-  const th = m.thigh * 1.05;
-  const hemY = mode === "over" ? m.foot * 0.5 : m.ankle - 0.03;
+  const hipX = side * m.hipW * (kind === "side" ? 0.22 : 0.58);
+  const th = Math.max(m.thigh, m.legThick) * 1.12;
+  const hemY = mode === "over" ? m.foot * 0.45 : m.ankle - 0.035 * h;
   nodes.push(path(
-    `M ${px(hipX - side * th * 0.2, w)} ${px(m.hip - 0.02, w)}
-     L ${px(hipX + side * th * 0.35, w)} ${px(m.hip - 0.02, w)}
-     L ${px(sx + side * th * 0.55, w)} ${px(m.knee, w)}
-     L ${px(sx - side * th * 0.2, w)} ${px(m.knee, w)} Z`, fill, OUT, 1.2));
+    `M ${px(hipX - side * th * 0.25, w)} ${px(m.hip - 0.03 * h, w)}
+     L ${px(hipX + side * th * 0.4, w)} ${px(m.hip - 0.03 * h, w)}
+     L ${px(sx + side * th * 0.62, w)} ${px(m.knee, w)}
+     L ${px(sx - side * th * 0.28, w)} ${px(m.knee, w)} Z`,
+    fill, OUT, 1.7
+  ));
   nodes.push(path(
-    `M ${px(sx - side * th * 0.2, w)} ${px(m.knee, w)}
-     L ${px(sx + side * th * 0.55, w)} ${px(m.knee, w)}
-     L ${px(sx + side * th * 0.6, w)} ${px(hemY, w)}
-     L ${px(sx - side * th * 0.25, w)} ${px(hemY, w)} Z`, fill, OUT, 1.2));
+    `M ${px(sx - side * th * 0.28, w)} ${px(m.knee, w)}
+     L ${px(sx + side * th * 0.62, w)} ${px(m.knee, w)}
+     L ${px(sx + side * th * (mode === "over" ? 0.7 : 0.58), w)} ${px(hemY, w)}
+     L ${px(sx - side * th * 0.3, w)} ${px(hemY, w)} Z`,
+    fill, OUT, 1.7
+  ));
+  nodes.push(path(
+    `M ${px(sx - side * th * 0.3, w)} ${px(hemY, w)}
+     L ${px(sx + side * th * (mode === "over" ? 0.7 : 0.58), w)} ${px(hemY, w)}
+     L ${px(sx + side * th * (mode === "over" ? 0.7 : 0.58), w)} ${px(hemY + 0.03 * h, w)}
+     L ${px(sx - side * th * 0.3, w)} ${px(hemY + 0.03 * h, w)} Z`,
+    stitch, OUT, 1.2
+  ));
   return nodes;
 }
 
 function buildPantsBelt(m, w, color) {
+  if (state.torso === "tunic") return [];
+  const h = m.charHeight || 1;
   return [path(
-    `M ${px(-m.hipW * 1.05, w)} ${px(m.hip - 0.05, w)}
-     L ${px(m.hipW * 1.05, w)} ${px(m.hip - 0.05, w)}
-     L ${px(m.hipW * 0.95, w)} ${px(m.hip + 0.03, w)}
-     L ${px(-m.hipW * 0.95, w)} ${px(m.hip + 0.03, w)} Z`,
-    color, OUT, 1.2
+    `M ${px(-m.hipW * 1.08, w)} ${px(m.hip - 0.04 * h, w)}
+     L ${px(m.hipW * 1.08, w)} ${px(m.hip - 0.04 * h, w)}
+     L ${px(m.hipW * 0.98, w)} ${px(m.hip + 0.035 * h, w)}
+     L ${px(-m.hipW * 0.98, w)} ${px(m.hip + 0.035 * h, w)} Z`,
+    darken(color, 0.15), OUT, 1.5
   )];
 }
 
 function buildTunic(m, w, color, kind) {
   const nodes = [];
-  const sw = m.shoulderW * 0.95;
-  const ww = m.waistW * (1.1 + m.belly * 0.2);
-  const shade = darken(color, 0.2);
+  const sw = Math.max(m.shoulderW * 0.95, m.hipW * 0.85);
+  const ww = Math.max(m.waistW, m.hipW * 0.72) * (1.08 + m.belly * 0.2);
+  const shade = darken(color, 0.22);
   const h = m.charHeight || 1;
-  // Corps tunique
+  const back = kind === "back" || kind === "qBack";
   nodes.push(path(
-    `M ${px(-sw, w)} ${px(m.shoulder + 0.02 * h, w)}
-     Q ${px(-ww * 1.08, w)} ${px(m.waist, w)} ${px(-ww * 1.05, w)} ${px(m.hip + 0.04 * h, w)}
-     L ${px(ww * 1.05, w)} ${px(m.hip + 0.04 * h, w)}
-     Q ${px(ww * 1.08, w)} ${px(m.waist, w)} ${px(sw, w)} ${px(m.shoulder, w)} Z`,
-    color, OUT, 1.9
+    `M ${px(-sw, w)} ${px(m.shoulder + 0.015 * h, w)}
+     Q ${px(-ww * 1.1, w)} ${px(m.waist, w)} ${px(-ww * 1.08, w)} ${px(m.hip + 0.05 * h, w)}
+     L ${px(ww * 1.08, w)} ${px(m.hip + 0.05 * h, w)}
+     Q ${px(ww * 1.1, w)} ${px(m.waist, w)} ${px(sw, w)} ${px(m.shoulder - 0.005 * h, w)} Z`,
+    back ? shade : color, OUT, 1.9
   ));
-  // Bande poitrine (cel-shade)
-  if (kind !== "back" && kind !== "qBack") {
+  if (!back && kind !== "side") {
     nodes.push(path(
-      `M ${px(-sw * 0.85, w)} ${px(m.shoulder + 0.06 * h, w)}
-       Q ${px(0, w)} ${px(m.shoulder + 0.1 * h, w)} ${px(sw * 0.85, w)} ${px(m.shoulder + 0.05 * h, w)}
-       L ${px(sw * 0.7, w)} ${px(m.chest, w)}
-       Q ${px(0, w)} ${px(m.chest + 0.02 * h, w)} ${px(-sw * 0.7, w)} ${px(m.chest, w)} Z`,
+      `M ${px(-sw * 0.8, w)} ${px(m.shoulder + 0.05 * h, w)}
+       Q ${px(0, w)} ${px(m.shoulder + 0.08 * h, w)} ${px(sw * 0.8, w)} ${px(m.shoulder + 0.04 * h, w)}
+       L ${px(sw * 0.65, w)} ${px(m.chest, w)}
+       Q ${px(0, w)} ${px(m.chest + 0.015 * h, w)} ${px(-sw * 0.65, w)} ${px(m.chest, w)} Z`,
       shade, "none", 0
     ));
-  }
-  // Col V
-  if (kind !== "back" && kind !== "qBack" && kind !== "side") {
     nodes.push(path(
-      `M ${px(-sw * 0.28, w)} ${px(m.shoulder + 0.04 * h, w)}
-       L ${px(0, w)} ${px(m.shoulder + 0.24 * h, w)}
-       L ${px(sw * 0.28, w)} ${px(m.shoulder + 0.03 * h, w)}`,
+      `M ${px(-sw * 0.26, w)} ${px(m.shoulder + 0.035 * h, w)}
+       L ${px(0, w)} ${px(m.shoulder + 0.22 * h, w)}
+       L ${px(sw * 0.26, w)} ${px(m.shoulder + 0.03 * h, w)}`,
       "none", shade, 2
     ));
   }
-  // Ceinture cuir
   nodes.push(path(
-    `M ${px(-ww * 1.02, w)} ${px(m.hip - 0.02 * h, w)}
-     L ${px(ww * 1.02, w)} ${px(m.hip - 0.02 * h, w)}
-     L ${px(ww * 0.98, w)} ${px(m.hip + 0.05 * h, w)}
-     L ${px(-ww * 0.98, w)} ${px(m.hip + 0.05 * h, w)} Z`,
+    `M ${px(-ww * 1.05, w)} ${px(m.hip - 0.015 * h, w)}
+     L ${px(ww * 1.05, w)} ${px(m.hip - 0.015 * h, w)}
+     L ${px(ww, w)} ${px(m.hip + 0.055 * h, w)}
+     L ${px(-ww, w)} ${px(m.hip + 0.055 * h, w)} Z`,
     "#5c3d22", OUT, 1.6
   ));
-  nodes.push(oval(0, (m.hip + 0.015 * h) * w, 0.035 * w, 0.028 * w, "#c4a35a", OUT, 1.3));
+  if (kind !== "side") {
+    nodes.push(oval(0, (m.hip + 0.02 * h) * w, 0.038 * w, 0.03 * w, "#c4a35a", OUT, 1.3));
+  } else {
+    nodes.push(oval(ww * 0.15 * w, (m.hip + 0.02 * h) * w, 0.03 * w, 0.028 * w, "#c4a35a", OUT, 1.2));
+  }
   return nodes;
 }
 
@@ -1101,7 +1126,19 @@ function draw() {
   svg.appendChild(world);
   drawGrid(world, gridSize, tileW, tileH, ox, oy);
   const { x: cx, y: cy } = isoToScreen(state.selected.row, state.selected.col, tileW, tileH, ox, oy);
-  world.appendChild(createCharacter(cx, cy, tileW, state.morph));
+
+  if (state.galleryMorphs) {
+    // Affiche Lourd / Standard / Fin côte à côte (même vue) pour valider les morphos
+    const gap = tileW * 1.35;
+    const morphs = ["heavy", "standard", "light"];
+    morphs.forEach((mid, i) => {
+      const x = cx + (i - 1) * gap;
+      world.appendChild(createCharacter(x, cy, tileW, mid));
+    });
+    info.textContent = `Galerie morphos · vue ${getFacing().name} — compare Lourd / Standard / Fin`;
+  } else {
+    world.appendChild(createCharacter(cx, cy, tileW, state.morph));
+  }
 }
 
 function buildBodySlidersUI() {
@@ -1244,6 +1281,16 @@ document.querySelectorAll("#facingPad .ctrl-btn").forEach((btn) => {
 });
 document.getElementById("rotLeft").addEventListener("click", () => setFacing(state.facing - 1));
 document.getElementById("rotRight").addEventListener("click", () => setFacing(state.facing + 1));
+
+document.getElementById("galleryMorphs").addEventListener("click", () => {
+  state.galleryMorphs = !state.galleryMorphs;
+  const btn = document.getElementById("galleryMorphs");
+  btn.classList.toggle("active", state.galleryMorphs);
+  info.textContent = state.galleryMorphs
+    ? "Galerie 3 morphos ON — tourne pour vérifier les 8 vues"
+    : "Galerie OFF — un seul perso";
+  draw();
+});
 
 buildBodySlidersUI();
 syncFacingUI();
