@@ -104,6 +104,16 @@
             <button class="ctrl-btn" data-morph="light">🏹 Fin</button>
           </div>
         </div>
+        <div class="row">
+          <label>Hauteur</label>
+          <input type="range" id="charHeight" min="0.70" max="1.45" step="0.05" value="1.00">
+          <span id="charHeightVal" class="val">1.00</span>
+        </div>
+        <div class="row">
+          <label>Taille Ø</label>
+          <input type="range" id="charSize" min="0.70" max="1.40" step="0.05" value="1.00">
+          <span id="charSizeVal" class="val">1.00</span>
+        </div>
         <div class="section-title">
           <span>Tronçons</span>
           <button class="ctrl-btn" id="resetBody" type="button" style="padding:2px 8px;font-size:10px;">Reset</button>
@@ -243,6 +253,8 @@ const state = {
   selected: { row: 2, col: 2 },
   morph: "standard",
   body: defaultBodyCustom(),
+  charHeight: 1.0,    // étire la hauteur (Y) depuis les pieds
+  charSize: 1.0,      // taille générale (échelle uniforme)
   facing: 0,
   pants: "none",
   torso: "none",
@@ -323,7 +335,21 @@ function spreadFor(kind) {
 function resolveMorph(morphId, body = state.body) {
   const base = MORPHS[morphId];
   const b = body;
-  const m = { ...base, ...Y };
+  const h = state.charHeight; // hauteur globale — scale Y uniquement
+  const m = { ...base };
+
+  // Hauteurs Y lockées × hauteur perso (pivot reste à 0)
+  m.head = Y.head * h;
+  m.neck = Y.neck * h;
+  m.shoulder = Y.shoulder * h;
+  m.chest = Y.chest * h;
+  m.waist = Y.waist * h;
+  m.hip = Y.hip * h;
+  m.knee = Y.knee * h;
+  m.ankle = Y.ankle * h;
+  m.foot = Y.foot * h;
+  m.elbow = Y.elbow * h;
+  m.wrist = Y.wrist * h;
 
   m.neckW = base.neckW * b.neck;
   m.shoulderW = base.shoulderW * b.shoulderWidth;
@@ -340,8 +366,12 @@ function resolveMorph(morphId, body = state.body) {
   m.thigh = base.legThick * b.thigh;
   m.calf = base.legThick * b.calf;
   m.footSpread = base.footSpread;
+  m.headRx = base.headRx;
+  m.headRy = base.headRy * h; // crâne un peu plus haut si perso plus grand
   m.legThick = (m.thigh + m.calf) / 2;
   m.armThick = (m.biceps + m.forearm) / 2;
+  m.charSize = state.charSize;
+  m.charHeight = h;
   return m;
 }
 
@@ -757,63 +787,66 @@ function createCharacter(cx, cy, tileW, morphId) {
   const f = m.facing;
   const kind = f.kind;
   const w = tileW;
+  const s = m.charSize; // taille générale — scale uniforme depuis le pivot
 
   const root = el("g", {
     class: "character",
     transform: `translate(${cx}, ${cy})`,
     "data-facing": f.key,
     "data-view": f.name,
+    "data-size": s.toFixed(2),
+    "data-height": m.charHeight.toFixed(2),
   });
   root.style.pointerEvents = "none";
 
-  // Ombre TOUJOURS hors miroir, sur le pivot
-  for (const n of buildShadow(m, w)) root.appendChild(n);
+  // Groupe échelle : pivot pieds (0,0) inchangé
+  const scaled = el("g", {
+    class: "char-scale",
+    transform: `scale(${s})`,
+  });
+  root.appendChild(scaled);
+
+  // Ombre ancrée au pivot, suit la taille
+  for (const n of buildShadow(m, w)) scaled.appendChild(n);
 
   const body = el("g", {
     class: "body",
     transform: f.mirror ? "scale(-1,1)" : "",
   });
-  root.appendChild(body);
+  scaled.appendChild(body);
 
-  // Ordre de dessin (peinture du loin → près)
-  // near="R" avant miroir : jambe/bras droits au premier plan en 3/4
-  const farSide = -1;  // gauche = loin (avant miroir)
-  const nearSide = 1;  // droite = près
-
+  const farSide = -1;
+  const nearSide = 1;
   const add = (nodes) => { for (const n of nodes) body.appendChild(n); };
 
-  // 1) membre loin
   add(buildLeg(m, w, farSide, true, kind));
   add(buildArm(m, w, farSide, true, kind));
   if (state.pants !== "none") add(buildPants(m, w, farSide, true, state.pants, state.pantsColor, kind));
 
-  // 2) torse
   add(buildTorso(m, w, kind));
   if (state.pants !== "none") add(buildPantsBelt(m, w, state.pantsColor));
   if (state.torso === "tunic") add(buildTunic(m, w, state.torsoColor, kind));
 
-  // 3) tête
   add(buildHead(m, w, kind));
   if (state.hat === "cap") add(buildCap(m, w, state.hatColor, kind));
 
-  // 4) membre près
   add(buildLeg(m, w, nearSide, false, kind));
   add(buildArm(m, w, nearSide, false, kind));
   if (state.pants !== "none") add(buildPants(m, w, nearSide, false, state.pants, state.pantsColor, kind));
 
-  // Ancres (suivent le miroir du corps)
   if (state.showAnchors) add(buildAnchors(m, w));
 
-  // Meta hors miroir : pivot + label lisible
+  // Meta hors miroir, dans le scale : label suit la hauteur
   const meta = el("g", { class: "meta" });
-  root.appendChild(meta);
+  scaled.appendChild(meta);
   const pivot = oval(0, 0, 0.028 * w, 0.028 * w, "#ff0044", "#ff0044", 1.2);
   pivot.setAttribute("opacity", "0.75");
   meta.appendChild(pivot);
 
   const label = el("text", {
     x: 0, y: (m.head - m.headRy - 0.16) * w,
-    "text-anchor": "middle", "font-size": "9",
+    "text-anchor": "middle",
+    "font-size": String(Math.max(8, Math.round(9 / Math.sqrt(s)))),
     fill: m.labelColor, "font-weight": "bold", "font-family": "Arial",
   });
   label.textContent = `${m.label} · ${f.short}`;
@@ -918,8 +951,31 @@ document.querySelectorAll("#chestShapeSelector .ctrl-btn").forEach((btn) => {
 
 document.getElementById("resetBody").addEventListener("click", () => {
   state.body = defaultBodyCustom();
+  state.charHeight = 1.0;
+  state.charSize = 1.0;
+  const hIn = document.getElementById("charHeight");
+  const sIn = document.getElementById("charSize");
+  if (hIn) hIn.value = "1.00";
+  if (sIn) sIn.value = "1.00";
+  document.getElementById("charHeightVal").textContent = "1.00";
+  document.getElementById("charSizeVal").textContent = "1.00";
   syncBodySlidersFromState();
-  info.textContent = "Tronçons réinitialisés";
+  info.textContent = "Tronçons + hauteur/taille réinitialisés";
+  draw();
+});
+
+const charHeightInput = document.getElementById("charHeight");
+const charSizeInput = document.getElementById("charSize");
+charHeightInput.addEventListener("input", () => {
+  state.charHeight = parseFloat(charHeightInput.value);
+  document.getElementById("charHeightVal").textContent = state.charHeight.toFixed(2);
+  info.textContent = `Hauteur perso → ${state.charHeight.toFixed(2)}`;
+  draw();
+});
+charSizeInput.addEventListener("input", () => {
+  state.charSize = parseFloat(charSizeInput.value);
+  document.getElementById("charSizeVal").textContent = state.charSize.toFixed(2);
+  info.textContent = `Taille générale → ${state.charSize.toFixed(2)}`;
   draw();
 });
 
