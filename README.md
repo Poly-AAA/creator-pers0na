@@ -11,7 +11,7 @@ Ouvre `index.html` dans un navigateur pour tester.
 - Point de pivot au sol (centre de case)
 - Sélecteur de morphologie + curseurs grille
 
-## Phase 1 — Superposition (Z-Index) ✅
+## Phase 1 — Superposition (Z-Index) + tronçons custom ✅
 
 ### Calques SVG (du bas vers le haut)
 
@@ -24,27 +24,47 @@ Ouvre `index.html` dans un navigateur pour tester.
 7. `anchors` — points d'ancrage (debug)
 8. `meta` — pivot + étiquette
 
+### Customisation par tronçon
+
+La morphologie (Lourd / Standard / Fin) est un **preset de base**.  
+`resolveMorph(morphId, body)` fusionne ce preset avec les réglages indépendants :
+
+| Tronçon | Clé | Effet |
+|---------|-----|--------|
+| Cou | `neck` | largeur du cou |
+| Épaules Ø | `shoulderWidth` | écartement des épaules |
+| Haut épaules | `shoulderCap` | volume deltoïde |
+| Biceps | `biceps` | bras supérieur |
+| Coudes | `elbow` | grosseur de l'articulation |
+| Avant-bras | `forearm` | bras inférieur |
+| Poitrine Ø | `chestSize` | volume pecs / seins |
+| Forme poitrine | `chestShape` | `flat` / `pec` / `soft` / `full` |
+| Ventre | `belly` | bombé abdominal |
+| Taille | `waist` | largeur taille |
+| Hanches | `hips` | largeur hanches |
+| Fesses | `glutes` | volume fessier |
+| Cuisses | `thigh` | épaisseur cuisse |
+| Mollets | `calf` | épaisseur mollet |
+
+Les équipements et ancres lisent **uniquement** le profil résolu — ils suivent automatiquement les tronçons.
+
 ### Points d'ancrage
 
-`head`, `neck`, `shoulderL/R`, `waistL/R`, `hip`, `handL/R`, `footL/R`, `pivot` — adaptés à chaque morphologie via `getAnchors(m)`.
+`head`, `neck`, `shoulderL/R`, `elbowL/R`, `waistL/R`, `hip`, `gluteL/R`, `handL/R`, `footL/R`, `pivot`.
 
 ### Équipements test
 
 | Slot | Options | Notes |
 |------|---------|-------|
 | Pantalon | Aucun / **IN** / **OVER** | IN = ourlet cheville ; OVER = plus large, recouvre la cheville |
-| Haut | Aucun / Tunique | Calque `torso` |
+| Haut | Aucun / Tunique | Calque `torso` (suit le ventre) |
 | Chapeau | Aucun / Casquette | Calque `head` |
-
-Couleurs ajustables via inputs color. Toggle pour afficher/masquer les ancres.
 
 ### Étendre le système
 
-1. Ajouter un profil dans l'équipement (ex. `buildBoots(m, w, color)`)
-2. L'injecter dans le calque anatomique correct dans `createCharacter()`
-3. Ajouter un sélecteur UI + entrée dans `state`
+**Nouvel équipement :** `buildXxx(m, w, color)` → injecter dans le calque → UI + `state`.
 
-Les dimensions passent toujours par le profil `MORPHS[id]` (`pantsScaleX`, `torsoScaleX`, etc.) pour s'adapter aux 3 morphologies.
+**Nouveau tronçon :** ajouter une entrée dans `BODY_SLIDER_DEFS`, l'appliquer dans `resolveMorph()`, puis l'utiliser dans le builder anatomique concerné.
 
 ## Roadmap
 
