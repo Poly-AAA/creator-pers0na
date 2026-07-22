@@ -335,10 +335,10 @@ function spreadFor(kind) {
 function resolveMorph(morphId, body = state.body) {
   const base = MORPHS[morphId];
   const b = body;
-  const h = state.charHeight; // hauteur globale — scale Y uniquement
+  const h = state.charHeight; // hauteur globale — scale Y depuis les pieds
   const m = { ...base };
 
-  // Hauteurs Y lockées × hauteur perso (pivot reste à 0)
+  // Hauteurs Y de base × hauteur perso (pivot reste à 0)
   m.head = Y.head * h;
   m.neck = Y.neck * h;
   m.shoulder = Y.shoulder * h;
@@ -348,30 +348,44 @@ function resolveMorph(morphId, body = state.body) {
   m.knee = Y.knee * h;
   m.ankle = Y.ankle * h;
   m.foot = Y.foot * h;
-  m.elbow = Y.elbow * h;
-  m.wrist = Y.wrist * h;
+
+  // Longueur des segments bras : suit Hauteur + curseurs Biceps / Avant-bras
+  // (sinon les bras restent courts/minces quand le corps grandit)
+  const upperLen = 0.65 + 0.35 * b.biceps;   // allonge le bras supérieur
+  const foreLen  = 0.65 + 0.35 * b.forearm;  // allonge l'avant-bras
+  m.elbow = m.shoulder + (Y.elbow - Y.shoulder) * h * upperLen;
+  m.wrist = m.elbow    + (Y.wrist - Y.elbow)    * h * foreLen;
 
   m.neckW = base.neckW * b.neck;
   m.shoulderW = base.shoulderW * b.shoulderWidth;
   m.shoulderCap = b.shoulderCap;
-  m.biceps = base.armThick * b.biceps;
-  m.elbowBulk = base.armThick * b.elbow;
-  m.forearm = base.armThick * b.forearm;
+
+  // Épaisseur bras : suit Hauteur × curseurs (effet bien visible)
+  const thickScale = h;
+  m.biceps    = base.armThick * b.biceps    * thickScale;
+  m.forearm   = base.armThick * b.forearm   * thickScale;
+  m.elbowBulk = base.armThick * b.elbow     * thickScale;
+  m.handSize  = base.armThick * 0.55 * ((b.biceps + b.forearm) / 2) * thickScale;
+
   m.chestShape = b.chestShape;
   m.chestSize = b.chestSize;
   m.belly = b.belly;
   m.waistW = base.waistW * b.waist;
   m.hipW = base.hipW * b.hips;
   m.glutes = b.glutes;
-  m.thigh = base.legThick * b.thigh;
-  m.calf = base.legThick * b.calf;
+
+  // Jambes : même logique (épaisseur × hauteur)
+  m.thigh = base.legThick * b.thigh * thickScale;
+  m.calf  = base.legThick * b.calf  * thickScale;
   m.footSpread = base.footSpread;
   m.headRx = base.headRx;
-  m.headRy = base.headRy * h; // crâne un peu plus haut si perso plus grand
+  m.headRy = base.headRy * h;
   m.legThick = (m.thigh + m.calf) / 2;
   m.armThick = (m.biceps + m.forearm) / 2;
   m.charSize = state.charSize;
   m.charHeight = h;
+  m.upperLen = upperLen;
+  m.foreLen = foreLen;
   return m;
 }
 
@@ -427,16 +441,21 @@ function darken(hex, a = 0.22) {
 }
 
 function getAnchors(m) {
+  const reach = 0.55 + 0.45 * (m.upperLen || 1);
+  const elbowX = m.shoulderW * (0.35 + reach * 0.5);
+  const wristX = elbowX + m.shoulderW * (0.25 + (m.foreLen || 1) * 0.2);
   return {
     head: { x: 0, y: m.head },
     neck: { x: 0, y: m.neck },
     shoulderL: { x: -m.shoulderW, y: m.shoulder },
     shoulderR: { x:  m.shoulderW, y: m.shoulder },
+    elbowL: { x: -elbowX, y: m.elbow },
+    elbowR: { x:  elbowX, y: m.elbow },
     waistL: { x: -m.waistW * 0.9, y: m.waist },
     waistR: { x:  m.waistW * 0.9, y: m.waist },
     hip: { x: 0, y: m.hip },
-    handL: { x: -m.shoulderW * 1.1, y: m.wrist },
-    handR: { x:  m.shoulderW * 1.1, y: m.wrist },
+    handL: { x: -wristX, y: m.wrist },
+    handR: { x:  wristX, y: m.wrist },
     footL: { x: -m.footSpread, y: m.ankle },
     footR: { x:  m.footSpread, y: m.ankle },
     pivot: { x: 0, y: 0 },
@@ -532,41 +551,50 @@ function buildArm(m, w, side, far, kind) {
   const nodes = [];
   const c = limbColors(far);
   const shx = side * m.shoulderW;
-  const bi = m.biceps * (kind === "side" ? 0.85 : 1);
-  const fo = m.forearm * (kind === "side" ? 0.85 : 1);
-  const elbowX = shx + side * bi * (kind === "side" ? 0.15 : 0.85);
-  const wristX = elbowX + side * fo * (kind === "side" ? 0.2 : 0.7);
+  // Épaisseur réelle (déjà × hauteur dans resolveMorph)
+  const bi = Math.max(0.03, m.biceps) * (kind === "side" ? 0.9 : 1.15);
+  const fo = Math.max(0.025, m.forearm) * (kind === "side" ? 0.9 : 1.15);
+  // Portée horizontale : grandit avec l'épaisseur ET la longueur du segment
+  const reach = kind === "side" ? 0.22 : (0.55 + 0.45 * (m.upperLen || 1));
+  const reachF = kind === "side" ? 0.28 : (0.5 + 0.5 * (m.foreLen || 1));
+  const elbowX = shx + side * (bi * 0.35 + m.shoulderW * reach * 0.5);
+  const wristX = elbowX + side * (fo * 0.25 + m.shoulderW * reachF * 0.35);
 
-  // Deltoïde
-  if (m.shoulderCap > 0.15) {
-    const r = (0.035 + m.shoulderCap * 0.04) * w;
+  // Deltoïde — suit shoulderCap × épaisseur bras
+  if (m.shoulderCap > 0.1) {
+    const r = (0.03 + m.shoulderCap * 0.045 + bi * 0.25) * w;
     nodes.push(oval(shx * w, (m.shoulder + 0.02) * w, r, r * 0.85, c.fill));
   }
-  // Biceps
+
+  // Biceps / bras supérieur
   nodes.push(path(
-    `M ${px(shx - side * bi * 0.2, w)} ${px(m.shoulder, w)}
-     Q ${px(elbowX - side * bi * 0.5, w)} ${px((m.shoulder + m.elbow) / 2, w)}
-       ${px(elbowX - side * bi * 0.2, w)} ${px(m.elbow, w)}
-     L ${px(elbowX + side * bi * 0.35, w)} ${px(m.elbow + 0.04, w)}
-     Q ${px(shx + side * bi * 0.35, w)} ${px((m.shoulder + m.elbow) / 2, w)}
-       ${px(shx + side * bi * 0.25, w)} ${px(m.shoulder + 0.06, w)} Z`,
+    `M ${px(shx - side * bi * 0.35, w)} ${px(m.shoulder, w)}
+     Q ${px(elbowX - side * bi * 0.7, w)} ${px((m.shoulder + m.elbow) / 2, w)}
+       ${px(elbowX - side * bi * 0.45, w)} ${px(m.elbow, w)}
+     L ${px(elbowX + side * bi * 0.55, w)} ${px(m.elbow + 0.03 * m.charHeight, w)}
+     Q ${px(shx + side * bi * 0.55, w)} ${px((m.shoulder + m.elbow) / 2, w)}
+       ${px(shx + side * bi * 0.4, w)} ${px(m.shoulder + 0.05 * m.charHeight, w)} Z`,
     c.fill
   ));
+
   // Coude
-  const er = (0.022 + m.elbowBulk * 0.35) * w;
-  nodes.push(oval(elbowX * w, (m.elbow + 0.02) * w, er, er * 0.85, c.mid));
+  const er = Math.max(0.018, 0.02 + m.elbowBulk * 0.55) * w;
+  nodes.push(oval(elbowX * w, (m.elbow + 0.015 * m.charHeight) * w, er, er * 0.85, c.mid));
+
   // Avant-bras
   nodes.push(path(
-    `M ${px(elbowX - side * bi * 0.15, w)} ${px(m.elbow, w)}
-     Q ${px(wristX - side * fo * 0.35, w)} ${px((m.elbow + m.wrist) / 2, w)}
-       ${px(wristX - side * fo * 0.15, w)} ${px(m.wrist, w)}
-     L ${px(wristX + side * fo * 0.3, w)} ${px(m.wrist + 0.03, w)}
-     Q ${px(elbowX + side * fo * 0.25, w)} ${px((m.elbow + m.wrist) / 2, w)}
-       ${px(elbowX + side * bi * 0.3, w)} ${px(m.elbow + 0.04, w)} Z`,
+    `M ${px(elbowX - side * bi * 0.35, w)} ${px(m.elbow, w)}
+     Q ${px(wristX - side * fo * 0.55, w)} ${px((m.elbow + m.wrist) / 2, w)}
+       ${px(wristX - side * fo * 0.35, w)} ${px(m.wrist, w)}
+     L ${px(wristX + side * fo * 0.45, w)} ${px(m.wrist + 0.025 * m.charHeight, w)}
+     Q ${px(elbowX + side * fo * 0.4, w)} ${px((m.elbow + m.wrist) / 2, w)}
+       ${px(elbowX + side * bi * 0.45, w)} ${px(m.elbow + 0.03 * m.charHeight, w)} Z`,
     c.mid
   ));
-  // Main
-  nodes.push(oval(wristX * w, m.wrist * w, Math.max(0.02, fo * 0.42) * w, Math.max(0.018, fo * 0.36) * w, c.fill));
+
+  // Main — suit handSize
+  const hr = Math.max(0.018, (m.handSize || fo * 0.45)) * w;
+  nodes.push(oval(wristX * w, m.wrist * w, hr, hr * 0.82, c.fill));
   return nodes;
 }
 
