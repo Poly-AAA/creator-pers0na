@@ -84,7 +84,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="topbar">NEURO CORE — Polish graphique · prêt Phase 3</div>
+  <div class="topbar">NEURO CORE — Style Dofus · système consolidé</div>
   <div class="info" id="info">Onglets : Corps · Équipements · Rotation · Grille</div>
   <div class="stage"><svg id="scene"></svg></div>
   <div class="controls">
@@ -99,8 +99,8 @@
         <div class="row">
           <label>Morphologie</label>
           <div class="btn-group" id="morphSelector">
-            <button class="ctrl-btn active" data-morph="heavy">⚔️ Lourd</button>
-            <button class="ctrl-btn" data-morph="standard">🗡️ Standard</button>
+            <button class="ctrl-btn" data-morph="heavy">⚔️ Lourd</button>
+            <button class="ctrl-btn active" data-morph="standard">🗡️ Standard</button>
             <button class="ctrl-btn" data-morph="light">🏹 Fin</button>
           </div>
         </div>
@@ -111,8 +111,8 @@
         </div>
         <div class="row">
           <label>Taille Ø</label>
-          <input type="range" id="charSize" min="0.70" max="1.40" step="0.05" value="1.00">
-          <span id="charSizeVal" class="val">1.00</span>
+          <input type="range" id="charSize" min="0.70" max="1.40" step="0.05" value="1.05">
+          <span id="charSizeVal" class="val">1.05</span>
         </div>
         <div class="section-title">
           <span>Tronçons</span>
@@ -134,19 +134,19 @@
         <div class="row">
           <label>Pantalon</label>
           <div class="btn-group" id="pantsSelector">
-            <button class="ctrl-btn active" data-pants="none">Aucun</button>
-            <button class="ctrl-btn" data-pants="in">IN</button>
+            <button class="ctrl-btn" data-pants="none">Aucun</button>
+            <button class="ctrl-btn active" data-pants="in">IN</button>
             <button class="ctrl-btn" data-pants="over">OVER</button>
           </div>
-          <input type="color" id="pantsColor" value="#3d4a5c">
+          <input type="color" id="pantsColor" value="#3d2b1f">
         </div>
         <div class="row">
           <label>Haut</label>
           <div class="btn-group" id="torsoSelector">
-            <button class="ctrl-btn active" data-torso="none">Aucun</button>
-            <button class="ctrl-btn" data-torso="tunic">Tunique</button>
+            <button class="ctrl-btn" data-torso="none">Aucun</button>
+            <button class="ctrl-btn active" data-torso="tunic">Tunique</button>
           </div>
-          <input type="color" id="torsoColor" value="#4a5568">
+          <input type="color" id="torsoColor" value="#3b6ea5">
         </div>
         <div class="row">
           <label>Chapeau</label>
@@ -253,54 +253,54 @@ const state = {
   selected: { row: 2, col: 2 },
   morph: "standard",
   body: defaultBodyCustom(),
-  charHeight: 1.0,    // étire la hauteur (Y) depuis les pieds
-  charSize: 1.0,      // taille générale (échelle uniforme)
+  charHeight: 1.0,
+  charSize: 1.05,
   facing: 0,
-  pants: "none",
-  torso: "none",
+  pants: "in",
+  torso: "tunic",
   hat: "none",
-  pantsColor: "#3d4a5c",
-  torsoColor: "#4a5568",
+  pantsColor: "#3d2b1f",
+  torsoColor: "#3b6ea5",
   hatColor: "#2d3748",
   showAnchors: false,
 };
 
 /* ============================================================
-   MORPHOLOGIES — hauteurs Y LOCKÉES (anti-jitter rotation)
+   MORPHOLOGIES — proportions style Dofus (tête + grosse, corps compact)
+   Hauteurs Y LOCKÉES (anti-jitter rotation)
    ============================================================ */
 const Y = {
-  // Fractions de tileW — IDENTIQUES pour toutes morphos & vues
-  head: -1.72,
-  neck: -1.52,
-  shoulder: -1.38,
-  chest: -1.12,
-  waist: -0.82,
-  hip: -0.70,
-  knee: -0.28,
+  head: -1.58,
+  neck: -1.36,
+  shoulder: -1.22,
+  chest: -0.98,
+  waist: -0.72,
+  hip: -0.62,
+  knee: -0.26,
   ankle: -0.02,
-  foot: 0.04,
-  elbow: -0.95,
-  wrist: -0.58,
+  foot: 0.045,
+  elbow: -0.86,
+  wrist: -0.52,
 };
 
 const MORPHS = {
   heavy: {
     id: "heavy", label: "LOURD", labelColor: "#ff8a8a",
-    shoulderW: 0.42, hipW: 0.30, waistW: 0.32, footSpread: 0.22,
-    headRx: 0.19, headRy: 0.23, neckW: 0.075,
-    armThick: 0.095, legThick: 0.10,
+    shoulderW: 0.40, hipW: 0.30, waistW: 0.30, footSpread: 0.20,
+    headRx: 0.24, headRy: 0.28, neckW: 0.07,
+    armThick: 0.10, legThick: 0.105,
   },
   standard: {
     id: "standard", label: "STANDARD", labelColor: "#6fd8c8",
-    shoulderW: 0.34, hipW: 0.23, waistW: 0.22, footSpread: 0.18,
-    headRx: 0.17, headRy: 0.21, neckW: 0.055,
-    armThick: 0.075, legThick: 0.078,
+    shoulderW: 0.32, hipW: 0.22, waistW: 0.20, footSpread: 0.16,
+    headRx: 0.22, headRy: 0.26, neckW: 0.055,
+    armThick: 0.078, legThick: 0.08,
   },
   light: {
     id: "light", label: "FIN", labelColor: "#c4b5fd",
-    shoulderW: 0.27, hipW: 0.17, waistW: 0.16, footSpread: 0.14,
-    headRx: 0.155, headRy: 0.20, neckW: 0.045,
-    armThick: 0.058, legThick: 0.058,
+    shoulderW: 0.26, hipW: 0.17, waistW: 0.15, footSpread: 0.13,
+    headRx: 0.20, headRy: 0.25, neckW: 0.045,
+    armThick: 0.06, legThick: 0.06,
   },
 };
 
@@ -409,14 +409,14 @@ function applyFacing(m, facingId = state.facing) {
 }
 
 /* ============================================================
-   SVG UTILS + PALETTE (lumière haut-gauche)
+   SVG UTILS + PALETTE DOFUS (contours gras, cel-shade, lumière HG)
    ============================================================ */
 const NS = "http://www.w3.org/2000/svg";
-const OUT = "#2a211c";
-const SKIN = "#e8c4a0";
-const SKIN_L = "#f0d4b8";
-const SKIN_D = "#c9a080";
-const SKIN_M = "#dbb494";
+const OUT = "#1a1210";       // contour épais style Ankama
+const SKIN = "#f0c8a0";
+const SKIN_L = "#f8dcb8";
+const SKIN_D = "#d4a57a";
+const SKIN_M = "#e8b888";
 
 function el(tag, attrs = {}) {
   const n = document.createElementNS(NS, tag);
@@ -425,10 +425,10 @@ function el(tag, attrs = {}) {
   }
   return n;
 }
-function path(d, fill, stroke = OUT, sw = 1.35) {
+function path(d, fill, stroke = OUT, sw = 1.85) {
   return el("path", { d, fill, stroke, "stroke-width": sw, "stroke-linejoin": "round", "stroke-linecap": "round" });
 }
-function oval(cx, cy, rx, ry, fill, stroke = OUT, sw = 1.35) {
+function oval(cx, cy, rx, ry, fill, stroke = OUT, sw = 1.85) {
   return el("ellipse", { cx, cy, rx, ry, fill, stroke, "stroke-width": sw });
 }
 function px(v, w) { return (v * w).toFixed(2); }
@@ -826,39 +826,55 @@ function buildHead(m, w, kind) {
     // Oreille
     nodes.push(oval((-m.headRx * 0.58) * w, m.head * w, 0.032 * w, 0.048 * w, SKIN_M, OUT, 1));
   } else {
-    // Cheveux dessus (face / 3/4)
+    // Cheveux dessus (face / 3/4) — volume Dofus
     nodes.push(path(
-      `M ${px(-m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.15, w)}
-       Q ${px(0, w)} ${px(m.head - m.headRy * 1.2, w)} ${px(m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.15, w)}
-       L ${px(m.headRx * 0.85, w)} ${px(m.head + 0.02 * h, w)}
-       Q ${px(0, w)} ${px(m.head - m.headRy * 0.35, w)} ${px(-m.headRx * 0.85, w)} ${px(m.head + 0.02 * h, w)} Z`,
-      hair, OUT, 1.15
+      `M ${px(-m.headRx * 1.02, w)} ${px(m.head - m.headRy * 0.05, w)}
+       Q ${px(-m.headRx * 0.6, w)} ${px(m.head - m.headRy * 1.25, w)}
+         ${px(0, w)} ${px(m.head - m.headRy * 1.35, w)}
+       Q ${px(m.headRx * 0.6, w)} ${px(m.head - m.headRy * 1.25, w)}
+         ${px(m.headRx * 1.02, w)} ${px(m.head - m.headRy * 0.05, w)}
+       Q ${px(m.headRx * 0.5, w)} ${px(m.head - m.headRy * 0.45, w)}
+         ${px(0, w)} ${px(m.head - m.headRy * 0.4, w)}
+       Q ${px(-m.headRx * 0.5, w)} ${px(m.head - m.headRy * 0.45, w)}
+         ${px(-m.headRx * 1.02, w)} ${px(m.head - m.headRy * 0.05, w)} Z`,
+      hair, OUT, 1.7
     ));
-    // Yeux (blanc + pupille)
-    const eyeY = m.head - 0.01 * h;
-    const ex = m.headRx * (kind === "qFront" ? 0.36 : 0.4);
-    const erx = m.headRx * 0.15 * w;
-    const ery = m.headRy * 0.1 * w;
-    nodes.push(oval((-ex) * w, eyeY * w, erx, ery, "#fff", OUT, 0.7));
-    nodes.push(oval(( ex) * w, eyeY * w, erx, ery, "#fff", OUT, 0.7));
-    nodes.push(oval((-ex + m.headRx * 0.02) * w, eyeY * w, erx * 0.45, ery * 0.7, "#1a1a1a", "none", 0));
-    nodes.push(oval(( ex + m.headRx * 0.02) * w, eyeY * w, erx * 0.45, ery * 0.7, "#1a1a1a", "none", 0));
-    // Sourcils
+    // Yeux style Dofus (grands, blanc + iris + pupille)
+    const eyeY = m.head - 0.005 * h;
+    const ex = m.headRx * (kind === "qFront" ? 0.34 : 0.38);
+    const erx = m.headRx * 0.22 * w;
+    const ery = m.headRy * 0.16 * w;
+    nodes.push(oval((-ex) * w, eyeY * w, erx, ery, "#fff", OUT, 1.2));
+    nodes.push(oval(( ex) * w, eyeY * w, erx, ery, "#fff", OUT, 1.2));
+    nodes.push(oval((-ex + m.headRx * 0.03) * w, eyeY * w, erx * 0.55, ery * 0.7, "#3a6ea5", "none", 0));
+    nodes.push(oval(( ex + m.headRx * 0.03) * w, eyeY * w, erx * 0.55, ery * 0.7, "#3a6ea5", "none", 0));
+    nodes.push(oval((-ex + m.headRx * 0.04) * w, eyeY * w, erx * 0.28, ery * 0.4, "#0d0d0d", "none", 0));
+    nodes.push(oval(( ex + m.headRx * 0.04) * w, eyeY * w, erx * 0.28, ery * 0.4, "#0d0d0d", "none", 0));
+    // Reflet œil
+    nodes.push(oval((-ex - m.headRx * 0.04) * w, eyeY * w - ery * 0.3, erx * 0.18, ery * 0.18, "#fff", "none", 0));
+    nodes.push(oval(( ex - m.headRx * 0.04) * w, eyeY * w - ery * 0.3, erx * 0.18, ery * 0.18, "#fff", "none", 0));
+    // Sourcils épais
     nodes.push(path(
-      `M ${px(-ex - m.headRx * 0.12, w)} ${px(eyeY - 0.045 * h, w)}
-       L ${px(-ex + m.headRx * 0.12, w)} ${px(eyeY - 0.035 * h, w)}`,
-      "none", hair, 1.4
+      `M ${px(-ex - m.headRx * 0.16, w)} ${px(eyeY - 0.06 * h, w)}
+       Q ${px(-ex, w)} ${px(eyeY - 0.07 * h, w)} ${px(-ex + m.headRx * 0.14, w)} ${px(eyeY - 0.05 * h, w)}`,
+      "none", hair, 2.2
     ));
     nodes.push(path(
-      `M ${px(ex - m.headRx * 0.12, w)} ${px(eyeY - 0.035 * h, w)}
-       L ${px(ex + m.headRx * 0.12, w)} ${px(eyeY - 0.045 * h, w)}`,
-      "none", hair, 1.4
+      `M ${px(ex - m.headRx * 0.14, w)} ${px(eyeY - 0.05 * h, w)}
+       Q ${px(ex, w)} ${px(eyeY - 0.07 * h, w)} ${px(ex + m.headRx * 0.16, w)} ${px(eyeY - 0.06 * h, w)}`,
+      "none", hair, 2.2
+    ));
+    // Petite bouche
+    nodes.push(path(
+      `M ${px(-m.headRx * 0.12, w)} ${px(m.head + m.headRy * 0.35, w)}
+       Q ${px(0, w)} ${px(m.head + m.headRy * 0.42, w)} ${px(m.headRx * 0.12, w)} ${px(m.head + m.headRy * 0.35, w)}`,
+      "none", "#a06050", 1.5
     ));
     // Menton
     nodes.push(path(
-      `M ${px(-m.headRx * 0.45, w)} ${px(m.head + m.headRy * 0.4, w)}
-       Q ${px(0, w)} ${px(m.head + m.headRy * 0.78, w)} ${px(m.headRx * 0.45, w)} ${px(m.head + m.headRy * 0.4, w)}`,
-      "none", OUT, 1.05
+      `M ${px(-m.headRx * 0.4, w)} ${px(m.head + m.headRy * 0.45, w)}
+       Q ${px(0, w)} ${px(m.head + m.headRy * 0.82, w)} ${px(m.headRx * 0.4, w)} ${px(m.head + m.headRy * 0.45, w)}`,
+      "none", OUT, 1.2
     ));
   }
   return nodes;
@@ -901,22 +917,44 @@ function buildTunic(m, w, color, kind) {
   const nodes = [];
   const sw = m.shoulderW * 0.95;
   const ww = m.waistW * (1.1 + m.belly * 0.2);
-  const shade = darken(color, 0.18);
+  const shade = darken(color, 0.2);
+  const h = m.charHeight || 1;
+  // Corps tunique
   nodes.push(path(
-    `M ${px(-sw, w)} ${px(m.shoulder + 0.02, w)}
-     Q ${px(-ww * 1.05, w)} ${px(m.waist, w)} ${px(-ww, w)} ${px(m.hip + 0.02, w)}
-     L ${px(ww, w)} ${px(m.hip + 0.02, w)}
-     Q ${px(ww * 1.05, w)} ${px(m.waist, w)} ${px(sw, w)} ${px(m.shoulder - 0.01, w)} Z`,
-    color
+    `M ${px(-sw, w)} ${px(m.shoulder + 0.02 * h, w)}
+     Q ${px(-ww * 1.08, w)} ${px(m.waist, w)} ${px(-ww * 1.05, w)} ${px(m.hip + 0.04 * h, w)}
+     L ${px(ww * 1.05, w)} ${px(m.hip + 0.04 * h, w)}
+     Q ${px(ww * 1.08, w)} ${px(m.waist, w)} ${px(sw, w)} ${px(m.shoulder, w)} Z`,
+    color, OUT, 1.9
   ));
-  if (kind !== "back" && kind !== "qBack" && kind !== "side") {
+  // Bande poitrine (cel-shade)
+  if (kind !== "back" && kind !== "qBack") {
     nodes.push(path(
-      `M ${px(-sw * 0.22, w)} ${px(m.shoulder + 0.04, w)}
-       L ${px(0, w)} ${px(m.shoulder + 0.2, w)}
-       L ${px(sw * 0.22, w)} ${px(m.shoulder + 0.03, w)}`,
-      "none", shade, 1.4
+      `M ${px(-sw * 0.85, w)} ${px(m.shoulder + 0.06 * h, w)}
+       Q ${px(0, w)} ${px(m.shoulder + 0.1 * h, w)} ${px(sw * 0.85, w)} ${px(m.shoulder + 0.05 * h, w)}
+       L ${px(sw * 0.7, w)} ${px(m.chest, w)}
+       Q ${px(0, w)} ${px(m.chest + 0.02 * h, w)} ${px(-sw * 0.7, w)} ${px(m.chest, w)} Z`,
+      shade, "none", 0
     ));
   }
+  // Col V
+  if (kind !== "back" && kind !== "qBack" && kind !== "side") {
+    nodes.push(path(
+      `M ${px(-sw * 0.28, w)} ${px(m.shoulder + 0.04 * h, w)}
+       L ${px(0, w)} ${px(m.shoulder + 0.24 * h, w)}
+       L ${px(sw * 0.28, w)} ${px(m.shoulder + 0.03 * h, w)}`,
+      "none", shade, 2
+    ));
+  }
+  // Ceinture cuir
+  nodes.push(path(
+    `M ${px(-ww * 1.02, w)} ${px(m.hip - 0.02 * h, w)}
+     L ${px(ww * 1.02, w)} ${px(m.hip - 0.02 * h, w)}
+     L ${px(ww * 0.98, w)} ${px(m.hip + 0.05 * h, w)}
+     L ${px(-ww * 0.98, w)} ${px(m.hip + 0.05 * h, w)} Z`,
+    "#5c3d22", OUT, 1.6
+  ));
+  nodes.push(oval(0, (m.hip + 0.015 * h) * w, 0.035 * w, 0.028 * w, "#c4a35a", OUT, 1.3));
   return nodes;
 }
 
