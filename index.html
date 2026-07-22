@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>NEURO CORE — Phase 1 · Corps customisable</title>
+<title>NEURO CORE — Graphismes 8 vues</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
   html, body { margin:0; height:100%; background:#0a0d0a; color:#e8e8e0; font-family:'Segoe UI', Arial, sans-serif; overflow:hidden; }
@@ -23,9 +23,21 @@
   .tile.selected { fill:#6fd8c8; }
   .controls {
     flex:0 0 auto; background:#16211a; border-top:1px solid #000;
-    padding:10px 12px; display:flex; flex-direction:column; gap:8px;
-    max-height:48dvh; overflow-y:auto;
+    display:flex; flex-direction:column; max-height:48dvh; min-height:0;
   }
+  .tabs {
+    flex:0 0 auto; display:flex; gap:0; border-bottom:1px solid #243328;
+    background:#101810;
+  }
+  .tab-btn {
+    flex:1 1 0; background:transparent; border:none; border-bottom:2px solid transparent;
+    color:#889; padding:10px 4px; font-size:11px; font-weight:600; cursor:pointer;
+  }
+  .tab-btn:hover { color:#ccd; background:#1a241c; }
+  .tab-btn.active { color:#6fd8c8; border-bottom-color:#6fd8c8; background:#16211a; }
+  .tab-panels { flex:1 1 auto; overflow-y:auto; padding:10px 12px; min-height:0; }
+  .tab-panel { display:none; flex-direction:column; gap:8px; }
+  .tab-panel.active { display:flex; }
   .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .row label { font-size:11px; color:#ccd; flex:0 0 88px; }
   .row input[type=range] { flex:1 1 auto; accent-color:#6fd8c8; min-width:60px; }
@@ -46,113 +58,165 @@
     margin-top:2px; padding-top:6px; border-top:1px solid #243328;
     display:flex; align-items:center; justify-content:space-between; gap:8px;
   }
-  .section-title .hint { color:#667; font-size:9px; text-transform:none; letter-spacing:0; }
+  .section-title:first-child { border-top:none; padding-top:0; margin-top:0; }
   .slider-grid { display:flex; flex-direction:column; gap:4px; }
   .slider-row {
-    display:grid;
-    grid-template-columns: 78px 1fr 32px;
+    display:grid; grid-template-columns: 78px 1fr 32px;
     align-items:center; gap:6px;
   }
   .slider-row span.label { font-size:10px; color:#9aa; }
   .slider-row span.num { font-size:10px; color:#6fd8c8; text-align:right; font-variant-numeric: tabular-nums; }
   .slider-row input[type=range] { width:100%; accent-color:#6fd8c8; }
+  .facing-pad {
+    display:grid;
+    grid-template-columns: repeat(3, minmax(56px, 1fr));
+    grid-template-rows: repeat(3, 42px);
+    gap:6px; justify-content:center; margin:4px 0 8px; max-width:280px; margin-inline:auto;
+  }
+  .facing-pad .ctrl-btn { width:100%; height:42px; padding:2px 4px; font-size:9px; line-height:1.15; }
+  .facing-center {
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; color:#6fd8c8; font-weight:700; text-align:center;
+  }
+  .rot-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .hint { font-size:10px; color:#778; text-align:center; line-height:1.35; }
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="topbar">NEURO CORE — Phase 1 · Corps customisable par tronçon</div>
-  <div class="info" id="info">Morphologie de base + réglages par tronçon. Chaque segment est indépendant.</div>
-  <div class="stage">
-    <svg id="scene"></svg>
-  </div>
+  <div class="topbar">NEURO CORE — Graphismes 8 vues · pivot & angles corrigés</div>
+  <div class="info" id="info">Onglets : Corps · Équipements · Rotation · Grille</div>
+  <div class="stage"><svg id="scene"></svg></div>
   <div class="controls">
-    <div class="row">
-      <label>Morphologie</label>
-      <div class="btn-group" id="morphSelector">
-        <button class="ctrl-btn active" data-morph="heavy">⚔️ Lourd</button>
-        <button class="ctrl-btn" data-morph="standard">🗡️ Standard</button>
-        <button class="ctrl-btn" data-morph="light">🏹 Fin</button>
+    <div class="tabs" id="mainTabs" role="tablist">
+      <button class="tab-btn active" type="button" data-tab="corps">Corps</button>
+      <button class="tab-btn" type="button" data-tab="equip">Équipements</button>
+      <button class="tab-btn" type="button" data-tab="rotation">Rotation</button>
+      <button class="tab-btn" type="button" data-tab="grille">Grille</button>
+    </div>
+    <div class="tab-panels">
+      <div class="tab-panel active" id="panel-corps">
+        <div class="row">
+          <label>Morphologie</label>
+          <div class="btn-group" id="morphSelector">
+            <button class="ctrl-btn active" data-morph="heavy">⚔️ Lourd</button>
+            <button class="ctrl-btn" data-morph="standard">🗡️ Standard</button>
+            <button class="ctrl-btn" data-morph="light">🏹 Fin</button>
+          </div>
+        </div>
+        <div class="row">
+          <label>Hauteur</label>
+          <input type="range" id="charHeight" min="0.70" max="1.45" step="0.05" value="1.00">
+          <span id="charHeightVal" class="val">1.00</span>
+        </div>
+        <div class="row">
+          <label>Taille Ø</label>
+          <input type="range" id="charSize" min="0.70" max="1.40" step="0.05" value="1.00">
+          <span id="charSizeVal" class="val">1.00</span>
+        </div>
+        <div class="section-title">
+          <span>Tronçons</span>
+          <button class="ctrl-btn" id="resetBody" type="button" style="padding:2px 8px;font-size:10px;">Reset</button>
+        </div>
+        <div class="row">
+          <label>Poitrine</label>
+          <div class="btn-group" id="chestShapeSelector">
+            <button class="ctrl-btn" data-chest="flat">Plat</button>
+            <button class="ctrl-btn active" data-chest="pec">Pecs</button>
+            <button class="ctrl-btn" data-chest="soft">Doux</button>
+            <button class="ctrl-btn" data-chest="full">Plein</button>
+          </div>
+        </div>
+        <div class="slider-grid" id="bodySliders"></div>
       </div>
-    </div>
 
-    <div class="section-title">
-      <span>Tronçons du corps</span>
-      <button class="ctrl-btn" id="resetBody" type="button" style="padding:2px 8px;font-size:10px;">Reset</button>
-    </div>
-    <div class="row">
-      <label>Poitrine</label>
-      <div class="btn-group" id="chestShapeSelector">
-        <button class="ctrl-btn active" data-chest="flat">Plat</button>
-        <button class="ctrl-btn" data-chest="pec">Pecs</button>
-        <button class="ctrl-btn" data-chest="soft">Doux</button>
-        <button class="ctrl-btn" data-chest="full">Plein</button>
+      <div class="tab-panel" id="panel-equip">
+        <div class="row">
+          <label>Pantalon</label>
+          <div class="btn-group" id="pantsSelector">
+            <button class="ctrl-btn active" data-pants="none">Aucun</button>
+            <button class="ctrl-btn" data-pants="in">IN</button>
+            <button class="ctrl-btn" data-pants="over">OVER</button>
+          </div>
+          <input type="color" id="pantsColor" value="#3d4a5c">
+        </div>
+        <div class="row">
+          <label>Haut</label>
+          <div class="btn-group" id="torsoSelector">
+            <button class="ctrl-btn active" data-torso="none">Aucun</button>
+            <button class="ctrl-btn" data-torso="tunic">Tunique</button>
+          </div>
+          <input type="color" id="torsoColor" value="#4a5568">
+        </div>
+        <div class="row">
+          <label>Chapeau</label>
+          <div class="btn-group" id="hatSelector">
+            <button class="ctrl-btn active" data-hat="none">Aucun</button>
+            <button class="ctrl-btn" data-hat="cap">Casquette</button>
+          </div>
+          <input type="color" id="hatColor" value="#2d3748">
+        </div>
       </div>
-    </div>
-    <div class="slider-grid" id="bodySliders"></div>
 
-    <div class="section-title">Équipements</div>
-
-    <div class="row">
-      <label>Pantalon</label>
-      <div class="btn-group" id="pantsSelector">
-        <button class="ctrl-btn active" data-pants="none">Aucun</button>
-        <button class="ctrl-btn" data-pants="in">IN</button>
-        <button class="ctrl-btn" data-pants="over">OVER</button>
+      <div class="tab-panel" id="panel-rotation">
+        <div class="section-title"><span>8 vues (turnaround)</span></div>
+        <p class="hint">Même pivot pied · mêmes hauteurs tête/épaules/hanches · foreshortening par vue</p>
+        <div class="facing-pad" id="facingPad">
+          <button class="ctrl-btn" type="button" data-facing="4">3/4 dos<br>gauche</button>
+          <button class="ctrl-btn" type="button" data-facing="5">Dos</button>
+          <button class="ctrl-btn" type="button" data-facing="6">3/4 dos<br>droit</button>
+          <button class="ctrl-btn" type="button" data-facing="3">Profil<br>gauche</button>
+          <div class="facing-center" id="facingLabel">3/4 F·D</div>
+          <button class="ctrl-btn" type="button" data-facing="7">Profil<br>droit</button>
+          <button class="ctrl-btn" type="button" data-facing="2">3/4 face<br>gauche</button>
+          <button class="ctrl-btn active" type="button" data-facing="0">3/4 face<br>droit</button>
+          <button class="ctrl-btn" type="button" data-facing="1">Face</button>
+        </div>
+        <div class="rot-row">
+          <button class="ctrl-btn" type="button" id="rotLeft">↺ −45°</button>
+          <button class="ctrl-btn" type="button" id="rotRight">+45° ↻</button>
+        </div>
+        <div class="row" style="justify-content:center;">
+          <span class="val" id="facingDeg" style="min-width:auto;">3/4 face-droit · SE · 45°</span>
+        </div>
       </div>
-      <input type="color" id="pantsColor" value="#4a6741" title="Couleur pantalon">
-    </div>
 
-    <div class="row">
-      <label>Haut</label>
-      <div class="btn-group" id="torsoSelector">
-        <button class="ctrl-btn active" data-torso="none">Aucun</button>
-        <button class="ctrl-btn" data-torso="tunic">Tunique</button>
+      <div class="tab-panel" id="panel-grille">
+        <div class="row">
+          <label>Ancres</label>
+          <div class="btn-group" id="anchorToggle">
+            <button class="ctrl-btn" data-anchors="off">Masquer</button>
+            <button class="ctrl-btn active" data-anchors="on">Afficher</button>
+          </div>
+        </div>
+        <div class="row">
+          <label>Taille grille</label>
+          <input type="range" id="gridSize" min="3" max="8" step="1" value="5">
+          <span id="gridSizeVal" class="val">5</span>
+        </div>
+        <div class="row">
+          <label>Largeur case</label>
+          <input type="range" id="tileW" min="30" max="70" step="2" value="52">
+          <span id="tileWVal" class="val">52</span>
+        </div>
       </div>
-      <input type="color" id="torsoColor" value="#8b5a2b" title="Couleur haut">
-    </div>
-
-    <div class="row">
-      <label>Chapeau</label>
-      <div class="btn-group" id="hatSelector">
-        <button class="ctrl-btn active" data-hat="none">Aucun</button>
-        <button class="ctrl-btn" data-hat="cap">Casquette</button>
-      </div>
-      <input type="color" id="hatColor" value="#3d2b1f" title="Couleur chapeau">
-    </div>
-
-    <div class="row">
-      <label>Ancres</label>
-      <div class="btn-group" id="anchorToggle">
-        <button class="ctrl-btn" data-anchors="off">Masquer</button>
-        <button class="ctrl-btn active" data-anchors="on">Afficher</button>
-      </div>
-    </div>
-
-    <div class="row">
-      <label>Taille grille</label>
-      <input type="range" id="gridSize" min="3" max="8" step="1" value="5">
-      <span id="gridSizeVal" class="val">5</span>
-    </div>
-    <div class="row">
-      <label>Largeur case</label>
-      <input type="range" id="tileW" min="30" max="70" step="2" value="52">
-      <span id="tileWVal" class="val">52</span>
     </div>
   </div>
 </div>
 
 <script>
 /* ============================================================
-   NEURO CORE — Phase 1+
-   Superposition Z-Index + customisation par tronçon anatomique
+   NEURO CORE — Graphismes 8 vues (pivot / angles / physique)
+   Inspiré turnaround Dofus-like + planche NEURO-CORE
    ============================================================
-   Architecture :
-   - MORPHS ……………… presets de base (heavy / standard / light)
-   - BODY_CUSTOM ……… réglages indépendants par tronçon
-   - resolveMorph() …… fusionne morpho + custom → profil final
-   - LAYERS ……………… ordre de dessin SVG
-   - ANCHORS ……………… points d'ancrage (suivent le profil résolu)
-   - EQUIPMENT …………… pantalon IN/OVER, tunique, casquette
+   RÈGLES ANTI-ERREUR :
+   1. Pivot TOUJOURS entre les pieds (0, 0) — jamais déplacé
+   2. Hauteurs Y figées (tête, épaules, taille, genoux, pieds)
+      identiques sur les 8 vues → pas de saut à la rotation
+   3. Foreshortening via facteurs X (spread), jamais via Y
+   4. Ombre au sol ancrée sur le pivot
+   5. Miroir UNIQUEMENT pour gauche↔droite (géométrie symétrique)
+   6. Équipements lisent le même profil → restent calés
    ============================================================ */
 
 const svg = document.getElementById("scene");
@@ -163,26 +227,20 @@ const pantsColorInput = document.getElementById("pantsColor");
 const torsoColorInput = document.getElementById("torsoColor");
 const hatColorInput = document.getElementById("hatColor");
 
-/* ============================================================
-   CUSTOM CORPS — schéma des tronçons
-   Chaque clé est un slider (sauf chestShape = enum).
-   Les multiplicateurs tournent autour de 1.0.
-   Les volumes (belly, glutes, chestSize) sont en 0→1+.
-   ============================================================ */
 const BODY_SLIDER_DEFS = [
-  { key: "neck",         label: "Cou",           min: 0.4, max: 1.8, step: 0.05, def: 1.0 },
-  { key: "shoulderWidth",label: "Épaules Ø",     min: 0.5, max: 1.6, step: 0.05, def: 1.0 },
-  { key: "shoulderCap",  label: "Haut épaules",  min: 0.0, max: 1.8, step: 0.05, def: 1.0 },
-  { key: "biceps",       label: "Biceps",        min: 0.4, max: 1.8, step: 0.05, def: 1.0 },
-  { key: "elbow",        label: "Coudes",        min: 0.3, max: 2.0, step: 0.05, def: 1.0 },
-  { key: "forearm",      label: "Avant-bras",    min: 0.4, max: 1.8, step: 0.05, def: 1.0 },
-  { key: "chestSize",    label: "Poitrine Ø",    min: 0.0, max: 1.5, step: 0.05, def: 0.55 },
-  { key: "belly",        label: "Ventre",        min: 0.0, max: 1.4, step: 0.05, def: 0.15 },
-  { key: "waist",        label: "Taille",        min: 0.5, max: 1.6, step: 0.05, def: 1.0 },
-  { key: "hips",         label: "Hanches",       min: 0.5, max: 1.7, step: 0.05, def: 1.0 },
-  { key: "glutes",       label: "Fesses",        min: 0.0, max: 1.5, step: 0.05, def: 0.35 },
-  { key: "thigh",        label: "Cuisses",       min: 0.4, max: 1.8, step: 0.05, def: 1.0 },
-  { key: "calf",         label: "Mollets",       min: 0.4, max: 1.8, step: 0.05, def: 1.0 },
+  { key: "neck",          label: "Cou",          min: 0.5, max: 1.6, step: 0.05, def: 1.0 },
+  { key: "shoulderWidth", label: "Épaules Ø",    min: 0.6, max: 1.5, step: 0.05, def: 1.0 },
+  { key: "shoulderCap",   label: "Haut épaules", min: 0.0, max: 1.6, step: 0.05, def: 1.0 },
+  { key: "biceps",        label: "Biceps",       min: 0.5, max: 1.6, step: 0.05, def: 1.0 },
+  { key: "elbow",         label: "Coudes",       min: 0.4, max: 1.8, step: 0.05, def: 1.0 },
+  { key: "forearm",       label: "Avant-bras",   min: 0.5, max: 1.6, step: 0.05, def: 1.0 },
+  { key: "chestSize",     label: "Poitrine Ø",   min: 0.0, max: 1.4, step: 0.05, def: 0.5 },
+  { key: "belly",         label: "Ventre",       min: 0.0, max: 1.2, step: 0.05, def: 0.1 },
+  { key: "waist",         label: "Taille",       min: 0.6, max: 1.5, step: 0.05, def: 1.0 },
+  { key: "hips",          label: "Hanches",      min: 0.6, max: 1.6, step: 0.05, def: 1.0 },
+  { key: "glutes",        label: "Fesses",       min: 0.0, max: 1.4, step: 0.05, def: 0.35 },
+  { key: "thigh",         label: "Cuisses",      min: 0.5, max: 1.6, step: 0.05, def: 1.0 },
+  { key: "calf",          label: "Mollets",      min: 0.5, max: 1.6, step: 0.05, def: 1.0 },
 ];
 
 function defaultBodyCustom() {
@@ -193,249 +251,237 @@ function defaultBodyCustom() {
 
 const state = {
   selected: { row: 2, col: 2 },
-  morph: "heavy",
+  morph: "standard",
   body: defaultBodyCustom(),
+  charHeight: 1.0,    // étire la hauteur (Y) depuis les pieds
+  charSize: 1.0,      // taille générale (échelle uniforme)
+  facing: 0,
   pants: "none",
   torso: "none",
   hat: "none",
-  pantsColor: "#4a6741",
-  torsoColor: "#8b5a2b",
-  hatColor: "#3d2b1f",
-  showAnchors: true,
+  pantsColor: "#3d4a5c",
+  torsoColor: "#4a5568",
+  hatColor: "#2d3748",
+  showAnchors: false,
 };
 
 /* ============================================================
-   1. PROFILS MORPHOLOGIQUES (presets)
+   MORPHOLOGIES — hauteurs Y LOCKÉES (anti-jitter rotation)
    ============================================================ */
+const Y = {
+  // Fractions de tileW — IDENTIQUES pour toutes morphos & vues
+  head: -1.72,
+  neck: -1.52,
+  shoulder: -1.38,
+  chest: -1.12,
+  waist: -0.82,
+  hip: -0.70,
+  knee: -0.28,
+  ankle: -0.02,
+  foot: 0.04,
+  elbow: -0.95,
+  wrist: -0.58,
+};
+
 const MORPHS = {
   heavy: {
-    id: "heavy",
-    label: "⚔️ LOURD",
-    labelColor: "#ff6b6b",
-    height: 1.8,
-    shoulderW: 0.45,
-    hipW: 0.28,
-    waistW: 0.30,
-    footSpread: 0.25,
-    headRx: 0.20,
-    headRy: 0.26,
-    neckW: 0.08,
-    armThick: 0.10,
-    legThick: 0.10,
-    headY: -1.75,
-    neckTop: -1.65,
-    shoulderY: -1.40,
-    chestY: -1.10,
-    waistY: -0.80,
-    hipY: -0.72,
-    kneeY: -0.15,
-    ankleY: 0.00,
-    footY: 0.06,
-    elbowY: -0.90,
-    wristY: -0.55,
-    pantsScaleX: 1.20,
-    pantsScaleY: 1.05,
-    torsoScaleX: 1.18,
-    hatScale: 1.12,
+    id: "heavy", label: "LOURD", labelColor: "#ff8a8a",
+    shoulderW: 0.42, hipW: 0.30, waistW: 0.32, footSpread: 0.22,
+    headRx: 0.19, headRy: 0.23, neckW: 0.075,
+    armThick: 0.095, legThick: 0.10,
   },
   standard: {
-    id: "standard",
-    label: "🗡️ STANDARD",
-    labelColor: "#6fd8c8",
-    height: 1.6,
-    shoulderW: 0.35,
-    hipW: 0.22,
-    waistW: 0.22,
-    footSpread: 0.20,
-    headRx: 0.18,
-    headRy: 0.22,
-    neckW: 0.06,
-    armThick: 0.08,
-    legThick: 0.08,
-    headY: -1.56,
-    neckTop: -1.48,
-    shoulderY: -1.28,
-    chestY: -1.00,
-    waistY: -0.70,
-    hipY: -0.65,
-    kneeY: -0.15,
-    ankleY: 0.00,
-    footY: 0.05,
-    elbowY: -0.85,
-    wristY: -0.50,
-    pantsScaleX: 1.00,
-    pantsScaleY: 1.00,
-    torsoScaleX: 1.00,
-    hatScale: 1.00,
+    id: "standard", label: "STANDARD", labelColor: "#6fd8c8",
+    shoulderW: 0.34, hipW: 0.23, waistW: 0.22, footSpread: 0.18,
+    headRx: 0.17, headRy: 0.21, neckW: 0.055,
+    armThick: 0.075, legThick: 0.078,
   },
   light: {
-    id: "light",
-    label: "🏹 FIN",
-    labelColor: "#a78bfa",
-    height: 1.7,
-    shoulderW: 0.275,
-    hipW: 0.16,
-    waistW: 0.16,
-    footSpread: 0.15,
-    headRx: 0.16,
-    headRy: 0.21,
-    neckW: 0.05,
-    armThick: 0.06,
-    legThick: 0.06,
-    headY: -1.65,
-    neckTop: -1.55,
-    shoulderY: -1.35,
-    chestY: -1.05,
-    waistY: -0.75,
-    hipY: -0.68,
-    kneeY: -0.15,
-    ankleY: 0.00,
-    footY: 0.05,
-    elbowY: -0.88,
-    wristY: -0.52,
-    pantsScaleX: 0.82,
-    pantsScaleY: 1.02,
-    torsoScaleX: 0.82,
-    hatScale: 0.92,
+    id: "light", label: "FIN", labelColor: "#c4b5fd",
+    shoulderW: 0.27, hipW: 0.17, waistW: 0.16, footSpread: 0.14,
+    headRx: 0.155, headRy: 0.20, neckW: 0.045,
+    armThick: 0.058, legThick: 0.058,
   },
 };
 
 /**
- * Fusionne le preset morphologique + les réglages de tronçons.
- * Tout le rendu (corps, ancres, équipements) lit UNIQUEMENT ce profil.
+ * 8 vues — alignées sur le turnaround de référence
+ * mirror: flip X seulement (symétrie gauche/droite)
+ * kind: type de silhouette (pas de changement de hauteur)
+ * near: quelle jambe/bras est au premier plan (avant miroir)
  */
+const FACINGS = [
+  { id: 0, key: "SE", short: "3/4 F·D", name: "3/4 face-droit",  deg: 45,  mirror: false, kind: "qFront", near: "R" },
+  { id: 1, key: "S",  short: "Face",    name: "Face",             deg: 90,  mirror: false, kind: "front",  near: "R" },
+  { id: 2, key: "SW", short: "3/4 F·G", name: "3/4 face-gauche", deg: 135, mirror: true,  kind: "qFront", near: "R" },
+  { id: 3, key: "W",  short: "Prof. G", name: "Profil gauche",   deg: 180, mirror: true,  kind: "side",   near: "R" },
+  { id: 4, key: "NW", short: "3/4 D·G", name: "3/4 dos-gauche",  deg: 225, mirror: true,  kind: "qBack",  near: "R" },
+  { id: 5, key: "N",  short: "Dos",     name: "Dos",              deg: 270, mirror: false, kind: "back",   near: "R" },
+  { id: 6, key: "NE", short: "3/4 D·D", name: "3/4 dos-droit",   deg: 315, mirror: false, kind: "qBack",  near: "R" },
+  { id: 7, key: "E",  short: "Prof. D", name: "Profil droit",    deg: 0,   mirror: false, kind: "side",   near: "R" },
+];
+
+function getFacing(id = state.facing) {
+  return FACINGS[((id % 8) + 8) % 8];
+}
+
+/** Facteur d'écartement horizontal selon la vue (foresight X only) */
+function spreadFor(kind) {
+  if (kind === "front" || kind === "back") return 1.0;
+  if (kind === "qFront" || kind === "qBack") return 0.82;
+  return 0.38; // side
+}
+
 function resolveMorph(morphId, body = state.body) {
   const base = MORPHS[morphId];
   const b = body;
+  const h = state.charHeight; // hauteur globale — scale Y depuis les pieds
   const m = { ...base };
 
-  m.neckW      = base.neckW * b.neck;
-  m.shoulderW  = base.shoulderW * b.shoulderWidth;
+  // Hauteurs Y de base × hauteur perso (pivot reste à 0)
+  m.head = Y.head * h;
+  m.neck = Y.neck * h;
+  m.shoulder = Y.shoulder * h;
+  m.chest = Y.chest * h;
+  m.waist = Y.waist * h;
+  m.hip = Y.hip * h;
+  m.knee = Y.knee * h;
+  m.ankle = Y.ankle * h;
+  m.foot = Y.foot * h;
+
+  // Longueur des segments bras : suit Hauteur + curseurs Biceps / Avant-bras
+  // (sinon les bras restent courts/minces quand le corps grandit)
+  const upperLen = 0.65 + 0.35 * b.biceps;   // allonge le bras supérieur
+  const foreLen  = 0.65 + 0.35 * b.forearm;  // allonge l'avant-bras
+  m.elbow = m.shoulder + (Y.elbow - Y.shoulder) * h * upperLen;
+  m.wrist = m.elbow    + (Y.wrist - Y.elbow)    * h * foreLen;
+
+  m.neckW = base.neckW * b.neck;
+  m.shoulderW = base.shoulderW * b.shoulderWidth;
   m.shoulderCap = b.shoulderCap;
-  m.biceps     = base.armThick * b.biceps;
-  m.elbowBulk  = base.armThick * b.elbow;
-  m.forearm    = base.armThick * b.forearm;
-  m.armThick   = (m.biceps + m.forearm) / 2; // compat équipements
+
+  // Épaisseur bras : suit Hauteur × curseurs (effet bien visible)
+  const thickScale = h;
+  m.biceps    = base.armThick * b.biceps    * thickScale;
+  m.forearm   = base.armThick * b.forearm   * thickScale;
+  m.elbowBulk = base.armThick * b.elbow     * thickScale;
+  m.handSize  = base.armThick * 0.55 * ((b.biceps + b.forearm) / 2) * thickScale;
+
   m.chestShape = b.chestShape;
-  m.chestSize  = b.chestSize;
-  m.belly      = b.belly;
-  m.waistW     = (base.waistW || base.hipW) * b.waist;
-  m.hipW       = base.hipW * b.hips;
-  m.glutes     = b.glutes;
-  m.thigh      = base.legThick * b.thigh;
-  m.calf       = base.legThick * b.calf;
-  m.legThick   = (m.thigh + m.calf) / 2;
+  m.chestSize = b.chestSize;
+  m.belly = b.belly;
+  m.waistW = base.waistW * b.waist;
+  m.hipW = base.hipW * b.hips;
+  m.glutes = b.glutes;
 
-  // Échelles équipements suivent les tronçons
-  m.pantsScaleX = base.pantsScaleX * ((b.thigh + b.hips) / 2);
-  m.torsoScaleX = base.torsoScaleX * ((b.shoulderWidth + b.waist) / 2);
-
+  // Jambes : même logique (épaisseur × hauteur)
+  m.thigh = base.legThick * b.thigh * thickScale;
+  m.calf  = base.legThick * b.calf  * thickScale;
+  m.footSpread = base.footSpread;
+  m.headRx = base.headRx;
+  m.headRy = base.headRy * h;
+  m.legThick = (m.thigh + m.calf) / 2;
+  m.armThick = (m.biceps + m.forearm) / 2;
+  m.charSize = state.charSize;
+  m.charHeight = h;
+  m.upperLen = upperLen;
+  m.foreLen = foreLen;
   return m;
 }
 
-/* ============================================================
-   2. ORDRE DES CALQUES (Z-INDEX SVG)
-   ============================================================ */
-const LAYER_ORDER = [
-  "legBack",
-  "armBack",
-  "torso",
-  "head",
-  "armFront",
-  "legFront",
-  "anchors",
-  "meta",
-];
-
-/* ============================================================
-   3. POINTS D'ANCRAGE (suivent le morph résolu)
-   ============================================================ */
-function getAnchors(m) {
-  return {
-    head:      { x: 0, y: m.headY },
-    neck:      { x: 0, y: m.neckTop },
-    shoulderL: { x: -m.shoulderW, y: m.shoulderY },
-    shoulderR: { x:  m.shoulderW, y: m.shoulderY },
-    elbowL:    { x: -m.shoulderW * 1.05, y: m.elbowY },
-    elbowR:    { x:  m.shoulderW * 1.05, y: m.elbowY },
-    waistL:    { x: -m.waistW * 0.85, y: m.waistY },
-    waistR:    { x:  m.waistW * 0.85, y: m.waistY },
-    hip:       { x: 0, y: m.hipY },
-    gluteL:    { x: -m.hipW * 0.55, y: m.hipY + 0.06 },
-    gluteR:    { x:  m.hipW * 0.35, y: m.hipY + 0.06 },
-    handL:     { x: -m.shoulderW * 1.15, y: m.wristY },
-    handR:     { x:  m.shoulderW * 1.15, y: m.wristY },
-    footL:     { x: -m.footSpread, y: m.ankleY },
-    footR:     { x:  m.footSpread, y: m.ankleY },
-    pivot:     { x: 0, y: 0 },
-  };
+function applyFacing(m, facingId = state.facing) {
+  const f = getFacing(facingId);
+  const spread = spreadFor(f.kind);
+  const out = { ...m, facing: f, spread };
+  // Largeur projetée — on NE touche PAS aux Y
+  out.shoulderW = m.shoulderW * spread;
+  out.hipW = m.hipW * spread;
+  out.waistW = m.waistW * spread;
+  out.footSpread = m.footSpread * (f.kind === "side" ? 0.25 : (f.kind === "front" || f.kind === "back" ? 0.55 : 1));
+  if (f.kind === "back" || f.kind === "qBack") {
+    out.glutes = Math.min(1.5, m.glutes * 1.2 + 0.08);
+    out.chestSize = m.chestSize * 0.25;
+  }
+  if (f.kind === "side") {
+    out.headRx = m.headRx * 0.82;
+  }
+  return out;
 }
 
 /* ============================================================
-   UTILITAIRES SVG
+   SVG UTILS + PALETTE (lumière haut-gauche)
    ============================================================ */
 const NS = "http://www.w3.org/2000/svg";
+const OUT = "#2a211c";
+const SKIN = "#e8c4a0";
+const SKIN_L = "#f0d4b8";
+const SKIN_D = "#c9a080";
+const SKIN_M = "#dbb494";
 
 function el(tag, attrs = {}) {
-  const node = document.createElementNS(NS, tag);
+  const n = document.createElementNS(NS, tag);
   for (const [k, v] of Object.entries(attrs)) {
-    if (v !== undefined && v !== null) node.setAttribute(k, v);
+    if (v !== undefined && v !== null && v !== "") n.setAttribute(k, v);
   }
-  return node;
+  return n;
 }
-
-function createPath(d, fill, stroke = "#2a1c15", strokeW = 1.5) {
-  return el("path", {
-    d, fill, stroke, "stroke-width": strokeW, "stroke-linejoin": "round",
-  });
+function path(d, fill, stroke = OUT, sw = 1.35) {
+  return el("path", { d, fill, stroke, "stroke-width": sw, "stroke-linejoin": "round", "stroke-linecap": "round" });
 }
-
-function createEllipse(cx, cy, rx, ry, fill, stroke = "#2a1c15", strokeW = 1.5) {
-  return el("ellipse", {
-    cx, cy, rx, ry, fill, stroke, "stroke-width": strokeW,
-  });
+function oval(cx, cy, rx, ry, fill, stroke = OUT, sw = 1.35) {
+  return el("ellipse", { cx, cy, rx, ry, fill, stroke, "stroke-width": sw });
 }
-
 function px(v, w) { return (v * w).toFixed(2); }
-
-function darken(hex, amount = 0.22) {
+function darken(hex, a = 0.22) {
   const n = hex.replace("#", "");
-  const r = Math.max(0, Math.round(parseInt(n.slice(0, 2), 16) * (1 - amount)));
-  const g = Math.max(0, Math.round(parseInt(n.slice(2, 4), 16) * (1 - amount)));
-  const b = Math.max(0, Math.round(parseInt(n.slice(4, 6), 16) * (1 - amount)));
-  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+  const r = Math.max(0, Math.round(parseInt(n.slice(0, 2), 16) * (1 - a)));
+  const g = Math.max(0, Math.round(parseInt(n.slice(2, 4), 16) * (1 - a)));
+  const b = Math.max(0, Math.round(parseInt(n.slice(4, 6), 16) * (1 - a)));
+  return `#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
 }
 
-/* ============================================================
-   4. GRILLE ISOMÉTRIQUE 2:1
-   ============================================================ */
-function isoToScreen(row, col, tileW, tileH, originX, originY) {
+function getAnchors(m) {
+  const reach = 0.55 + 0.45 * (m.upperLen || 1);
+  const elbowX = m.shoulderW * (0.35 + reach * 0.5);
+  const wristX = elbowX + m.shoulderW * (0.25 + (m.foreLen || 1) * 0.2);
   return {
-    x: originX + (col - row) * (tileW / 2),
-    y: originY + (col + row) * (tileH / 2),
+    head: { x: 0, y: m.head },
+    neck: { x: 0, y: m.neck },
+    shoulderL: { x: -m.shoulderW, y: m.shoulder },
+    shoulderR: { x:  m.shoulderW, y: m.shoulder },
+    elbowL: { x: -elbowX, y: m.elbow },
+    elbowR: { x:  elbowX, y: m.elbow },
+    waistL: { x: -m.waistW * 0.9, y: m.waist },
+    waistR: { x:  m.waistW * 0.9, y: m.waist },
+    hip: { x: 0, y: m.hip },
+    handL: { x: -wristX, y: m.wrist },
+    handR: { x:  wristX, y: m.wrist },
+    footL: { x: -m.footSpread, y: m.ankle },
+    footR: { x:  m.footSpread, y: m.ankle },
+    pivot: { x: 0, y: 0 },
   };
 }
 
-function drawGrid(parent, gridSize, tileW, tileH, originX, originY) {
+/* ============================================================
+   GRILLE ISO 2:1
+   ============================================================ */
+function isoToScreen(row, col, tileW, tileH, ox, oy) {
+  return { x: ox + (col - row) * (tileW / 2), y: oy + (col + row) * (tileH / 2) };
+}
+
+function drawGrid(parent, gridSize, tileW, tileH, ox, oy) {
   for (let row = 0; row < gridSize; row++) {
     for (let col = 0; col < gridSize; col++) {
-      const { x: cx, y: cy } = isoToScreen(row, col, tileW, tileH, originX, originY);
-      const hw = tileW / 2;
-      const hh = tileH / 2;
+      const { x: cx, y: cy } = isoToScreen(row, col, tileW, tileH, ox, oy);
+      const hw = tileW / 2, hh = tileH / 2;
       const d = `M ${cx} ${cy - hh} L ${cx + hw} ${cy} L ${cx} ${cy + hh} L ${cx - hw} ${cy} Z`;
-      const isSelected = state.selected.row === row && state.selected.col === col;
+      const sel = state.selected.row === row && state.selected.col === col;
       const shade = (row + col) % 2 === 0 ? "light" : "dark";
-      const tile = createPath(
-        d,
-        isSelected ? "#6fd8c8" : (shade === "light" ? "#3f7a54" : "#2f6b48"),
-        "#173a28", 1.5
-      );
-      tile.classList.add("tile", isSelected ? "selected" : shade);
-      tile.dataset.row = row;
-      tile.dataset.col = col;
+      const tile = path(d, sel ? "#6fd8c8" : (shade === "light" ? "#3f7a54" : "#2f6b48"), "#173a28", 1.5);
+      tile.classList.add("tile", sel ? "selected" : shade);
       tile.addEventListener("click", () => {
         state.selected = { row, col };
-        info.textContent = `Case (${row}, ${col}) · ${state.morph} · poitrine ${state.body.chestShape}`;
+        info.textContent = `Case (${row},${col}) · ${getFacing().name}`;
         draw();
       });
       parent.appendChild(tile);
@@ -444,583 +490,596 @@ function drawGrid(parent, gridSize, tileW, tileH, originX, originY) {
 }
 
 /* ============================================================
-   5. CORPS — PARTIES ANATOMIQUES (lisent le morph RÉSOLU)
+   CORPS — polish vectoriel (lumière HG, cel-shade léger)
+   Structure inchangée : pivot / Y / facing / calques
    ============================================================ */
-const SKIN = "#e8c4a0";
-const SKIN_DARK = "#c9a080";
-const SKIN_MID = "#dbb494";
-const OUTLINE = "#2a1c15";
-const FOOT = "#8a6e5a";
-
-function buildGlutes(m, w, side) {
-  // Fesses : volume indépendant, ancré sur la hanche
-  if (m.glutes <= 0.05) return [];
-  const nodes = [];
-  const isBack = side === "back";
-  const gx = isBack ? -m.hipW * 0.45 : m.hipW * 0.25;
-  const gy = m.hipY + 0.05;
-  const rx = (0.06 + m.glutes * 0.10) * (isBack ? 1.1 : 1.0);
-  const ry = 0.05 + m.glutes * 0.09;
-  nodes.push(createEllipse(
-    gx * w, gy * w, rx * w, ry * w,
-    isBack ? SKIN_DARK : SKIN_MID, OUTLINE, 1.2
-  ));
-  return nodes;
+function buildShadow(m, w) {
+  // Double ombre : contact + sol (ancrée au pivot)
+  return [
+    oval(0.02 * w, 0.03 * w, 0.32 * w, 0.10 * w, "rgba(0,0,0,0.18)", "none", 0),
+    oval(0, 0.015 * w, 0.22 * w, 0.065 * w, "rgba(0,0,0,0.32)", "none", 0),
+  ];
 }
 
-function buildLegBack(m, w) {
-  const nodes = [];
-  const sx = -m.footSpread;
-  const thigh = m.thigh;
-  const calf = m.calf;
-
-  nodes.push(...buildGlutes(m, w, "back"));
-
-  nodes.push(createPath(
-    `M ${px(-m.hipW * 0.4, w)} ${px(m.hipY, w)}
-     L ${px(sx - thigh * 0.35, w)} ${px(m.kneeY, w)}
-     L ${px(sx + thigh * 0.55, w)} ${px(m.kneeY + 0.08, w)}
-     L ${px(-m.hipW * 0.1, w)} ${px(m.hipY + 0.08, w)} Z`,
-    SKIN_DARK, OUTLINE, 1.5
-  ));
-  nodes.push(createPath(
-    `M ${px(sx - thigh * 0.35, w)} ${px(m.kneeY, w)}
-     L ${px(sx - calf * 0.45, w)} ${px(m.ankleY, w)}
-     L ${px(sx + calf * 0.55, w)} ${px(m.ankleY + 0.02, w)}
-     L ${px(sx + thigh * 0.55, w)} ${px(m.kneeY + 0.08, w)} Z`,
-    SKIN_DARK, OUTLINE, 1.5
-  ));
-  nodes.push(createPath(
-    `M ${px(sx - calf * 0.45, w)} ${px(m.ankleY, w)}
-     L ${px(sx - calf * 0.2, w)} ${px(m.footY, w)}
-     L ${px(sx + calf * 0.95, w)} ${px(m.footY, w)}
-     L ${px(sx + calf * 0.55, w)} ${px(m.ankleY + 0.02, w)} Z`,
-    FOOT, OUTLINE, 1.5
-  ));
-  return nodes;
+function limbColors(far) {
+  return far
+    ? { fill: SKIN_D, mid: darken(SKIN_D, 0.1), hi: SKIN_M }
+    : { fill: SKIN, mid: SKIN_M, hi: SKIN_L };
 }
 
-function buildLegFront(m, w) {
+/** Sous-vêtement de base (si pas de pantalon) — lisibilité type planche ref */
+function buildBaseShorts(m, w, kind) {
+  if (state.pants !== "none") return [];
   const nodes = [];
-  const sx = m.footSpread;
-  const thigh = m.thigh;
-  const calf = m.calf;
-
-  nodes.push(...buildGlutes(m, w, "front"));
-
-  nodes.push(createPath(
-    `M ${px(m.hipW * 0.15, w)} ${px(m.hipY, w)}
-     L ${px(sx - thigh * 0.2, w)} ${px(m.kneeY, w)}
-     L ${px(sx + thigh * 0.65, w)} ${px(m.kneeY + 0.08, w)}
-     L ${px(m.hipW * 0.5, w)} ${px(m.hipY + 0.08, w)} Z`,
-    SKIN, OUTLINE, 1.5
-  ));
-  nodes.push(createPath(
-    `M ${px(sx - thigh * 0.2, w)} ${px(m.kneeY, w)}
-     L ${px(sx - calf * 0.05, w)} ${px(m.ankleY, w)}
-     L ${px(sx + calf * 0.95, w)} ${px(m.ankleY + 0.02, w)}
-     L ${px(sx + thigh * 0.65, w)} ${px(m.kneeY + 0.08, w)} Z`,
-    SKIN, OUTLINE, 1.5
-  ));
-  nodes.push(createPath(
-    `M ${px(sx - calf * 0.05, w)} ${px(m.ankleY, w)}
-     L ${px(sx + calf * 0.25, w)} ${px(m.footY, w)}
-     L ${px(sx + calf * 1.45, w)} ${px(m.footY, w)}
-     L ${px(sx + calf * 0.95, w)} ${px(m.ankleY + 0.02, w)} Z`,
-    FOOT, OUTLINE, 1.5
-  ));
-  return nodes;
-}
-
-function buildShoulderCap(m, w, side, fill) {
-  // Haut d'épaule / deltoïde — volume indépendant
-  if (m.shoulderCap <= 0.05) return [];
-  const nodes = [];
-  const isBack = side === "back";
-  const shx = isBack ? -m.shoulderW : m.shoulderW;
-  const cap = m.shoulderCap;
-  const rx = 0.04 + cap * 0.055;
-  const ry = 0.035 + cap * 0.04;
-  nodes.push(createEllipse(
-    (shx + (isBack ? 0.02 : -0.02)) * w,
-    (m.shoulderY + 0.02) * w,
-    rx * w, ry * w,
-    fill, OUTLINE, 1.3
-  ));
-  return nodes;
-}
-
-function buildElbowJoint(m, w, side, fill) {
-  // Grosseur du coude — jointure indépendante du bras
-  if (m.elbowBulk <= 0.02) return [];
-  const nodes = [];
-  const isBack = side === "back";
-  const shx = isBack ? -m.shoulderW : m.shoulderW;
-  const thick = isBack ? m.biceps : m.biceps;
-  const ex = isBack
-    ? shx - thick * 0.8
-    : shx + thick * 0.9;
-  const r = 0.025 + m.elbowBulk * 0.55;
-  nodes.push(createEllipse(
-    ex * w, (m.elbowY + 0.03) * w,
-    r * w, r * 0.85 * w,
-    fill, OUTLINE, 1.2
-  ));
-  return nodes;
-}
-
-function buildArmBack(m, w) {
-  const nodes = [];
-  const shx = -m.shoulderW;
-  const bi = m.biceps;
-  const fo = m.forearm;
-
-  nodes.push(...buildShoulderCap(m, w, "back", SKIN_DARK));
-
-  // Biceps
-  nodes.push(createPath(
-    `M ${px(shx + bi * 0.4, w)} ${px(m.shoulderY, w)}
-     L ${px(shx - bi * 0.85, w)} ${px(m.elbowY, w)}
-     L ${px(shx - bi * 0.05, w)} ${px(m.elbowY + 0.08, w)}
-     L ${px(shx + bi * 1.05, w)} ${px(m.shoulderY + 0.12, w)} Z`,
-    SKIN_DARK, OUTLINE, 1.5
-  ));
-  nodes.push(...buildElbowJoint(m, w, "back", SKIN_DARK));
-  // Avant-bras
-  nodes.push(createPath(
-    `M ${px(shx - bi * 0.85, w)} ${px(m.elbowY, w)}
-     L ${px(shx - fo * 1.15, w)} ${px(m.wristY, w)}
-     L ${px(shx - fo * 0.25, w)} ${px(m.wristY + 0.04, w)}
-     L ${px(shx - bi * 0.05, w)} ${px(m.elbowY + 0.08, w)} Z`,
-    SKIN_DARK, OUTLINE, 1.5
-  ));
-  nodes.push(createEllipse(
-    (shx - fo * 0.85) * w, m.wristY * w,
-    Math.max(0.02, fo * 0.45) * w, Math.max(0.018, fo * 0.4) * w,
-    SKIN_DARK, OUTLINE, 1.5
-  ));
-  return nodes;
-}
-
-function buildArmFront(m, w) {
-  const nodes = [];
-  const shx = m.shoulderW;
-  const bi = m.biceps;
-  const fo = m.forearm;
-
-  nodes.push(...buildShoulderCap(m, w, "front", SKIN));
-
-  nodes.push(createPath(
-    `M ${px(shx - bi * 0.5, w)} ${px(m.shoulderY - 0.02, w)}
-     L ${px(shx + bi * 0.95, w)} ${px(m.elbowY, w)}
-     L ${px(shx + bi * 0.15, w)} ${px(m.elbowY + 0.08, w)}
-     L ${px(shx - bi * 1.05, w)} ${px(m.shoulderY + 0.12, w)} Z`,
-    SKIN, OUTLINE, 1.5
-  ));
-  nodes.push(...buildElbowJoint(m, w, "front", SKIN));
-  nodes.push(createPath(
-    `M ${px(shx + bi * 0.95, w)} ${px(m.elbowY, w)}
-     L ${px(shx + fo * 1.25, w)} ${px(m.wristY, w)}
-     L ${px(shx + fo * 0.35, w)} ${px(m.wristY + 0.04, w)}
-     L ${px(shx + bi * 0.15, w)} ${px(m.elbowY + 0.08, w)} Z`,
-    SKIN, OUTLINE, 1.5
-  ));
-  nodes.push(createEllipse(
-    (shx + fo * 0.95) * w, m.wristY * w,
-    Math.max(0.022, fo * 0.5) * w, Math.max(0.02, fo * 0.42) * w,
-    SKIN, OUTLINE, 1.5
-  ));
-  return nodes;
-}
-
-/**
- * Formes de poitrine / pectoraux
- * flat  — silhouette plate
- * pec   — plaques angulaires (musclé)
- * soft  — volumes arrondis
- * full  — volumes plus larges / tombants
- */
-function buildChest(m, w) {
-  const nodes = [];
-  const size = m.chestSize;
-  if (size <= 0.02 || m.chestShape === "flat") return nodes;
-
-  const sw = m.shoulderW;
-  const cy = m.shoulderY + 0.12 + size * 0.04;
-  const shape = m.chestShape;
-
-  if (shape === "pec") {
-    const pecH = 0.12 + size * 0.16;
-    const pecW = 0.55 + size * 0.2;
-    nodes.push(createPath(
-      `M ${px(-sw * pecW, w)} ${px(cy, w)}
-       L ${px(-sw * 0.12, w)} ${px(cy + 0.03, w)}
-       L ${px(-sw * 0.12, w)} ${px(cy + pecH, w)}
-       L ${px(-sw * pecW, w)} ${px(cy + pecH - 0.02, w)} Z`,
-      SKIN_MID, OUTLINE, 1.2
-    ));
-    nodes.push(createPath(
-      `M ${px(sw * pecW, w)} ${px(cy - 0.02, w)}
-       L ${px(sw * 0.12, w)} ${px(cy + 0.03, w)}
-       L ${px(sw * 0.12, w)} ${px(cy + pecH, w)}
-       L ${px(sw * pecW, w)} ${px(cy + pecH - 0.02, w)} Z`,
-      SKIN_MID, OUTLINE, 1.2
-    ));
-  } else if (shape === "soft" || shape === "full") {
-    const full = shape === "full" ? 1.25 : 1.0;
-    const rx = (0.07 + size * 0.09) * full;
-    const ry = (0.06 + size * 0.10) * full;
-    const drop = shape === "full" ? 0.04 + size * 0.04 : 0.01;
-    // Sein / volume G (arrière isométrique un peu plus sombre)
-    nodes.push(createEllipse(
-      (-sw * 0.42) * w, (cy + drop + ry * 0.3) * w,
-      rx * w, ry * w, SKIN_MID, OUTLINE, 1.2
-    ));
-    // Sein / volume D
-    nodes.push(createEllipse(
-      (sw * 0.38) * w, (cy + drop + ry * 0.25) * w,
-      rx * 1.05 * w, ry * 1.05 * w, SKIN, OUTLINE, 1.2
-    ));
-  }
-  return nodes;
-}
-
-function buildBelly(m, w) {
-  const nodes = [];
-  if (m.belly <= 0.05) {
-    // Abs discrets si ventre bas
-    if (m.belly < 0.2) {
-      nodes.push(createPath(
-        `M ${px(-0.02, w)} ${px(m.chestY, w)}
-         L ${px(0.02, w)} ${px(m.chestY, w)}
-         L ${px(0.02, w)} ${px(m.waistY, w)}
-         L ${px(-0.02, w)} ${px(m.waistY, w)} Z`,
-        SKIN_MID, OUTLINE, 1
-      ));
-    }
-    return nodes;
-  }
-  const bulge = m.belly;
-  const midY = (m.chestY + m.waistY) / 2;
-  const rx = m.waistW * (0.55 + bulge * 0.7);
-  const ry = 0.08 + bulge * 0.14;
-  nodes.push(createEllipse(
-    0.02 * w, midY * w, rx * w, ry * w,
-    SKIN_MID, OUTLINE, 1.3
-  ));
-  return nodes;
-}
-
-function buildTorso(m, w) {
-  const nodes = [];
-  const sw = m.shoulderW;
-  const ww = m.waistW;
+  const col = "#3a4555";
+  const shade = darken(col, 0.2);
   const hw = m.hipW;
-
-  // Silhouette torse : épaules → taille → hanches (ventre élargit la taille)
-  const waistBulge = ww * (1 + m.belly * 0.35);
-  nodes.push(createPath(
-    `M ${px(-sw, w)} ${px(m.shoulderY, w)}
-     L ${px(sw, w)} ${px(m.shoulderY - 0.05, w)}
-     L ${px(waistBulge, w)} ${px(m.waistY, w)}
-     L ${px(hw * 0.9, w)} ${px(m.hipY, w)}
-     L ${px(-hw * 0.9, w)} ${px(m.hipY, w)}
-     L ${px(-waistBulge, w)} ${px(m.waistY, w)} Z`,
-    SKIN, OUTLINE, 1.5
+  nodes.push(path(
+    `M ${px(-hw * 1.05, w)} ${px(m.hip - 0.04, w)}
+     Q ${px(-hw * 1.1, w)} ${px(m.hip + 0.08, w)} ${px(-hw * 0.55, w)} ${px(m.hip + 0.16, w)}
+     L ${px(-hw * 0.12, w)} ${px(m.hip + 0.08, w)}
+     L ${px(hw * 0.12, w)} ${px(m.hip + 0.08, w)}
+     L ${px(hw * 0.55, w)} ${px(m.hip + 0.16, w)}
+     Q ${px(hw * 1.1, w)} ${px(m.hip + 0.08, w)} ${px(hw * 1.05, w)} ${px(m.hip - 0.04, w)} Z`,
+    col, OUT, 1.2
   ));
-
-  nodes.push(...buildChest(m, w));
-  nodes.push(...buildBelly(m, w));
-  return nodes;
-}
-
-function buildHead(m, w) {
-  const nodes = [];
-  nodes.push(createPath(
-    `M ${px(-m.neckW, w)} ${px(m.shoulderY - 0.02, w)}
-     L ${px(m.neckW, w)} ${px(m.shoulderY - 0.02, w)}
-     L ${px(m.neckW * 0.85, w)} ${px(m.neckTop, w)}
-     L ${px(-m.neckW * 0.85, w)} ${px(m.neckTop, w)} Z`,
-    SKIN, OUTLINE, 1.5
-  ));
-  nodes.push(createEllipse(0, m.headY * w, m.headRx * w, m.headRy * w, SKIN, OUTLINE, 1.5));
-  if (m.id === "heavy" || m.neckW > 0.075) {
-    nodes.push(createPath(
-      `M ${px(-m.headRx * 0.9, w)} ${px(m.headY + 0.05, w)}
-       L ${px(-m.headRx * 0.8, w)} ${px(m.headY + m.headRy * 0.55, w)}
-       L ${px(m.headRx * 0.8, w)} ${px(m.headY + m.headRy * 0.55, w)}
-       L ${px(m.headRx * 0.9, w)} ${px(m.headY + 0.05, w)} Z`,
-      SKIN, OUTLINE, 1.5
+  if (kind !== "back" && kind !== "qBack") {
+    nodes.push(path(
+      `M ${px(0, w)} ${px(m.hip - 0.02, w)} L ${px(0, w)} ${px(m.hip + 0.1, w)}`,
+      "none", shade, 1.2
     ));
   }
-  const eyeY = m.headY - 0.02;
-  const eyeRx = m.headRx * 0.2;
-  const eyeRy = m.headRy * 0.12;
-  nodes.push(createEllipse(-m.headRx * 0.4 * w, eyeY * w, eyeRx * w, eyeRy * w, "#1a1a1a", OUTLINE, 1));
-  nodes.push(createEllipse( m.headRx * 0.4 * w, eyeY * w, eyeRx * w, eyeRy * w, "#1a1a1a", OUTLINE, 1));
+  return nodes;
+}
+
+function buildBaseTop(m, w, kind) {
+  // Débardeur simple si pas de haut — comme les refs athletic
+  if (state.torso !== "none") return [];
+  const nodes = [];
+  const col = "#4a5568";
+  const sw = m.shoulderW * 0.92;
+  const ww = m.waistW * 1.05;
+  nodes.push(path(
+    `M ${px(-sw * 0.85, w)} ${px(m.shoulder + 0.04, w)}
+     Q ${px(-ww, w)} ${px(m.waist, w)} ${px(-ww * 0.95, w)} ${px(m.hip - 0.02, w)}
+     L ${px(ww * 0.95, w)} ${px(m.hip - 0.02, w)}
+     Q ${px(ww, w)} ${px(m.waist, w)} ${px(sw * 0.85, w)} ${px(m.shoulder + 0.02, w)}
+     L ${px(sw * 0.35, w)} ${px(m.shoulder + 0.06, w)}
+     Q ${px(0, w)} ${px(m.shoulder + 0.22, w)} ${px(-sw * 0.35, w)} ${px(m.shoulder + 0.06, w)} Z`,
+    col, OUT, 1.25
+  ));
+  if (kind === "back" || kind === "qBack") {
+    // Dos du débardeur plus sombre
+    nodes.push(path(
+      `M ${px(-sw * 0.7, w)} ${px(m.shoulder + 0.08, w)}
+       L ${px(sw * 0.7, w)} ${px(m.shoulder + 0.06, w)}
+       L ${px(ww * 0.7, w)} ${px(m.waist, w)}
+       L ${px(-ww * 0.7, w)} ${px(m.waist, w)} Z`,
+      darken(col, 0.12), OUT, 1
+    ));
+  }
+  return nodes;
+}
+
+/** Jambe (side = -1 gauche / +1 droite, far = arrière-plan) */
+function buildLeg(m, w, side, far, kind) {
+  const nodes = [];
+  const c = limbColors(far);
+  const sx = side * m.footSpread;
+  const hipX = side * m.hipW * (kind === "side" ? 0.15 : 0.55);
+  const th = m.thigh * (kind === "side" ? 0.9 : 1);
+  const cf = m.calf * (kind === "side" ? 0.9 : 1);
+  const boot = "#2f2a28";
+  const bootHi = "#4a423e";
+  const h = m.charHeight || 1;
+
+  // Cuisse
+  nodes.push(path(
+    `M ${px(hipX - side * th * 0.15, w)} ${px(m.hip, w)}
+     C ${px(hipX - side * th * 0.55, w)} ${px((m.hip + m.knee) / 2, w)},
+       ${px(sx - side * th * 0.4, w)} ${px(m.knee + 0.04 * h, w)},
+       ${px(sx - side * th * 0.12, w)} ${px(m.knee, w)}
+     L ${px(sx + side * th * 0.6, w)} ${px(m.knee + 0.035 * h, w)}
+     C ${px(hipX + side * th * 0.45, w)} ${px((m.hip + m.knee) / 2, w)},
+       ${px(hipX + side * th * 0.22, w)} ${px(m.hip + 0.04 * h, w)},
+       ${px(hipX + side * th * 0.12, w)} ${px(m.hip, w)} Z`,
+    c.fill
+  ));
+  // Highlight cuisse (lumière HG)
+  if (!far) {
+    nodes.push(path(
+      `M ${px(hipX - side * th * 0.02, w)} ${px(m.hip + 0.04 * h, w)}
+       Q ${px(sx + side * th * 0.15, w)} ${px((m.hip + m.knee) / 2, w)}
+         ${px(sx + side * th * 0.25, w)} ${px(m.knee + 0.01 * h, w)}`,
+      "none", c.hi, 1.6
+    ));
+  }
+  // Genou
+  nodes.push(oval(
+    (sx + side * th * 0.2) * w, m.knee * w,
+    Math.max(0.02, th * 0.35) * w, Math.max(0.016, th * 0.28) * w,
+    c.mid, OUT, 1.1
+  ));
+  // Mollet
+  nodes.push(path(
+    `M ${px(sx - side * th * 0.12, w)} ${px(m.knee, w)}
+     C ${px(sx - side * cf * 0.6, w)} ${px((m.knee + m.ankle) / 2, w)},
+       ${px(sx - side * cf * 0.38, w)} ${px(m.ankle - 0.015 * h, w)},
+       ${px(sx - side * cf * 0.12, w)} ${px(m.ankle, w)}
+     L ${px(sx + side * cf * 0.58, w)} ${px(m.ankle + 0.012 * h, w)}
+     C ${px(sx + side * cf * 0.5, w)} ${px((m.knee + m.ankle) / 2, w)},
+       ${px(sx + side * th * 0.58, w)} ${px(m.knee + 0.05 * h, w)},
+       ${px(sx + side * th * 0.55, w)} ${px(m.knee + 0.03 * h, w)} Z`,
+    c.mid
+  ));
+  // Botte (volume + semelle)
+  const toe = kind === "side" ? side * 0.15 : side * 0.11;
+  nodes.push(path(
+    `M ${px(sx - side * cf * 0.22, w)} ${px(m.ankle - 0.01 * h, w)}
+     L ${px(sx - side * 0.04, w)} ${px(m.foot, w)}
+     L ${px(sx + toe + side * 0.07, w)} ${px(m.foot, w)}
+     L ${px(sx + side * cf * 0.55, w)} ${px(m.ankle, w)}
+     L ${px(sx + side * cf * 0.35, w)} ${px(m.ankle - 0.08 * h, w)}
+     L ${px(sx - side * cf * 0.05, w)} ${px(m.ankle - 0.08 * h, w)} Z`,
+    boot
+  ));
+  nodes.push(path(
+    `M ${px(sx - side * 0.03, w)} ${px(m.foot, w)}
+     L ${px(sx + toe + side * 0.07, w)} ${px(m.foot, w)}
+     L ${px(sx + toe + side * 0.05, w)} ${px(m.foot + 0.02 * h, w)}
+     L ${px(sx - side * 0.02, w)} ${px(m.foot + 0.02 * h, w)} Z`,
+    "#1a1614", OUT, 1
+  ));
+  // Reflet botte
+  if (!far) {
+    nodes.push(path(
+      `M ${px(sx + side * 0.02, w)} ${px(m.ankle - 0.06 * h, w)}
+       L ${px(sx + side * 0.08, w)} ${px(m.foot - 0.01 * h, w)}`,
+      "none", bootHi, 1.3
+    ));
+  }
+  return nodes;
+}
+
+function buildArm(m, w, side, far, kind) {
+  const nodes = [];
+  const c = limbColors(far);
+  const shx = side * m.shoulderW;
+  // Épaisseur réelle (déjà × hauteur dans resolveMorph)
+  const bi = Math.max(0.03, m.biceps) * (kind === "side" ? 0.9 : 1.15);
+  const fo = Math.max(0.025, m.forearm) * (kind === "side" ? 0.9 : 1.15);
+  // Portée horizontale : grandit avec l'épaisseur ET la longueur du segment
+  const reach = kind === "side" ? 0.22 : (0.55 + 0.45 * (m.upperLen || 1));
+  const reachF = kind === "side" ? 0.28 : (0.5 + 0.5 * (m.foreLen || 1));
+  const elbowX = shx + side * (bi * 0.35 + m.shoulderW * reach * 0.5);
+  const wristX = elbowX + side * (fo * 0.25 + m.shoulderW * reachF * 0.35);
+
+  // Deltoïde — suit shoulderCap × épaisseur bras
+  if (m.shoulderCap > 0.1) {
+    const r = (0.03 + m.shoulderCap * 0.045 + bi * 0.25) * w;
+    nodes.push(oval(shx * w, (m.shoulder + 0.02) * w, r, r * 0.85, c.fill));
+  }
+
+  // Biceps / bras supérieur
+  nodes.push(path(
+    `M ${px(shx - side * bi * 0.35, w)} ${px(m.shoulder, w)}
+     Q ${px(elbowX - side * bi * 0.7, w)} ${px((m.shoulder + m.elbow) / 2, w)}
+       ${px(elbowX - side * bi * 0.45, w)} ${px(m.elbow, w)}
+     L ${px(elbowX + side * bi * 0.55, w)} ${px(m.elbow + 0.03 * m.charHeight, w)}
+     Q ${px(shx + side * bi * 0.55, w)} ${px((m.shoulder + m.elbow) / 2, w)}
+       ${px(shx + side * bi * 0.4, w)} ${px(m.shoulder + 0.05 * m.charHeight, w)} Z`,
+    c.fill
+  ));
+
+  // Coude
+  const er = Math.max(0.018, 0.02 + m.elbowBulk * 0.55) * w;
+  nodes.push(oval(elbowX * w, (m.elbow + 0.015 * m.charHeight) * w, er, er * 0.85, c.mid));
+
+  // Avant-bras
+  nodes.push(path(
+    `M ${px(elbowX - side * bi * 0.35, w)} ${px(m.elbow, w)}
+     Q ${px(wristX - side * fo * 0.55, w)} ${px((m.elbow + m.wrist) / 2, w)}
+       ${px(wristX - side * fo * 0.35, w)} ${px(m.wrist, w)}
+     L ${px(wristX + side * fo * 0.45, w)} ${px(m.wrist + 0.025 * m.charHeight, w)}
+     Q ${px(elbowX + side * fo * 0.4, w)} ${px((m.elbow + m.wrist) / 2, w)}
+       ${px(elbowX + side * bi * 0.45, w)} ${px(m.elbow + 0.03 * m.charHeight, w)} Z`,
+    c.mid
+  ));
+
+  // Main — suit handSize
+  const hr = Math.max(0.018, (m.handSize || fo * 0.45)) * w;
+  nodes.push(oval(wristX * w, m.wrist * w, hr, hr * 0.82, c.fill));
+  return nodes;
+}
+
+function buildTorso(m, w, kind) {
+  const nodes = [];
+  const sw = m.shoulderW;
+  const ww = m.waistW * (1 + m.belly * 0.25);
+  const hw = m.hipW;
+  const back = kind === "back" || kind === "qBack";
+  const h = m.charHeight || 1;
+
+  // Silhouette torse
+  nodes.push(path(
+    `M ${px(-sw, w)} ${px(m.shoulder, w)}
+     Q ${px(-sw * 1.05, w)} ${px(m.chest, w)} ${px(-ww, w)} ${px(m.waist, w)}
+     Q ${px(-hw * 1.05, w)} ${px(m.hip - 0.02 * h, w)} ${px(-hw * 0.9, w)} ${px(m.hip, w)}
+     L ${px(hw * 0.9, w)} ${px(m.hip, w)}
+     Q ${px(hw * 1.05, w)} ${px(m.hip - 0.02 * h, w)} ${px(ww, w)} ${px(m.waist, w)}
+     Q ${px(sw * 1.05, w)} ${px(m.chest, w)} ${px(sw, w)} ${px(m.shoulder - 0.025 * h, w)}
+     Z`,
+    back ? SKIN_D : SKIN
+  ));
+
+  // Highlight clavicule / pectoral (lumière HG) — face & 3/4 face
+  if (!back && kind !== "side") {
+    nodes.push(path(
+      `M ${px(-sw * 0.75, w)} ${px(m.shoulder + 0.04 * h, w)}
+       Q ${px(-sw * 0.2, w)} ${px(m.chest - 0.02 * h, w)} ${px(0, w)} ${px(m.chest, w)}`,
+      "none", SKIN_L, 1.8
+    ));
+  }
+
+  // Fesses
+  if (back && m.glutes > 0.08) {
+    const gx = m.hipW * 0.38;
+    const gr = (0.055 + m.glutes * 0.09) * w;
+    nodes.push(oval((-gx) * w, (m.hip + 0.045 * h) * w, gr, gr * 0.92, SKIN_D));
+    nodes.push(oval(( gx) * w, (m.hip + 0.045 * h) * w, gr * 1.04, gr * 0.95, SKIN_M));
+  }
+
+  // Poitrine
+  if (!back && m.chestSize > 0.05 && m.chestShape !== "flat") {
+    const cy = m.shoulder + 0.13 * h;
+    const size = m.chestSize;
+    if (m.chestShape === "pec") {
+      const ph = (0.10 + size * 0.12) * h;
+      const pw = 0.55 + size * 0.15;
+      if (kind !== "side") {
+        nodes.push(path(
+          `M ${px(-sw * pw, w)} ${px(cy, w)}
+           Q ${px(-sw * 0.35, w)} ${px(cy + 0.02 * h, w)} ${px(-sw * 0.08, w)} ${px(cy + 0.03 * h, w)}
+           L ${px(-sw * 0.08, w)} ${px(cy + ph, w)}
+           Q ${px(-sw * 0.4, w)} ${px(cy + ph - 0.01 * h, w)} ${px(-sw * pw, w)} ${px(cy + ph - 0.02 * h, w)} Z`,
+          SKIN_M, OUT, 1.1));
+        nodes.push(path(
+          `M ${px(sw * pw, w)} ${px(cy - 0.01 * h, w)}
+           Q ${px(sw * 0.35, w)} ${px(cy + 0.02 * h, w)} ${px(sw * 0.08, w)} ${px(cy + 0.03 * h, w)}
+           L ${px(sw * 0.08, w)} ${px(cy + ph, w)}
+           Q ${px(sw * 0.4, w)} ${px(cy + ph - 0.01 * h, w)} ${px(sw * pw, w)} ${px(cy + ph - 0.02 * h, w)} Z`,
+          SKIN_L, OUT, 1.1));
+      } else {
+        nodes.push(oval(sw * 0.28 * w, (cy + 0.06 * h) * w, (0.06 + size * 0.05) * w, (0.07 + size * 0.06) * h * w, SKIN_M, OUT, 1.1));
+      }
+    } else {
+      const full = m.chestShape === "full" ? 1.22 : 1;
+      const rx = (0.065 + size * 0.08) * full;
+      const ry = (0.055 + size * 0.09) * full * h;
+      const drop = (m.chestShape === "full" ? 0.04 : 0.015) * h;
+      if (kind === "side") {
+        nodes.push(oval(sw * 0.32 * w, (cy + drop + ry * 0.35) * w, rx * 1.1 * w, ry * w, SKIN_M, OUT, 1.15));
+      } else {
+        nodes.push(oval((-sw * 0.4) * w, (cy + drop + ry * 0.3) * w, rx * w, ry * w, SKIN_M, OUT, 1.15));
+        nodes.push(oval(( sw * 0.38) * w, (cy + drop + ry * 0.28) * w, rx * 1.05 * w, ry * 1.05 * w, SKIN_L, OUT, 1.15));
+      }
+    }
+  }
+
+  if (m.belly > 0.12) {
+    nodes.push(oval(0.01 * w, ((m.chest + m.waist) / 2) * w,
+      m.waistW * (0.5 + m.belly * 0.55) * w, (0.07 + m.belly * 0.1) * h * w, SKIN_M, OUT, 1.1));
+  }
+
+  return nodes;
+}
+
+function buildHead(m, w, kind) {
+  const nodes = [];
+  const back = kind === "back" || kind === "qBack";
+  const side = kind === "side";
+  const h = m.charHeight || 1;
+  const hair = "#2c2420";
+
+  // Cou
+  nodes.push(path(
+    `M ${px(-m.neckW, w)} ${px(m.shoulder - 0.01 * h, w)}
+     L ${px(m.neckW, w)} ${px(m.shoulder - 0.01 * h, w)}
+     L ${px(m.neckW * 0.78, w)} ${px(m.neck, w)}
+     L ${px(-m.neckW * 0.78, w)} ${px(m.neck, w)} Z`,
+    SKIN
+  ));
+  // Crâne
+  nodes.push(oval(0, m.head * w, m.headRx * w, m.headRy * w, back ? SKIN_D : SKIN));
+
+  if (back) {
+    // Cheveux / crâne arrière
+    nodes.push(path(
+      `M ${px(-m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.1, w)}
+       Q ${px(0, w)} ${px(m.head - m.headRy * 1.15, w)} ${px(m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.1, w)}
+       Q ${px(m.headRx * 0.7, w)} ${px(m.head + m.headRy * 0.15, w)}
+         ${px(0, w)} ${px(m.head + m.headRy * 0.2, w)}
+       Q ${px(-m.headRx * 0.7, w)} ${px(m.head + m.headRy * 0.15, w)}
+         ${px(-m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.1, w)} Z`,
+      hair, OUT, 1.15
+    ));
+  } else if (side) {
+    // Cheveux profil
+    nodes.push(path(
+      `M ${px(-m.headRx * 0.9, w)} ${px(m.head - m.headRy * 0.2, w)}
+       Q ${px(-m.headRx * 0.2, w)} ${px(m.head - m.headRy * 1.1, w)} ${px(m.headRx * 0.7, w)} ${px(m.head - m.headRy * 0.35, w)}
+       L ${px(m.headRx * 0.55, w)} ${px(m.head + 0.02 * h, w)}
+       Q ${px(-m.headRx * 0.4, w)} ${px(m.head + m.headRy * 0.2, w)}
+         ${px(-m.headRx * 0.85, w)} ${px(m.head + 0.05 * h, w)} Z`,
+      hair, OUT, 1.1
+    ));
+    // Nez
+    nodes.push(path(
+      `M ${px(m.headRx * 0.5, w)} ${px(m.head - 0.02 * h, w)}
+       L ${px(m.headRx * 0.92, w)} ${px(m.head + 0.015 * h, w)}
+       L ${px(m.headRx * 0.5, w)} ${px(m.head + 0.055 * h, w)} Z`,
+      SKIN_M, OUT, 1
+    ));
+    // Œil
+    nodes.push(oval(m.headRx * 0.18 * w, (m.head - 0.02 * h) * w, m.headRx * 0.13 * w, m.headRy * 0.09 * w, "#fff", OUT, 0.7));
+    nodes.push(oval(m.headRx * 0.2 * w, (m.head - 0.02 * h) * w, m.headRx * 0.07 * w, m.headRy * 0.07 * w, "#1a1a1a", "none", 0));
+    // Oreille
+    nodes.push(oval((-m.headRx * 0.58) * w, m.head * w, 0.032 * w, 0.048 * w, SKIN_M, OUT, 1));
+  } else {
+    // Cheveux dessus (face / 3/4)
+    nodes.push(path(
+      `M ${px(-m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.15, w)}
+       Q ${px(0, w)} ${px(m.head - m.headRy * 1.2, w)} ${px(m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.15, w)}
+       L ${px(m.headRx * 0.85, w)} ${px(m.head + 0.02 * h, w)}
+       Q ${px(0, w)} ${px(m.head - m.headRy * 0.35, w)} ${px(-m.headRx * 0.85, w)} ${px(m.head + 0.02 * h, w)} Z`,
+      hair, OUT, 1.15
+    ));
+    // Yeux (blanc + pupille)
+    const eyeY = m.head - 0.01 * h;
+    const ex = m.headRx * (kind === "qFront" ? 0.36 : 0.4);
+    const erx = m.headRx * 0.15 * w;
+    const ery = m.headRy * 0.1 * w;
+    nodes.push(oval((-ex) * w, eyeY * w, erx, ery, "#fff", OUT, 0.7));
+    nodes.push(oval(( ex) * w, eyeY * w, erx, ery, "#fff", OUT, 0.7));
+    nodes.push(oval((-ex + m.headRx * 0.02) * w, eyeY * w, erx * 0.45, ery * 0.7, "#1a1a1a", "none", 0));
+    nodes.push(oval(( ex + m.headRx * 0.02) * w, eyeY * w, erx * 0.45, ery * 0.7, "#1a1a1a", "none", 0));
+    // Sourcils
+    nodes.push(path(
+      `M ${px(-ex - m.headRx * 0.12, w)} ${px(eyeY - 0.045 * h, w)}
+       L ${px(-ex + m.headRx * 0.12, w)} ${px(eyeY - 0.035 * h, w)}`,
+      "none", hair, 1.4
+    ));
+    nodes.push(path(
+      `M ${px(ex - m.headRx * 0.12, w)} ${px(eyeY - 0.035 * h, w)}
+       L ${px(ex + m.headRx * 0.12, w)} ${px(eyeY - 0.045 * h, w)}`,
+      "none", hair, 1.4
+    ));
+    // Menton
+    nodes.push(path(
+      `M ${px(-m.headRx * 0.45, w)} ${px(m.head + m.headRy * 0.4, w)}
+       Q ${px(0, w)} ${px(m.head + m.headRy * 0.78, w)} ${px(m.headRx * 0.45, w)} ${px(m.head + m.headRy * 0.4, w)}`,
+      "none", OUT, 1.05
+    ));
+  }
   return nodes;
 }
 
 /* ============================================================
-   6. ÉQUIPEMENTS
+   ÉQUIPEMENTS (suivent m résolu + facing)
    ============================================================ */
-function buildPantsLeg(m, w, side, mode, color) {
+function buildPants(m, w, side, far, mode, color, kind) {
   const nodes = [];
-  const isBack = side === "back";
-  const sx = isBack ? -m.footSpread : m.footSpread;
-  const fill = isBack ? darken(color, 0.18) : color;
-  const stitch = darken(color, 0.35);
-  const thick = m.thigh * m.pantsScaleX;
-  const hipInner = isBack ? -m.hipW * 0.35 : m.hipW * 0.12;
-  const hipOuter = isBack ? -m.hipW * 0.55 : m.hipW * 0.55;
-  const hemY = mode === "over" ? m.footY * 0.7 : m.ankleY - 0.02;
-  const flare = mode === "over" ? thick * 0.35 : 0;
-
-  nodes.push(createPath(
-    `M ${px(hipInner, w)} ${px(m.hipY - 0.02, w)}
-     L ${px(hipOuter, w)} ${px(m.hipY - 0.02, w)}
-     L ${px(sx + (isBack ? -thick * 0.55 : thick * 0.75) + flare * 0.3, w)} ${px(m.kneeY, w)}
-     L ${px(sx + (isBack ? thick * 0.55 : -thick * 0.15) - flare * 0.1, w)} ${px(m.kneeY + 0.06, w)} Z`,
-    fill, OUTLINE, 1.4
-  ));
-  nodes.push(createPath(
-    `M ${px(sx + (isBack ? -thick * 0.55 : thick * 0.75) + flare * 0.3, w)} ${px(m.kneeY, w)}
-     L ${px(sx + (isBack ? -thick * 0.65 : thick * 0.95) + flare, w)} ${px(hemY, w)}
-     L ${px(sx + (isBack ? thick * 0.55 : -thick * 0.05) - flare * 0.2, w)} ${px(hemY + 0.015, w)}
-     L ${px(sx + (isBack ? thick * 0.55 : -thick * 0.15) - flare * 0.1, w)} ${px(m.kneeY + 0.06, w)} Z`,
-    fill, OUTLINE, 1.4
-  ));
-  const hemBand = mode === "over" ? 0.035 : 0.025;
-  nodes.push(createPath(
-    `M ${px(sx + (isBack ? -thick * 0.65 : thick * 0.95) + flare, w)} ${px(hemY, w)}
-     L ${px(sx + (isBack ? -thick * 0.65 : thick * 0.95) + flare, w)} ${px(hemY + hemBand, w)}
-     L ${px(sx + (isBack ? thick * 0.55 : -thick * 0.05) - flare * 0.2, w)} ${px(hemY + hemBand, w)}
-     L ${px(sx + (isBack ? thick * 0.55 : -thick * 0.05) - flare * 0.2, w)} ${px(hemY + 0.015, w)} Z`,
-    stitch, OUTLINE, 1.2
-  ));
+  const fill = far ? darken(color, 0.18) : color;
+  const sx = side * m.footSpread;
+  const hipX = side * m.hipW * (kind === "side" ? 0.2 : 0.55);
+  const th = m.thigh * 1.05;
+  const hemY = mode === "over" ? m.foot * 0.5 : m.ankle - 0.03;
+  nodes.push(path(
+    `M ${px(hipX - side * th * 0.2, w)} ${px(m.hip - 0.02, w)}
+     L ${px(hipX + side * th * 0.35, w)} ${px(m.hip - 0.02, w)}
+     L ${px(sx + side * th * 0.55, w)} ${px(m.knee, w)}
+     L ${px(sx - side * th * 0.2, w)} ${px(m.knee, w)} Z`, fill, OUT, 1.2));
+  nodes.push(path(
+    `M ${px(sx - side * th * 0.2, w)} ${px(m.knee, w)}
+     L ${px(sx + side * th * 0.55, w)} ${px(m.knee, w)}
+     L ${px(sx + side * th * 0.6, w)} ${px(hemY, w)}
+     L ${px(sx - side * th * 0.25, w)} ${px(hemY, w)} Z`, fill, OUT, 1.2));
   return nodes;
 }
 
-function buildPantsWaist(m, w, color) {
+function buildPantsBelt(m, w, color) {
+  return [path(
+    `M ${px(-m.hipW * 1.05, w)} ${px(m.hip - 0.05, w)}
+     L ${px(m.hipW * 1.05, w)} ${px(m.hip - 0.05, w)}
+     L ${px(m.hipW * 0.95, w)} ${px(m.hip + 0.03, w)}
+     L ${px(-m.hipW * 0.95, w)} ${px(m.hip + 0.03, w)} Z`,
+    color, OUT, 1.2
+  )];
+}
+
+function buildTunic(m, w, color, kind) {
   const nodes = [];
-  const belt = darken(color, 0.3);
-  nodes.push(createPath(
-    `M ${px(-m.hipW * 1.05, w)} ${px(m.hipY - 0.06, w)}
-     L ${px(m.hipW * 1.05, w)} ${px(m.hipY - 0.06, w)}
-     L ${px(m.hipW * 0.95, w)} ${px(m.hipY + 0.04, w)}
-     L ${px(-m.hipW * 0.95, w)} ${px(m.hipY + 0.04, w)} Z`,
-    color, OUTLINE, 1.4
+  const sw = m.shoulderW * 0.95;
+  const ww = m.waistW * (1.1 + m.belly * 0.2);
+  const shade = darken(color, 0.18);
+  nodes.push(path(
+    `M ${px(-sw, w)} ${px(m.shoulder + 0.02, w)}
+     Q ${px(-ww * 1.05, w)} ${px(m.waist, w)} ${px(-ww, w)} ${px(m.hip + 0.02, w)}
+     L ${px(ww, w)} ${px(m.hip + 0.02, w)}
+     Q ${px(ww * 1.05, w)} ${px(m.waist, w)} ${px(sw, w)} ${px(m.shoulder - 0.01, w)} Z`,
+    color
   ));
-  nodes.push(createPath(
-    `M ${px(-m.hipW * 1.0, w)} ${px(m.hipY - 0.02, w)}
-     L ${px(m.hipW * 1.0, w)} ${px(m.hipY - 0.02, w)}
-     L ${px(m.hipW * 0.98, w)} ${px(m.hipY + 0.02, w)}
-     L ${px(-m.hipW * 0.98, w)} ${px(m.hipY + 0.02, w)} Z`,
-    belt, OUTLINE, 1.1
-  ));
+  if (kind !== "back" && kind !== "qBack" && kind !== "side") {
+    nodes.push(path(
+      `M ${px(-sw * 0.22, w)} ${px(m.shoulder + 0.04, w)}
+       L ${px(0, w)} ${px(m.shoulder + 0.2, w)}
+       L ${px(sw * 0.22, w)} ${px(m.shoulder + 0.03, w)}`,
+      "none", shade, 1.4
+    ));
+  }
   return nodes;
 }
 
-function buildTunic(m, w, color) {
+function buildCap(m, w, color, kind) {
   const nodes = [];
-  const sw = m.shoulderW * m.torsoScaleX;
-  const hw = Math.max(m.hipW, m.waistW) * m.torsoScaleX;
-  const shade = darken(color, 0.2);
-  // La tunique suit aussi le ventre
-  const midBulge = hw * (1 + m.belly * 0.25);
-  nodes.push(createPath(
-    `M ${px(-sw * 0.95, w)} ${px(m.shoulderY + 0.02, w)}
-     L ${px(sw * 0.95, w)} ${px(m.shoulderY - 0.02, w)}
-     L ${px(midBulge * 1.1, w)} ${px(m.waistY + 0.08, w)}
-     L ${px(-midBulge * 1.1, w)} ${px(m.waistY + 0.08, w)} Z`,
-    color, OUTLINE, 1.5
+  const shade = darken(color, 0.22);
+  const top = m.head - m.headRy * 0.55;
+  nodes.push(path(
+    `M ${px(-m.headRx * 1.05, w)} ${px(m.head - m.headRy * 0.1, w)}
+     Q ${px(0, w)} ${px(top - 0.06, w)} ${px(m.headRx * 1.05, w)} ${px(m.head - m.headRy * 0.1, w)}
+     L ${px(m.headRx * 1.08, w)} ${px(m.head + 0.02, w)}
+     L ${px(-m.headRx * 1.08, w)} ${px(m.head + 0.02, w)} Z`,
+    color
   ));
-  nodes.push(createPath(
-    `M ${px(-sw * 0.25, w)} ${px(m.shoulderY + 0.04, w)}
-     L ${px(0, w)} ${px(m.shoulderY + 0.22, w)}
-     L ${px(sw * 0.25, w)} ${px(m.shoulderY + 0.02, w)}
-     L ${px(0, w)} ${px(m.shoulderY + 0.18, w)} Z`,
-    shade, OUTLINE, 1.1
-  ));
+  if (kind !== "back" && kind !== "qBack") {
+    nodes.push(path(
+      `M ${px(m.headRx * 0.15, w)} ${px(m.head - 0.01, w)}
+       L ${px(m.headRx * 1.4, w)} ${px(m.head + 0.04, w)}
+       L ${px(m.headRx * 1.1, w)} ${px(m.head + 0.08, w)}
+       L ${px(m.headRx * 0.1, w)} ${px(m.head + 0.03, w)} Z`,
+      shade
+    ));
+  }
   return nodes;
 }
 
-function buildCap(m, w, color) {
-  const nodes = [];
-  const s = m.hatScale;
-  const shade = darken(color, 0.25);
-  const top = m.headY - m.headRy * 0.55;
-  nodes.push(createPath(
-    `M ${px(-m.headRx * 1.05 * s, w)} ${px(m.headY - m.headRy * 0.15, w)}
-     Q ${px(0, w)} ${px(top - 0.08 * s, w)} ${px(m.headRx * 1.05 * s, w)} ${px(m.headY - m.headRy * 0.15, w)}
-     L ${px(m.headRx * 1.1 * s, w)} ${px(m.headY + 0.02, w)}
-     L ${px(-m.headRx * 1.1 * s, w)} ${px(m.headY + 0.02, w)} Z`,
-    color, OUTLINE, 1.5
-  ));
-  nodes.push(createPath(
-    `M ${px(m.headRx * 0.2 * s, w)} ${px(m.headY - 0.02, w)}
-     L ${px(m.headRx * 1.45 * s, w)} ${px(m.headY + 0.04, w)}
-     L ${px(m.headRx * 1.15 * s, w)} ${px(m.headY + 0.08, w)}
-     L ${px(m.headRx * 0.15 * s, w)} ${px(m.headY + 0.04, w)} Z`,
-    shade, OUTLINE, 1.3
-  ));
-  return nodes;
-}
-
-/* ============================================================
-   7. ANCRAGES VISUELS
-   ============================================================ */
-function buildAnchorMarkers(m, w) {
+function buildAnchors(m, w) {
   const nodes = [];
   const anchors = getAnchors(m);
   const colors = {
-    head: "#ff6b6b", neck: "#ffa07a",
-    shoulderL: "#6fd8c8", shoulderR: "#6fd8c8",
-    elbowL: "#34d399", elbowR: "#34d399",
-    waistL: "#f0c040", waistR: "#f0c040", hip: "#f0c040",
-    gluteL: "#fb923c", gluteR: "#fb923c",
-    handL: "#a78bfa", handR: "#a78bfa",
-    footL: "#60a5fa", footR: "#60a5fa",
-    pivot: "#ff0044",
+    head:"#ff6b6b", neck:"#ffa07a", shoulderL:"#6fd8c8", shoulderR:"#6fd8c8",
+    waistL:"#f0c040", waistR:"#f0c040", hip:"#f0c040",
+    handL:"#a78bfa", handR:"#a78bfa", footL:"#60a5fa", footR:"#60a5fa", pivot:"#ff0044",
   };
   for (const [name, pos] of Object.entries(anchors)) {
-    const r = name === "pivot" ? 0.035 * w : 0.026 * w;
-    const e = createEllipse(pos.x * w, pos.y * w, r, r, colors[name] || "#fff", "#000", 1);
+    const r = name === "pivot" ? 0.032 * w : 0.024 * w;
+    const e = oval(pos.x * w, pos.y * w, r, r, colors[name] || "#fff", "#000", 1);
     e.setAttribute("opacity", "0.85");
-    e.dataset.anchor = name;
     nodes.push(e);
   }
   return nodes;
 }
 
 /* ============================================================
-   8. ASSEMBLEUR
+   ASSEMBLEUR — ordre Z correct selon la vue
    ============================================================ */
 function createCharacter(cx, cy, tileW, morphId) {
-  const m = resolveMorph(morphId, state.body);
+  const m = applyFacing(resolveMorph(morphId), state.facing);
+  const f = m.facing;
+  const kind = f.kind;
   const w = tileW;
+  const s = m.charSize; // taille générale — scale uniforme depuis le pivot
+
   const root = el("g", {
     class: "character",
     transform: `translate(${cx}, ${cy})`,
-    "data-morph": morphId,
-    "data-chest": m.chestShape,
+    "data-facing": f.key,
+    "data-view": f.name,
+    "data-size": s.toFixed(2),
+    "data-height": m.charHeight.toFixed(2),
   });
   root.style.pointerEvents = "none";
 
-  const layers = {};
-  for (const name of LAYER_ORDER) {
-    layers[name] = el("g", { class: `layer layer-${name}`, "data-layer": name });
-    root.appendChild(layers[name]);
-  }
+  // Groupe échelle : pivot pieds (0,0) inchangé
+  const scaled = el("g", {
+    class: "char-scale",
+    transform: `scale(${s})`,
+  });
+  root.appendChild(scaled);
 
-  for (const n of buildLegBack(m, w))  layers.legBack.appendChild(n);
-  for (const n of buildArmBack(m, w))  layers.armBack.appendChild(n);
-  for (const n of buildTorso(m, w))    layers.torso.appendChild(n);
-  for (const n of buildHead(m, w))     layers.head.appendChild(n);
-  for (const n of buildArmFront(m, w)) layers.armFront.appendChild(n);
-  for (const n of buildLegFront(m, w)) layers.legFront.appendChild(n);
+  // Ombre ancrée au pivot, suit la taille
+  for (const n of buildShadow(m, w)) scaled.appendChild(n);
 
-  if (state.pants !== "none") {
-    const mode = state.pants;
-    const color = state.pantsColor;
-    for (const n of buildPantsLeg(m, w, "back", mode, color)) layers.legBack.appendChild(n);
-    for (const n of buildPantsWaist(m, w, color)) layers.torso.appendChild(n);
-    for (const n of buildPantsLeg(m, w, "front", mode, color)) layers.legFront.appendChild(n);
-  }
+  const body = el("g", {
+    class: "body",
+    transform: f.mirror ? "scale(-1,1)" : "",
+  });
+  scaled.appendChild(body);
 
-  if (state.torso === "tunic") {
-    for (const n of buildTunic(m, w, state.torsoColor)) layers.torso.appendChild(n);
-  }
-  if (state.hat === "cap") {
-    for (const n of buildCap(m, w, state.hatColor)) layers.head.appendChild(n);
-  }
-  if (state.showAnchors) {
-    for (const n of buildAnchorMarkers(m, w)) layers.anchors.appendChild(n);
-  }
+  const farSide = -1;
+  const nearSide = 1;
+  const add = (nodes) => { for (const n of nodes) body.appendChild(n); };
 
-  const pivot = createEllipse(0, 0, 0.03 * w, 0.03 * w, "#ff0044", "#ff0044", 1.5);
-  pivot.setAttribute("opacity", "0.7");
-  layers.meta.appendChild(pivot);
+  add(buildLeg(m, w, farSide, true, kind));
+  add(buildArm(m, w, farSide, true, kind));
+  if (state.pants !== "none") add(buildPants(m, w, farSide, true, state.pants, state.pantsColor, kind));
+
+  add(buildTorso(m, w, kind));
+  add(buildBaseShorts(m, w, kind));
+  add(buildBaseTop(m, w, kind));
+  if (state.pants !== "none") add(buildPantsBelt(m, w, state.pantsColor));
+  if (state.torso === "tunic") add(buildTunic(m, w, state.torsoColor, kind));
+
+  add(buildHead(m, w, kind));
+  if (state.hat === "cap") add(buildCap(m, w, state.hatColor, kind));
+
+  add(buildLeg(m, w, nearSide, false, kind));
+  add(buildArm(m, w, nearSide, false, kind));
+  if (state.pants !== "none") add(buildPants(m, w, nearSide, false, state.pants, state.pantsColor, kind));
+
+  if (state.showAnchors) add(buildAnchors(m, w));
+
+  // Meta hors miroir, dans le scale : label suit la hauteur
+  const meta = el("g", { class: "meta" });
+  scaled.appendChild(meta);
+  const pivot = oval(0, 0, 0.028 * w, 0.028 * w, "#ff0044", "#ff0044", 1.2);
+  pivot.setAttribute("opacity", "0.75");
+  meta.appendChild(pivot);
 
   const label = el("text", {
-    x: 0,
-    y: (m.headY - m.headRy - 0.18) * w,
+    x: 0, y: (m.head - m.headRy - 0.16) * w,
     "text-anchor": "middle",
-    "font-size": "9",
-    fill: m.labelColor,
-    "font-weight": "bold",
-    "font-family": "Arial",
+    "font-size": String(Math.max(8, Math.round(9 / Math.sqrt(s)))),
+    fill: m.labelColor, "font-weight": "bold", "font-family": "Arial",
   });
-  label.textContent = m.label;
-  layers.meta.appendChild(label);
+  label.textContent = `${m.label} · ${f.short}`;
+  meta.appendChild(label);
 
   return root;
 }
 
 /* ============================================================
-   9. RENDU
+   RENDU + UI
    ============================================================ */
 function draw() {
   const gridSize = parseInt(gridSizeInput.value, 10);
   const tileW = parseInt(tileWInput.value, 10);
   const tileH = tileW / 2;
-
   document.getElementById("gridSizeVal").textContent = gridSize;
   document.getElementById("tileWVal").textContent = tileW;
-
   state.selected.row = Math.min(state.selected.row, gridSize - 1);
   state.selected.col = Math.min(state.selected.col, gridSize - 1);
 
   const pad = tileW * 1.2;
-  const gridPixelW = gridSize * tileW;
-  const gridPixelH = gridSize * tileH;
-  const charHeadroom = tileW * 2.3;
-  const viewW = gridPixelW + pad * 2;
-  const viewH = gridPixelH + pad * 2 + charHeadroom;
-  const originX = viewW / 2;
-  const originY = pad + charHeadroom * 0.35;
+  const charHeadroom = tileW * 2.35;
+  const viewW = gridSize * tileW + pad * 2;
+  const viewH = gridSize * tileH + pad * 2 + charHeadroom;
+  const ox = viewW / 2;
+  const oy = pad + charHeadroom * 0.35;
 
   svg.setAttribute("viewBox", `0 0 ${viewW} ${viewH}`);
   svg.innerHTML = "";
-
   const world = el("g", { class: "world" });
   svg.appendChild(world);
-  drawGrid(world, gridSize, tileW, tileH, originX, originY);
-
-  const { x: cx, y: cy } = isoToScreen(
-    state.selected.row, state.selected.col, tileW, tileH, originX, originY
-  );
+  drawGrid(world, gridSize, tileW, tileH, ox, oy);
+  const { x: cx, y: cy } = isoToScreen(state.selected.row, state.selected.col, tileW, tileH, ox, oy);
   world.appendChild(createCharacter(cx, cy, tileW, state.morph));
 }
 
-/* ============================================================
-   10. UI — sliders tronçons + bindings
-   ============================================================ */
 function buildBodySlidersUI() {
   const host = document.getElementById("bodySliders");
   host.innerHTML = "";
   for (const def of BODY_SLIDER_DEFS) {
     const row = document.createElement("div");
     row.className = "slider-row";
-
     const lab = document.createElement("span");
-    lab.className = "label";
-    lab.textContent = def.label;
-
+    lab.className = "label"; lab.textContent = def.label;
     const input = document.createElement("input");
-    input.type = "range";
-    input.min = def.min;
-    input.max = def.max;
-    input.step = def.step;
-    input.value = state.body[def.key];
-    input.dataset.bodyKey = def.key;
-    input.id = `body_${def.key}`;
-
+    input.type = "range"; input.min = def.min; input.max = def.max;
+    input.step = def.step; input.value = state.body[def.key]; input.id = `body_${def.key}`;
     const num = document.createElement("span");
-    num.className = "num";
-    num.id = `bodyVal_${def.key}`;
+    num.className = "num"; num.id = `bodyVal_${def.key}`;
     num.textContent = Number(state.body[def.key]).toFixed(2);
-
     input.addEventListener("input", () => {
       const v = parseFloat(input.value);
       state.body[def.key] = v;
@@ -1028,10 +1087,7 @@ function buildBodySlidersUI() {
       info.textContent = `${def.label} → ${v.toFixed(2)}`;
       draw();
     });
-
-    row.appendChild(lab);
-    row.appendChild(input);
-    row.appendChild(num);
+    row.append(lab, input, num);
     host.appendChild(row);
   }
 }
@@ -1043,67 +1099,74 @@ function syncBodySlidersFromState() {
     if (input) input.value = state.body[def.key];
     if (num) num.textContent = Number(state.body[def.key]).toFixed(2);
   }
-  // chest shape buttons
   document.querySelectorAll("#chestShapeSelector .ctrl-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.chest === state.body.chestShape);
   });
 }
 
-function bindButtonGroup(containerId, datasetKey, stateKey, labels) {
-  const container = document.getElementById(containerId);
-  container.querySelectorAll(".ctrl-btn").forEach((btn) => {
+function bindButtonGroup(id, dataKey, stateKey, labelFn) {
+  const box = document.getElementById(id);
+  box.querySelectorAll(".ctrl-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      container.querySelectorAll(".ctrl-btn").forEach((b) => b.classList.remove("active"));
+      box.querySelectorAll(".ctrl-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      state[stateKey] = btn.dataset[datasetKey];
-      info.textContent = labels
-        ? labels(state[stateKey], btn)
-        : `${stateKey} → ${state[stateKey]}`;
+      state[stateKey] = btn.dataset[dataKey];
+      info.textContent = labelFn ? labelFn(state[stateKey], btn) : `${stateKey}: ${state[stateKey]}`;
       draw();
     });
   });
 }
 
-bindButtonGroup("morphSelector", "morph", "morph", (v, btn) =>
-  `Morphologie ${btn.textContent.trim()} (base) · tronçons conservés`
-);
-bindButtonGroup("pantsSelector", "pants", "pants", (v) =>
-  `Pantalon : ${v === "none" ? "aucun" : v.toUpperCase()}`
-);
-bindButtonGroup("torsoSelector", "torso", "torso", (v) =>
-  `Haut : ${v === "none" ? "aucun" : "tunique"}`
-);
-bindButtonGroup("hatSelector", "hat", "hat", (v) =>
-  `Chapeau : ${v === "none" ? "aucun" : "casquette"}`
-);
+bindButtonGroup("morphSelector", "morph", "morph", (_, btn) => `Morphologie ${btn.textContent.trim()}`);
+bindButtonGroup("pantsSelector", "pants", "pants", (v) => `Pantalon ${v === "none" ? "aucun" : v.toUpperCase()}`);
+bindButtonGroup("torsoSelector", "torso", "torso", (v) => `Haut ${v === "none" ? "aucun" : "tunique"}`);
+bindButtonGroup("hatSelector", "hat", "hat", (v) => `Chapeau ${v === "none" ? "aucun" : "casquette"}`);
 
 document.querySelectorAll("#chestShapeSelector .ctrl-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll("#chestShapeSelector .ctrl-btn")
-      .forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll("#chestShapeSelector .ctrl-btn").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     state.body.chestShape = btn.dataset.chest;
-    info.textContent = `Forme poitrine : ${btn.textContent.trim()}`;
+    info.textContent = `Poitrine : ${btn.textContent.trim()}`;
     draw();
   });
 });
 
 document.getElementById("resetBody").addEventListener("click", () => {
   state.body = defaultBodyCustom();
+  state.charHeight = 1.0;
+  state.charSize = 1.0;
+  const hIn = document.getElementById("charHeight");
+  const sIn = document.getElementById("charSize");
+  if (hIn) hIn.value = "1.00";
+  if (sIn) sIn.value = "1.00";
+  document.getElementById("charHeightVal").textContent = "1.00";
+  document.getElementById("charSizeVal").textContent = "1.00";
   syncBodySlidersFromState();
-  info.textContent = "Tronçons réinitialisés aux valeurs par défaut";
+  info.textContent = "Tronçons + hauteur/taille réinitialisés";
+  draw();
+});
+
+const charHeightInput = document.getElementById("charHeight");
+const charSizeInput = document.getElementById("charSize");
+charHeightInput.addEventListener("input", () => {
+  state.charHeight = parseFloat(charHeightInput.value);
+  document.getElementById("charHeightVal").textContent = state.charHeight.toFixed(2);
+  info.textContent = `Hauteur perso → ${state.charHeight.toFixed(2)}`;
+  draw();
+});
+charSizeInput.addEventListener("input", () => {
+  state.charSize = parseFloat(charSizeInput.value);
+  document.getElementById("charSizeVal").textContent = state.charSize.toFixed(2);
+  info.textContent = `Taille générale → ${state.charSize.toFixed(2)}`;
   draw();
 });
 
 document.getElementById("anchorToggle").querySelectorAll(".ctrl-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
-    document.getElementById("anchorToggle").querySelectorAll(".ctrl-btn")
-      .forEach((b) => b.classList.remove("active"));
+    document.getElementById("anchorToggle").querySelectorAll(".ctrl-btn").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     state.showAnchors = btn.dataset.anchors === "on";
-    info.textContent = state.showAnchors
-      ? "Points d'ancrage visibles"
-      : "Points d'ancrage masqués";
     draw();
   });
 });
@@ -1114,7 +1177,38 @@ hatColorInput.addEventListener("input", () => { state.hatColor = hatColorInput.v
 gridSizeInput.addEventListener("input", draw);
 tileWInput.addEventListener("input", draw);
 
+document.querySelectorAll("#mainTabs .tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll("#mainTabs .tab-btn").forEach((b) => b.classList.toggle("active", b === btn));
+    document.querySelectorAll(".tab-panel").forEach((p) => p.classList.toggle("active", p.id === `panel-${tab}`));
+  });
+});
+
+function syncFacingUI() {
+  const f = getFacing();
+  document.querySelectorAll("#facingPad .ctrl-btn").forEach((btn) => {
+    btn.classList.toggle("active", parseInt(btn.dataset.facing, 10) === state.facing);
+  });
+  document.getElementById("facingLabel").textContent = f.short;
+  document.getElementById("facingDeg").textContent = `${f.name} · ${f.key} · ${f.deg}°`;
+}
+
+function setFacing(id) {
+  state.facing = ((id % 8) + 8) % 8;
+  syncFacingUI();
+  info.textContent = `Vue : ${getFacing().name}`;
+  draw();
+}
+
+document.querySelectorAll("#facingPad .ctrl-btn").forEach((btn) => {
+  btn.addEventListener("click", () => setFacing(parseInt(btn.dataset.facing, 10)));
+});
+document.getElementById("rotLeft").addEventListener("click", () => setFacing(state.facing - 1));
+document.getElementById("rotRight").addEventListener("click", () => setFacing(state.facing + 1));
+
 buildBodySlidersUI();
+syncFacingUI();
 draw();
 </script>
 </body>
