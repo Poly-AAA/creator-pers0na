@@ -330,6 +330,45 @@ function getFacing(id = state.facing) {
   return FACINGS[((id % 8) + 8) % 8];
 }
 
+/**
+ * Orientation Dofus : face la case de destination.
+ * Grille iso 2:1 — +col = SE écran, +row = SW écran.
+ */
+function facingFromDelta(dRow, dCol) {
+  const sr = Math.sign(dRow);
+  const sc = Math.sign(dCol);
+  if (sr === 0 && sc === 0) return state.facing;
+  // (Δcol, Δrow) → id FACINGS
+  const table = {
+    "1,0": 0,   // SE  3/4 face-droit
+    "1,1": 1,   // S   Face
+    "0,1": 2,   // SW  3/4 face-gauche
+    "-1,1": 3,  // W   Profil gauche
+    "-1,0": 4,  // NW  3/4 dos-gauche
+    "-1,-1": 5, // N   Dos
+    "0,-1": 6,  // NE  3/4 dos-droit
+    "1,-1": 7,  // E   Profil droit
+  };
+  const key = `${sc},${sr}`;
+  return table[key] !== undefined ? table[key] : state.facing;
+}
+
+function moveToTile(row, col) {
+  const from = state.selected;
+  const dRow = row - from.row;
+  const dCol = col - from.col;
+  if (dRow === 0 && dCol === 0) {
+    info.textContent = `Case (${row},${col}) · ${getFacing().name}`;
+    return;
+  }
+  state.facing = facingFromDelta(dRow, dCol);
+  state.selected = { row, col };
+  syncFacingUI();
+  const f = getFacing();
+  info.textContent = `Déplacement → (${row},${col}) · regarde ${f.short}`;
+  draw();
+}
+
 /** Facteur d'écartement horizontal selon la vue (foresight X only) */
 function spreadFor(kind) {
   if (kind === "front" || kind === "back") return 1.0;
@@ -632,9 +671,7 @@ function drawGrid(parent, gridSize, tileW, tileH, ox, oy) {
       const tile = path(d, sel ? "#6fd8c8" : (shade === "light" ? "#3f7a54" : "#2f6b48"), "#173a28", 1.5);
       tile.classList.add("tile", sel ? "selected" : shade);
       tile.addEventListener("click", () => {
-        state.selected = { row, col };
-        info.textContent = `Case (${row},${col}) · ${getFacing().name}`;
-        draw();
+        moveToTile(row, col);
       });
       parent.appendChild(tile);
     }
