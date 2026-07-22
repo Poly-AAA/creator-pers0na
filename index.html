@@ -94,8 +94,8 @@
 </head>
 <body>
 <div class="app">
-  <div class="topbar">NEURO CORE — map · tourne vers la case (v3.1)</div>
-  <div class="info" id="info">Clique une case autour du perso : il se tourne vers elle</div>
+  <div class="topbar">NEURO CORE — rotation gauche corrigée (v3.2)</div>
+  <div class="info" id="info">↺ tourne vers Face → 3/4 G → Profil G · clique aussi les cases</div>
   <div class="stage"><svg id="scene"></svg></div>
   <div class="controls">
     <div class="tabs" id="mainTabs" role="tablist">
@@ -162,8 +162,8 @@
           <button class="ctrl-btn" type="button" data-facing="1">Face</button>
         </div>
         <div class="rot-row">
-          <button class="ctrl-btn" type="button" id="rotLeft">↺ −45°</button>
-          <button class="ctrl-btn" type="button" id="rotRight">+45° ↻</button>
+          <button class="ctrl-btn" type="button" id="rotLeft">↺ Gauche</button>
+          <button class="ctrl-btn" type="button" id="rotRight">Droite ↻</button>
         </div>
         <div class="rot-row" style="margin-top:6px;">
           <button class="ctrl-btn" type="button" id="galleryMorphs">Galerie 3 morphos</button>
@@ -1636,6 +1636,7 @@ function createCharacter(cx, cy, tileW, morphId) {
   });
   scaled.appendChild(body);
 
+  // near = droite (+1) avant miroir ; le flip X place le membre près du bon côté écran
   const farSide = -1;
   const nearSide = 1;
   const add = (nodes) => { for (const n of nodes) body.appendChild(n); };
@@ -1890,8 +1891,8 @@ function setFacing(id) {
 document.querySelectorAll("#facingPad .ctrl-btn").forEach((btn) => {
   btn.addEventListener("click", () => setFacing(parseInt(btn.dataset.facing, 10)));
 });
-document.getElementById("rotLeft").addEventListener("click", () => setFacing(state.facing - 1));
-document.getElementById("rotRight").addEventListener("click", () => setFacing(state.facing + 1));
+document.getElementById("rotLeft").addEventListener("click", () => setFacing(state.facing + 1));
+document.getElementById("rotRight").addEventListener("click", () => setFacing(state.facing - 1));
 
 document.getElementById("galleryMorphs").addEventListener("click", () => {
   state.galleryMorphs = !state.galleryMorphs;
