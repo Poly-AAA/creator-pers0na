@@ -21,6 +21,8 @@
   .tile.light { fill:#3f7a54; }
   .tile.dark  { fill:#2f6b48; }
   .tile.selected { fill:#6fd8c8; }
+  .tile-hit { cursor:pointer; pointer-events:all; }
+  .character, .character * { pointer-events:none !important; }
   .controls {
     flex:0 0 auto; background:#16211a; border-top:1px solid #000;
     display:flex; flex-direction:column; max-height:48dvh; min-height:0;
@@ -92,8 +94,8 @@
 </head>
 <body>
 <div class="app">
-  <div class="topbar">NEURO CORE — Phase 3 · équipements × 8 vues</div>
-  <div class="info" id="info">Onglets : Corps · Équipements · Rotation · Grille</div>
+  <div class="topbar">NEURO CORE — map · tourne vers la case (v3.1)</div>
+  <div class="info" id="info">Clique une case autour du perso : il se tourne vers elle</div>
   <div class="stage"><svg id="scene"></svg></div>
   <div class="controls">
     <div class="tabs" id="mainTabs" role="tablist">
@@ -331,29 +333,35 @@ function getFacing(id = state.facing) {
 }
 
 /**
- * Orientation Dofus : face la case de destination.
- * Grille iso 2:1 — +col = SE écran, +row = SW écran.
+ * Orientation Dofus : regarde dans la direction du déplacement à l'écran.
+ * 0° = droite (E), 90° = bas (S), etc.
  */
+function facingFromScreenDelta(dx, dy) {
+  if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) return state.facing;
+  const angle = Math.atan2(dy, dx); // -PI..PI
+  let sector = Math.round(angle / (Math.PI / 4)); // -4..4
+  if (sector === -4) sector = 4;
+  // 0=E, 1=SE, 2=S, 3=SW, 4=W, -3=NW, -2=N, -1=NE
+  const map = { 0: 7, 1: 0, 2: 1, 3: 2, 4: 3, "-3": 4, "-2": 5, "-1": 6 };
+  return map[sector] !== undefined ? map[sector] : state.facing;
+}
+
+/** Fallback grille (Δcol / Δrow) si pas de layout écran */
 function facingFromDelta(dRow, dCol) {
   const sr = Math.sign(dRow);
   const sc = Math.sign(dCol);
   if (sr === 0 && sc === 0) return state.facing;
-  // (Δcol, Δrow) → id FACINGS
   const table = {
-    "1,0": 0,   // SE  3/4 face-droit
-    "1,1": 1,   // S   Face
-    "0,1": 2,   // SW  3/4 face-gauche
-    "-1,1": 3,  // W   Profil gauche
-    "-1,0": 4,  // NW  3/4 dos-gauche
-    "-1,-1": 5, // N   Dos
-    "0,-1": 6,  // NE  3/4 dos-droit
-    "1,-1": 7,  // E   Profil droit
+    "1,0": 0, "1,1": 1, "0,1": 2, "-1,1": 3,
+    "-1,0": 4, "-1,-1": 5, "0,-1": 6, "1,-1": 7,
   };
-  const key = `${sc},${sr}`;
-  return table[key] !== undefined ? table[key] : state.facing;
+  return table[`${sc},${sr}`] ?? state.facing;
 }
 
 function moveToTile(row, col) {
+  const gridSize = parseInt(gridSizeInput.value, 10);
+  if (row < 0 || col < 0 || row >= gridSize || col >= gridSize) return;
+
   const from = state.selected;
   const dRow = row - from.row;
   const dCol = col - from.col;
@@ -361,11 +369,29 @@ function moveToTile(row, col) {
     info.textContent = `Case (${row},${col}) · ${getFacing().name}`;
     return;
   }
-  state.facing = facingFromDelta(dRow, dCol);
+
+  // Direction à l'écran (comme Dofus) — plus fiable que le delta grille seul
+  let nextFacing = facingFromDelta(dRow, dCol);
+  if (state.layout) {
+    const { tileW, tileH, ox, oy } = state.layout;
+    const a = isoToScreen(from.row, from.col, tileW, tileH, ox, oy);
+    const b = isoToScreen(row, col, tileW, tileH, ox, oy);
+    nextFacing = facingFromScreenDelta(b.x - a.x, b.y - a.y);
+  }
+
+  state.facing = nextFacing;
   state.selected = { row, col };
+  // Quitte les galeries : on veut voir le perso tourner sur la map
+  state.galleryFacings = false;
+  state.galleryMorphs = false;
+  const gm = document.getElementById("galleryMorphs");
+  const gf = document.getElementById("galleryFacings");
+  if (gm) gm.classList.remove("active");
+  if (gf) gf.classList.remove("active");
+
   syncFacingUI();
   const f = getFacing();
-  info.textContent = `Déplacement → (${row},${col}) · regarde ${f.short}`;
+  info.textContent = `→ (${row},${col}) · ${f.short} (${f.name})`;
   draw();
 }
 
@@ -661,6 +687,8 @@ function isoToScreen(row, col, tileW, tileH, ox, oy) {
 }
 
 function drawGrid(parent, gridSize, tileW, tileH, ox, oy) {
+  const tiles = el("g", { class: "tiles" });
+  parent.appendChild(tiles);
   for (let row = 0; row < gridSize; row++) {
     for (let col = 0; col < gridSize; col++) {
       const { x: cx, y: cy } = isoToScreen(row, col, tileW, tileH, ox, oy);
@@ -670,10 +698,30 @@ function drawGrid(parent, gridSize, tileW, tileH, ox, oy) {
       const shade = (row + col) % 2 === 0 ? "light" : "dark";
       const tile = path(d, sel ? "#6fd8c8" : (shade === "light" ? "#3f7a54" : "#2f6b48"), "#173a28", 1.5);
       tile.classList.add("tile", sel ? "selected" : shade);
-      tile.addEventListener("click", () => {
-        moveToTile(row, col);
-      });
-      parent.appendChild(tile);
+      tile.setAttribute("data-row", String(row));
+      tile.setAttribute("data-col", String(col));
+      tiles.appendChild(tile);
+    }
+  }
+}
+
+/** Couche cliquable AU-DESSUS du perso (sinon le SVG du corps mange les taps) */
+function drawTileHitLayer(parent, gridSize, tileW, tileH, ox, oy) {
+  const hits = el("g", { class: "tile-hits" });
+  hits.setAttribute("pointer-events", "all");
+  parent.appendChild(hits);
+  for (let row = 0; row < gridSize; row++) {
+    for (let col = 0; col < gridSize; col++) {
+      const { x: cx, y: cy } = isoToScreen(row, col, tileW, tileH, ox, oy);
+      const hw = tileW / 2, hh = tileH / 2;
+      const d = `M ${cx} ${cy - hh} L ${cx + hw} ${cy} L ${cx} ${cy + hh} L ${cx - hw} ${cy} Z`;
+      const hit = path(d, "rgba(0,0,0,0)", "none", 0);
+      hit.classList.add("tile-hit");
+      hit.setAttribute("data-row", String(row));
+      hit.setAttribute("data-col", String(col));
+      hit.setAttribute("pointer-events", "all");
+      hit.style.cursor = "pointer";
+      hits.appendChild(hit);
     }
   }
 }
@@ -1568,6 +1616,7 @@ function createCharacter(cx, cy, tileW, morphId) {
     "data-view": f.name,
     "data-size": s.toFixed(2),
     "data-height": m.charHeight.toFixed(2),
+    "pointer-events": "none",
   });
   root.style.pointerEvents = "none";
 
@@ -1669,6 +1718,8 @@ function draw() {
   svg.innerHTML = "";
   const world = el("g", { class: "world" });
   svg.appendChild(world);
+  state.layout = { gridSize, tileW, tileH, ox, oy, viewW, viewH };
+
   drawGrid(world, gridSize, tileW, tileH, ox, oy);
   const { x: cx, y: cy } = isoToScreen(state.selected.row, state.selected.col, tileW, tileH, ox, oy);
 
@@ -1698,6 +1749,11 @@ function draw() {
     info.textContent = `Galerie morphos · vue ${getFacing().name} — compare Lourd / Standard / Fin`;
   } else {
     world.appendChild(createCharacter(cx, cy, tileW, state.morph));
+  }
+
+  // Hits au-dessus du perso pour que les taps passent toujours
+  if (!state.galleryFacings && !state.galleryMorphs) {
+    drawTileHitLayer(world, gridSize, tileW, tileH, ox, oy);
   }
 }
 
@@ -1857,6 +1913,22 @@ document.getElementById("galleryFacings").addEventListener("click", () => {
     ? "Galerie 8 vues ON — vérifie l'équipement sur toutes les orientations"
     : "Galerie OFF — un seul perso";
   draw();
+});
+
+// Clic / tap map → déplacement + orientation (délégation, au-dessus du perso)
+function onMapInteract(e) {
+  const hit = e.target && e.target.closest && e.target.closest("[data-row][data-col]");
+  if (!hit) return;
+  const row = parseInt(hit.getAttribute("data-row"), 10);
+  const col = parseInt(hit.getAttribute("data-col"), 10);
+  if (Number.isNaN(row) || Number.isNaN(col)) return;
+  e.preventDefault();
+  moveToTile(row, col);
+}
+svg.addEventListener("click", onMapInteract);
+svg.addEventListener("pointerup", (e) => {
+  // Mobile : certains WebViews ne déclenchent pas click sur path SVG
+  if (e.pointerType === "touch" || e.pointerType === "pen") onMapInteract(e);
 });
 
 buildBodySlidersUI();
