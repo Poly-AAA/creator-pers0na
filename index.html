@@ -92,7 +92,7 @@
 </head>
 <body>
 <div class="app">
-  <div class="topbar">NEURO CORE — Phase 3 · équipements modulaires</div>
+  <div class="topbar">NEURO CORE — Phase 3 · équipements × 8 vues</div>
   <div class="info" id="info">Onglets : Corps · Équipements · Rotation · Grille</div>
   <div class="stage"><svg id="scene"></svg></div>
   <div class="controls">
@@ -165,6 +165,7 @@
         </div>
         <div class="rot-row" style="margin-top:6px;">
           <button class="ctrl-btn" type="button" id="galleryMorphs">Galerie 3 morphos</button>
+          <button class="ctrl-btn" type="button" id="galleryFacings">Galerie 8 vues</button>
         </div>
         <div class="row" style="justify-content:center;">
           <span class="val" id="facingDeg" style="min-width:auto;">3/4 face-droit · SE · 45°</span>
@@ -266,6 +267,7 @@ const state = {
   preset: "aventurier",
   showAnchors: false,
   galleryMorphs: false,
+  galleryFacings: false,
 };
 
 /* ============================================================
@@ -1038,68 +1040,75 @@ function buildHead(m, w, kind) {
 }
 
 /* ============================================================
-   ÉQUIPEMENTS (suivent m résolu + facing)
+   ÉQUIPEMENTS — variantes par silhouette (front / qFront / side / qBack / back)
+   Hauteurs Y inchangées ; seuls X / détails / foreshortening changent
    ============================================================ */
+function isBackKind(kind) { return kind === "back" || kind === "qBack"; }
+
 function buildPants(m, w, side, far, mode, color, kind) {
   const nodes = [];
   const fill = far ? darken(color, 0.18) : color;
   const stitch = darken(color, 0.32);
   const h = m.charHeight || 1;
   const sx = side * m.footSpread;
-  const hipX = side * m.hipW * (kind === "side" ? 0.22 : 0.58);
-  const th = Math.max(m.thigh, m.legThick) * 1.12;
+  const hipMul = kind === "side" ? 0.18 : (kind === "front" || kind === "back" ? 0.62 : 0.55);
+  const hipX = side * m.hipW * hipMul;
+  const th = Math.max(m.thigh, m.legThick) * (kind === "side" ? 1.0 : 1.12);
+  const out = kind === "side" ? 0.55 : 0.62;
   const hemY = mode === "over" ? m.foot * 0.45 : m.ankle - 0.035 * h;
   nodes.push(path(
-    `M ${px(hipX - side * th * 0.25, w)} ${px(m.hip - 0.03 * h, w)}
-     L ${px(hipX + side * th * 0.4, w)} ${px(m.hip - 0.03 * h, w)}
-     L ${px(sx + side * th * 0.62, w)} ${px(m.knee, w)}
-     L ${px(sx - side * th * 0.28, w)} ${px(m.knee, w)} Z`,
+    `M ${px(hipX - side * th * 0.22, w)} ${px(m.hip - 0.03 * h, w)}
+     L ${px(hipX + side * th * 0.38, w)} ${px(m.hip - 0.03 * h, w)}
+     L ${px(sx + side * th * out, w)} ${px(m.knee, w)}
+     L ${px(sx - side * th * 0.26, w)} ${px(m.knee, w)} Z`,
     fill, OUT, 1.7
   ));
   nodes.push(path(
-    `M ${px(sx - side * th * 0.28, w)} ${px(m.knee, w)}
-     L ${px(sx + side * th * 0.62, w)} ${px(m.knee, w)}
-     L ${px(sx + side * th * (mode === "over" ? 0.7 : 0.58), w)} ${px(hemY, w)}
-     L ${px(sx - side * th * 0.3, w)} ${px(hemY, w)} Z`,
+    `M ${px(sx - side * th * 0.26, w)} ${px(m.knee, w)}
+     L ${px(sx + side * th * out, w)} ${px(m.knee, w)}
+     L ${px(sx + side * th * (mode === "over" ? out + 0.08 : out - 0.04), w)} ${px(hemY, w)}
+     L ${px(sx - side * th * 0.28, w)} ${px(hemY, w)} Z`,
     fill, OUT, 1.7
   ));
   nodes.push(path(
-    `M ${px(sx - side * th * 0.3, w)} ${px(hemY, w)}
-     L ${px(sx + side * th * (mode === "over" ? 0.7 : 0.58), w)} ${px(hemY, w)}
-     L ${px(sx + side * th * (mode === "over" ? 0.7 : 0.58), w)} ${px(hemY + 0.03 * h, w)}
-     L ${px(sx - side * th * 0.3, w)} ${px(hemY + 0.03 * h, w)} Z`,
+    `M ${px(sx - side * th * 0.28, w)} ${px(hemY, w)}
+     L ${px(sx + side * th * (mode === "over" ? out + 0.08 : out - 0.04), w)} ${px(hemY, w)}
+     L ${px(sx + side * th * (mode === "over" ? out + 0.08 : out - 0.04), w)} ${px(hemY + 0.03 * h, w)}
+     L ${px(sx - side * th * 0.28, w)} ${px(hemY + 0.03 * h, w)} Z`,
     stitch, OUT, 1.2
   ));
   return nodes;
 }
 
-function buildPantsBelt(m, w, color) {
+function buildPantsBelt(m, w, color, kind) {
   if (state.equip.top !== "none" || state.equip.accessory === "belt") return [];
   const h = m.charHeight || 1;
+  const ww = kind === "side" ? m.hipW * 0.55 : m.hipW * 1.08;
   return [path(
-    `M ${px(-m.hipW * 1.08, w)} ${px(m.hip - 0.04 * h, w)}
-     L ${px(m.hipW * 1.08, w)} ${px(m.hip - 0.04 * h, w)}
-     L ${px(m.hipW * 0.98, w)} ${px(m.hip + 0.035 * h, w)}
-     L ${px(-m.hipW * 0.98, w)} ${px(m.hip + 0.035 * h, w)} Z`,
+    `M ${px(-ww, w)} ${px(m.hip - 0.04 * h, w)}
+     L ${px(ww, w)} ${px(m.hip - 0.04 * h, w)}
+     L ${px(ww * 0.92, w)} ${px(m.hip + 0.035 * h, w)}
+     L ${px(-ww * 0.92, w)} ${px(m.hip + 0.035 * h, w)} Z`,
     darken(color, 0.15), OUT, 1.5
   )];
 }
 
 function buildTunic(m, w, color, kind) {
   const nodes = [];
-  const sw = Math.max(m.shoulderW * 0.95, m.hipW * 0.85);
-  const ww = Math.max(m.waistW, m.hipW * 0.72) * (1.08 + m.belly * 0.2);
+  const side = kind === "side";
+  const back = isBackKind(kind);
+  const sw = Math.max(m.shoulderW * (side ? 0.55 : 0.95), m.hipW * (side ? 0.5 : 0.85));
+  const ww = Math.max(m.waistW, m.hipW * 0.72) * (side ? 0.7 : 1.08 + m.belly * 0.2);
   const shade = darken(color, 0.22);
   const h = m.charHeight || 1;
-  const back = kind === "back" || kind === "qBack";
   nodes.push(path(
     `M ${px(-sw, w)} ${px(m.shoulder + 0.015 * h, w)}
-     Q ${px(-ww * 1.1, w)} ${px(m.waist, w)} ${px(-ww * 1.08, w)} ${px(m.hip + 0.05 * h, w)}
-     L ${px(ww * 1.08, w)} ${px(m.hip + 0.05 * h, w)}
-     Q ${px(ww * 1.1, w)} ${px(m.waist, w)} ${px(sw, w)} ${px(m.shoulder - 0.005 * h, w)} Z`,
+     Q ${px(-ww * 1.05, w)} ${px(m.waist, w)} ${px(-ww, w)} ${px(m.hip + 0.05 * h, w)}
+     L ${px(ww, w)} ${px(m.hip + 0.05 * h, w)}
+     Q ${px(ww * 1.05, w)} ${px(m.waist, w)} ${px(sw, w)} ${px(m.shoulder - 0.005 * h, w)} Z`,
     back ? shade : color, OUT, 1.9
   ));
-  if (!back && kind !== "side") {
+  if (!back && !side) {
     nodes.push(path(
       `M ${px(-sw * 0.8, w)} ${px(m.shoulder + 0.05 * h, w)}
        Q ${px(0, w)} ${px(m.shoulder + 0.08 * h, w)} ${px(sw * 0.8, w)} ${px(m.shoulder + 0.04 * h, w)}
@@ -1113,18 +1122,33 @@ function buildTunic(m, w, color, kind) {
        L ${px(sw * 0.26, w)} ${px(m.shoulder + 0.03 * h, w)}`,
       "none", shade, 2
     ));
+  } else if (side) {
+    nodes.push(path(
+      `M ${px(sw * 0.15, w)} ${px(m.shoulder + 0.04 * h, w)}
+       L ${px(ww * 0.2, w)} ${px(m.hip + 0.02 * h, w)}`,
+      "none", shade, 1.6
+    ));
+  } else if (kind === "qBack") {
+    nodes.push(path(
+      `M ${px(-sw * 0.2, w)} ${px(m.shoulder + 0.06 * h, w)} L ${px(-sw * 0.15, w)} ${px(m.hip, w)}`,
+      "none", darken(color, 0.3), 1.4
+    ));
+    nodes.push(path(
+      `M ${px(sw * 0.2, w)} ${px(m.shoulder + 0.05 * h, w)} L ${px(sw * 0.15, w)} ${px(m.hip, w)}`,
+      "none", darken(color, 0.3), 1.4
+    ));
   }
   nodes.push(path(
-    `M ${px(-ww * 1.05, w)} ${px(m.hip - 0.015 * h, w)}
-     L ${px(ww * 1.05, w)} ${px(m.hip - 0.015 * h, w)}
-     L ${px(ww, w)} ${px(m.hip + 0.055 * h, w)}
-     L ${px(-ww, w)} ${px(m.hip + 0.055 * h, w)} Z`,
+    `M ${px(-ww * 1.02, w)} ${px(m.hip - 0.015 * h, w)}
+     L ${px(ww * 1.02, w)} ${px(m.hip - 0.015 * h, w)}
+     L ${px(ww * 0.95, w)} ${px(m.hip + 0.055 * h, w)}
+     L ${px(-ww * 0.95, w)} ${px(m.hip + 0.055 * h, w)} Z`,
     "#5c3d22", OUT, 1.6
   ));
-  if (kind !== "side") {
-    nodes.push(oval(0, (m.hip + 0.02 * h) * w, 0.038 * w, 0.03 * w, "#c4a35a", OUT, 1.3));
+  if (side) {
+    nodes.push(oval(ww * 0.2 * w, (m.hip + 0.02 * h) * w, 0.028 * w, 0.026 * w, "#c4a35a", OUT, 1.2));
   } else {
-    nodes.push(oval(ww * 0.15 * w, (m.hip + 0.02 * h) * w, 0.03 * w, 0.028 * w, "#c4a35a", OUT, 1.2));
+    nodes.push(oval(0, (m.hip + 0.02 * h) * w, 0.038 * w, 0.03 * w, "#c4a35a", OUT, 1.3));
   }
   return nodes;
 }
@@ -1132,56 +1156,111 @@ function buildTunic(m, w, color, kind) {
 function buildCap(m, w, color, kind) {
   const nodes = [];
   const shade = darken(color, 0.22);
+  const h = m.charHeight || 1;
+  const back = isBackKind(kind);
+  const side = kind === "side";
+  const rx = m.headRx * (side ? 0.92 : 1.05);
   const top = m.head - m.headRy * 0.55;
   nodes.push(path(
-    `M ${px(-m.headRx * 1.05, w)} ${px(m.head - m.headRy * 0.1, w)}
-     Q ${px(0, w)} ${px(top - 0.06, w)} ${px(m.headRx * 1.05, w)} ${px(m.head - m.headRy * 0.1, w)}
-     L ${px(m.headRx * 1.08, w)} ${px(m.head + 0.02, w)}
-     L ${px(-m.headRx * 1.08, w)} ${px(m.head + 0.02, w)} Z`,
-    color
+    `M ${px(-rx, w)} ${px(m.head - m.headRy * 0.1, w)}
+     Q ${px(0, w)} ${px(top - 0.06 * h, w)} ${px(rx, w)} ${px(m.head - m.headRy * 0.1, w)}
+     L ${px(rx * 1.02, w)} ${px(m.head + 0.02 * h, w)}
+     L ${px(-rx * 1.02, w)} ${px(m.head + 0.02 * h, w)} Z`,
+    color, OUT, 1.7
   ));
-  if (kind !== "back" && kind !== "qBack") {
+  if (!back) {
+    if (side) {
+      nodes.push(path(
+        `M ${px(rx * 0.2, w)} ${px(m.head - 0.02 * h, w)}
+         L ${px(rx * 1.55, w)} ${px(m.head + 0.01 * h, w)}
+         L ${px(rx * 1.35, w)} ${px(m.head + 0.07 * h, w)}
+         L ${px(rx * 0.15, w)} ${px(m.head + 0.04 * h, w)} Z`,
+        shade, OUT, 1.4
+      ));
+    } else {
+      const tip = kind === "front" ? 1.35 : 1.42;
+      nodes.push(path(
+        `M ${px(m.headRx * 0.12, w)} ${px(m.head - 0.01 * h, w)}
+         L ${px(m.headRx * tip, w)} ${px(m.head + 0.04 * h, w)}
+         L ${px(m.headRx * (tip - 0.25), w)} ${px(m.head + 0.08 * h, w)}
+         L ${px(m.headRx * 0.08, w)} ${px(m.head + 0.03 * h, w)} Z`,
+        shade, OUT, 1.4
+      ));
+    }
+  } else {
     nodes.push(path(
-      `M ${px(m.headRx * 0.15, w)} ${px(m.head - 0.01, w)}
-       L ${px(m.headRx * 1.4, w)} ${px(m.head + 0.04, w)}
-       L ${px(m.headRx * 1.1, w)} ${px(m.head + 0.08, w)}
-       L ${px(m.headRx * 0.1, w)} ${px(m.head + 0.03, w)} Z`,
-      shade
+      `M ${px(-rx * 0.7, w)} ${px(m.head + 0.01 * h, w)}
+       L ${px(rx * 0.7, w)} ${px(m.head + 0.01 * h, w)}
+       L ${px(rx * 0.55, w)} ${px(m.head + 0.05 * h, w)}
+       L ${px(-rx * 0.55, w)} ${px(m.head + 0.05 * h, w)} Z`,
+      shade, OUT, 1.3
     ));
   }
   return nodes;
 }
 
-
-/* --- Phase 3 : pièces supplémentaires --- */
 function buildHair(m, w, style, color, kind) {
   if (style === "none") return [];
   const nodes = [];
   const h = m.charHeight || 1;
-  const back = kind === "back" || kind === "qBack";
+  const back = isBackKind(kind);
+  const side = kind === "side";
   if (style === "short") {
-    nodes.push(path(
-      `M ${px(-m.headRx * 1.05, w)} ${px(m.head - m.headRy * 0.05, w)}
-       Q ${px(0, w)} ${px(m.head - m.headRy * 1.28, w)} ${px(m.headRx * 1.05, w)} ${px(m.head - m.headRy * 0.05, w)}
-       Q ${px(m.headRx * 0.55, w)} ${px(m.head - m.headRy * 0.35, w)}
-         ${px(0, w)} ${px(m.head - m.headRy * 0.3, w)}
-       Q ${px(-m.headRx * 0.55, w)} ${px(m.head - m.headRy * 0.35, w)}
-         ${px(-m.headRx * 1.05, w)} ${px(m.head - m.headRy * 0.05, w)} Z`,
-      color, OUT, 1.6
-    ));
+    if (side) {
+      nodes.push(path(
+        `M ${px(-m.headRx * 0.95, w)} ${px(m.head + 0.02 * h, w)}
+         Q ${px(-m.headRx * 1.15, w)} ${px(m.head - m.headRy * 0.7, w)} ${px(-m.headRx * 0.2, w)} ${px(m.head - m.headRy * 1.15, w)}
+         Q ${px(m.headRx * 0.85, w)} ${px(m.head - m.headRy * 1.05, w)} ${px(m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.15, w)}
+         L ${px(m.headRx * 0.7, w)} ${px(m.head + 0.02 * h, w)}
+         Q ${px(0, w)} ${px(m.head - m.headRy * 0.35, w)} ${px(-m.headRx * 0.7, w)} ${px(m.head + 0.02 * h, w)} Z`,
+        color, OUT, 1.6
+      ));
+    } else if (back) {
+      nodes.push(path(
+        `M ${px(-m.headRx * 1.08, w)} ${px(m.head + 0.04 * h, w)}
+         Q ${px(-m.headRx * 1.1, w)} ${px(m.head - m.headRy * 0.9, w)} ${px(0, w)} ${px(m.head - m.headRy * 1.25, w)}
+         Q ${px(m.headRx * 1.1, w)} ${px(m.head - m.headRy * 0.9, w)} ${px(m.headRx * 1.08, w)} ${px(m.head + 0.04 * h, w)}
+         Q ${px(0, w)} ${px(m.head - m.headRy * 0.25, w)} ${px(-m.headRx * 1.08, w)} ${px(m.head + 0.04 * h, w)} Z`,
+        color, OUT, 1.6
+      ));
+    } else {
+      nodes.push(path(
+        `M ${px(-m.headRx * 1.05, w)} ${px(m.head - m.headRy * 0.05, w)}
+         Q ${px(0, w)} ${px(m.head - m.headRy * 1.28, w)} ${px(m.headRx * 1.05, w)} ${px(m.head - m.headRy * 0.05, w)}
+         Q ${px(m.headRx * 0.55, w)} ${px(m.head - m.headRy * 0.35, w)}
+           ${px(0, w)} ${px(m.head - m.headRy * 0.3, w)}
+         Q ${px(-m.headRx * 0.55, w)} ${px(m.head - m.headRy * 0.35, w)}
+           ${px(-m.headRx * 1.05, w)} ${px(m.head - m.headRy * 0.05, w)} Z`,
+        color, OUT, 1.6
+      ));
+    }
   } else if (style === "ponytail") {
-    nodes.push(path(
-      `M ${px(-m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.1, w)}
-       Q ${px(0, w)} ${px(m.head - m.headRy * 1.2, w)} ${px(m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.1, w)}
-       L ${px(m.headRx * 0.7, w)} ${px(m.head + 0.02 * h, w)}
-       Q ${px(0, w)} ${px(m.head - m.headRy * 0.4, w)} ${px(-m.headRx * 0.7, w)} ${px(m.head + 0.02 * h, w)} Z`,
-      color, OUT, 1.6
-    ));
-    const qx = back ? 0 : m.headRx * 0.1;
-    const qy = m.head - m.headRy * 0.15;
+    if (side) {
+      nodes.push(path(
+        `M ${px(-m.headRx * 0.9, w)} ${px(m.head + 0.01 * h, w)}
+         Q ${px(-m.headRx * 0.3, w)} ${px(m.head - m.headRy * 1.15, w)} ${px(m.headRx * 0.9, w)} ${px(m.head - m.headRy * 0.2, w)}
+         L ${px(m.headRx * 0.55, w)} ${px(m.head + 0.02 * h, w)}
+         Q ${px(0, w)} ${px(m.head - m.headRy * 0.4, w)} ${px(-m.headRx * 0.65, w)} ${px(m.head + 0.02 * h, w)} Z`,
+        color, OUT, 1.6
+      ));
+    } else {
+      nodes.push(path(
+        `M ${px(-m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.1, w)}
+         Q ${px(0, w)} ${px(m.head - m.headRy * 1.2, w)} ${px(m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.1, w)}
+         L ${px(m.headRx * 0.7, w)} ${px(m.head + 0.02 * h, w)}
+         Q ${px(0, w)} ${px(m.head - m.headRy * 0.4, w)} ${px(-m.headRx * 0.7, w)} ${px(m.head + 0.02 * h, w)} Z`,
+        color, OUT, 1.6
+      ));
+    }
+    let qx, qBend;
+    if (side) { qx = -m.headRx * 0.55; qBend = -0.22; }
+    else if (back) { qx = 0; qBend = 0.02; }
+    else if (kind === "front") { qx = 0; qBend = 0.06; }
+    else { qx = m.headRx * 0.12; qBend = 0.1; }
+    const qy = m.head - m.headRy * (back ? 0.05 : 0.15);
     nodes.push(path(
       `M ${px(qx - 0.04, w)} ${px(qy, w)}
-       Q ${px(qx + (back ? -0.02 : 0.1), w)} ${px(qy - 0.28 * h, w)} ${px(qx, w)} ${px(qy - 0.48 * h, w)}
+       Q ${px(qx + qBend, w)} ${px(qy - 0.28 * h, w)} ${px(qx + qBend * 0.4, w)} ${px(qy - 0.5 * h, w)}
        Q ${px(qx - 0.1, w)} ${px(qy - 0.22 * h, w)} ${px(qx + 0.04, w)} ${px(qy, w)} Z`,
       color, OUT, 1.5
     ));
@@ -1193,22 +1272,44 @@ function buildHelm(m, w, color, kind) {
   const nodes = [];
   const shade = darken(color, 0.25);
   const h = m.charHeight || 1;
+  const back = isBackKind(kind);
+  const side = kind === "side";
+  const rx = m.headRx * (side ? 0.95 : 1.12);
   const top = m.head - m.headRy * 0.75;
   nodes.push(path(
-    `M ${px(-m.headRx * 1.12, w)} ${px(m.head + 0.04 * h, w)}
-     Q ${px(-m.headRx * 1.15, w)} ${px(top, w)} ${px(0, w)} ${px(top - 0.06 * h, w)}
-     Q ${px(m.headRx * 1.15, w)} ${px(top, w)} ${px(m.headRx * 1.12, w)} ${px(m.head + 0.04 * h, w)}
-     L ${px(m.headRx * 0.95, w)} ${px(m.head + 0.1 * h, w)}
-     L ${px(-m.headRx * 0.95, w)} ${px(m.head + 0.1 * h, w)} Z`,
+    `M ${px(-rx, w)} ${px(m.head + 0.04 * h, w)}
+     Q ${px(-rx * 1.02, w)} ${px(top, w)} ${px(0, w)} ${px(top - 0.06 * h, w)}
+     Q ${px(rx * 1.02, w)} ${px(top, w)} ${px(rx, w)} ${px(m.head + 0.04 * h, w)}
+     L ${px(rx * 0.85, w)} ${px(m.head + 0.1 * h, w)}
+     L ${px(-rx * 0.85, w)} ${px(m.head + 0.1 * h, w)} Z`,
     color, OUT, 1.8
   ));
-  if (kind !== "back" && kind !== "qBack") {
+  if (!back) {
+    if (side) {
+      nodes.push(path(
+        `M ${px(rx * 0.15, w)} ${px(m.head - 0.02 * h, w)}
+         L ${px(rx * 0.85, w)} ${px(m.head - 0.01 * h, w)}
+         L ${px(rx * 0.8, w)} ${px(m.head + 0.04 * h, w)}
+         L ${px(rx * 0.12, w)} ${px(m.head + 0.035 * h, w)} Z`,
+        "#111", OUT, 1.2
+      ));
+    } else {
+      const vw = kind === "front" ? 0.58 : 0.52;
+      nodes.push(path(
+        `M ${px(-m.headRx * vw, w)} ${px(m.head - 0.02 * h, w)}
+         L ${px(m.headRx * vw, w)} ${px(m.head - 0.02 * h, w)}
+         L ${px(m.headRx * (vw - 0.05), w)} ${px(m.head + 0.04 * h, w)}
+         L ${px(-m.headRx * (vw - 0.05), w)} ${px(m.head + 0.04 * h, w)} Z`,
+        "#111", OUT, 1.2
+      ));
+    }
+  } else {
     nodes.push(path(
-      `M ${px(-m.headRx * 0.55, w)} ${px(m.head - 0.02 * h, w)}
-       L ${px(m.headRx * 0.55, w)} ${px(m.head - 0.02 * h, w)}
-       L ${px(m.headRx * 0.5, w)} ${px(m.head + 0.04 * h, w)}
-       L ${px(-m.headRx * 0.5, w)} ${px(m.head + 0.04 * h, w)} Z`,
-      "#111", OUT, 1.2
+      `M ${px(-rx * 0.75, w)} ${px(m.head + 0.06 * h, w)}
+       L ${px(rx * 0.75, w)} ${px(m.head + 0.06 * h, w)}
+       L ${px(rx * 0.55, w)} ${px(m.head + 0.14 * h, w)}
+       L ${px(-rx * 0.55, w)} ${px(m.head + 0.14 * h, w)} Z`,
+      shade, OUT, 1.4
     ));
   }
   nodes.push(path(
@@ -1222,11 +1323,12 @@ function buildHelm(m, w, color, kind) {
 
 function buildVest(m, w, color, kind) {
   const nodes = [];
-  const sw = Math.max(m.shoulderW * 0.98, m.hipW * 0.9);
-  const ww = Math.max(m.waistW, m.hipW * 0.75) * 1.05;
+  const side = kind === "side";
+  const back = isBackKind(kind);
+  const sw = Math.max(m.shoulderW * (side ? 0.55 : 0.98), m.hipW * (side ? 0.5 : 0.9));
+  const ww = Math.max(m.waistW, m.hipW * 0.75) * (side ? 0.72 : 1.05);
   const shade = darken(color, 0.2);
   const h = m.charHeight || 1;
-  const back = kind === "back" || kind === "qBack";
   nodes.push(path(
     `M ${px(-sw, w)} ${px(m.shoulder + 0.02 * h, w)}
      L ${px(-sw * 1.05, w)} ${px(m.chest, w)}
@@ -1236,38 +1338,53 @@ function buildVest(m, w, color, kind) {
      L ${px(sw, w)} ${px(m.shoulder, w)} Z`,
     back ? shade : color, OUT, 1.9
   ));
-  if (!back && kind !== "side") {
+  if (!back && !side) {
     nodes.push(path(`M ${px(-0.02, w)} ${px(m.shoulder + 0.05 * h, w)} L ${px(-0.02, w)} ${px(m.hip, w)}`, "none", shade, 1.8));
     nodes.push(path(`M ${px(0.02, w)} ${px(m.shoulder + 0.05 * h, w)} L ${px(0.02, w)} ${px(m.hip, w)}`, "none", shade, 1.8));
+  } else if (side) {
+    nodes.push(path(
+      `M ${px(sw * 0.1, w)} ${px(m.shoulder + 0.05 * h, w)} L ${px(ww * 0.15, w)} ${px(m.hip, w)}`,
+      "none", shade, 1.6
+    ));
   }
-  nodes.push(oval((-sw) * w, (m.shoulder + 0.02 * h) * w, 0.07 * w, 0.05 * w, shade, OUT, 1.4));
-  nodes.push(oval(( sw) * w, (m.shoulder + 0.01 * h) * w, 0.07 * w, 0.05 * w, darken(color, 0.1), OUT, 1.4));
+  if (side) {
+    nodes.push(oval(sw * 0.15 * w, (m.shoulder + 0.02 * h) * w, 0.06 * w, 0.045 * w, shade, OUT, 1.4));
+  } else {
+    nodes.push(oval((-sw) * w, (m.shoulder + 0.02 * h) * w, 0.07 * w, 0.05 * w, shade, OUT, 1.4));
+    nodes.push(oval(( sw) * w, (m.shoulder + 0.01 * h) * w, 0.07 * w, 0.05 * w, darken(color, 0.1), OUT, 1.4));
+  }
   return nodes;
 }
 
 function buildBootsOverlay(m, w, side, far, style, color, kind) {
   if (style === "none") return [];
-  // Les bottes de base sont déjà dans buildLeg (sombres).
-  // Ici on SUPERPOSE cuir/plaque plus haut sur le mollet.
   const nodes = [];
   const h = m.charHeight || 1;
   const sx = side * m.footSpread;
-  const cf = m.calf;
+  const cf = m.calf * (kind === "side" ? 0.95 : 1);
   const fill = far ? darken(color, 0.18) : color;
   const topY = style === "plate" ? m.knee + 0.02 * h : (m.knee + m.ankle) / 2;
+  const toe = kind === "side" ? side * 0.12 : side * 0.04;
   nodes.push(path(
-    `M ${px(sx - side * cf * 0.55, w)} ${px(topY, w)}
-     L ${px(sx + side * cf * 0.65, w)} ${px(topY, w)}
-     L ${px(sx + side * cf * 0.6, w)} ${px(m.ankle - 0.02 * h, w)}
-     L ${px(sx - side * cf * 0.45, w)} ${px(m.ankle - 0.02 * h, w)} Z`,
+    `M ${px(sx - side * cf * 0.5, w)} ${px(topY, w)}
+     L ${px(sx + side * cf * 0.62 + toe * 0.3, w)} ${px(topY, w)}
+     L ${px(sx + side * cf * 0.58 + toe, w)} ${px(m.ankle - 0.02 * h, w)}
+     L ${px(sx - side * cf * 0.42, w)} ${px(m.ankle - 0.02 * h, w)} Z`,
     fill, OUT, 1.6
   ));
   if (style === "plate") {
     nodes.push(path(
-      `M ${px(sx - side * cf * 0.5, w)} ${px(topY + 0.04 * h, w)}
-       L ${px(sx + side * cf * 0.6, w)} ${px(topY + 0.04 * h, w)}`,
+      `M ${px(sx - side * cf * 0.48, w)} ${px(topY + 0.04 * h, w)}
+       L ${px(sx + side * cf * 0.58, w)} ${px(topY + 0.04 * h, w)}`,
       "none", darken(color, 0.3), 1.4
     ));
+    if (kind !== "side") {
+      nodes.push(path(
+        `M ${px(sx - side * cf * 0.2, w)} ${px(topY + 0.02 * h, w)}
+         L ${px(sx - side * cf * 0.15, w)} ${px(m.ankle - 0.03 * h, w)}`,
+        "none", darken(color, 0.35), 1.2
+      ));
+    }
   }
   return nodes;
 }
@@ -1276,26 +1393,37 @@ function buildWeapon(m, w, style, color, kind) {
   if (style === "none") return [];
   const nodes = [];
   const h = m.charHeight || 1;
-  // Main avant (près) — côté droit avant miroir
-  const handX = m.shoulderW * 1.05 + m.forearm * 0.5;
-  const handY = m.wrist;
+  const a = getAnchors(m);
+  let handX = a.handR.x;
+  let handY = a.handR.y;
+  if (kind === "side") {
+    handX = m.shoulderW * 0.35 + m.forearm * 0.8;
+    handY = m.wrist;
+  } else if (kind === "front" || kind === "back") {
+    handX = a.handR.x * 0.95;
+  }
+  if (kind === "qFront") handX *= 1.05;
+  if (isBackKind(kind)) handX *= 0.92;
+
   if (style === "staff") {
+    const lean = kind === "side" ? 0.04 : (kind === "qFront" ? 0.02 : 0);
     nodes.push(path(
-      `M ${px(handX - 0.02, w)} ${px(handY + 0.35 * h, w)}
-       L ${px(handX + 0.02, w)} ${px(handY + 0.35 * h, w)}
-       L ${px(handX + 0.015, w)} ${px(handY - 0.95 * h, w)}
-       L ${px(handX - 0.015, w)} ${px(handY - 0.95 * h, w)} Z`,
+      `M ${px(handX - 0.02 - lean, w)} ${px(handY + 0.35 * h, w)}
+       L ${px(handX + 0.02 - lean, w)} ${px(handY + 0.35 * h, w)}
+       L ${px(handX + 0.015 + lean, w)} ${px(handY - 0.95 * h, w)}
+       L ${px(handX - 0.015 + lean, w)} ${px(handY - 0.95 * h, w)} Z`,
       "#6b4a2a", OUT, 1.4
     ));
-    nodes.push(oval(handX * w, (handY - 1.05 * h) * w, 0.07 * w, 0.07 * w, color, OUT, 1.5));
-    nodes.push(oval(handX * w, (handY - 1.05 * h) * w, 0.035 * w, 0.035 * w, "#fff8", "none", 0));
+    nodes.push(oval((handX + lean) * w, (handY - 1.05 * h) * w, 0.07 * w, 0.07 * w, color, OUT, 1.5));
+    nodes.push(oval((handX + lean) * w, (handY - 1.05 * h) * w, 0.035 * w, 0.035 * w, "#fff8", "none", 0));
   } else if (style === "sword") {
+    const tipX = kind === "side" ? handX + 0.06 : handX;
     nodes.push(path(
       `M ${px(handX - 0.025, w)} ${px(handY + 0.05 * h, w)}
        L ${px(handX + 0.025, w)} ${px(handY + 0.05 * h, w)}
-       L ${px(handX + 0.02, w)} ${px(handY - 0.55 * h, w)}
-       L ${px(handX, w)} ${px(handY - 0.75 * h, w)}
-       L ${px(handX - 0.02, w)} ${px(handY - 0.55 * h, w)} Z`,
+       L ${px(tipX + 0.02, w)} ${px(handY - 0.55 * h, w)}
+       L ${px(tipX, w)} ${px(handY - 0.75 * h, w)}
+       L ${px(tipX - 0.02, w)} ${px(handY - 0.55 * h, w)} Z`,
       color, OUT, 1.5
     ));
     nodes.push(path(
@@ -1317,13 +1445,21 @@ function buildWeapon(m, w, style, color, kind) {
 }
 
 function buildNecklace(m, w, color, kind) {
-  if (kind === "back" || kind === "qBack") return [];
+  if (isBackKind(kind)) return [];
   const h = m.charHeight || 1;
+  if (kind === "side") {
+    return [path(
+      `M ${px(-m.neckW * 0.4, w)} ${px(m.neck + 0.02 * h, w)}
+       Q ${px(m.neckW * 1.8, w)} ${px(m.shoulder + 0.2 * h, w)} ${px(m.neckW * 0.6, w)} ${px(m.chest - 0.05 * h, w)}`,
+      "none", color, 2.2
+    ), oval(m.neckW * 1.2 * w, (m.shoulder + 0.18 * h) * w, 0.028 * w, 0.028 * w, color, OUT, 1.2)];
+  }
+  const drop = kind === "front" ? 0.2 : 0.18;
   return [path(
     `M ${px(-m.neckW * 1.6, w)} ${px(m.neck + 0.02 * h, w)}
-     Q ${px(0, w)} ${px(m.shoulder + 0.18 * h, w)} ${px(m.neckW * 1.6, w)} ${px(m.neck + 0.02 * h, w)}`,
+     Q ${px(0, w)} ${px(m.shoulder + drop * h, w)} ${px(m.neckW * 1.6, w)} ${px(m.neck + 0.02 * h, w)}`,
     "none", color, 2.2
-  ), oval(0, (m.shoulder + 0.2 * h) * w, 0.03 * w, 0.03 * w, color, OUT, 1.2)];
+  ), oval(0, (m.shoulder + (drop + 0.02) * h) * w, 0.03 * w, 0.03 * w, color, OUT, 1.2)];
 }
 
 function buildEarrings(m, w, color, kind) {
@@ -1332,25 +1468,32 @@ function buildEarrings(m, w, color, kind) {
   const nodes = [];
   const ey = m.head + 0.02 * h;
   if (kind === "side") {
-    nodes.push(oval((-m.headRx * 0.7) * w, ey * w, 0.02 * w, 0.035 * w, color, OUT, 1));
+    nodes.push(oval((-m.headRx * 0.55) * w, ey * w, 0.02 * w, 0.035 * w, color, OUT, 1));
+  } else if (kind === "qBack") {
+    nodes.push(oval((m.headRx * 0.8) * w, ey * w, 0.018 * w, 0.03 * w, color, OUT, 1));
   } else {
-    nodes.push(oval((-m.headRx * 0.85) * w, ey * w, 0.018 * w, 0.03 * w, color, OUT, 1));
-    nodes.push(oval(( m.headRx * 0.85) * w, ey * w, 0.018 * w, 0.03 * w, color, OUT, 1));
+    const ex = kind === "front" ? 0.88 : 0.85;
+    nodes.push(oval((-m.headRx * ex) * w, ey * w, 0.018 * w, 0.03 * w, color, OUT, 1));
+    nodes.push(oval(( m.headRx * ex) * w, ey * w, 0.018 * w, 0.03 * w, color, OUT, 1));
   }
   return nodes;
 }
 
 function buildAccessoryBelt(m, w, color, kind) {
   const h = m.charHeight || 1;
-  const ww = Math.max(m.waistW, m.hipW) * 1.05;
+  const ww = Math.max(m.waistW, m.hipW * 0.8) * (kind === "side" ? 0.7 : 1.05);
   const nodes = [path(
-    `M ${px(-ww, w)} ${px(m.hip - 0.02 * h, w)}
-     L ${px(ww, w)} ${px(m.hip - 0.02 * h, w)}
+    `M ${px(-ww * 1.05, w)} ${px(m.hip - 0.02 * h, w)}
+     L ${px(ww * 1.05, w)} ${px(m.hip - 0.02 * h, w)}
      L ${px(ww * 0.95, w)} ${px(m.hip + 0.05 * h, w)}
      L ${px(-ww * 0.95, w)} ${px(m.hip + 0.05 * h, w)} Z`,
     "#5c3d22", OUT, 1.5
   )];
-  if (kind !== "side") nodes.push(oval(0, (m.hip + 0.015 * h) * w, 0.04 * w, 0.03 * w, color, OUT, 1.2));
+  if (kind === "side") {
+    nodes.push(oval(ww * 0.25 * w, (m.hip + 0.015 * h) * w, 0.032 * w, 0.028 * w, color, OUT, 1.2));
+  } else {
+    nodes.push(oval(0, (m.hip + 0.015 * h) * w, 0.04 * w, 0.03 * w, color, OUT, 1.2));
+  }
   return nodes;
 }
 
@@ -1424,7 +1567,7 @@ function createCharacter(cx, cy, tileW, morphId) {
   add(buildTorso(m, w, kind));
   add(buildBaseShorts(m, w, kind));
   add(buildBaseTop(m, w, kind));
-  if (eq.pants !== "none") add(buildPantsBelt(m, w, col.pants));
+  if (eq.pants !== "none") add(buildPantsBelt(m, w, col.pants, kind));
   if (eq.top === "tunic") add(buildTunic(m, w, col.top, kind));
   if (eq.top === "vest") add(buildVest(m, w, col.top, kind));
   if (eq.accessory === "belt" && eq.top === "none") add(buildAccessoryBelt(m, w, col.accessory, kind));
@@ -1492,8 +1635,23 @@ function draw() {
   drawGrid(world, gridSize, tileW, tileH, ox, oy);
   const { x: cx, y: cy } = isoToScreen(state.selected.row, state.selected.col, tileW, tileH, ox, oy);
 
-  if (state.galleryMorphs) {
-    // Affiche Lourd / Standard / Fin côte à côte (même vue) pour valider les morphos
+  if (state.galleryFacings) {
+    // 8 vues du même perso (équipement courant) — grille 4×2
+    const saved = state.facing;
+    const gapX = tileW * 1.15;
+    const gapY = tileW * 1.55;
+    const ids = [2, 1, 0, 7, 3, 5, 6, 4]; // rangée face puis dos
+    ids.forEach((fid, i) => {
+      const col = i % 4;
+      const row = Math.floor(i / 4);
+      state.facing = fid;
+      const x = cx + (col - 1.5) * gapX;
+      const y = cy + (row - 0.35) * gapY;
+      world.appendChild(createCharacter(x, y, tileW * 0.82, state.morph));
+    });
+    state.facing = saved;
+    info.textContent = "Galerie 8 vues — équipement figé, compare Face / 3-4 / Profil / Dos";
+  } else if (state.galleryMorphs) {
     const gap = tileW * 1.35;
     const morphs = ["heavy", "standard", "light"];
     morphs.forEach((mid, i) => {
@@ -1644,10 +1802,22 @@ document.getElementById("rotRight").addEventListener("click", () => setFacing(st
 
 document.getElementById("galleryMorphs").addEventListener("click", () => {
   state.galleryMorphs = !state.galleryMorphs;
-  const btn = document.getElementById("galleryMorphs");
-  btn.classList.toggle("active", state.galleryMorphs);
+  if (state.galleryMorphs) state.galleryFacings = false;
+  document.getElementById("galleryMorphs").classList.toggle("active", state.galleryMorphs);
+  document.getElementById("galleryFacings").classList.toggle("active", state.galleryFacings);
   info.textContent = state.galleryMorphs
     ? "Galerie 3 morphos ON — tourne pour vérifier les 8 vues"
+    : "Galerie OFF — un seul perso";
+  draw();
+});
+
+document.getElementById("galleryFacings").addEventListener("click", () => {
+  state.galleryFacings = !state.galleryFacings;
+  if (state.galleryFacings) state.galleryMorphs = false;
+  document.getElementById("galleryFacings").classList.toggle("active", state.galleryFacings);
+  document.getElementById("galleryMorphs").classList.toggle("active", state.galleryMorphs);
+  info.textContent = state.galleryFacings
+    ? "Galerie 8 vues ON — vérifie l'équipement sur toutes les orientations"
     : "Galerie OFF — un seul perso";
   draw();
 });
