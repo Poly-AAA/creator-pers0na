@@ -80,11 +80,19 @@
   }
   .rot-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
   .hint { font-size:10px; color:#778; text-align:center; line-height:1.35; }
+  .equip-slot {
+    display:flex; flex-direction:column; gap:4px;
+    padding-bottom:8px; margin-bottom:2px;
+    border-bottom:1px solid #243328;
+  }
+  .equip-slot:last-child { border-bottom:none; padding-bottom:0; margin-bottom:0; }
+  .equip-slot .row label { flex:1 1 auto; min-width:0; }
+  .equip-slot .btn-group .ctrl-btn { padding:3px 8px; font-size:10px; }
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="topbar">NEURO CORE — Style Dofus · système consolidé</div>
+  <div class="topbar">NEURO CORE — Phase 3 · équipements modulaires</div>
   <div class="info" id="info">Onglets : Corps · Équipements · Rotation · Grille</div>
   <div class="stage"><svg id="scene"></svg></div>
   <div class="controls">
@@ -131,31 +139,10 @@
       </div>
 
       <div class="tab-panel" id="panel-equip">
-        <div class="row">
-          <label>Pantalon</label>
-          <div class="btn-group" id="pantsSelector">
-            <button class="ctrl-btn" data-pants="none">Aucun</button>
-            <button class="ctrl-btn active" data-pants="in">IN</button>
-            <button class="ctrl-btn" data-pants="over">OVER</button>
-          </div>
-          <input type="color" id="pantsColor" value="#3d2b1f">
-        </div>
-        <div class="row">
-          <label>Haut</label>
-          <div class="btn-group" id="torsoSelector">
-            <button class="ctrl-btn" data-torso="none">Aucun</button>
-            <button class="ctrl-btn active" data-torso="tunic">Tunique</button>
-          </div>
-          <input type="color" id="torsoColor" value="#3b6ea5">
-        </div>
-        <div class="row">
-          <label>Chapeau</label>
-          <div class="btn-group" id="hatSelector">
-            <button class="ctrl-btn active" data-hat="none">Aucun</button>
-            <button class="ctrl-btn" data-hat="cap">Casquette</button>
-          </div>
-          <input type="color" id="hatColor" value="#2d3748">
-        </div>
+        <div class="section-title"><span>Presets</span></div>
+        <div class="btn-group" id="presetSelector" style="margin-bottom:6px;"></div>
+        <div class="section-title"><span>Slots</span></div>
+        <div id="equipSlots"></div>
       </div>
 
       <div class="tab-panel" id="panel-rotation">
@@ -226,9 +213,7 @@ const svg = document.getElementById("scene");
 const info = document.getElementById("info");
 const gridSizeInput = document.getElementById("gridSize");
 const tileWInput = document.getElementById("tileW");
-const pantsColorInput = document.getElementById("pantsColor");
-const torsoColorInput = document.getElementById("torsoColor");
-const hatColorInput = document.getElementById("hatColor");
+// Phase 3 : couleurs gérées via state.colors + UI dynamique
 
 const BODY_SLIDER_DEFS = [
   { key: "neck",          label: "Cou",          min: 0.5, max: 1.6, step: 0.05, def: 1.0 },
@@ -259,12 +244,26 @@ const state = {
   charHeight: 1.0,
   charSize: 1.05,
   facing: 0,
-  pants: "in",
-  torso: "tunic",
-  hat: "none",
-  pantsColor: "#3d2b1f",
-  torsoColor: "#3b6ea5",
-  hatColor: "#2d3748",
+  // Phase 3 — équipements modulaires
+  equip: {
+    hair: "short",
+    hat: "none",
+    top: "tunic",
+    pants: "in",
+    boots: "leather",
+    weapon: "none",
+    accessory: "belt",
+  },
+  colors: {
+    hair: "#2c2420",
+    hat: "#2d3748",
+    top: "#3b6ea5",
+    pants: "#3d2b1f",
+    boots: "#2a221c",
+    weapon: "#c0a060",
+    accessory: "#c4a35a",
+  },
+  preset: "aventurier",
   showAnchors: false,
   galleryMorphs: false,
 };
@@ -393,6 +392,153 @@ function resolveMorph(morphId, body = state.body) {
   return m;
 }
 
+
+/* ============================================================
+   PHASE 3 — BIBLIOTHÈQUE D'ÉQUIPEMENTS + PRESETS
+   ============================================================ */
+const EQUIP_SLOTS = [
+  { key: "hair",      label: "Coiffure" },
+  { key: "hat",       label: "Chapeau" },
+  { key: "top",       label: "Haut" },
+  { key: "pants",     label: "Bas" },
+  { key: "boots",     label: "Bottes" },
+  { key: "weapon",    label: "Arme" },
+  { key: "accessory", label: "Accessoire" },
+];
+
+const EQUIP_OPTIONS = {
+  hair: [
+    { id: "none", label: "Aucun" },
+    { id: "short", label: "Court" },
+    { id: "ponytail", label: "Queue" },
+  ],
+  hat: [
+    { id: "none", label: "Aucun" },
+    { id: "cap", label: "Casquette" },
+    { id: "helm", label: "Casque" },
+  ],
+  top: [
+    { id: "none", label: "Aucun" },
+    { id: "tunic", label: "Tunique" },
+    { id: "vest", label: "Veste" },
+  ],
+  pants: [
+    { id: "none", label: "Aucun" },
+    { id: "in", label: "IN" },
+    { id: "over", label: "OVER" },
+  ],
+  boots: [
+    { id: "none", label: "Aucun" },
+    { id: "leather", label: "Cuir" },
+    { id: "plate", label: "Plaque" },
+  ],
+  weapon: [
+    { id: "none", label: "Aucune" },
+    { id: "staff", label: "Bâton" },
+    { id: "sword", label: "Épée" },
+  ],
+  accessory: [
+    { id: "none", label: "Aucun" },
+    { id: "necklace", label: "Collier" },
+    { id: "earrings", label: "Boucles" },
+    { id: "belt", label: "Ceinture" },
+  ],
+};
+
+const PRESETS = {
+  aventurier: {
+    label: "Aventurier",
+    equip: { hair: "short", hat: "none", top: "tunic", pants: "in", boots: "leather", weapon: "none", accessory: "belt" },
+    colors: { hair: "#2c2420", hat: "#2d3748", top: "#3b6ea5", pants: "#3d2b1f", boots: "#2a221c", weapon: "#c0a060", accessory: "#c4a35a" },
+  },
+  mage: {
+    label: "Mage",
+    equip: { hair: "ponytail", hat: "none", top: "tunic", pants: "over", boots: "leather", weapon: "staff", accessory: "necklace" },
+    colors: { hair: "#e8e0d0", hat: "#2d3748", top: "#5b3d8f", pants: "#2a2240", boots: "#3a2a20", weapon: "#6ec6ff", accessory: "#d4af37" },
+  },
+  guerrier: {
+    label: "Guerrier",
+    equip: { hair: "short", hat: "helm", top: "vest", pants: "over", boots: "plate", weapon: "sword", accessory: "belt" },
+    colors: { hair: "#1a1410", hat: "#8a9098", top: "#5a4030", pants: "#3a3028", boots: "#7a8088", weapon: "#d0d4d8", accessory: "#b08d57" },
+  },
+  base: {
+    label: "Base",
+    equip: { hair: "none", hat: "none", top: "none", pants: "none", boots: "none", weapon: "none", accessory: "none" },
+    colors: { hair: "#2c2420", hat: "#2d3748", top: "#3b6ea5", pants: "#3d2b1f", boots: "#2a221c", weapon: "#c0a060", accessory: "#c4a35a" },
+  },
+};
+
+function applyPreset(id) {
+  const p = PRESETS[id];
+  if (!p) return;
+  state.preset = id;
+  state.equip = { ...p.equip };
+  state.colors = { ...p.colors };
+  buildEquipUI();
+  info.textContent = `Preset : ${p.label}`;
+  draw();
+}
+
+function buildEquipUI() {
+  const presetHost = document.getElementById("presetSelector");
+  const slotsHost = document.getElementById("equipSlots");
+  if (!presetHost || !slotsHost) return;
+
+  presetHost.innerHTML = "";
+  for (const [id, p] of Object.entries(PRESETS)) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ctrl-btn" + (state.preset === id ? " active" : "");
+    btn.dataset.preset = id;
+    btn.textContent = p.label;
+    btn.addEventListener("click", () => applyPreset(id));
+    presetHost.appendChild(btn);
+  }
+
+  slotsHost.innerHTML = "";
+  for (const slot of EQUIP_SLOTS) {
+    const wrap = document.createElement("div");
+    wrap.className = "equip-slot";
+
+    const head = document.createElement("div");
+    head.className = "row";
+    const lab = document.createElement("label");
+    lab.textContent = slot.label;
+    const color = document.createElement("input");
+    color.type = "color";
+    color.value = state.colors[slot.key] || "#888888";
+    color.title = `Couleur ${slot.label}`;
+    color.addEventListener("input", () => {
+      state.colors[slot.key] = color.value;
+      state.preset = null;
+      document.querySelectorAll("#presetSelector .ctrl-btn").forEach((b) => b.classList.remove("active"));
+      info.textContent = `${slot.label} couleur → ${color.value}`;
+      draw();
+    });
+    head.append(lab, color);
+    wrap.appendChild(head);
+
+    const group = document.createElement("div");
+    group.className = "btn-group";
+    for (const opt of EQUIP_OPTIONS[slot.key] || []) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "ctrl-btn" + (state.equip[slot.key] === opt.id ? " active" : "");
+      btn.textContent = opt.label;
+      btn.addEventListener("click", () => {
+        state.equip[slot.key] = opt.id;
+        state.preset = null;
+        buildEquipUI();
+        info.textContent = `${slot.label} : ${opt.label}`;
+        draw();
+      });
+      group.appendChild(btn);
+    }
+    wrap.appendChild(group);
+    slotsHost.appendChild(wrap);
+  }
+}
+
 function applyFacing(m, facingId = state.facing) {
   const f = getFacing(facingId);
   const spread = spreadFor(f.kind);
@@ -514,7 +660,7 @@ function limbColors(far) {
 
 /** Sous-vêtement de base (si pas de pantalon) — lisibilité type planche ref */
 function buildBaseShorts(m, w, kind) {
-  if (state.pants !== "none") return [];
+  if (state.equip.pants !== "none") return [];
   const nodes = [];
   const col = "#3a4555";
   const shade = darken(col, 0.2);
@@ -539,7 +685,7 @@ function buildBaseShorts(m, w, kind) {
 
 function buildBaseTop(m, w, kind) {
   // Débardeur simple si pas de haut — comme les refs athletic
-  if (state.torso !== "none") return [];
+  if (state.equip.top !== "none") return [];
   const nodes = [];
   const col = "#4a5568";
   const sw = m.shoulderW * 0.92;
@@ -928,7 +1074,7 @@ function buildPants(m, w, side, far, mode, color, kind) {
 }
 
 function buildPantsBelt(m, w, color) {
-  if (state.torso === "tunic") return [];
+  if (state.equip.top !== "none" || state.equip.accessory === "belt") return [];
   const h = m.charHeight || 1;
   return [path(
     `M ${px(-m.hipW * 1.08, w)} ${px(m.hip - 0.04 * h, w)}
@@ -1006,6 +1152,208 @@ function buildCap(m, w, color, kind) {
   return nodes;
 }
 
+
+/* --- Phase 3 : pièces supplémentaires --- */
+function buildHair(m, w, style, color, kind) {
+  if (style === "none") return [];
+  const nodes = [];
+  const h = m.charHeight || 1;
+  const back = kind === "back" || kind === "qBack";
+  if (style === "short") {
+    nodes.push(path(
+      `M ${px(-m.headRx * 1.05, w)} ${px(m.head - m.headRy * 0.05, w)}
+       Q ${px(0, w)} ${px(m.head - m.headRy * 1.28, w)} ${px(m.headRx * 1.05, w)} ${px(m.head - m.headRy * 0.05, w)}
+       Q ${px(m.headRx * 0.55, w)} ${px(m.head - m.headRy * 0.35, w)}
+         ${px(0, w)} ${px(m.head - m.headRy * 0.3, w)}
+       Q ${px(-m.headRx * 0.55, w)} ${px(m.head - m.headRy * 0.35, w)}
+         ${px(-m.headRx * 1.05, w)} ${px(m.head - m.headRy * 0.05, w)} Z`,
+      color, OUT, 1.6
+    ));
+  } else if (style === "ponytail") {
+    nodes.push(path(
+      `M ${px(-m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.1, w)}
+       Q ${px(0, w)} ${px(m.head - m.headRy * 1.2, w)} ${px(m.headRx * 0.95, w)} ${px(m.head - m.headRy * 0.1, w)}
+       L ${px(m.headRx * 0.7, w)} ${px(m.head + 0.02 * h, w)}
+       Q ${px(0, w)} ${px(m.head - m.headRy * 0.4, w)} ${px(-m.headRx * 0.7, w)} ${px(m.head + 0.02 * h, w)} Z`,
+      color, OUT, 1.6
+    ));
+    const qx = back ? 0 : m.headRx * 0.1;
+    const qy = m.head - m.headRy * 0.15;
+    nodes.push(path(
+      `M ${px(qx - 0.04, w)} ${px(qy, w)}
+       Q ${px(qx + (back ? -0.02 : 0.1), w)} ${px(qy - 0.28 * h, w)} ${px(qx, w)} ${px(qy - 0.48 * h, w)}
+       Q ${px(qx - 0.1, w)} ${px(qy - 0.22 * h, w)} ${px(qx + 0.04, w)} ${px(qy, w)} Z`,
+      color, OUT, 1.5
+    ));
+  }
+  return nodes;
+}
+
+function buildHelm(m, w, color, kind) {
+  const nodes = [];
+  const shade = darken(color, 0.25);
+  const h = m.charHeight || 1;
+  const top = m.head - m.headRy * 0.75;
+  nodes.push(path(
+    `M ${px(-m.headRx * 1.12, w)} ${px(m.head + 0.04 * h, w)}
+     Q ${px(-m.headRx * 1.15, w)} ${px(top, w)} ${px(0, w)} ${px(top - 0.06 * h, w)}
+     Q ${px(m.headRx * 1.15, w)} ${px(top, w)} ${px(m.headRx * 1.12, w)} ${px(m.head + 0.04 * h, w)}
+     L ${px(m.headRx * 0.95, w)} ${px(m.head + 0.1 * h, w)}
+     L ${px(-m.headRx * 0.95, w)} ${px(m.head + 0.1 * h, w)} Z`,
+    color, OUT, 1.8
+  ));
+  if (kind !== "back" && kind !== "qBack") {
+    nodes.push(path(
+      `M ${px(-m.headRx * 0.55, w)} ${px(m.head - 0.02 * h, w)}
+       L ${px(m.headRx * 0.55, w)} ${px(m.head - 0.02 * h, w)}
+       L ${px(m.headRx * 0.5, w)} ${px(m.head + 0.04 * h, w)}
+       L ${px(-m.headRx * 0.5, w)} ${px(m.head + 0.04 * h, w)} Z`,
+      "#111", OUT, 1.2
+    ));
+  }
+  nodes.push(path(
+    `M ${px(-0.03, w)} ${px(top - 0.02 * h, w)}
+     L ${px(0, w)} ${px(top - 0.18 * h, w)}
+     L ${px(0.03, w)} ${px(top - 0.02 * h, w)} Z`,
+    shade, OUT, 1.3
+  ));
+  return nodes;
+}
+
+function buildVest(m, w, color, kind) {
+  const nodes = [];
+  const sw = Math.max(m.shoulderW * 0.98, m.hipW * 0.9);
+  const ww = Math.max(m.waistW, m.hipW * 0.75) * 1.05;
+  const shade = darken(color, 0.2);
+  const h = m.charHeight || 1;
+  const back = kind === "back" || kind === "qBack";
+  nodes.push(path(
+    `M ${px(-sw, w)} ${px(m.shoulder + 0.02 * h, w)}
+     L ${px(-sw * 1.05, w)} ${px(m.chest, w)}
+     L ${px(-ww, w)} ${px(m.hip + 0.02 * h, w)}
+     L ${px(ww, w)} ${px(m.hip + 0.02 * h, w)}
+     L ${px(sw * 1.05, w)} ${px(m.chest, w)}
+     L ${px(sw, w)} ${px(m.shoulder, w)} Z`,
+    back ? shade : color, OUT, 1.9
+  ));
+  if (!back && kind !== "side") {
+    nodes.push(path(`M ${px(-0.02, w)} ${px(m.shoulder + 0.05 * h, w)} L ${px(-0.02, w)} ${px(m.hip, w)}`, "none", shade, 1.8));
+    nodes.push(path(`M ${px(0.02, w)} ${px(m.shoulder + 0.05 * h, w)} L ${px(0.02, w)} ${px(m.hip, w)}`, "none", shade, 1.8));
+  }
+  nodes.push(oval((-sw) * w, (m.shoulder + 0.02 * h) * w, 0.07 * w, 0.05 * w, shade, OUT, 1.4));
+  nodes.push(oval(( sw) * w, (m.shoulder + 0.01 * h) * w, 0.07 * w, 0.05 * w, darken(color, 0.1), OUT, 1.4));
+  return nodes;
+}
+
+function buildBootsOverlay(m, w, side, far, style, color, kind) {
+  if (style === "none") return [];
+  // Les bottes de base sont déjà dans buildLeg (sombres).
+  // Ici on SUPERPOSE cuir/plaque plus haut sur le mollet.
+  const nodes = [];
+  const h = m.charHeight || 1;
+  const sx = side * m.footSpread;
+  const cf = m.calf;
+  const fill = far ? darken(color, 0.18) : color;
+  const topY = style === "plate" ? m.knee + 0.02 * h : (m.knee + m.ankle) / 2;
+  nodes.push(path(
+    `M ${px(sx - side * cf * 0.55, w)} ${px(topY, w)}
+     L ${px(sx + side * cf * 0.65, w)} ${px(topY, w)}
+     L ${px(sx + side * cf * 0.6, w)} ${px(m.ankle - 0.02 * h, w)}
+     L ${px(sx - side * cf * 0.45, w)} ${px(m.ankle - 0.02 * h, w)} Z`,
+    fill, OUT, 1.6
+  ));
+  if (style === "plate") {
+    nodes.push(path(
+      `M ${px(sx - side * cf * 0.5, w)} ${px(topY + 0.04 * h, w)}
+       L ${px(sx + side * cf * 0.6, w)} ${px(topY + 0.04 * h, w)}`,
+      "none", darken(color, 0.3), 1.4
+    ));
+  }
+  return nodes;
+}
+
+function buildWeapon(m, w, style, color, kind) {
+  if (style === "none") return [];
+  const nodes = [];
+  const h = m.charHeight || 1;
+  // Main avant (près) — côté droit avant miroir
+  const handX = m.shoulderW * 1.05 + m.forearm * 0.5;
+  const handY = m.wrist;
+  if (style === "staff") {
+    nodes.push(path(
+      `M ${px(handX - 0.02, w)} ${px(handY + 0.35 * h, w)}
+       L ${px(handX + 0.02, w)} ${px(handY + 0.35 * h, w)}
+       L ${px(handX + 0.015, w)} ${px(handY - 0.95 * h, w)}
+       L ${px(handX - 0.015, w)} ${px(handY - 0.95 * h, w)} Z`,
+      "#6b4a2a", OUT, 1.4
+    ));
+    nodes.push(oval(handX * w, (handY - 1.05 * h) * w, 0.07 * w, 0.07 * w, color, OUT, 1.5));
+    nodes.push(oval(handX * w, (handY - 1.05 * h) * w, 0.035 * w, 0.035 * w, "#fff8", "none", 0));
+  } else if (style === "sword") {
+    nodes.push(path(
+      `M ${px(handX - 0.025, w)} ${px(handY + 0.05 * h, w)}
+       L ${px(handX + 0.025, w)} ${px(handY + 0.05 * h, w)}
+       L ${px(handX + 0.02, w)} ${px(handY - 0.55 * h, w)}
+       L ${px(handX, w)} ${px(handY - 0.75 * h, w)}
+       L ${px(handX - 0.02, w)} ${px(handY - 0.55 * h, w)} Z`,
+      color, OUT, 1.5
+    ));
+    nodes.push(path(
+      `M ${px(handX - 0.08, w)} ${px(handY + 0.02 * h, w)}
+       L ${px(handX + 0.08, w)} ${px(handY + 0.02 * h, w)}
+       L ${px(handX + 0.08, w)} ${px(handY + 0.06 * h, w)}
+       L ${px(handX - 0.08, w)} ${px(handY + 0.06 * h, w)} Z`,
+      "#c4a35a", OUT, 1.3
+    ));
+    nodes.push(path(
+      `M ${px(handX - 0.02, w)} ${px(handY + 0.06 * h, w)}
+       L ${px(handX + 0.02, w)} ${px(handY + 0.06 * h, w)}
+       L ${px(handX + 0.015, w)} ${px(handY + 0.18 * h, w)}
+       L ${px(handX - 0.015, w)} ${px(handY + 0.18 * h, w)} Z`,
+      "#5c3d22", OUT, 1.2
+    ));
+  }
+  return nodes;
+}
+
+function buildNecklace(m, w, color, kind) {
+  if (kind === "back" || kind === "qBack") return [];
+  const h = m.charHeight || 1;
+  return [path(
+    `M ${px(-m.neckW * 1.6, w)} ${px(m.neck + 0.02 * h, w)}
+     Q ${px(0, w)} ${px(m.shoulder + 0.18 * h, w)} ${px(m.neckW * 1.6, w)} ${px(m.neck + 0.02 * h, w)}`,
+    "none", color, 2.2
+  ), oval(0, (m.shoulder + 0.2 * h) * w, 0.03 * w, 0.03 * w, color, OUT, 1.2)];
+}
+
+function buildEarrings(m, w, color, kind) {
+  if (kind === "back") return [];
+  const h = m.charHeight || 1;
+  const nodes = [];
+  const ey = m.head + 0.02 * h;
+  if (kind === "side") {
+    nodes.push(oval((-m.headRx * 0.7) * w, ey * w, 0.02 * w, 0.035 * w, color, OUT, 1));
+  } else {
+    nodes.push(oval((-m.headRx * 0.85) * w, ey * w, 0.018 * w, 0.03 * w, color, OUT, 1));
+    nodes.push(oval(( m.headRx * 0.85) * w, ey * w, 0.018 * w, 0.03 * w, color, OUT, 1));
+  }
+  return nodes;
+}
+
+function buildAccessoryBelt(m, w, color, kind) {
+  const h = m.charHeight || 1;
+  const ww = Math.max(m.waistW, m.hipW) * 1.05;
+  const nodes = [path(
+    `M ${px(-ww, w)} ${px(m.hip - 0.02 * h, w)}
+     L ${px(ww, w)} ${px(m.hip - 0.02 * h, w)}
+     L ${px(ww * 0.95, w)} ${px(m.hip + 0.05 * h, w)}
+     L ${px(-ww * 0.95, w)} ${px(m.hip + 0.05 * h, w)} Z`,
+    "#5c3d22", OUT, 1.5
+  )];
+  if (kind !== "side") nodes.push(oval(0, (m.hip + 0.015 * h) * w, 0.04 * w, 0.03 * w, color, OUT, 1.2));
+  return nodes;
+}
+
 function buildAnchors(m, w) {
   const nodes = [];
   const anchors = getAnchors(m);
@@ -1063,22 +1411,39 @@ function createCharacter(cx, cy, tileW, morphId) {
   const nearSide = 1;
   const add = (nodes) => { for (const n of nodes) body.appendChild(n); };
 
-  add(buildLeg(m, w, farSide, true, kind));
-  add(buildArm(m, w, farSide, true, kind));
-  if (state.pants !== "none") add(buildPants(m, w, farSide, true, state.pants, state.pantsColor, kind));
+  const eq = state.equip;
+  const col = state.colors;
 
+  // 1) membres loin
+  add(buildLeg(m, w, farSide, true, kind));
+  add(buildBootsOverlay(m, w, farSide, true, eq.boots, col.boots, kind));
+  add(buildArm(m, w, farSide, true, kind));
+  if (eq.pants !== "none") add(buildPants(m, w, farSide, true, eq.pants, col.pants, kind));
+
+  // 2) torse + vêtements
   add(buildTorso(m, w, kind));
   add(buildBaseShorts(m, w, kind));
   add(buildBaseTop(m, w, kind));
-  if (state.pants !== "none") add(buildPantsBelt(m, w, state.pantsColor));
-  if (state.torso === "tunic") add(buildTunic(m, w, state.torsoColor, kind));
+  if (eq.pants !== "none") add(buildPantsBelt(m, w, col.pants));
+  if (eq.top === "tunic") add(buildTunic(m, w, col.top, kind));
+  if (eq.top === "vest") add(buildVest(m, w, col.top, kind));
+  if (eq.accessory === "belt" && eq.top === "none") add(buildAccessoryBelt(m, w, col.accessory, kind));
+  if (eq.accessory === "necklace") add(buildNecklace(m, w, col.accessory, kind));
 
+  // 3) tête + coiffure + chapeau
   add(buildHead(m, w, kind));
-  if (state.hat === "cap") add(buildCap(m, w, state.hatColor, kind));
+  // Si casque : pas de cheveux visibles / cheveux sous casque omis
+  if (eq.hat !== "helm") add(buildHair(m, w, eq.hair, col.hair, kind));
+  if (eq.hat === "cap") add(buildCap(m, w, col.hat, kind));
+  if (eq.hat === "helm") add(buildHelm(m, w, col.hat, kind));
+  if (eq.accessory === "earrings") add(buildEarrings(m, w, col.accessory, kind));
 
+  // 4) membres près + bottes + arme
   add(buildLeg(m, w, nearSide, false, kind));
+  add(buildBootsOverlay(m, w, nearSide, false, eq.boots, col.boots, kind));
   add(buildArm(m, w, nearSide, false, kind));
-  if (state.pants !== "none") add(buildPants(m, w, nearSide, false, state.pants, state.pantsColor, kind));
+  if (eq.pants !== "none") add(buildPants(m, w, nearSide, false, eq.pants, col.pants, kind));
+  add(buildWeapon(m, w, eq.weapon, col.weapon, kind));
 
   if (state.showAnchors) add(buildAnchors(m, w));
 
@@ -1181,6 +1546,7 @@ function syncBodySlidersFromState() {
 
 function bindButtonGroup(id, dataKey, stateKey, labelFn) {
   const box = document.getElementById(id);
+  if (!box) return;
   box.querySelectorAll(".ctrl-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       box.querySelectorAll(".ctrl-btn").forEach((b) => b.classList.remove("active"));
@@ -1193,9 +1559,6 @@ function bindButtonGroup(id, dataKey, stateKey, labelFn) {
 }
 
 bindButtonGroup("morphSelector", "morph", "morph", (_, btn) => `Morphologie ${btn.textContent.trim()}`);
-bindButtonGroup("pantsSelector", "pants", "pants", (v) => `Pantalon ${v === "none" ? "aucun" : v.toUpperCase()}`);
-bindButtonGroup("torsoSelector", "torso", "torso", (v) => `Haut ${v === "none" ? "aucun" : "tunique"}`);
-bindButtonGroup("hatSelector", "hat", "hat", (v) => `Chapeau ${v === "none" ? "aucun" : "casquette"}`);
 
 document.querySelectorAll("#chestShapeSelector .ctrl-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -1246,9 +1609,6 @@ document.getElementById("anchorToggle").querySelectorAll(".ctrl-btn").forEach((b
   });
 });
 
-pantsColorInput.addEventListener("input", () => { state.pantsColor = pantsColorInput.value; draw(); });
-torsoColorInput.addEventListener("input", () => { state.torsoColor = torsoColorInput.value; draw(); });
-hatColorInput.addEventListener("input", () => { state.hatColor = hatColorInput.value; draw(); });
 gridSizeInput.addEventListener("input", draw);
 tileWInput.addEventListener("input", draw);
 
@@ -1293,6 +1653,7 @@ document.getElementById("galleryMorphs").addEventListener("click", () => {
 });
 
 buildBodySlidersUI();
+buildEquipUI();
 syncFacingUI();
 draw();
 </script>
