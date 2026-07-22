@@ -23,9 +23,24 @@
   .tile.selected { fill:#6fd8c8; }
   .controls {
     flex:0 0 auto; background:#16211a; border-top:1px solid #000;
-    padding:10px 12px; display:flex; flex-direction:column; gap:8px;
-    max-height:48dvh; overflow-y:auto;
+    display:flex; flex-direction:column; max-height:48dvh; min-height:0;
   }
+  .tabs {
+    flex:0 0 auto; display:flex; gap:0; border-bottom:1px solid #243328;
+    background:#101810;
+  }
+  .tab-btn {
+    flex:1 1 0; background:transparent; border:none; border-bottom:2px solid transparent;
+    color:#889; padding:10px 6px; font-size:12px; font-weight:600; cursor:pointer;
+    letter-spacing:0.3px;
+  }
+  .tab-btn:hover { color:#ccd; background:#1a241c; }
+  .tab-btn.active {
+    color:#6fd8c8; border-bottom-color:#6fd8c8; background:#16211a;
+  }
+  .tab-panels { flex:1 1 auto; overflow-y:auto; padding:10px 12px; min-height:0; }
+  .tab-panel { display:none; flex-direction:column; gap:8px; }
+  .tab-panel.active { display:flex; }
   .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .row label { font-size:11px; color:#ccd; flex:0 0 88px; }
   .row input[type=range] { flex:1 1 auto; accent-color:#6fd8c8; min-width:60px; }
@@ -46,7 +61,7 @@
     margin-top:2px; padding-top:6px; border-top:1px solid #243328;
     display:flex; align-items:center; justify-content:space-between; gap:8px;
   }
-  .section-title .hint { color:#667; font-size:9px; text-transform:none; letter-spacing:0; }
+  .section-title:first-child { border-top:none; padding-top:0; margin-top:0; }
   .slider-grid { display:flex; flex-direction:column; gap:4px; }
   .slider-row {
     display:grid;
@@ -61,82 +76,97 @@
 <body>
 <div class="app">
   <div class="topbar">NEURO CORE — Phase 1 · Corps customisable par tronçon</div>
-  <div class="info" id="info">Morphologie de base + réglages par tronçon. Chaque segment est indépendant.</div>
+  <div class="info" id="info">Utilise les onglets en bas : Corps · Équipements · Grille</div>
   <div class="stage">
     <svg id="scene"></svg>
   </div>
   <div class="controls">
-    <div class="row">
-      <label>Morphologie</label>
-      <div class="btn-group" id="morphSelector">
-        <button class="ctrl-btn active" data-morph="heavy">⚔️ Lourd</button>
-        <button class="ctrl-btn" data-morph="standard">🗡️ Standard</button>
-        <button class="ctrl-btn" data-morph="light">🏹 Fin</button>
+    <div class="tabs" id="mainTabs" role="tablist">
+      <button class="tab-btn active" type="button" role="tab" data-tab="corps" aria-selected="true">Corps</button>
+      <button class="tab-btn" type="button" role="tab" data-tab="equip" aria-selected="false">Équipements</button>
+      <button class="tab-btn" type="button" role="tab" data-tab="grille" aria-selected="false">Grille</button>
+    </div>
+
+    <div class="tab-panels">
+      <!-- ONGLET CORPS -->
+      <div class="tab-panel active" id="panel-corps" role="tabpanel">
+        <div class="row">
+          <label>Morphologie</label>
+          <div class="btn-group" id="morphSelector">
+            <button class="ctrl-btn active" data-morph="heavy">⚔️ Lourd</button>
+            <button class="ctrl-btn" data-morph="standard">🗡️ Standard</button>
+            <button class="ctrl-btn" data-morph="light">🏹 Fin</button>
+          </div>
+        </div>
+
+        <div class="section-title">
+          <span>Tronçons du corps</span>
+          <button class="ctrl-btn" id="resetBody" type="button" style="padding:2px 8px;font-size:10px;">Reset</button>
+        </div>
+        <div class="row">
+          <label>Poitrine</label>
+          <div class="btn-group" id="chestShapeSelector">
+            <button class="ctrl-btn" data-chest="flat">Plat</button>
+            <button class="ctrl-btn active" data-chest="pec">Pecs</button>
+            <button class="ctrl-btn" data-chest="soft">Doux</button>
+            <button class="ctrl-btn" data-chest="full">Plein</button>
+          </div>
+        </div>
+        <div class="slider-grid" id="bodySliders"></div>
       </div>
-    </div>
 
-    <div class="section-title">
-      <span>Tronçons du corps</span>
-      <button class="ctrl-btn" id="resetBody" type="button" style="padding:2px 8px;font-size:10px;">Reset</button>
-    </div>
-    <div class="row">
-      <label>Poitrine</label>
-      <div class="btn-group" id="chestShapeSelector">
-        <button class="ctrl-btn active" data-chest="flat">Plat</button>
-        <button class="ctrl-btn" data-chest="pec">Pecs</button>
-        <button class="ctrl-btn" data-chest="soft">Doux</button>
-        <button class="ctrl-btn" data-chest="full">Plein</button>
+      <!-- ONGLET ÉQUIPEMENTS -->
+      <div class="tab-panel" id="panel-equip" role="tabpanel">
+        <div class="row">
+          <label>Pantalon</label>
+          <div class="btn-group" id="pantsSelector">
+            <button class="ctrl-btn active" data-pants="none">Aucun</button>
+            <button class="ctrl-btn" data-pants="in">IN</button>
+            <button class="ctrl-btn" data-pants="over">OVER</button>
+          </div>
+          <input type="color" id="pantsColor" value="#4a6741" title="Couleur pantalon">
+        </div>
+
+        <div class="row">
+          <label>Haut</label>
+          <div class="btn-group" id="torsoSelector">
+            <button class="ctrl-btn active" data-torso="none">Aucun</button>
+            <button class="ctrl-btn" data-torso="tunic">Tunique</button>
+          </div>
+          <input type="color" id="torsoColor" value="#8b5a2b" title="Couleur haut">
+        </div>
+
+        <div class="row">
+          <label>Chapeau</label>
+          <div class="btn-group" id="hatSelector">
+            <button class="ctrl-btn active" data-hat="none">Aucun</button>
+            <button class="ctrl-btn" data-hat="cap">Casquette</button>
+          </div>
+          <input type="color" id="hatColor" value="#3d2b1f" title="Couleur chapeau">
+        </div>
       </div>
-    </div>
-    <div class="slider-grid" id="bodySliders"></div>
 
-    <div class="section-title">Équipements</div>
+      <!-- ONGLET GRILLE -->
+      <div class="tab-panel" id="panel-grille" role="tabpanel">
+        <div class="row">
+          <label>Ancres</label>
+          <div class="btn-group" id="anchorToggle">
+            <button class="ctrl-btn" data-anchors="off">Masquer</button>
+            <button class="ctrl-btn active" data-anchors="on">Afficher</button>
+          </div>
+        </div>
 
-    <div class="row">
-      <label>Pantalon</label>
-      <div class="btn-group" id="pantsSelector">
-        <button class="ctrl-btn active" data-pants="none">Aucun</button>
-        <button class="ctrl-btn" data-pants="in">IN</button>
-        <button class="ctrl-btn" data-pants="over">OVER</button>
+        <div class="row">
+          <label>Taille grille</label>
+          <input type="range" id="gridSize" min="3" max="8" step="1" value="5">
+          <span id="gridSizeVal" class="val">5</span>
+        </div>
+        <div class="row">
+          <label>Largeur case</label>
+          <input type="range" id="tileW" min="30" max="70" step="2" value="52">
+          <span id="tileWVal" class="val">52</span>
+        </div>
       </div>
-      <input type="color" id="pantsColor" value="#4a6741" title="Couleur pantalon">
-    </div>
-
-    <div class="row">
-      <label>Haut</label>
-      <div class="btn-group" id="torsoSelector">
-        <button class="ctrl-btn active" data-torso="none">Aucun</button>
-        <button class="ctrl-btn" data-torso="tunic">Tunique</button>
-      </div>
-      <input type="color" id="torsoColor" value="#8b5a2b" title="Couleur haut">
-    </div>
-
-    <div class="row">
-      <label>Chapeau</label>
-      <div class="btn-group" id="hatSelector">
-        <button class="ctrl-btn active" data-hat="none">Aucun</button>
-        <button class="ctrl-btn" data-hat="cap">Casquette</button>
-      </div>
-      <input type="color" id="hatColor" value="#3d2b1f" title="Couleur chapeau">
-    </div>
-
-    <div class="row">
-      <label>Ancres</label>
-      <div class="btn-group" id="anchorToggle">
-        <button class="ctrl-btn" data-anchors="off">Masquer</button>
-        <button class="ctrl-btn active" data-anchors="on">Afficher</button>
-      </div>
-    </div>
-
-    <div class="row">
-      <label>Taille grille</label>
-      <input type="range" id="gridSize" min="3" max="8" step="1" value="5">
-      <span id="gridSizeVal" class="val">5</span>
-    </div>
-    <div class="row">
-      <label>Largeur case</label>
-      <input type="range" id="tileW" min="30" max="70" step="2" value="52">
-      <span id="tileWVal" class="val">52</span>
     </div>
   </div>
 </div>
@@ -1113,6 +1143,22 @@ torsoColorInput.addEventListener("input", () => { state.torsoColor = torsoColorI
 hatColorInput.addEventListener("input", () => { state.hatColor = hatColorInput.value; draw(); });
 gridSizeInput.addEventListener("input", draw);
 tileWInput.addEventListener("input", draw);
+
+/* Onglets Corps / Équipements / Grille */
+document.querySelectorAll("#mainTabs .tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll("#mainTabs .tab-btn").forEach((b) => {
+      b.classList.toggle("active", b === btn);
+      b.setAttribute("aria-selected", b === btn ? "true" : "false");
+    });
+    document.querySelectorAll(".tab-panel").forEach((panel) => {
+      panel.classList.toggle("active", panel.id === `panel-${tab}`);
+    });
+    const titles = { corps: "Corps & morphologie", equip: "Équipements", grille: "Grille & ancres" };
+    info.textContent = `Onglet : ${titles[tab] || tab}`;
+  });
+});
 
 buildBodySlidersUI();
 draw();
