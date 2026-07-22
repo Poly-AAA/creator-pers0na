@@ -312,20 +312,21 @@ const MORPHS = {
 };
 
 /**
- * 8 vues — alignées sur le turnaround de référence
+ * 8 vues — alignées sur le turnaround + axes grille iso 2:1
  * mirror: flip X seulement (symétrie gauche/droite)
  * kind: type de silhouette (pas de changement de hauteur)
- * near: quelle jambe/bras est au premier plan (avant miroir)
+ * isoSkew: cisaillement Y += skew*X pour aligner épaules/pieds sur les arêtes
+ *          de la grille (pente ±1/2). 0 = parallèle à la diagonale E–O du losange.
  */
 const FACINGS = [
-  { id: 0, key: "SE", short: "3/4 F·D", name: "3/4 face-droit",  deg: 45,  mirror: false, kind: "qFront", near: "R" },
-  { id: 1, key: "S",  short: "Face",    name: "Face",             deg: 90,  mirror: false, kind: "front",  near: "R" },
-  { id: 2, key: "SW", short: "3/4 F·G", name: "3/4 face-gauche", deg: 135, mirror: true,  kind: "qFront", near: "R" },
-  { id: 3, key: "W",  short: "Prof. G", name: "Profil gauche",   deg: 180, mirror: true,  kind: "side",   near: "R" },
-  { id: 4, key: "NW", short: "3/4 D·G", name: "3/4 dos-gauche",  deg: 225, mirror: true,  kind: "qBack",  near: "R" },
-  { id: 5, key: "N",  short: "Dos",     name: "Dos",              deg: 270, mirror: false, kind: "back",   near: "R" },
-  { id: 6, key: "NE", short: "3/4 D·D", name: "3/4 dos-droit",   deg: 315, mirror: false, kind: "qBack",  near: "R" },
-  { id: 7, key: "E",  short: "Prof. D", name: "Profil droit",    deg: 0,   mirror: false, kind: "side",   near: "R" },
+  { id: 0, key: "SE", short: "3/4 F·D", name: "3/4 face-droit",  deg: 45,  mirror: false, kind: "qFront", isoSkew: -0.5 },
+  { id: 1, key: "S",  short: "Face",    name: "Face",             deg: 90,  mirror: false, kind: "front",  isoSkew:  0   },
+  { id: 2, key: "SW", short: "3/4 F·G", name: "3/4 face-gauche", deg: 135, mirror: true,  kind: "qFront", isoSkew: -0.5 },
+  { id: 3, key: "W",  short: "Prof. G", name: "Profil gauche",   deg: 180, mirror: true,  kind: "side",   isoSkew:  0   },
+  { id: 4, key: "NW", short: "3/4 D·G", name: "3/4 dos-gauche",  deg: 225, mirror: true,  kind: "qBack",  isoSkew: -0.5 },
+  { id: 5, key: "N",  short: "Dos",     name: "Dos",              deg: 270, mirror: false, kind: "back",   isoSkew:  0   },
+  { id: 6, key: "NE", short: "3/4 D·D", name: "3/4 dos-droit",   deg: 315, mirror: false, kind: "qBack",  isoSkew: -0.5 },
+  { id: 7, key: "E",  short: "Prof. D", name: "Profil droit",    deg: 0,   mirror: false, kind: "side",   isoSkew:  0   },
 ];
 
 function getFacing(id = state.facing) {
@@ -610,11 +611,13 @@ function applyFacing(m, facingId = state.facing) {
   const f = getFacing(facingId);
   const spread = spreadFor(f.kind);
   const out = { ...m, facing: f, spread };
-  // Largeur projetée — on NE touche PAS aux Y
+  // Largeur projetée — on NE touche PAS aux Y de base (tête/épaules/hanches)
   out.shoulderW = m.shoulderW * spread;
   out.hipW = m.hipW * spread;
   out.waistW = m.waistW * spread;
   out.footSpread = m.footSpread * (f.kind === "side" ? 0.25 : (f.kind === "front" || f.kind === "back" ? 0.55 : 1));
+  // Cisaillement iso : aligne le corps sur les arêtes de la grille (pente ±1/2)
+  out.isoSkew = f.isoSkew || 0;
   if (f.kind === "back" || f.kind === "qBack") {
     out.glutes = Math.min(1.5, m.glutes * 1.2 + 0.08);
     out.chestSize = m.chestSize * 0.25;
@@ -623,6 +626,16 @@ function applyFacing(m, facingId = state.facing) {
     out.headRx = m.headRx * 0.82;
   }
   return out;
+}
+
+/** Transform SVG du corps : skew iso puis miroir gauche/droite */
+function bodyTransform(m) {
+  const f = m.facing;
+  const parts = [];
+  // SVG : la transform la plus à droite s'applique en premier → skew d'abord, puis mirror
+  if (f.mirror) parts.push("scale(-1,1)");
+  if (m.isoSkew) parts.push(`matrix(1 ${m.isoSkew} 0 1 0 0)`);
+  return parts.join(" ");
 }
 
 /* ============================================================
@@ -731,12 +744,26 @@ function drawTileHitLayer(parent, gridSize, tileW, tileH, ox, oy) {
    Structure inchangée : pivot / Y / facing / calques
    ============================================================ */
 function buildShadow(m, w) {
-  // Ombre proportionnelle à l'écartement des pieds + taille
+  // Ombre en losange iso 2:1 — mêmes pentes (±1/2) que la grille
   const s = (m.footSpread || 0.16) / 0.16;
-  return [
-    oval(0.02 * w, 0.03 * w, 0.30 * s * w, 0.095 * w, "rgba(0,0,0,0.16)", "none", 0),
-    oval(0, 0.012 * w, 0.20 * s * w, 0.06 * w, "rgba(0,0,0,0.34)", "none", 0),
-  ];
+  const hw = 0.28 * s;  // demi-largeur (comme tileW/2 en unités corps)
+  const hh = hw * 0.5;  // 2:1
+  const nodes = [];
+  nodes.push(path(
+    `M ${px(0, w)} ${px(-hh * 1.05, w)}
+     L ${px(hw * 1.05, w)} ${px(0, w)}
+     L ${px(0, w)} ${px(hh * 1.05, w)}
+     L ${px(-hw * 1.05, w)} ${px(0, w)} Z`,
+    "rgba(0,0,0,0.14)", "none", 0
+  ));
+  nodes.push(path(
+    `M ${px(0, w)} ${px(-hh * 0.72, w)}
+     L ${px(hw * 0.72, w)} ${px(0, w)}
+     L ${px(0, w)} ${px(hh * 0.72, w)}
+     L ${px(-hw * 0.72, w)} ${px(0, w)} Z`,
+    "rgba(0,0,0,0.28)", "none", 0
+  ));
+  return nodes;
 }
 
 function limbColors(far) {
@@ -1627,16 +1654,19 @@ function createCharacter(cx, cy, tileW, morphId) {
   });
   root.appendChild(scaled);
 
-  // Ombre ancrée au pivot, suit la taille
-  for (const n of buildShadow(m, w)) scaled.appendChild(n);
-
-  const body = el("g", {
-    class: "body",
-    transform: f.mirror ? "scale(-1,1)" : "",
+  // Ombre + corps partagent le skew iso (épaules // grille)
+  const rig = el("g", {
+    class: "rig",
+    transform: bodyTransform(m),
   });
-  scaled.appendChild(body);
+  scaled.appendChild(rig);
 
-  // near = droite (+1) avant miroir ; le flip X place le membre près du bon côté écran
+  for (const n of buildShadow(m, w)) rig.appendChild(n);
+
+  const body = el("g", { class: "body" });
+  rig.appendChild(body);
+
+  // near = droite (+1) en local ; mirror/skew gèrent l'écran
   const farSide = -1;
   const nearSide = 1;
   const add = (nodes) => { for (const n of nodes) body.appendChild(n); };
