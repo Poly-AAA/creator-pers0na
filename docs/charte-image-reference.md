@@ -3,6 +3,9 @@
 **Statut :** enregistré pour plus tard.  
 **Choix :** option A — on part d’images pixel art avec règles très strictes, puis le moteur les lit.
 
+**Décision (2026-07-23) :** on **ne** part **pas** des générateurs type Nexsprite / PixelLab en API.  
+Flux retenu : **toi** génères l’image référence (prompt zéro liberté) → **moi** je l’incorpore dans le jeu (tailles, placement, zoom net, props, etc.).
+
 **But :** écrire un prompt **sans aucune liberté** pour générer tout ce qui entre dans le jeu (bâtiments, arbres, armes, effets, etc.), avec zoom map **sans flou** sur smartphone.
 
 ---
