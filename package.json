@@ -1,0 +1,10 @@
+{
+  "name": "neuro-core",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "NEURO-CORE — moteur graphique SVG isométrique",
+  "scripts": {
+    "test": "node --test tests/engine.test.js"
+  }
+}
