@@ -99,9 +99,15 @@ Pour les **persos jouables modulaires**, cet outil colle mieux à ta demande.
 
 ---
 
+## Décisions figées
+
+- **Résolution perso :** **128×128** (HD) pour **tous** les personnages — pas de mélange avec 64×64.
+- Recolor habit : dans le créateur avant export (pas de masque pixel après coup en production).
+- Méthode habits au début : export sheet complète par tenue (A/C).
+
 ## Prochaine étape
 
 1. Tu confirmes : on part sur **ce créateur** (pas PixelLab) pour les persos.  
-2. Tu choisis **64×64** ou **128×128** pour tout le jeu.  
-3. Tu exportes 1 perso test (idle + walk) → tu m’envoies le zip.  
+2. ~~Tu choisis **64×64** ou **128×128** pour tout le jeu.~~ **→ 128×128 choisi.**  
+3. Tu exportes 1 perso test (idle + walk) en **128×128** → tu m’envoies le zip.  
 4. Je l’incorpore sur la grille iso.

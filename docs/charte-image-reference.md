@@ -16,28 +16,11 @@ Flux retenu : **toi** génères l’image référence (prompt zéro liberté) �
 2. Chaque pixel du dessin référence doit être **lisible** (carré net ; contour fin autour de chaque pixel OK pour la référence).
 3. L’image sert de **modèle de style + tailles**. Le jeu recalcule rotations / placements ; on ne redessine pas 8 vues à la main.
 4. Zoom : pas de flou — on agrandit des **carrés nets** (pas d’image étirée floue).
-
----
-
-## À remplir dès que les images arrivent
-
-| Paramètre | Valeur (à noter depuis l’image) | Pourquoi |
-|-----------|----------------------------------|----------|
-| Taille d’**1 pixel** art (en px écran) | _à mesurer_ | Base de tout |
-| Taille d’**1 case** au sol (largeur × hauteur) | ex. déjà prévu 64×32 | Grille |
-| Hauteur d’un **personnage** (en pixels art) | ex. déjà prévu ~96 | Échelle humaine |
-| Angle / vue iso | ex. 2:1 / ~30° | Toujours pareil |
-| Point de **pieds** (où le perso touche la case) | _à noter_ | Placement |
-| **Palette** (liste exacte des couleurs) | _à lister_ | Style unique |
-| Contour (épaisseur, couleur) | _à noter_ | Style |
-| Taille max d’un **bâtiment** (en cases + px) | _à noter_ | Props |
-| Taille typique **arbre / rocher / meuble** | _à noter_ | Props |
-| Taille **arme** (ne change pas avec le corps) | _à noter_ | Équipement |
-| Style des **effets** (magie, coups) | _à noter_ | FX |
-| Fond / sol / bord de map | _à noter_ | Décors |
+5. **Persos (Character Creator Modern) : frames HD 128×128** pour tous — pas de mélange avec 64×64.
 
 Constantes moteur déjà en code (à aligner sur les images si besoin) :
-- Case 64×32, perso 96, écran 390×844, zoom 0,75×–2×, palette `#F2F0EB` `#DCD3C3` `#2E2E30` `#E8590C`.
+- Case 64×32, écran 390×844, zoom 0,75×–2×, palette `#F2F0EB` `#DCD3C3` `#2E2E30` `#E8590C`.
+- Frames perso export : **128×128** (décision 2026-07-24).
 
 ---
 
