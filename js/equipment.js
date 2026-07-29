@@ -1,10 +1,39 @@
 import { getAnchors, mirrorAnchors } from "./rig.js";
+import {
+  buildPantsLeg,
+  buildPantsWaist,
+  buildTunic,
+  buildCap,
+} from "./body.js";
 
 /** Taille d'arme fixe (unités morph) — ne suit JAMAIS la morphologie. */
 export const WEAPON_SIZE = {
   sword: { length: 0.85, width: 0.06 },
   staff: { length: 1.35, width: 0.045 },
 };
+
+/**
+ * Vêtements : suivent le morph projeté (même m que le corps).
+ * Retourne des nœuds SVG à intercaler dans les calques corps.
+ */
+export function buildClothingLayers(projectedMorph, unit, gear = {}) {
+  const m = projectedMorph;
+  const out = { legBack: [], legFront: [], torso: [], head: [] };
+  const pants = gear.pants || "none";
+  const pantsColor = gear.pantsColor || "#4a6741";
+  if (pants && pants !== "none") {
+    out.legBack.push(...buildPantsLeg(m, unit, "back", pants, pantsColor));
+    out.torso.push(...buildPantsWaist(m, unit, pantsColor));
+    out.legFront.push(...buildPantsLeg(m, unit, "front", pants, pantsColor));
+  }
+  if (gear.torso === "tunic") {
+    out.torso.push(...buildTunic(m, unit, gear.torsoColor || "#8b5a2b"));
+  }
+  if (gear.hat === "cap") {
+    out.head.push(...buildCap(m, unit, gear.hatColor || "#3d2b1f"));
+  }
+  return out;
+}
 
 /**
  * Main dominante pour l'arme après miroir.

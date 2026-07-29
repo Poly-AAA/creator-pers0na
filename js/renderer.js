@@ -3,14 +3,13 @@ import {
   TILE_H,
   VIEW_W,
   VIEW_H,
-  CHAR_H,
   MORPH_UNIT,
   PALETTE,
 } from "./constants.js";
 import { gridToWorld, sortActorsByDepth } from "./grid.js";
 import { resolveMorph, defaultBodyCustom } from "./morph.js";
 import { projectRig, getAnchors, layerOrderFor, bodyTransform } from "./rig.js";
-import { placeWeaponLocal } from "./equipment.js";
+import { placeWeaponLocal, buildClothingLayers } from "./equipment.js";
 import {
   buildLegBack,
   buildLegFront,
@@ -18,10 +17,6 @@ import {
   buildArmFront,
   buildTorso,
   buildHead,
-  buildPantsLeg,
-  buildPantsWaist,
-  buildTunic,
-  buildCap,
 } from "./body.js";
 import { el, createPath, createEllipse } from "./svg.js";
 
@@ -174,28 +169,19 @@ export function createCharacterNode(actor, options = {}) {
     if (layers[name]) for (const n of fn()) layers[name].appendChild(n);
   }
 
-  // Équipements vêtements (suivent morph)
-  if (actor.pants && actor.pants !== "none") {
-    for (const n of buildPantsLeg(m, unit, "back", actor.pants, actor.pantsColor || "#4a6741")) {
-      layers.legBack?.appendChild(n);
-    }
-    for (const n of buildPantsWaist(m, unit, actor.pantsColor || "#4a6741")) {
-      layers.torso?.appendChild(n);
-    }
-    for (const n of buildPantsLeg(m, unit, "front", actor.pants, actor.pantsColor || "#4a6741")) {
-      layers.legFront?.appendChild(n);
-    }
-  }
-  if (actor.torso === "tunic") {
-    for (const n of buildTunic(m, unit, actor.torsoColor || "#8b5a2b")) {
-      layers.torso?.appendChild(n);
-    }
-  }
-  if (actor.hat === "cap") {
-    for (const n of buildCap(m, unit, actor.hatColor || "#3d2b1f")) {
-      layers.head?.appendChild(n);
-    }
-  }
+  // Équipements vêtements (suivent morph via equipment.js)
+  const clothes = buildClothingLayers(m, unit, {
+    pants: actor.pants,
+    pantsColor: actor.pantsColor,
+    torso: actor.torso,
+    torsoColor: actor.torsoColor,
+    hat: actor.hat,
+    hatColor: actor.hatColor,
+  });
+  for (const n of clothes.legBack) layers.legBack?.appendChild(n);
+  for (const n of clothes.legFront) layers.legFront?.appendChild(n);
+  for (const n of clothes.torso) layers.torso?.appendChild(n);
+  for (const n of clothes.head) layers.head?.appendChild(n);
 
   // Arme — taille fixe, ancrée main dominante locale (miroir SVG)
   if (actor.weapon && actor.weapon !== "none") {

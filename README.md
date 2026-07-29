@@ -35,7 +35,7 @@ Après miroir, l’arme est rebranchée sur la main opposée (`resolveWeaponHand
 | `js/orientation.js` | Δ → orientation |
 | `js/morph.js` | `resolveMorph()` + presets |
 | `js/rig.js` | `projectRig`, miroir, calques |
-| `js/equipment.js` | Armes taille fixe |
+| `js/equipment.js` | Vêtements (suivent morph) + armes taille fixe |
 | `js/spells.js` | Ancres limb / bodyCenter / grid + auras |
 | `js/clock.js` | timeScale + hit-stop / combo en temps réel |
 | `js/animation.js` | idle, walk, attack, cast, hit, dash |

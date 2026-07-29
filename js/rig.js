@@ -1,11 +1,18 @@
 import { getOrientMeta } from "./orientation.js";
+import { TILE_W, TILE_H, CAMERA_ANGLE_DEG } from "./constants.js";
 
 /**
  * Facteurs de projection par kind — calculés, pas copiés de la section 3.
  * side : compression X forte (profils étroits).
  * front/back : épaules plus larges, pieds resserrés.
- * qFront/qBack : interpolation + isoSkew pente grille (±0.5).
+ * qFront/qBack : interpolation + isoSkew aligné pente grille.
+ *
+ * Pente iso 2:1 = TILE_H/TILE_W (= 0.5). CAMERA_ANGLE_DEG (30°) documente la caméra iso.
  */
+export const ISO_GRID_SLOPE = TILE_H / TILE_W;
+export const ISO_CAMERA_ANGLE = CAMERA_ANGLE_DEG;
+const ISO_SKEW_Q = -ISO_GRID_SLOPE;
+
 const KIND_FACTORS = {
   front: {
     shoulder: 1.18,
@@ -49,7 +56,7 @@ const KIND_FACTORS = {
     arm: 1.0,
     chest: 1.0,
     glutes: 1.0,
-    isoSkew: -0.5,
+    isoSkew: ISO_SKEW_Q,
   },
   qBack: {
     shoulder: 1.0,
@@ -60,7 +67,7 @@ const KIND_FACTORS = {
     arm: 1.0,
     chest: 0.45,
     glutes: 1.25,
-    isoSkew: -0.5,
+    isoSkew: ISO_SKEW_Q,
   },
 };
 
