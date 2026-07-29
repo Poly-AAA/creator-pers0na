@@ -1,76 +1,74 @@
 # NEURO-CORE — Moteur de Personnage Modulaire Isométrique
 
-Prototype HTML/CSS/JS pur pour un tactical RPG (style Dofus) : grille isométrique 2:1, 3 morphologies, système de superposition d'équipements.
+Prototype SVG pour un tactical RPG (style Dofus) : grille isométrique 2:1, morphologies, rig 8 orientations **calculées**, caméra séparée, animations de test.
 
-Ouvre `index.html` dans un navigateur pour tester.
+Ouvre `index.html` dans un navigateur (modules ES). Tests : `npm test`.
 
-## Phase 0 — Fondations ✅
+## Constantes (`js/constants.js`)
 
-- Grille isométrique 2:1 cliquable
-- 3 morphologies : **Lourd**, **Standard**, **Fin**
-- Point de pivot au sol (centre de case)
-- Sélecteur de morphologie + curseurs grille
+| Constante | Valeur |
+|-----------|--------|
+| Case | 64×32 px (ratio 2:1) |
+| Personnage | 96 px |
+| Viewport | 390×844 portrait |
+| Caméra | iso 30°, zoom 0,75×–2× |
+| timeScale | 0,35 |
+| hit-stop | 100 ms |
+| Palette | `#F2F0EB` `#DCD3C3` `#2E2E30` accent `#E8590C` |
 
-## Phase 1 — Superposition (Z-Index) + tronçons custom ✅
+Géométrie : `x = (col − row) × 32`, `y = (col + row) × 16`.  
+Le zoom est une couche caméra **séparée** — jamais intégré à la taille de case.
 
-### Calques SVG (du bas vers le haut)
+## Orientation ↔ grille
 
-1. `legBack` — jambes arrière-plan (+ pantalon jambe arrière)
-2. `armBack` — bras arrière-plan
-3. `torso` — corps / torse (+ ceinture pantalon, haut)
-4. `head` — tête (+ chapeau)
-5. `armFront` — bras premier plan
-6. `legFront` — jambes premier plan (+ pantalon jambe avant)
-7. `anchors` — points d'ancrage (debug)
-8. `meta` — pivot + étiquette
+L’orientation affichée se calcule uniquement depuis `(Δcol, Δrow)` (`js/orientation.js`).  
+Les 8 vues sont un seul pipeline squelette → projection → `scaleX(-1)` ; **pas** de dessins séparés (la section 3 de la spec est indicative uniquement).
 
-### Customisation par tronçon
+Après miroir, l’arme est rebranchée sur la main opposée (`resolveWeaponHand`).
 
-La morphologie (Lourd / Standard / Fin) est un **preset de base**.  
-`resolveMorph(morphId, body)` fusionne ce preset avec les réglages indépendants :
+## Modules
 
-| Tronçon | Clé | Effet |
-|---------|-----|--------|
-| Cou | `neck` | largeur du cou |
-| Épaules Ø | `shoulderWidth` | écartement des épaules |
-| Haut épaules | `shoulderCap` | volume deltoïde |
-| Biceps | `biceps` | bras supérieur |
-| Coudes | `elbow` | grosseur de l'articulation |
-| Avant-bras | `forearm` | bras inférieur |
-| Poitrine Ø | `chestSize` | volume pecs / seins |
-| Forme poitrine | `chestShape` | `flat` / `pec` / `soft` / `full` |
-| Ventre | `belly` | bombé abdominal |
-| Taille | `waist` | largeur taille |
-| Hanches | `hips` | largeur hanches |
-| Fesses | `glutes` | volume fessier |
-| Cuisses | `thigh` | épaisseur cuisse |
-| Mollets | `calf` | épaisseur mollet |
+| Fichier | Rôle |
+|---------|------|
+| `js/constants.js` | Constantes uniques |
+| `js/grid.js` | Monde + profondeur `(col+row)`, row, id |
+| `js/orientation.js` | Δ → orientation |
+| `js/morph.js` | `resolveMorph()` + presets |
+| `js/rig.js` | `projectRig`, miroir, calques |
+| `js/equipment.js` | Vêtements (suivent morph) + armes taille fixe |
+| `js/spells.js` | Ancres limb / bodyCenter / grid + auras |
+| `js/clock.js` | timeScale + hit-stop / combo en temps réel |
+| `js/animation.js` | idle, walk, attack, cast, hit, dash |
+| `js/camera.js` | pan / zoom / `frameActors` |
+| `js/renderer.js` | Assemblage SVG |
+| `js/main.js` | Harness tactile |
 
-Les équipements et ancres lisent **uniquement** le profil résolu — ils suivent automatiquement les tronçons.
+## Morphologie
 
-### Points d'ancrage
+`resolveMorph(morphId, body)` fusionne preset (Lourd / Standard / Fin) + curseurs tronçons.  
+Vêtements suivent la morpho ; armes **jamais** redimensionnées.
 
-`head`, `neck`, `shoulderL/R`, `elbowL/R`, `waistL/R`, `hip`, `gluteL/R`, `handL/R`, `footL/R`, `pivot`.
+## Animations de test
 
-### Équipements test
+| Clip | Durée |
+|------|-------|
+| idle | 2 s loop |
+| marche | 350 ms / case |
+| attaque | 600 ms |
+| cast | 700 ms |
+| touché | 400 ms |
+| dash | 280 ms |
 
-| Slot | Options | Notes |
-|------|---------|-------|
-| Pantalon | Aucun / **IN** / **OVER** | IN = ourlet cheville ; OVER = plus large, recouvre la cheville |
-| Haut | Aucun / Tunique | Calque `torso` (suit le ventre) |
-| Chapeau | Aucun / Casquette | Calque `head` |
+Fenêtre combo = `COMBO_RATIO × durée du clip` (temps réel).
 
-### Étendre le système
+## Tests automatiques
 
-**Nouvel équipement :** `buildXxx(m, w, color)` → injecter dans le calque → UI + `state`.
+```bash
+npm test
+```
 
-**Nouveau tronçon :** ajouter une entrée dans `BODY_SLIDER_DEFS`, l'appliquer dans `resolveMorph()`, puis l'utiliser dans le builder anatomique concerné.
+Vérifie : largeurs profil L/R, `mirror² = id`, table Δ→orient (8 cas), main d’arme post-miroir, profondeur sans égalité non résolue.
 
-## Roadmap
+## Hors périmètre (cette phase)
 
-- **Phase 2** — 8 rotations isométriques (45°)
-- **Phase 3** — Bibliothèque d'équipements + presets
-- **Phase 4** — Animations (idle / marche / course) + analyse vidéo
-- **Phase 5** — Intégration map (déplacement, combat)
-- **Phase 6** — Vectorisation & génération auto
-- **Phase 7** — Thèmes / époques
+Combat complet, ligues, présentateur, loot / méta-jeu.
