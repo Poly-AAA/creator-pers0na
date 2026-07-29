@@ -6,19 +6,19 @@ RPG tactique cyberpunk spatial — fichier HTML autonome.
 
 Ouvre **[`neuro-core.html`](neuro-core.html)** dans un navigateur (mobile portrait OK).
 
-Version actuelle : **V3.3.4** — S5b embuscades de voyage → vrai combat (mission-éclair 1 scène).
+Version actuelle : **V3.4.0** — S6 contrats riches · S7 galaxie dynamique · G game feel.
+
+## Contenu V3.4
+
+- **S6** — objectifs `secure` (tenir + éliminer), cibles mobiles qui fuient (`chase_flee`), guerres de factions
+- **S7** — `WorldSim` : situations / factions évoluent au voyage et après missions ; flux galactique dans le hub
+- **G** — écrans de chargement (saut / déploiement), hub teinté par biome planète, ECHO avec gear visible, marqueur ★ de cible
 
 ## Tests
 
 ```bash
 npm test
 ```
-
-## Reste roadmap
-
-- S6 — contrats riches (cibles mobiles, guerres, objectifs composites)
-- S7 — galaxie dynamique
-- G — passe graphique / game feel
 
 ## Prototype graphismes (branche parallèle)
 

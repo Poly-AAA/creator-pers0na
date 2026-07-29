@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NEURO CORE — V3.3.4</title>
+<title>NEURO CORE — V3.4.0</title>
 <style>
 /* =====================================================================
-   NEURO CORE — V3.3.4 (S5b — embuscades voyage → combat réel)
+   NEURO CORE — V3.4.0 (S6 contrats riches · S7 galaxie dynamique · G game feel)
    Tactical Roguelite — HTML / CSS / JS Vanilla — Fichier unique autonome
    Direction artistique : 70% Dofus Touch / 20% Ghost in the Shell / 10% Esport
    Palette : cyan lumineux, turquoise, violet, orange, blanc, acier bleuté
@@ -504,7 +504,50 @@ aside.side{
 #hubOverlay{background:
   radial-gradient(1200px 600px at 50% -10%, rgba(39,224,255,.10), transparent 60%),
   radial-gradient(900px 500px at 100% 110%, rgba(255,107,0,.08), transparent 55%),
-  linear-gradient(180deg, #050b12 0%, #07121d 60%, #050a10 100%);}
+  linear-gradient(180deg, #050b12 0%, #07121d 60%, #050a10 100%);
+  transition: background .45s ease;}
+/* V3.4 (G) — thèmes hub par biome planète */
+#hubOverlay.biome-jungle{background:
+  radial-gradient(1000px 520px at 40% 0%, rgba(60,224,138,.14), transparent 55%),
+  linear-gradient(180deg, #04140c 0%, #071a12 55%, #030e09 100%);}
+#hubOverlay.biome-desertique,#hubOverlay.biome-desert{background:
+  radial-gradient(1000px 520px at 60% 0%, rgba(255,180,60,.14), transparent 55%),
+  linear-gradient(180deg, #1a1206 0%, #1a1408 55%, #0e0a04 100%);}
+#hubOverlay.biome-ocean,#hubOverlay.biome-aquatique{background:
+  radial-gradient(1000px 520px at 50% 0%, rgba(60,160,255,.16), transparent 55%),
+  linear-gradient(180deg, #041018 0%, #061624 55%, #030a12 100%);}
+#hubOverlay.biome-industriel,#hubOverlay.biome-station{background:
+  radial-gradient(1000px 520px at 50% 0%, rgba(160,180,200,.12), transparent 55%),
+  linear-gradient(180deg, #0a0e14 0%, #0c121a 55%, #06080c 100%);}
+#hubOverlay.biome-ruche{background:
+  radial-gradient(1000px 520px at 50% 0%, rgba(255,210,60,.12), transparent 55%),
+  linear-gradient(180deg, #141004 0%, #161208 55%, #0a0804 100%);}
+#hubOverlay.biome-scientifique{background:
+  radial-gradient(1000px 520px at 50% 0%, rgba(160,107,255,.14), transparent 55%),
+  linear-gradient(180deg, #0a0614 0%, #0e0a1a 55%, #06040e 100%);}
+#hubOverlay.biome-minier{background:
+  radial-gradient(1000px 520px at 50% 0%, rgba(200,140,80,.12), transparent 55%),
+  linear-gradient(180deg, #120e08 0%, #14100a 55%, #0a0804 100%);}
+.hub-planet{z-index:2;font-size:12px;color:var(--acier-clair);margin-bottom:4px;font-family:'Share Tech Mono',monospace}
+.hub-planet b{color:var(--cyan)}
+.hub-world{z-index:2;margin-top:10px;font-size:10px;color:var(--acier-clair);line-height:1.45;max-height:72px;overflow:hidden}
+.hub-world .hw-line{opacity:.85}
+.hub-world .hw-line b{color:#ffd23c;font-weight:normal}
+
+/* V3.4 (G) — chargement hypervitesse */
+#loadOverlay{z-index:90;background:
+  repeating-linear-gradient(90deg, rgba(39,224,255,.04) 0 2px, transparent 2px 18px),
+  radial-gradient(800px 400px at 50% 40%, rgba(39,224,255,.12), transparent 70%),
+  #03070c; align-items:center; justify-content:center;}
+#loadOverlay.show{display:flex !important;}
+.load-wrap{width:min(420px,88vw);text-align:center}
+.load-brand{font-family:'Orbitron',sans-serif;letter-spacing:4px;font-size:18px;color:#fff;margin-bottom:18px}
+.load-brand b{color:var(--cyan)}
+.load-bar{height:3px;background:rgba(39,224,255,.15);border-radius:2px;overflow:hidden;margin-bottom:14px}
+.load-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#27e0ff,#7fe9ff);box-shadow:0 0 12px #27e0ff;transition:width .08s linear}
+.load-line{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--cyan);letter-spacing:1px;min-height:1.4em}
+.load-sub{font-size:11px;color:var(--acier-clair);margin-top:8px;opacity:.75;min-height:1.2em}
+
 .hub-wrap{width:min(1040px,96vw);max-height:94vh;display:flex;flex-direction:column;
   border:1px solid rgba(39,224,255,.28);border-radius:16px;padding:18px 20px;position:relative;overflow:hidden;
   background:linear-gradient(180deg, rgba(10,22,34,.72), rgba(7,16,26,.82));
@@ -992,10 +1035,22 @@ aside.side{
       <div class="hub-brand"><span class="hub-logo">◆</span> NEURO <b>CORE</b> <span class="hub-hq">STATION</span></div>
       <div class="hub-id" id="hubId">ECHO-01</div>
     </div>
+    <div class="hub-planet" id="hubPlanet"></div>
     <div class="hub-scan"></div>
     <div class="hub-res" id="hubRes"></div>
     <div class="hub-grid" id="hubGrid"></div>
+    <div class="hub-world" id="hubWorld"></div>
     <div class="hub-foot" id="hubFoot"></div>
+  </div>
+</div>
+
+<!-- V3.4 (G) — écran de chargement (hypervitesse / Evangelion-style) -->
+<div class="overlay" id="loadOverlay" style="display:none">
+  <div class="load-wrap">
+    <div class="load-brand">NEURO <b>CORE</b></div>
+    <div class="load-bar"><i id="loadBar"></i></div>
+    <div class="load-line" id="loadLine">SYNCHRONISATION…</div>
+    <div class="load-sub" id="loadSub"></div>
   </div>
 </div>
 
@@ -2524,8 +2579,7 @@ function biomeArenaDef(id){ return BIOME_ARENA[id] || null; }
    de scénarios. À l'acceptation, on en tire un. Un scénario = une suite de
    scènes (décor + taille de map + intention + objectif). La séquence est
    ÉLASTIQUE : on pioche N scènes selon la difficulté, le CLIMAX reste en fin.
-   Objectifs de scène : eliminate (tout éliminer), extract (rejoindre la zone
-   d'extraction), hold (tenir K tours), pursue (abattre la cible — climax).
+   Objectifs de scène : eliminate, extract, hold, pursue, secure (S6 composite).
    ===================================================================== */
 const SCENE_SIZE = { S:12, M:14, L:16, XL:18 };
 const SCENE_OBJ = {
@@ -2533,6 +2587,8 @@ const SCENE_OBJ = {
   extract:   { label:"Rejoindre la zone d'extraction", ico:"📤" },
   hold:      { label:"Tenir la position", ico:"🛡" },
   pursue:    { label:"Abattre la cible", ico:"🎯" },
+  // V3.4 (S6) — objectif composite : tenir ET nettoyer
+  secure:    { label:"Sécuriser la zone (tenir + éliminer)", ico:"🔒" },
 };
 function sceneObjDef(k){ return SCENE_OBJ[k] || SCENE_OBJ.eliminate; }
 
@@ -2553,6 +2609,11 @@ const SCENARIOS = {
     // V3.3.4 (S5b) — chasseurs de primes en voyage
     { id:"hunter_flash", name:"Interception de chasseurs", scenes:[
       { intent:"Interception en hyperespace", size:"M", obj:"eliminate", decor:"station" },
+    ]},
+    // V3.4 (S6) — poursuite cible mobile qui fuit
+    { id:"chase_flee", name:"Chasse au fugitif", scenes:[
+      { intent:"Périmètre — la cible s'enfuit", size:"L", obj:"pursue", mobileFlee:true },
+      { intent:"Toits — interception finale", size:"L", obj:"pursue", mobileFlee:true },
     ]},
   ],
   capture: [
@@ -2608,6 +2669,16 @@ const SCENARIOS = {
     { id:"ambush_flash", name:"Embuscade hyperspatiale", scenes:[
       { intent:"Abordage en hyperespace", size:"M", obj:"eliminate", decor:"station" },
     ]},
+    // V3.4 (S6) — objectif composite + guerre de factions
+    { id:"secure_ops", name:"Sécurisation de zone", scenes:[
+      { intent:"Tenir et nettoyer le périmètre", size:"M", obj:"secure" },
+      { intent:"Verrouiller le secteur adjacent", size:"L", obj:"secure" },
+    ]},
+    { id:"faction_war", name:"Guerre de factions", scenes:[
+      { intent:"Sécuriser la tête de pont", size:"L", obj:"secure" },
+      { intent:"Tenir sous le feu", size:"M", obj:"hold" },
+      { intent:"Percée finale", size:"L", obj:"eliminate" },
+    ], factionWar:true },
   ],
 };
 function scenariosForType(typeId){ return SCENARIOS[typeId] || SCENARIOS.assassinat; }
@@ -2636,6 +2707,7 @@ function buildScenePlan(scenario, N, contract){
     intent: sc.intent, size: sc.size || "M",
     obj: sc.obj || "eliminate",
     decor: sc.decor || (contract ? contract.biome : null),
+    mobileFlee: !!sc.mobileFlee,
     climax: (i === out.length-1),
   }));
 }
@@ -2810,11 +2882,14 @@ const Galaxy = {
     const result = Galaxy.applyEvent(ev, dest);
     f.currentPlanet = dest;
     f.contractBoard = null;             // le bureau local de la nouvelle planète se régénère
+    // V3.4 (S7) — tick galaxie dynamique à chaque saut
+    let world = null;
+    if(typeof WorldSim !== "undefined"){ world = WorldSim.tick(1, { reason:"travel", dest }); }
     MetaProgress.save();
-    return { ok:true, planet:dest, event:result };
+    return { ok:true, planet:dest, event:result, world };
   },
   // régénère entièrement la galaxie (nouvelle partie / exploration profonde)
-  regenerate(){ const f=MetaProgress.data.future; if(!f) return; f.galaxy = Galaxy.gen(6); f.currentPlanet = f.galaxy[0]; f.contractBoard=null; MetaProgress.save(); },
+  regenerate(){ const f=MetaProgress.data.future; if(!f) return; f.galaxy = Galaxy.gen(6); f.currentPlanet = f.galaxy[0]; f.contractBoard=null; if(typeof WorldSim!=="undefined") WorldSim.reset(); MetaProgress.save(); },
 };
 
 /* =====================================================================
@@ -2861,6 +2936,107 @@ const Reputation = {
   next(id){ const v = Reputation.value(id); for(const x of REP_TIERS){ if(v < x.min) return x; } return null; },
 };
 
+/* =====================================================================
+   V3.4 (S7) — WORLDSIM : galaxie vivante. Chaque saut / mission fait évoluer
+   situations, factions et guerres. La réputation module l'accueil local.
+   ===================================================================== */
+const WorldSim = {
+  state(){
+    const f = MetaProgress.data.future; if(!f) return {};
+    if(!f.worldSim) f.worldSim = { tick:0, wars:[], log:[] };
+    if(!Array.isArray(f.worldSim.wars)) f.worldSim.wars = [];
+    if(!Array.isArray(f.worldSim.log)) f.worldSim.log = [];
+    return f.worldSim;
+  },
+  reset(){ const f = MetaProgress.data.future; if(f) f.worldSim = { tick:0, wars:[], log:[] }; },
+  pushLog(msg){
+    const ws = WorldSim.state();
+    ws.log.unshift({ t: ws.tick, msg, at: Date.now() });
+    if(ws.log.length > 24) ws.log.length = 24;
+  },
+  // enregistre une victoire de guerre de factions (contrat guerre rempli)
+  noteFactionWar(contract){
+    if(!contract || !contract.faction) return;
+    const ws = WorldSim.state();
+    const fa = factionDef(contract.faction);
+    const rival = fa && fa.rival ? fa.rival : null;
+    ws.wars.push({ at: Date.now(), faction: contract.faction, rival, scenarioId: contract.scenarioId||null });
+    if(ws.wars.length > 40) ws.wars = ws.wars.slice(-40);
+    // bascule d'influence : chance de flipper une planète rivale
+    const sys = (typeof Galaxy!=="undefined") ? Galaxy.systems() : [];
+    const candidates = sys.filter(p=> rival ? p.faction===rival : p.faction!==contract.faction);
+    if(candidates.length && Math.random() < 0.55){
+      const p = pick(candidates);
+      const prev = p.faction;
+      p.faction = contract.faction;
+      if(p.situation === "stable" || p.situation === "prospere") p.situation = "conflit";
+      else if(p.situation === "conflit") p.situation = "tension";
+      p.danger = clamp((p.danger||1) + 1, 1, 3);
+      WorldSim.pushLog(factionDef(contract.faction).ico+" prend "+p.name+" (était "+factionDef(prev).name+")");
+    } else {
+      WorldSim.pushLog(factionDef(contract.faction).ico+" gagne du terrain après la guerre locale");
+    }
+    MetaProgress.save();
+  },
+  // fait évoluer situations / danger / (rare) faction sur N ticks
+  tick(n, ctx){
+    n = n || 1; ctx = ctx || {};
+    const ws = WorldSim.state();
+    const sys = (typeof Galaxy!=="undefined") ? Galaxy.systems() : [];
+    const changes = [];
+    for(let i=0;i<n;i++){
+      ws.tick++;
+      for(const p of sys){
+        // réputation hostile → planète plus dangereuse / situations tendues
+        let rep = 0;
+        try{ rep = (typeof Reputation!=="undefined") ? Reputation.value(p.faction) : 0; }catch(_e){}
+        if(rep <= -40 && Math.random() < 0.18){
+          if(p.situation !== "conflit" && p.situation !== "rebellion"){
+            p.situation = Math.random()<0.5 ? "conflit" : "rebellion";
+            p.danger = clamp((p.danger||1)+1, 1, 3);
+            changes.push({ planet:p.name, kind:"hostility", situation:p.situation });
+          }
+        } else if(rep >= 60 && Math.random() < 0.12){
+          if(p.situation==="conflit" || p.situation==="tension" || p.situation==="blocus"){
+            p.situation = Math.random()<0.5 ? "stable" : "prospere";
+            p.danger = clamp((p.danger||2)-1, 1, 3);
+            changes.push({ planet:p.name, kind:"stabilize", situation:p.situation });
+          }
+        }
+        // dérive naturelle des situations
+        if(Math.random() < 0.08){
+          const order = ["stable","prospere","tension","blocus","conflit","rebellion"];
+          const idx = Math.max(0, order.indexOf(p.situation));
+          const next = order[clamp(idx + (Math.random()<0.55?1:-1), 0, order.length-1)];
+          if(next !== p.situation){
+            p.situation = next;
+            const sd = situationDef(next);
+            p.danger = clamp(1 + (sd.danger||0) + (Math.random()<0.3?1:0), 1, 3);
+            changes.push({ planet:p.name, kind:"drift", situation:next });
+          }
+        }
+        // flip faction rare si guerre active récente
+        if(ws.wars.length && Math.random() < 0.04){
+          const w = ws.wars[ws.wars.length-1];
+          if(w.rival && p.faction===w.rival){
+            p.faction = w.faction; p.situation = "tension";
+            changes.push({ planet:p.name, kind:"flip", faction:w.faction });
+            WorldSim.pushLog(p.name+" bascule sous "+factionDef(w.faction).name);
+          }
+        }
+      }
+    }
+    if(changes.length){
+      const last = changes[changes.length-1];
+      WorldSim.pushLog("Secteur "+last.planet+" → "+(last.situation||last.faction||last.kind));
+    }
+    MetaProgress.save();
+    return { tick: ws.tick, changes };
+  },
+  // résumé UI
+  recentLog(n){ return WorldSim.state().log.slice(0, n||6); },
+};
+
 const Contracts = {
   TYPES: CONTRACT_TYPES, BIOMES: CONTRACT_BIOMES, MODS: CONTRACT_MODS,
   board(){ const f = MetaProgress.data.future; if(!Array.isArray(f.contractBoard) || !f.contractBoard.length) f.contractBoard = Contracts.roll(4); return f.contractBoard; },
@@ -2889,6 +3065,9 @@ const Contracts = {
     const baseBounty = Math.round((70 + D.scenes*40) * type.diff);
     let bounty = Math.round(baseBounty * D.bounty * (mod.reward.credits||1));
     if(destination) bounty = Math.round(bounty * 1.25);
+    // V3.4 (S6) — flags contrat riches
+    const mobileTarget = !!(scenario.scenes && scenario.scenes.some(s=>s.mobileFlee));
+    const factionWar = !!(scenario.factionWar || scenario.id==="faction_war" || scenario.id==="secure_ops");
     return {
       id: "ct-" + Date.now() + "-" + Math.floor(Math.random()*1e5),
       type: type.id, biome: biome.id, mod: mod.id, faction,
@@ -2897,6 +3076,7 @@ const Contracts = {
       scenarioId: scenario.id, scenarioName: scenario.name,
       destination, origin: planet ? planet.name : null,
       bounty, resMult: mod.reward.res || 1,
+      mobileTarget, factionWar,
     };
   },
   roll(n){ const planet = (typeof Planet!=="undefined") ? Planet.current() : null; const out=[]; for(let i=0;i<(n||4);i++) out.push(Contracts.gen(planet)); return out; },
@@ -2974,6 +3154,8 @@ const NeuroNet = {
       bounty, resMult: mod.reward.res || 1,
       neuronet:true, kind:kind.id,
       targetName: kind.target ? genTargetName() : null,
+      mobileTarget: !!(scenario.scenes && scenario.scenes.some(s=>s.mobileFlee)),
+      factionWar: !!(scenario.factionWar || scenario.id==="faction_war" || scenario.id==="secure_ops"),
     };
     ct.desc = NeuroNet.desc(kind, ct);
     return ct;
@@ -5112,9 +5294,9 @@ const Combat = {
     // CASES TACTIQUES : jusqu'à 5, sur des cases libres (hors obstacles/spawns)
     Combat.generateTacticalTiles(placed);
 
-    // V2.2 (F2) — OBJECTIF DE SCÈNE (extract / hold / eliminate / pursue)
+    // V2.2 (F2) — OBJECTIF DE SCÈNE (extract / hold / eliminate / pursue / secure)
     State.sceneObjective = State.sceneDef ? State.sceneDef.obj : "eliminate";
-    State.extractTile = null; State.holdTurns = 0;
+    State.extractTile = null; State.holdTurns = 0; State.contractTarget = null;
     if(State.sceneObjective === "extract"){
       // place une zone d'extraction sur une case libre, éloignée du joueur
       const p = State.player; let best=null, bestD=-1;
@@ -5126,8 +5308,28 @@ const Combat = {
         if(bestD >= CONFIG.GRID) break;
       }
       State.extractTile = best;
-    } else if(State.sceneObjective === "hold"){
+    } else if(State.sceneObjective === "hold" || State.sceneObjective === "secure"){
       State.holdTurns = 3 + (State.run && State.run.scene ? Math.min(2, State.run.scene-1) : 0);  // tenir 3 à 5 tours
+    }
+    // V3.4 (S6) — marque la cible de poursuite (mobile / climax)
+    if(State.sceneObjective === "pursue"){
+      const foes = State.entities.filter(x=> isFoe(x) && x.alive && !x.isSummon);
+      let tgt = foes.find(x=>x.isBoss) || foes.find(x=>x.elite) || null;
+      if(!tgt && foes.length){
+        // privilégie le plus « coriace » (PV) pour le rôle de cible
+        tgt = foes.slice().sort((a,b)=> (b.pvMax||0)-(a.pvMax||0))[0];
+      }
+      if(tgt){
+        tgt.contractTarget = true;
+        const wantFlee = !!(State.sceneDef && State.sceneDef.mobileFlee) || !!(State.run && State.run.contract && State.run.contract.mobileTarget);
+        tgt.mobileFlee = wantFlee;
+        if(wantFlee){ tgt.tactic = "kiter"; tgt.kiteMin = Math.max(tgt.kiteMin||2, 4); tgt.mob = (tgt.mob||8)+2; tgt.pmMax = (tgt.pmMax||3)+1; tgt.pm = tgt.pmMax; }
+        if(State.run && State.run.contract && State.run.contract.targetName){ tgt.name = State.run.contract.targetName; }
+        else if(!tgt.isBoss){ tgt.name = "CIBLE — " + (tgt.name||"Fugitif").replace(/^BOSS — /,""); }
+        tgt.color = "#ffd23c"; tgt.glow = "#ffd23c";
+        State.contractTarget = tgt;
+        UI.log("sys", "🎯 Cible marquée"+(wantFlee?" (mobile — elle fuit)":"")+" : "+tgt.name);
+      }
     }
 
     // V2.4 (F4) — déploiement de l'escouade IA aux côtés de l'ECHO
@@ -5254,7 +5456,7 @@ const Combat = {
 
   current(){ return State.order[State.turnIndex]; },
 
-  // V2.2 (F2) — vrai si l'objectif non-létal de la scène est rempli (déclenche la victoire de scène)
+  // V2.2 / V3.4 (S6) — vrai si l'objectif non-létal / composite de la scène est rempli
   checkSceneObjective(){
     if(State.over || !State.sceneObjective) return false;
     if(State.sceneObjective === "extract" && State.extractTile && State.player && State.player.alive){
@@ -5269,7 +5471,35 @@ const Combat = {
         Combat.victory(); return true;
       }
     }
+    // V3.4 (S6) — secure : tenir JUSQU'AU timer ET aucun hostile vivant
+    if(State.sceneObjective === "secure" && State.holdTurns > 0){
+      const foesLeft = State.entities.some(x => isFoe(x) && x.alive);
+      if((State.round||1) > State.holdTurns && !foesLeft){
+        UI.log && UI.log("you", "🔒 Zone sécurisée — tenue + nettoyage OK !");
+        Combat.victory(); return true;
+      }
+    }
+    // V3.4 (S6) — pursue : abattre la cible marquée (escortes optionnelles)
+    if(State.sceneObjective === "pursue"){
+      const tgt = State.contractTarget || State.entities.find(x=>x.contractTarget);
+      if(tgt && !tgt.alive){
+        UI.log && UI.log("you", "🎯 Cible neutralisée — scène réussie !");
+        Combat.victory(); return true;
+      }
+    }
     return false;
+  },
+
+  // V3.4 (S6) — la cible mobile a-t-elle quitté le secteur (bord de carte) ?
+  checkTargetEscape(e){
+    if(State.over || !e || !e.alive || !e.contractTarget || !e.mobileFlee) return false;
+    const edge = (e.c<=0 || e.r<=0 || e.c>=CONFIG.GRID-1 || e.r>=CONFIG.GRID-1);
+    if(!edge) return false;
+    const hunter = State.player;
+    if(hunter && hunter.alive && Grid.manhattan(e, hunter) <= 1) return false; // interceptée au bord
+    UI.log && UI.log("sys", "💨 "+e.name+" a quitté le secteur — poursuite échouée !");
+    Combat.defeat();
+    return true;
   },
 
   beginTurn(){
@@ -5277,7 +5507,9 @@ const Combat = {
     if(!e || !e.alive){ Combat.advance(); return; }
     // M-fix — nettoie les PV≤0 résiduels et conclut si l'opposition est éliminée
     if(Combat.reap()){
-      if(!State.over && !State.entities.some(x => isFoe(x) && x.alive)){ Combat.victory(); return; }
+      if(Combat.checkSceneObjective()) return;
+      if(!State.over && State.sceneObjective !== "hold" && State.sceneObjective !== "extract" && State.sceneObjective !== "secure"
+          && !State.entities.some(x => isFoe(x) && x.alive)){ Combat.victory(); return; }
       if(!e.alive){ Combat.advance(); return; }
     }
     // V2.2 (F2) — objectif de scène non-létal (extraction / tenue) évalué à chaque tour
@@ -5383,9 +5615,12 @@ const Combat = {
     Combat.endOfTurnEffects(Combat.current());
     Combat.reap();   // M-fix — élimine tout PV≤0 resté vivant avant d'évaluer la victoire
     // condition de victoire / défaite
-    const foesAlive = State.entities.some(e => isFoe(e) && e.alive);
     if(!State.player.alive){ Combat.defeat(); return; }
-    if(!foesAlive){ Combat.victory(); return; }
+    if(Combat.checkSceneObjective()) return;
+    const foesAlive = State.entities.some(e => isFoe(e) && e.alive);
+    if(!foesAlive && State.sceneObjective !== "hold" && State.sceneObjective !== "extract" && State.sceneObjective !== "secure"){
+      Combat.victory(); return;
+    }
 
     State.turnIndex++;
     if(State.turnIndex >= State.order.length){
@@ -5735,6 +5970,10 @@ const Combat = {
     // FIN DE COMBAT IMMÉDIATE
     if(!State.over){
       if(!State.player.alive){ Combat.defeat(); }
+      else if(Combat.checkSceneObjective()){ /* objectifs S6 (pursue/secure/…) */ }
+      else if(State.sceneObjective === "hold" || State.sceneObjective === "extract" || State.sceneObjective === "secure"){
+        /* objectifs non-clear : pas de victoire sur wipe anticipé */
+      }
       else if(!State.entities.some(x => isFoe(x) && x.alive)){ Combat.victory(); }
     }
   },
@@ -6201,6 +6440,15 @@ const AI = {
       const dist = Grid.manhattan(t, target);
       const inRange = dist <= maxR;
       let score = 0;
+      // V3.4 (S6) — cible mobile : fuir le chasseur vers le bord de carte
+      if(e.mobileFlee && e.contractTarget){
+        const edgeDist = Math.min(t.c, t.r, CONFIG.GRID-1-t.c, CONFIG.GRID-1-t.r);
+        score += dist * 14;                 // maximiser distance au joueur
+        score += (4 - edgeDist) * 20;       // privilégier le bord
+        score -= (t.d||0) * 0.5;
+        if(score > bestScore){ bestScore = score; best = t; }
+        continue;
+      }
       if(e.tactic === "kiter"){
         const kmin = e.kiteMin || 2;
         if(inRange && dist >= kmin) score += 120 + dist*3;   // rester loin mais à portée
@@ -6387,6 +6635,26 @@ const AI = {
     if(!e.alive || State.over){ Combat.advance(); return; }
     const target = AI.nearestAlly(e);
     if(!target){ setTimeout(()=> Combat.advance(), 200); return; }
+
+    // V3.4 (S6) — cible mobile : fuir en priorité, n'attaquer que si collée
+    if(e.mobileFlee && e.contractTarget){
+      const dist = Grid.manhattan(e, target);
+      if(dist > 1){
+        const path = AI.chooseDestination(e, target);
+        if(path && path.length > 1){
+          Combat.moveAlong(e, path, ()=> Combat.safeRun(()=>{
+            if(Combat.checkTargetEscape(e)) return;
+            Combat.advance();
+          }));
+          return;
+        }
+      }
+      // collée : tenter une attaque légère puis re-fuir au prochain tour
+      if(AI.baseAttack(e, target)) return;
+      if(Combat.checkTargetEscape(e)) return;
+      setTimeout(()=> Combat.advance(), 220);
+      return;
+    }
 
     const castable = AI.castableNow(e, target);
 
@@ -7038,6 +7306,37 @@ const Render = {
       ctx.beginPath();
       ctx.moveTo(cx-8,cy-44); ctx.lineTo(cx-4,cy-50); ctx.lineTo(cx,cy-44);
       ctx.lineTo(cx+4,cy-50); ctx.lineTo(cx+8,cy-44); ctx.closePath(); ctx.fill();
+    }
+    // V3.4 (S6/G) — marqueur cible de contrat (★)
+    if(e.contractTarget){
+      ctx.save();
+      ctx.globalAlpha = 0.7 + Math.sin(t*5)*0.3;
+      ctx.fillStyle = "#ffd23c";
+      ctx.font = "bold 14px Trebuchet MS"; ctx.textAlign = "center";
+      ctx.fillText("★", cx, cy - 54);
+      ctx.strokeStyle = "#ffd23c"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.ellipse(cx, cy-12, 24, 30, 0, 0, Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
+    // V3.4 (G) — équipement visible sur l'ECHO (arme / armure / implant)
+    if(e.isPlayer && e.equip){
+      const w = e.equip.weapon, a = e.equip.armor, im = e.equip.implant;
+      if(a){
+        ctx.strokeStyle = SLOT_COLOR.armor || "#3ce08a"; ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.ellipse(cx, cy-16, 14, 18, 0, 0, Math.PI*2); ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      if(w){
+        ctx.strokeStyle = SLOT_COLOR.weapon || "#ff5a6a"; ctx.lineWidth = 2.2;
+        ctx.beginPath(); ctx.moveTo(cx+10, cy-22); ctx.lineTo(cx+20, cy-30); ctx.stroke();
+        ctx.fillStyle = SLOT_COLOR.weapon || "#ff5a6a";
+        ctx.beginPath(); ctx.arc(cx+20, cy-30, 2.5, 0, Math.PI*2); ctx.fill();
+      }
+      if(im){
+        ctx.fillStyle = SLOT_COLOR.implant || "#a06bff";
+        ctx.globalAlpha = 0.7 + Math.sin(t*4)*0.2;
+        ctx.beginPath(); ctx.arc(cx-10, cy-34, 3, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
     }
 
     // barre de vie au-dessus (V0.91 — permanente, désactivable via Accessibilité)
@@ -7725,6 +8024,45 @@ const UI = {
   },
   saveOpts(){ try{ localStorage.setItem(UI.optsKey, JSON.stringify(UI.opts)); }catch(e){} },
   applyOpts(){ const cl=UI.el("combatLog"); if(cl) cl.style.display = UI.opts.log ? "flex" : "none"; },
+
+  // V3.4 (G) — faux chargements courts (hypervitesse / Evangelion-style)
+  LOAD_LINES:[
+    "ALIGNEMENT DES VEINES NEURALES…",
+    "SYNCHRONISATION ECHO / ENVELOPPE…",
+    "CALCUL DE VECTEUR HYPERSPATIAL…",
+    "VERROUILLAGE DES BALISES LOCALES…",
+    "INJECTION DE PROTOCOLES DE COMBAT…",
+    "CARTOGRAPHIE TACTIQUE EN COURS…",
+    "FILTRAGE DU BRUIT QUANTIQUE…",
+    "CHARGEMENT DES SCHÉMAS D'ARME…",
+  ],
+  load:{
+    _timer:null,
+    show(opts, done){
+      opts = opts || {};
+      const el = UI.el("loadOverlay"); if(!el){ if(done) done(); return; }
+      const line = UI.el("loadLine"), sub = UI.el("loadSub"), bar = UI.el("loadBar");
+      const lines = opts.lines || UI.LOAD_LINES;
+      const title = opts.title || null;
+      const duration = opts.ms || (900 + Math.floor(Math.random()*700));
+      el.classList.add("show"); el.style.display = "flex";
+      if(bar) bar.style.width = "0%";
+      let i = 0, t0 = performance.now();
+      if(line) line.textContent = title || lines[0];
+      if(sub) sub.textContent = opts.sub || "";
+      if(UI.load._timer) clearInterval(UI.load._timer);
+      UI.load._timer = setInterval(()=>{
+        const p = Math.min(1, (performance.now()-t0)/duration);
+        if(bar) bar.style.width = Math.round(p*100)+"%";
+        if(line && !title){ const idx = Math.min(lines.length-1, Math.floor(p*lines.length)); line.textContent = lines[idx]; }
+        if(p >= 1){
+          clearInterval(UI.load._timer); UI.load._timer = null;
+          el.classList.remove("show"); el.style.display = "none";
+          if(done) done();
+        }
+      }, 40);
+    }
+  },
 
   // ===== V0.91 — journal de combat compact (flux limité, coin sup. gauche) =====
   _feed:[],
@@ -9251,7 +9589,8 @@ const UI = {
       _pendingReserve = (UI.neuro._reserve||[]).filter(Boolean).slice(0,2);
       UI.hide("neuroOverlay"); UI.hide("introOverlay"); UI.hide("hubOverlay");
       UI.neuro._fromHub = false;
-      newRun();
+      // V3.4 (G) — brief load avant déploiement
+      UI.load.show({ title:"DÉPLOIEMENT TACTIQUE", sub:"Connexion au Core…", ms:1100 }, ()=> newRun());
     },
 
     // ---------- V2.6 (S1) — BUREAU LOCAL ----------
@@ -9431,19 +9770,32 @@ const UI = {
       body.innerHTML = h;
       UI.neuro._navMsg = null;
       body.querySelectorAll("[data-travel]").forEach(el=> el.onclick=()=>{
-        const r = Galaxy.travelTo(el.getAttribute("data-travel"));
-        if(r && r.ok){
-          // V3.3.4 (S5b) — embuscade : vrai combat mission-éclair (1 scène)
-          if(r.event && r.event.combat && r.event.ambushKind){
+        const destId = el.getAttribute("data-travel");
+        const dest = Galaxy.systems().find(p=>p.id===destId);
+        UI.load.show({
+          title:"SAUT HYPERSPATIAL",
+          sub: dest ? ("Vecteur → "+dest.name) : "Calcul de trajectoire…",
+          lines:["ALIGNEMENT DES ANNEAUX…","COMPRESSION DU TEMPS LOCAL…","OUVERTURE DU COULOIR…","ARRIVÉE IMMINENTE…"],
+          ms: 1200 + Math.floor(Math.random()*500),
+        }, ()=>{
+          const r = Galaxy.travelTo(destId);
+          if(r && r.ok){
+            // V3.3.4 (S5b) — embuscade : vrai combat mission-éclair (1 scène)
+            if(r.event && r.event.combat && r.event.ambushKind){
+              if(UI.log) UI.log("sys", "🧭 Voyage vers " + r.planet.name + " · " + r.event.ico + " " + r.event.label);
+              Galaxy.launchAmbush(r.event.ambushKind, r.planet);
+              return;
+            }
+            UI.neuro._navMsgIco = r.event.ico; UI.neuro._navMsgTitle = r.event.label + " — arrivée sur " + r.planet.name;
+            let extra = "";
+            if(r.world && r.world.changes && r.world.changes.length){
+              extra = " · Flux : " + r.world.changes.slice(0,2).map(c=>c.planet).join(", ");
+            }
+            UI.neuro._navMsg = r.event.text + (r.event.gains&&r.event.gains.length ? (" ("+r.event.gains.join(", ")+")") : "") + extra;
             if(UI.log) UI.log("sys", "🧭 Voyage vers " + r.planet.name + " · " + r.event.ico + " " + r.event.label);
-            Galaxy.launchAmbush(r.event.ambushKind, r.planet);
-            return;
+            UI.neuro.render();
           }
-          UI.neuro._navMsgIco = r.event.ico; UI.neuro._navMsgTitle = r.event.label + " — arrivée sur " + r.planet.name;
-          UI.neuro._navMsg = r.event.text + (r.event.gains&&r.event.gains.length ? (" ("+r.event.gains.join(", ")+")") : "");
-          if(UI.log) UI.log("sys", "🧭 Voyage vers " + r.planet.name + " · " + r.event.ico + " " + r.event.label);
-          UI.neuro.render();
-        }
+        });
       });
       const rg = UI.el("navRegen"); if(rg) rg.onclick=()=>{ Galaxy.regenerate(); UI.neuro._navMsg=null; UI.neuro.render(); };
     },
@@ -9635,6 +9987,12 @@ const UI = {
           contractReport = ct.ambush
             ? ("✓ Embuscade repoussée — butin 💠" + paid + " récupéré")
             : ("✓ Contrat rempli — prime 💠" + paid + (repBonus>0?(" (+"+Math.round(repBonus*100)+"% réputation)"):"") + " versée" + repTxt);
+          // V3.4 (S6/S7) — guerres de factions font évoluer la carte
+          if(ok && !ct.ambush && (ct.factionWar || ct.type==="guerre") && typeof WorldSim!=="undefined"){
+            WorldSim.noteFactionWar(ct);
+            WorldSim.tick(1, { reason:"mission", contract:ct });
+            contractReport += " · ⚔ influence sectorielle mise à jour";
+          }
         }
         else {
           // V3.3.4 (S5b) — échec d'embuscade pirate : pertes de cargaison
@@ -9708,6 +10066,27 @@ const UI = {
       const st = MetaProgress.st();
       const env = MetaProgress.activeEnvelope();
       UI.el("hubId").textContent = (e.name||"ECHO-01") + " · " + (MetaProgress.knownArsenal().length) + " sorts";
+      // V3.4 (G) — thème hub selon biome planète + bandeau planète
+      const hubEl = UI.el("hubOverlay");
+      const planet = (typeof Planet!=="undefined") ? Planet.current() : null;
+      if(hubEl){
+        [...hubEl.classList].filter(c=>c.startsWith("biome-")).forEach(c=>hubEl.classList.remove(c));
+        if(planet && planet.biome) hubEl.classList.add("biome-"+planet.biome);
+      }
+      const hp = UI.el("hubPlanet");
+      if(hp){
+        if(planet){
+          const b = contractBiomeDef(planet.biome), fa = factionDef(planet.faction), si = situationDef(planet.situation);
+          hp.innerHTML = (b?b.ico+" ":"")+"<b>"+planet.name+"</b> · "+(b?b.name:"?")+" · "+fa.ico+" "+fa.name+" · "+si.ico+" "+si.label;
+        } else hp.textContent = "";
+      }
+      const hw = UI.el("hubWorld");
+      if(hw && typeof WorldSim!=="undefined"){
+        const logs = WorldSim.recentLog(4);
+        hw.innerHTML = logs.length
+          ? ('<div style="color:var(--cyan);margin-bottom:2px">FLUX GALACTIQUE</div>'+logs.map(l=>'<div class="hw-line">· <b>'+l.msg+'</b></div>').join(""))
+          : '<div class="hw-line">Aucun mouvement sectoriel récent.</div>';
+      }
       const grid = UI.el("hubGrid"); grid.innerHTML = "";
       UI.hub.SECTIONS.forEach(sec=>{
         const t = document.createElement("div");
@@ -10159,7 +10538,7 @@ function loop(ts){
 
 // l'un des overlays modaux est-il affiché ? (récompense / mort / intro)
 function inProgressOverlay(){
-  return ["introOverlay","rewardOverlay","deathOverlay","recapOverlay","evoOverlay","buildOverlay","lootOverlay","shopOverlay","neuroOverlay","hubOverlay","resultsOverlay"].some(id=>{
+  return ["introOverlay","rewardOverlay","deathOverlay","recapOverlay","evoOverlay","buildOverlay","lootOverlay","shopOverlay","neuroOverlay","hubOverlay","resultsOverlay","loadOverlay"].some(id=>{
     const el = document.getElementById(id);
     return el && el.classList.contains("show");
   });
