@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NEURO CORE — V3.4.0</title>
+<title>NEURO CORE — V3.4.1</title>
 <style>
 /* =====================================================================
-   NEURO CORE — V3.4.0 (S6 contrats riches · S7 galaxie dynamique · G game feel)
+   NEURO CORE — V3.4.1 (parcours jouable mobile · graphismes reportés)
    Tactical Roguelite — HTML / CSS / JS Vanilla — Fichier unique autonome
    Direction artistique : 70% Dofus Touch / 20% Ghost in the Shell / 10% Esport
    Palette : cyan lumineux, turquoise, violet, orange, blanc, acier bleuté
@@ -831,6 +831,16 @@ aside.side{
   border:1px solid var(--bb-col,#ff8a3c);box-shadow:0 0 18px rgba(0,0,0,.5),0 0 14px var(--bb-glow,rgba(255,138,60,.35));
   text-align:center;font-family:'Trebuchet MS',sans-serif}
 #bossBanner.show{display:block}
+/* V3.4.1 — objectif de scène toujours visible (mobile inclus) */
+#objBanner{position:absolute;top:10px;left:10px;right:10px;z-index:28;display:none;pointer-events:none;
+  background:rgba(8,16,24,.88);border:1px solid rgba(39,224,255,.45);border-radius:10px;
+  padding:7px 12px;font-size:12px;color:#7fe9ff;text-align:center;line-height:1.35;
+  box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#objBanner.show{display:block}
+#objBanner b{color:#fff;font-weight:700}
+@media (min-width:700px){
+  #objBanner{left:50%;right:auto;transform:translateX(-50%);max-width:420px}
+}
 #bossBanner .bb-top{display:flex;align-items:center;justify-content:center;gap:10px}
 #bossBanner .bb-name{font-weight:bold;font-size:15px;letter-spacing:.5px;color:var(--bb-col,#ff8a3c);text-shadow:0 0 8px var(--bb-glow,rgba(255,138,60,.6))}
 #bossBanner .bb-school{font-size:10px;color:var(--blanc);background:rgba(255,255,255,.08);padding:2px 7px;border-radius:20px;border:1px solid var(--bb-col,#ff8a3c)}
@@ -872,8 +882,9 @@ aside.side{
   .topstats{gap:5px}
   .topstats .chip{padding:3px 7px;font-size:11px}
   .topstats .chip .lab{font-size:8px}
-  #hint{font-size:10px;max-width:62%;padding:6px 8px;opacity:.85}
+  #hint{font-size:10px;max-width:62%;padding:6px 8px;opacity:.85;white-space:normal;line-height:1.25;max-height:2.6em;overflow:hidden}
   #debugBtnFloat{display:none}            /* outil dev : masqué sur mobile */
+  #objBanner{display:block !important; font-size:11px; padding:6px 10px;}
   #buildBtnFloat{top:auto;bottom:calc(max(16px, env(safe-area-inset-bottom)) + 116px);left:auto;right:max(8px, env(safe-area-inset-right))}
   #optBtnFloat{padding:7px 10px;font-size:11px}
   #passTurnFloat{padding:11px 16px;font-size:13px}
@@ -907,6 +918,7 @@ aside.side{
   <main class="stage">
     <div id="arenaWrap">
       <canvas id="arena"></canvas>
+      <div id="objBanner"></div>
       <div id="bossBanner"></div>
       <!-- V0.91 — journal de combat compact (coin sup. gauche) -->
       <div id="combatLog"></div>
@@ -1002,20 +1014,19 @@ aside.side{
 <div class="overlay" id="introOverlay">
   <div class="modal">
     <h1>NEURO CORE</h1>
-    <div class="sub">NEURO CORE — V2.0b · BIOMES</div>
+    <div class="sub">NEURO CORE — V3.4.1 · Mercenaire tactique (mobile OK)</div>
     <div class="introbody">
       Autrefois esclave d'arène des grandes corporations, ton <b>ECHO</b> — une conscience numérique immortelle — a brisé ses chaînes.
-      Désormais <b>mercenaire indépendant</b>, tu loues tes Enveloppes au plus offrant à travers les secteurs colonisés.
-      Chaque déploiement t'enfonce plus loin dans des zones hostiles ; ton équipage d'ingénieurs grandit dans l'ombre de ta station.
+      Désormais <b>mercenaire indépendant</b>, tu loues tes Enveloppes au plus offrant.
       <br><br>
-      <b>Déplacement</b> : clique une case cyan (coûte 1 PM par case).<br>
-      <b>Sorts</b> : sélectionne un sort dans la barre (ou touches A Z E R Q S D F, Espace = Fin de tour), puis clique la cible (ennemi, allié ou case selon le sort).<br>
-      <b>Objectif</b> : neutraliser toute opposition pour progresser dans le déploiement — toujours plus dangereux.
+      <b>Pour jouer</b> : Station → <b>Bureau local</b> → Accepter un contrat → Préparer → Lancer.<br>
+      <b>Déplacement</b> : tape une case cyan (2 taps pour confirmer).<br>
+      <b>Sorts</b> : barre en bas de l'écran → tape la cible · bouton <b>FIN DE TOUR</b> quand tu as fini.<br>
+      <b>Objectif</b> : affiché en haut du combat — éliminer, tenir, extraire ou abattre la cible ★.
     </div>
     <div class="codex-intro">
-      <b>CODEX // STATUT ACTUEL</b><br>
-      L'ECHO survit à toutes les pertes d'Enveloppe. Ta réputation de mercenaire ne fait que commencer :
-      bientôt, de vrais contrats sur des planètes, des expéditions et un marché parallèle s'ouvriront à toi.
+      <b>CODEX // PREMIER DÉPLOIEMENT</b><br>
+      Ton premier contrat est simplifié (neutraliser l'opposition). Les objectifs complexes viennent ensuite.
     </div>
     <div class="legend">
       <div class="lg"><span class="sw" style="background:var(--cyan)"></span>Déplacement</div>
@@ -2669,6 +2680,11 @@ const SCENARIOS = {
     { id:"ambush_flash", name:"Embuscade hyperspatiale", scenes:[
       { intent:"Abordage en hyperespace", size:"M", obj:"eliminate", decor:"station" },
     ]},
+    // V3.4.1 — premier déploiement (toujours eliminate)
+    { id:"first_ops", name:"Premier déploiement", scenes:[
+      { intent:"Zone d'entraînement hostile", size:"M", obj:"eliminate" },
+      { intent:"Nettoyage du périmètre", size:"M", obj:"eliminate" },
+    ]},
     // V3.4 (S6) — objectif composite + guerre de factions
     { id:"secure_ops", name:"Sécurisation de zone", scenes:[
       { intent:"Tenir et nettoyer le périmètre", size:"M", obj:"secure" },
@@ -3045,8 +3061,12 @@ const Contracts = {
   gen(planet){
     planet = planet || (typeof Planet!=="undefined" ? Planet.current() : null);
     const sit = planet ? situationDef(planet.situation) : null;
+    // V3.4.1 — premier déploiement : contrat sûr (facile, eliminate only)
+    const firstRun = (typeof MetaProgress!=="undefined" && (MetaProgress.st().ascensions||0) < 1);
     let type;
-    if(sit && Math.random() < 0.55){ const tid = pick(sit.biasTypes); type = CONTRACT_TYPES.find(t=>t.id===tid) || pick(CONTRACT_TYPES); }
+    if(firstRun){
+      type = CONTRACT_TYPES.find(t=>t.id==="guerre") || pick(CONTRACT_TYPES);
+    } else if(sit && Math.random() < 0.55){ const tid = pick(sit.biasTypes); type = CONTRACT_TYPES.find(t=>t.id===tid) || pick(CONTRACT_TYPES); }
     else type = pick(CONTRACT_TYPES);
     let biome, destination = null;
     if(planet && Math.random() < 0.65){ biome = contractBiomeDef(planet.biome); }
@@ -3055,13 +3075,16 @@ const Contracts = {
     const faction = planet ? planet.faction : pick(FACTIONS).id;
     let modChance = 0.65;
     if(typeof Reputation !== "undefined") modChance += Reputation.bountyBonus(faction);  // allié → plus de contrats à modificateur
-    const mod = (Math.random() < modChance) ? pick(CONTRACT_MODS) : CONTRACT_MODS[0];
-    let diff = rollContractDiff();
-    if(planet){ const order=["facile","standard","difficile","extreme"]; let idx=order.indexOf(diff);
+    const mod = firstRun ? CONTRACT_MODS[0] : ((Math.random() < modChance) ? pick(CONTRACT_MODS) : CONTRACT_MODS[0]);
+    let diff = firstRun ? "facile" : rollContractDiff();
+    if(!firstRun && planet){ const order=["facile","standard","difficile","extreme"]; let idx=order.indexOf(diff);
       if(Math.random() < (planet.danger*0.15)) idx = Math.min(order.length-1, idx+1);
       diff = order[idx]; }
     const D = contractDiffDef(diff);
-    const scenario = pickScenario(type.id);
+    let scenario = pickScenario(type.id);
+    if(firstRun){
+      scenario = (SCENARIOS.guerre || []).find(s=>s.id==="first_ops") || scenario;
+    }
     const baseBounty = Math.round((70 + D.scenes*40) * type.diff);
     let bounty = Math.round(baseBounty * D.bounty * (mod.reward.credits||1));
     if(destination) bounty = Math.round(bounty * 1.25);
@@ -3071,12 +3094,14 @@ const Contracts = {
     return {
       id: "ct-" + Date.now() + "-" + Math.floor(Math.random()*1e5),
       type: type.id, biome: biome.id, mod: mod.id, faction,
-      objective: type.obj, boss: type.boss,
+      objective: firstRun ? "Neutraliser toute opposition" : type.obj, boss: firstRun ? false : type.boss,
       difficulty: diff, scenes: D.scenes,
       scenarioId: scenario.id, scenarioName: scenario.name,
-      destination, origin: planet ? planet.name : null,
+      destination: firstRun ? null : destination, origin: planet ? planet.name : null,
       bounty, resMult: mod.reward.res || 1,
-      mobileTarget, factionWar,
+      mobileTarget: firstRun ? false : mobileTarget,
+      factionWar: firstRun ? false : factionWar,
+      firstRunSafe: firstRun,
     };
   },
   roll(n){ const planet = (typeof Planet!=="undefined") ? Planet.current() : null; const out=[]; for(let i=0;i<(n||4);i++) out.push(Contracts.gen(planet)); return out; },
@@ -5344,6 +5369,12 @@ const Combat = {
       (isBoss ? (" — BOSS " + (State._bossDef?State._bossDef.name+" ["+State._bossDef.school+"]":"")) :
        isEliteFight ? (" — ÉLITE " + (State._eliteDef?State._eliteDef.name:"")) : "") +
       " · " + foeCount + " ennemi" + (foeCount>1?"s":""));
+    // V3.4.1 — objectif visible dans le journal compact + bannière
+    if(State.sceneObjective){
+      const od = sceneObjDef(State.sceneObjective);
+      UI.feed && UI.feed(od.ico+" "+od.label, "you");
+      UI.setHint && UI.setHint(od.ico+" <b>"+od.label+"</b> — tape une case cyan ou un sort, puis FIN DE TOUR.");
+    }
     UI.refreshAll();
     Combat.beginTurn();
   },
@@ -5575,7 +5606,7 @@ const Combat = {
       // les ennemis ont pu bouger : on recalcule les overlays depuis la position réelle du curseur
       hoverTile = null; hoverEnemy = null; UI.hideTip();
       Input.recomputeHover();
-      UI.setHint("À toi de jouer — déplace-toi (cases cyan) ou choisis un sort (<b>A Z E R Q S D F</b>).");
+      UI.setHint("À toi — tape une case cyan pour bouger, ou un sort (barre bas) puis la cible · <b>FIN DE TOUR</b> pour passer.");
       UI.spells.update();
     } else if(e.isSummon){
       inputLocked = true;
@@ -8099,8 +8130,20 @@ const UI = {
   refreshAll(){
     const p = State.player;
     UI.updateBossBanner();
+    UI.updateObjectiveBanner();
     // HUD haut
-    UI.el("hudFight").textContent = State.fight;
+    const fightEl = UI.el("hudFight");
+    if(fightEl){
+      if(State.run && State.run.scenes){
+        fightEl.textContent = (State.run.scene||1)+"/"+State.run.scenes;
+        const lab = fightEl.parentElement && fightEl.parentElement.querySelector(".lab");
+        if(lab) lab.textContent = "SCÈNE";
+      } else {
+        fightEl.textContent = State.fight;
+        const lab = fightEl.parentElement && fightEl.parentElement.querySelector(".lab");
+        if(lab) lab.textContent = "COMBAT";
+      }
+    }
     UI.el("hudFoes").textContent  = State.entities.filter(e=>isFoe(e)&&e.alive).length;
     UI.el("hudTurn").textContent  = State.round;
     UI.el("hudPV").textContent    = p.pv;
@@ -10088,9 +10131,23 @@ const UI = {
           : '<div class="hw-line">Aucun mouvement sectoriel récent.</div>';
       }
       const grid = UI.el("hubGrid"); grid.innerHTML = "";
+      // V3.4.1 — premier run : CTA vers Bureau local
+      const firstRun = (st.ascensions||0) < 1 && !(MetaProgress.data.future && MetaProgress.data.future.activeContract);
+      if(firstRun){
+        const cta = document.createElement("div");
+        cta.className = "hub-tile zone-cmd";
+        cta.style.gridColumn = "1 / -1";
+        cta.style.minHeight = "72px";
+        cta.style.borderColor = "var(--cyan)";
+        cta.style.boxShadow = "0 0 22px rgba(39,224,255,.25)";
+        cta.innerHTML = '<div class="ht-ico">📜</div><div class="ht-name">COMMENCER — BUREAU LOCAL</div><div class="ht-desc">Accepte ton premier contrat (objectif simple : éliminer l\'opposition)</div>';
+        cta.onclick = ()=> UI.neuro.openFromHub("contrats");
+        grid.appendChild(cta);
+      }
       UI.hub.SECTIONS.forEach(sec=>{
         const t = document.createElement("div");
-        t.className = "hub-tile zone-"+sec.zone+(sec.soon?" soon":"");
+        t.className = "hub-tile zone-"+sec.zone+(sec.soon?" soon":"")+(firstRun && sec.id==="contrats"?" ":"") ;
+        if(firstRun && sec.id==="contrats"){ t.style.outline = "2px solid var(--cyan)"; }
         t.innerHTML = (sec.soon?'<div class="ht-soon">BIENTÔT</div>':'')+
           '<div class="ht-ico">'+sec.ico+'</div>'+
           '<div class="ht-name">'+sec.name+'</div>'+
@@ -10117,6 +10174,30 @@ const UI = {
       MetaProgress.flush();
       UI.show("hubOverlay");
     }
+  },
+
+  updateObjectiveBanner(){
+    const el = UI.el("objBanner"); if(!el) return;
+    if(State.over || !State.sceneObjective || !(State.run && State.run.scenes)){
+      el.classList.remove("show"); el.innerHTML = ""; return;
+    }
+    const def = sceneObjDef(State.sceneObjective);
+    let extra = "";
+    if((State.sceneObjective === "hold" || State.sceneObjective === "secure") && State.holdTurns){
+      extra = " · " + Math.max(0, State.holdTurns - (State.round - 1)) + " tours";
+    }
+    if(State.sceneObjective === "secure"){
+      const foes = State.entities.filter(e=>isFoe(e)&&e.alive).length;
+      extra += " · " + foes + " hostile" + (foes>1?"s":"");
+    }
+    if(State.sceneObjective === "pursue" && State.contractTarget){
+      extra += State.contractTarget.alive ? (" · ★ " + State.contractTarget.name) : " · cible à terre";
+    }
+    if(State.sceneObjective === "extract" && State.extractTile){
+      extra += " · zone marquée";
+    }
+    el.innerHTML = def.ico + " <b>" + def.label + "</b>" + extra;
+    el.classList.add("show");
   },
 
   updateBossBanner(){
@@ -10591,6 +10672,11 @@ function newRun(){
       ? (scenariosForType(State.run.contract.type).find(s=>s.id===State.run.contract.scenarioId) || pickScenario(State.run.contract.type))
       : null;
     State.run.plan = _scenario ? buildScenePlan(_scenario, D.scenes, State.run.contract) : null;
+    // V3.4.1 — premier run : forcer plan eliminate
+    if(State.run.contract.firstRunSafe){
+      const safe = (SCENARIOS.guerre||[]).find(s=>s.id==="first_ops") || _scenario;
+      if(safe) State.run.plan = buildScenePlan(safe, D.scenes, State.run.contract);
+    }
     // V3.3.4 (S5b) — embuscade voyage : forcer 1 seule scène (mission-éclair)
     if(State.run.contract.ambush){
       State.run.scenes = 1;

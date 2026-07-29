@@ -1,18 +1,21 @@
 # NEURO CORE
 
-RPG tactique cyberpunk spatial — fichier HTML autonome.
+RPG tactique cyberpunk spatial — **fichier maître : `neuro-core.html`**.
 
-## Fichier maître
+Les graphismes SVG (`index.html` / `js/`) sont **reportés** : on peaufine d’abord un jeu jouable.
 
-Ouvre **[`neuro-core.html`](neuro-core.html)** dans un navigateur (mobile portrait OK).
+## Jouer (mobile OK)
 
-Version actuelle : **V3.4.0** — S6 contrats riches · S7 galaxie dynamique · G game feel.
+Ouvre **[`neuro-core.html`](neuro-core.html)** dans le navigateur.
 
-## Contenu V3.4
+Version : **V3.4.1** — parcours mobile clarifié (objectif à l’écran, premier contrat safe, CTA Bureau).
 
-- **S6** — objectifs `secure` (tenir + éliminer), cibles mobiles qui fuient (`chase_flee`), guerres de factions
-- **S7** — `WorldSim` : situations / factions évoluent au voyage et après missions ; flux galactique dans le hub
-- **G** — écrans de chargement (saut / déploiement), hub teinté par biome planète, ECHO avec gear visible, marqueur ★ de cible
+### Parcours
+
+1. Accéder à la Station  
+2. **Bureau local** → Accepter un contrat  
+3. Préparer les sorts → **Lancer**  
+4. Combat tactile : case cyan / barre de sorts / **FIN DE TOUR**
 
 ## Tests
 
@@ -20,6 +23,6 @@ Version actuelle : **V3.4.0** — S6 contrats riches · S7 galaxie dynamique · 
 npm test
 ```
 
-## Prototype graphismes (branche parallèle)
+## Hors scope pour l’instant
 
-Le dossier `js/` + `index.html` contient le prototype de moteur SVG / charte pixel (travail séparé).
+Refonte visuelle / sprites — après que le jeu soit solide.

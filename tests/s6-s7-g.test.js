@@ -103,7 +103,7 @@ describe("G — game feel", () => {
 });
 
 describe("V3.4 — version", () => {
-  it("titre V3.4.0", () => {
-    assert.match(html, /NEURO CORE — V3\.4\.0/);
+  it("titre V3.4.x", () => {
+    assert.match(html, /NEURO CORE — V3\.4\.\d/);
   });
 });
