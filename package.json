@@ -1,10 +1,10 @@
 {
   "name": "neuro-core",
-  "version": "0.2.0",
+  "version": "3.3.4",
   "private": true,
   "type": "module",
-  "description": "NEURO-CORE — moteur graphique SVG isométrique",
+  "description": "NEURO-CORE — RPG tactique HTML autonome",
   "scripts": {
-    "test": "node --test tests/engine.test.js"
+    "test": "node --test tests/*.test.js"
   }
 }
