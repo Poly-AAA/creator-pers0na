@@ -76,7 +76,8 @@ Constantes moteur déjà en code (à aligner sur les images si besoin) :
 
 ## Prochaine étape
 
-1. L’utilisateur envoie les **images de référence** (taille, échelle, style).  
-2. On mesure et on remplit ce document.  
-3. On fige le prompt final + le format voix.  
-4. Ensuite seulement : génération massive (bâtiments, arbres, armes, effets).
+1. **Perso ECHO v1 :** prompt Gemini zéro liberté → [`prompt-gemini-echo-v1.md`](./prompt-gemini-echo-v1.md).  
+2. L’utilisateur envoie les **images générées / de référence** (taille, échelle, style).  
+3. On mesure et on remplit ce document.  
+4. On fige le format voix.  
+5. Ensuite seulement : génération massive (bâtiments, arbres, armes, effets).
