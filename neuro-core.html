@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NEURO CORE — V3.4.1</title>
+<title>NEURO CORE — V3.4.2</title>
 <style>
 /* =====================================================================
-   NEURO CORE — V3.4.1 (parcours jouable mobile · graphismes reportés)
+   NEURO CORE — V3.4.2 (CharGen · équipements visibles · anneaux de camp)
    Tactical Roguelite — HTML / CSS / JS Vanilla — Fichier unique autonome
    Direction artistique : 70% Dofus Touch / 20% Ghost in the Shell / 10% Esport
    Palette : cyan lumineux, turquoise, violet, orange, blanc, acier bleuté
@@ -577,6 +577,20 @@ aside.side{
 .hub-tile.zone-hangar{--tc:#ffd23c;--tg:rgba(255,210,60,.3)}
 .hub-tile.zone-research{--tc:#a06bff;--tg:rgba(160,107,255,.3)}
 .hub-tile.zone-data{--tc:#3ce08a;--tg:rgba(60,224,138,.3)}
+.hub-tile.zone-gen{--tc:#E8590C;--tg:rgba(232,89,12,.3)}
+#chargenOverlay .panel{max-width:520px;width:min(96vw,520px)}
+.cg-wrap{display:grid;grid-template-columns:140px 1fr;gap:12px;align-items:start}
+.cg-preview{background:rgba(8,16,24,.85);border:1px solid rgba(220,211,195,.25);border-radius:10px;display:flex;align-items:center;justify-content:center;min-height:160px}
+.cg-preview canvas{width:120px;height:150px;image-rendering:auto}
+.cg-cols{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto}
+.cg-row{display:flex;flex-direction:column;gap:4px}
+.cg-row label{font-size:10px;letter-spacing:1px;color:var(--acier-clair);text-transform:uppercase}
+.cg-chips{display:flex;flex-wrap:wrap;gap:5px}
+.cg-chip{font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid rgba(90,122,156,.45);background:rgba(10,26,40,.75);color:var(--blanc);cursor:pointer}
+.cg-chip.on{border-color:var(--cyan);box-shadow:0 0 10px rgba(39,224,255,.25);color:var(--cyan)}
+.cg-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
+@media(max-width:520px){.cg-wrap{grid-template-columns:1fr}}
+
 .hub-tile.soon{opacity:.62}
 .hub-foot{margin-top:14px;display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:11px;color:var(--acier-clair);z-index:2}
 .hub-foot b{color:var(--cyan)}
@@ -1014,7 +1028,7 @@ aside.side{
 <div class="overlay" id="introOverlay">
   <div class="modal">
     <h1>NEURO CORE</h1>
-    <div class="sub">NEURO CORE — V3.4.1 · Mercenaire tactique (mobile OK)</div>
+    <div class="sub">NEURO CORE — V3.4.2 · Mercenaire tactique (mobile OK)</div>
     <div class="introbody">
       Autrefois esclave d'arène des grandes corporations, ton <b>ECHO</b> — une conscience numérique immortelle — a brisé ses chaînes.
       Désormais <b>mercenaire indépendant</b>, tu loues tes Enveloppes au plus offrant.
@@ -1056,6 +1070,20 @@ aside.side{
 </div>
 
 <!-- V3.4 (G) — écran de chargement (hypervitesse / Evangelion-style) -->
+<div class="overlay" id="chargenOverlay">
+  <div class="panel">
+    <h2>GÉNÉRATEUR ECHO</h2>
+    <div class="sub">Morphologie + pièces visibles — le corps reste crème planche</div>
+    <div class="cg-wrap">
+      <div class="cg-preview"><canvas id="cgCanvas" width="120" height="150"></canvas></div>
+      <div class="cg-cols" id="cgCols"></div>
+    </div>
+    <div class="cg-actions">
+      <button class="btn ghost" id="cgClose">Fermer</button>
+      <button class="btn" id="cgSave">Enregistrer look</button>
+    </div>
+  </div>
+</div>
 <div class="overlay" id="loadOverlay" style="display:none">
   <div class="load-wrap">
     <div class="load-brand">NEURO <b>CORE</b></div>
@@ -1827,8 +1855,10 @@ const Factory = {
       statuses:{},        // V0.8 — états actifs
       // anim
       ax:0, ay:0, hitFlash:0,
-      // CharBody — morphologie Standard (joueur)
-      morphId:"standard", facing:{ dCol:0, dRow:1 },
+      // CharBody — morphologie + look générateur
+      morphId:(()=>{ try{ const L=CharGen.loadEchoLook(); return L.morphId||"standard"; }catch(_e){ return "standard"; } })(),
+      look:(()=>{ try{ return CharGen.loadEchoLook(); }catch(_e){ return { morphId:"standard", weapon:"sword", armor:"none", helm:"none" }; } })(),
+      facing:{ dCol:0, dRow:1 },
     };
   },
 
@@ -6966,14 +6996,15 @@ const FX = {
    ===================================================================== */
 
 /* =====================================================================
-   CharBody — rendu personnage canvas (formes calculées, planche référence).
-   Ne modifie pas combat / IA / menus : uniquement silhouette + ancrages.
-   Palette planche : #F2F0EB #DCD3C3 #2E2E30 accent #E8590C
-   Hauteur visuelle ~50px, pivot pieds, cases 64×32.
+   CharGen + CharBody — générateur de pièces + rendu canvas.
+   Corps = palette planche (crème). Différenciation = pièces visibles
+   (arme / armure / casque) + anneau de camp. Pas de recolor corps.
    ===================================================================== */
 const CHAR_PAL = {
   cream:"#F2F0EB", beige:"#DCD3C3", ink:"#2E2E30", accent:"#E8590C",
   shadow:"rgba(46,46,48,.28)", flash:"#ffffff",
+  allyRing:"rgba(39,224,255,.75)", foeRing:"rgba(255,90,80,.78)",
+  playerRing:"rgba(232,89,12,.85)",
 };
 const CHAR_MORPH = {
   standard: { id:"standard", h:50, shoulder:10.5, hip:7.5, waist:7.2, limb:3.1, headR:5.4, chest:1.0, foot:3.4 },
@@ -6997,30 +7028,80 @@ const CHAR_KIND_F = {
   qFront: { sx:0.82, foot:0.85, head:1.0, arm:1.0, chest:1.0, skew:-0.45 },
   qBack:  { sx:0.82, foot:0.75, head:1.0, arm:1.0, chest:0.45, skew:-0.45 },
 };
-// morphologie selon nature (joueur = standard ; ennemis selon archétype/tactique)
+
+/* ---- Catalogue pièces (générateur) : chaque id = forme distincte ---- */
+const CHAR_WEAPON_CATALOG = {
+  sword:   { id:"sword",   label:"Lame",         twoHand:false },
+  staff:   { id:"staff",   label:"Bâton Neuro",  twoHand:true },
+  pistol:  { id:"pistol",  label:"Pistolet",     twoHand:false },
+  rifle:   { id:"rifle",   label:"Fusil",        twoHand:true },
+  lance:   { id:"lance",   label:"Lance Therm.", twoHand:true },
+  blaster: { id:"blaster", label:"Neuro Blaster",twoHand:false },
+  harpoon: { id:"harpoon", label:"Harpon",       twoHand:false },
+  emp:     { id:"emp",     label:"Disrupteur",   twoHand:false },
+  kinetic: { id:"kinetic", label:"Brouilleur",   twoHand:false },
+  scope:   { id:"scope",   label:"Canon Préc.",  twoHand:true },
+  drone:   { id:"drone",   label:"Drone-arme",   twoHand:false },
+  nanite:  { id:"nanite",  label:"Lanceur Nan.", twoHand:false },
+  none:    { id:"none",    label:"Aucune",       twoHand:false },
+};
+const CHAR_ARMOR_CATALOG = {
+  none:      { id:"none",      label:"Sans armure" },
+  light:     { id:"light",     label:"Légère" },
+  tactical:  { id:"tactical",  label:"Tactique" },
+  heavy:     { id:"heavy",     label:"Lourde" },
+  phase:     { id:"phase",     label:"Voile de Phase" },
+  magnetic:  { id:"magnetic",  label:"Crampons Mag." },
+  reactive:  { id:"reactive",  label:"Réactive" },
+};
+const CHAR_HELM_CATALOG = {
+  none:        { id:"none",        label:"Sans casque" },
+  cortical:    { id:"cortical",    label:"Cortical" },
+  muscle:      { id:"muscle",      label:"Renfort" },
+  gravity:     { id:"gravity",     label:"Gravité" },
+  nanites:     { id:"nanites",     label:"Nanites" },
+  electric:    { id:"electric",    label:"Condensateur" },
+  stabilizer:  { id:"stabilizer",  label:"Stabilisateur" },
+  gyro:        { id:"gyro",        label:"Gyro" },
+  evasion:     { id:"evasion",     label:"Évasion" },
+  sight:       { id:"sight",       label:"Viseur" },
+  thruster:    { id:"thruster",    label:"Propulseurs" },
+  soldier:     { id:"soldier",     label:"Casque Soldat" },
+  gunner:      { id:"gunner",      label:"Casque Tireur" },
+  medic:       { id:"medic",       label:"Casque Médic" },
+  boss:        { id:"boss",        label:"Couronne Boss" },
+  drone:       { id:"drone",       label:"Capot Drone" },
+};
+
+const CHAR_WEAPON_SIZE = {
+  sword:{len:22, w:2.6}, staff:{len:34, w:2.2}, pistol:{len:12, w:3.2},
+  rifle:{len:26, w:2.4}, lance:{len:30, w:2.0}, blaster:{len:14, w:4.0},
+  harpoon:{len:24, w:2.2}, emp:{len:13, w:3.5}, kinetic:{len:13, w:3.5},
+  scope:{len:28, w:2.2}, drone:{len:10, w:5}, nanite:{len:16, w:3.0},
+};
+
 function charMorphFor(e){
-  if(e.morphId && CHAR_MORPH[e.morphId]) return CHAR_MORPH[e.morphId];
-  if(e.isPlayer) return CHAR_MORPH.standard;
-  if(e.isBoss || e.bossKind) return CHAR_MORPH.lourd;
-  const a = e.archetype || "", t = e.tactic || "";
+  if(e && e.look && e.look.morphId && CHAR_MORPH[e.look.morphId]) return CHAR_MORPH[e.look.morphId];
+  if(e && e.morphId && CHAR_MORPH[e.morphId]) return CHAR_MORPH[e.morphId];
+  if(e && e.isPlayer) return CHAR_MORPH.standard;
+  if(e && (e.isBoss || e.bossKind)) return CHAR_MORPH.lourd;
+  const a = (e && e.archetype) || "", t = (e && e.tactic) || "";
   if(a==="brute" || a==="gravity" || t==="melee" || t==="gravity") return CHAR_MORPH.lourd;
-  if(a==="duelist" || a==="gunner" || t==="duelist" || t==="kiter" || e.isSummon) return CHAR_MORPH.fin;
+  if(a==="duelist" || a==="gunner" || t==="duelist" || t==="kiter" || (e && e.isSummon)) return CHAR_MORPH.fin;
   return CHAR_MORPH.standard;
 }
 function charOrientFromDelta(dCol, dRow){
   const sc = Math.sign(dCol), sr = Math.sign(dRow);
   if(sc===0 && sr===0) return "front";
-  const key = sc+","+sr;
   return ({
     "0,-1":"back","1,-1":"qBackRight","1,0":"sideRight","1,1":"qFrontRight",
     "0,1":"front","-1,1":"qFrontLeft","-1,0":"sideLeft","-1,-1":"qBackLeft"
-  })[key] || "front";
+  })[sc+","+sr] || "front";
 }
 function charOrientOf(e){
   if(e.facing && (e.facing.dCol || e.facing.dRow)) return charOrientFromDelta(e.facing.dCol, e.facing.dRow);
   if(e._lastFacing) return charOrientFromDelta(e._lastFacing.dCol, e._lastFacing.dRow);
-  // défaut : joueur face caméra (vers -row iso = face), ennemis de face aussi
-  return e.isPlayer ? "front" : "front";
+  return "front";
 }
 function charProject(morph, orientId){
   const o = CHAR_ORIENT[orientId] || CHAR_ORIENT.front;
@@ -7055,55 +7136,214 @@ function charAnchors(m){
     _y:{ top, headY, neckY, shoulderY, chestY, waistY, hipY, kneeY, ankleY }
   };
 }
-function charWeaponHandLocal(mirror){ return mirror ? "handL" : "handR"; } // rebind après miroir
-function charWeaponStyle(e){
-  if(e.isPlayer && e.equip && e.equip.weapon){
-    const n = (e.equip.weapon.name||e.equip.weapon.base||"").toLowerCase();
-    if(/bâton|baton|staff|lance|neuro/.test(n)) return "staff";
+function charWeaponHandLocal(mirror){ return mirror ? "handL" : "handR"; }
+
+/** Mappe un objet inventaire (base/name) → id de pièce visuelle */
+function charWeaponFromItem(it){
+  if(!it) return null;
+  const n = ((it.visualId||"")+" "+(it.base||"")+" "+(it.name||"")).toLowerCase();
+  if(/drone|collecteur/.test(n)) return "drone";
+  if(/nanite|essaim|lanceur/.test(n)) return "nanite";
+  if(/harpon|ancrage/.test(n)) return "harpoon";
+  if(/disrupteur|emp/.test(n)) return "emp";
+  if(/brouilleur/.test(n)) return "kinetic";
+  if(/canon|pr[eé]cision|viseur|scope/.test(n)) return "scope";
+  if(/pistolet|magn[eé]tique/.test(n)) return "pistol";
+  if(/fusil|cin[eé]tique/.test(n)) return "rifle";
+  if(/lance|thermique/.test(n)) return "lance";
+  if(/blaster|neuro/.test(n) && /blast|neuro/.test(n)) return "blaster";
+  if(/b[aâ]ton|staff|lance neuro|neuro/.test(n) && /b[aâ]ton|staff/.test(n)) return "staff";
+  if(/[eé]p[eé]e|lame|sword|monofil/.test(n)) return "sword";
+  if(it.type==="weapon"){
+    if(/neuro/.test(n)) return "blaster";
+    if(/therm/.test(n)) return "lance";
     return "sword";
   }
-  if(e.isSummon) return null;
-  const t = e.tactic || "";
-  if(t==="tech" || t==="neuro" || t==="gravity") return "staff";
-  if(t==="kiter") return "sword";
-  return "sword";
+  return null;
 }
-// tailles d'arme FIXES (px) — jamais scalées par morphologie
-const CHAR_WEAPON_SIZE = { sword:{len:22, w:2.6}, staff:{len:34, w:2.2} };
+function charArmorFromItem(it){
+  if(!it) return null;
+  const n = ((it.visualId||"")+" "+(it.base||"")+" "+(it.name||"")).toLowerCase();
+  if(/phase|voile/.test(n)) return "phase";
+  if(/crampon|magn[eé]tique/.test(n)) return "magnetic";
+  if(/r[eé]active|r[eé]actif/.test(n)) return "reactive";
+  if(/lourde|lourd|heavy/.test(n)) return "heavy";
+  if(/l[eé]g[eè]re|light/.test(n)) return "light";
+  if(/tactique|tactical/.test(n)) return "tactical";
+  if(it.type==="armor") return "tactical";
+  return null;
+}
+function charHelmFromItem(it){
+  if(!it) return null;
+  const n = ((it.visualId||"")+" "+(it.base||"")+" "+(it.name||"")).toLowerCase();
+  if(/propulseur|furtif|fuite/.test(n)) return "thruster";
+  if(/viseur|neural|pr[eé]cision/.test(n)) return "sight";
+  if(/[eé]vasion|esquive/.test(n)) return "evasion";
+  if(/gyro/.test(n)) return "gyro";
+  if(/stabilisateur|synaptique/.test(n)) return "stabilizer";
+  if(/condensateur|[eé]lectrique/.test(n)) return "electric";
+  if(/nanite|r[eé]seau/.test(n)) return "nanites";
+  if(/grav|n[oœ]ud/.test(n)) return "gravity";
+  if(/musculaire|renfort/.test(n)) return "muscle";
+  if(/cortical|neuro|amplificateur|implant neural/.test(n)) return "cortical";
+  if(/r[eé]acteur/.test(n)) return "electric";
+  if(/analyse|lab/.test(n)) return "sight";
+  if(it.type==="implant") return "cortical";
+  return null;
+}
+
+const CharGen = {
+  WEAPONS: CHAR_WEAPON_CATALOG,
+  ARMORS: CHAR_ARMOR_CATALOG,
+  HELMS: CHAR_HELM_CATALOG,
+  MORPHS: CHAR_MORPH,
+  weaponFromItem: charWeaponFromItem,
+  armorFromItem: charArmorFromItem,
+  helmFromItem: charHelmFromItem,
+  /** Preset look selon nature (crew / ennemi / invoc) — corps crème inchangé */
+  preset(e){
+    if(!e) return { morphId:"standard", weapon:"sword", armor:"none", helm:"none", accent:CHAR_PAL.accent };
+    if(e.isPlayer){
+      const look = (typeof MetaProgress!=="undefined" && MetaProgress.data && MetaProgress.data.echo && MetaProgress.data.echo.look)
+        || e.look || {};
+      const equip = e.equip || {};
+      return {
+        morphId: look.morphId || e.morphId || "standard",
+        weapon: charWeaponFromItem(equip.weapon) || look.weapon || "sword",
+        armor:  charArmorFromItem(equip.armor)  || look.armor  || "none",
+        helm:   charHelmFromItem(equip.implant) || look.helm   || "none",
+        accent: CHAR_PAL.accent,
+      };
+    }
+    if(e.isCrew){
+      const role = e.crewRole || "";
+      if(role==="healer") return { morphId:"standard", weapon:"staff", armor:"light", helm:"medic", accent: e.glow||"#ffd23c" };
+      if(role==="ranged") return { morphId:"fin", weapon:"rifle", armor:"light", helm:"gunner", accent: e.glow||"#27e0ff" };
+      return { morphId:"standard", weapon:"sword", armor:"tactical", helm:"soldier", accent: e.glow||"#3ce08a" };
+    }
+    if(e.isSummon){
+      const kind = e.summonKind || "drone";
+      if(kind==="turret") return { morphId:"fin", weapon:"rifle", armor:"tactical", helm:"drone", accent: e.glow||"#27e0ff" };
+      if(kind==="sniper") return { morphId:"fin", weapon:"scope", armor:"light", helm:"drone", accent: e.glow||"#27e0ff" };
+      return { morphId:"fin", weapon:"pistol", armor:"none", helm:"drone", accent: e.glow||"#27e0ff" };
+    }
+    // ennemis / boss / élites
+    const a = e.archetype || "", t = e.tactic || "";
+    let weapon="sword", armor="tactical", helm="none", morphId = e.morphId || "standard";
+    if(a==="brute" || t==="melee"){ weapon="sword"; armor="heavy"; helm="muscle"; morphId="lourd"; }
+    else if(a==="duelist" || t==="duelist"){ weapon="sword"; armor="light"; helm="evasion"; morphId="fin"; }
+    else if(a==="gunner" || t==="kiter"){ weapon="rifle"; armor="light"; helm="gunner"; morphId="fin"; }
+    else if(a==="tech" || t==="tech"){ weapon="drone"; armor="tactical"; helm="sight"; }
+    else if(a==="neuro" || t==="neuro"){ weapon="blaster"; armor="phase"; helm="cortical"; }
+    else if(a==="gravity" || t==="gravity"){ weapon="staff"; armor="heavy"; helm="gravity"; morphId="lourd"; }
+    if(e.isBoss || e.bossKind){ armor = armor==="none"?"heavy":armor; helm="boss"; morphId="lourd"; }
+    else if(e.elite){ if(helm==="none") helm="sight"; if(armor==="none") armor="tactical"; }
+    return { morphId, weapon, armor, helm, accent: e.glow || CHAR_PAL.accent };
+  },
+  resolve(e){
+    const p = CharGen.preset(e);
+    // look générateur : morph toujours ; pièces seulement si slot inventaire vide
+    if(e && e.look){
+      if(e.look.morphId) p.morphId = e.look.morphId;
+      const eq = e.equip || {};
+      if(e.look.weapon && !eq.weapon) p.weapon = e.look.weapon;
+      if(e.look.armor && !eq.armor) p.armor = e.look.armor;
+      if(e.look.helm && !eq.implant) p.helm = e.look.helm;
+    }
+    if(!CHAR_WEAPON_CATALOG[p.weapon]) p.weapon = "sword";
+    if(!CHAR_ARMOR_CATALOG[p.armor]) p.armor = "none";
+    if(!CHAR_HELM_CATALOG[p.helm]) p.helm = "none";
+    if(!CHAR_MORPH[p.morphId]) p.morphId = "standard";
+    return p;
+  },
+  /** Sauvegarde look ECHO (générateur) */
+  saveEchoLook(look){
+    if(typeof MetaProgress==="undefined") return;
+    if(!MetaProgress.data.echo) MetaProgress.data.echo = { name:"ECHO-01" };
+    MetaProgress.data.echo.look = {
+      morphId: look.morphId || "standard",
+      weapon: look.weapon || "sword",
+      armor: look.armor || "none",
+      helm: look.helm || "none",
+    };
+    try{ MetaProgress.save(); }catch(_e){}
+  },
+  loadEchoLook(){
+    try{
+      const L = MetaProgress.data && MetaProgress.data.echo && MetaProgress.data.echo.look;
+      if(L) return Object.assign({ morphId:"standard", weapon:"sword", armor:"none", helm:"none" }, L);
+    }catch(_e){}
+    return { morphId:"standard", weapon:"sword", armor:"none", helm:"none" };
+  },
+  /** Entité fantôme pour preview générateur */
+  previewEntity(look){
+    return {
+      isPlayer:true, side:"ally", alive:true, name:"ECHO",
+      morphId: look.morphId || "standard",
+      look: look,
+      equip: {},
+      facing:{ dCol:0, dRow:1 },
+      glow: CHAR_PAL.accent, color: CHAR_PAL.accent,
+      hitFlash:0, ax:0, ay:0,
+    };
+  },
+};
+
+// morphologie selon nature (compat)
+function charWeaponStyle(e){
+  const k = CharGen.resolve(e);
+  return k.weapon === "none" ? null : k.weapon;
+}
 
 const CharBody = {
-  PAL: CHAR_PAL, MORPH: CHAR_MORPH,
+  PAL: CHAR_PAL, MORPH: CHAR_MORPH, Gen: CharGen,
   morphFor: charMorphFor,
   orientOf: charOrientOf,
   orientFromDelta: charOrientFromDelta,
   project: charProject,
   anchors: charAnchors,
   weaponHandLocal: charWeaponHandLocal,
-  /** Ancrage de sort : limb | bodyCenter | grid — positions écran */
   spellAnchor(e, type, footScreen){
-    const morph = charProject(charMorphFor(e), charOrientOf(e));
+    const kit = CharGen.resolve(e);
+    const morph = charProject(CHAR_MORPH[kit.morphId] || charMorphFor(e), charOrientOf(e));
     const a = charAnchors(morph);
     const mirror = morph.mirror ? -1 : 1;
     const skew = morph.skew || 0;
     const map = (p)=>{
       let x = p.x, y = p.y;
-      // skew puis miroir (même ordre que le dessin)
       x = x + skew * y;
       x *= mirror;
       return { x: footScreen.x + x, y: footScreen.y + y };
     };
     if(type === "grid") return { x: footScreen.x, y: footScreen.y, layer:"behind" };
     if(type === "bodyCenter") return Object.assign(map(a.bodyCenter), { layer:"behind" });
-    // limb — main dominante écran (après rebind)
     const hand = a[charWeaponHandLocal(morph.mirror)];
     return Object.assign(map(hand), { layer:"front" });
   },
-  /** Dessine le personnage ; foot = pivot pieds (écran). */
+  /** Anneau de camp sous les pieds (pas une teinte de corps) */
+  drawFactionRing(ctx, e, foot, t){
+    t = t || 0;
+    const ally = (typeof isAlly==="function") ? isAlly(e) : (e.side==="ally");
+    const col = e.isPlayer ? CHAR_PAL.playerRing : (ally ? CHAR_PAL.allyRing : CHAR_PAL.foeRing);
+    ctx.save();
+    ctx.globalAlpha = 0.55 + Math.sin(t*3)*0.12;
+    ctx.strokeStyle = col;
+    ctx.lineWidth = e.isPlayer ? 2.4 : 2.0;
+    ctx.beginPath(); ctx.ellipse(foot.x, foot.y+3, e.isPlayer?20:17, e.isPlayer?8.5:7.2, 0, 0, Math.PI*2);
+    ctx.stroke();
+    if(e.isPlayer){
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = CHAR_PAL.accent;
+      ctx.beginPath(); ctx.ellipse(foot.x, foot.y+3, 14, 5.5, 0, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  },
   draw(ctx, e, foot, opts){
     opts = opts || {};
     const flash = !!opts.flash;
     const t = opts.t || 0;
-    const morph0 = charMorphFor(e);
+    const kit = CharGen.resolve(e);
+    const morph0 = CHAR_MORPH[kit.morphId] || charMorphFor(e);
     const orientId = charOrientOf(e);
     const m = charProject(morph0, orientId);
     const a = charAnchors(m);
@@ -7111,9 +7351,12 @@ const CharBody = {
     const body = flash ? P.flash : P.cream;
     const shade = flash ? "#eee" : P.beige;
     const ink = P.ink;
-    const accent = (e.isPlayer ? P.accent : (e.glow || P.accent));
+    const accent = kit.accent || (e.isPlayer ? P.accent : (e.glow || P.accent));
+    const outline = e.isPlayer ? P.accent : ((typeof isAlly==="function" && isAlly(e)) ? "#27e0ff" : (e.glow || "#ff5a6a"));
 
-    // ombre au sol (case)
+    CharBody.drawFactionRing(ctx, e, foot, t);
+
+    // ombre au sol
     ctx.save();
     ctx.fillStyle = P.shadow;
     ctx.beginPath(); ctx.ellipse(foot.x, foot.y+3, 16, 7, 0, 0, Math.PI*2); ctx.fill();
@@ -7151,8 +7394,8 @@ const CharBody = {
     if(m.mirror) ctx.scale(-1, 1);
     if(m.skew) ctx.transform(1, 0, m.skew, 1, 0, 0);
 
-    const wStyle = charWeaponStyle(e);
-    const wHand = charWeaponHandLocal(m.mirror); // rebind dans l'espace local mirroir
+    const wStyle = kit.weapon === "none" ? null : kit.weapon;
+    const wHand = charWeaponHandLocal(m.mirror);
     const Y = a._y;
 
     const drawLeg = (side)=>{
@@ -7161,7 +7404,6 @@ const CharBody = {
       const footA = side==="L" ? a.footL : a.footR;
       drawCapsule(hip.x, hip.y, knee.x, knee.y, m.limb*1.05, shade);
       drawCapsule(knee.x, knee.y, footA.x, footA.y, m.limb*0.85, body);
-      // pied
       ctx.fillStyle = ink;
       ctx.beginPath(); ctx.ellipse(footA.x, footA.y+1.2, m.limb*1.3, m.limb*0.55, 0, 0, Math.PI*2); ctx.fill();
     };
@@ -7176,102 +7418,253 @@ const CharBody = {
     };
     const drawTorso = ()=>{
       const tw = m.waist * 2, sw = m.shoulder * 2;
-      const top = Y.shoulderY, bot = Y.hipY;
-      const mid = Y.waistY;
-      // hanches / bas
+      const top = Y.shoulderY, mid = Y.waistY, bot = Y.hipY;
       roundBox(-m.hip, mid-2, m.hip*2, bot-mid+4, 4, shade);
-      // torse trapèze approximé
       ctx.fillStyle = body;
       ctx.beginPath();
       ctx.moveTo(-sw*0.5, top); ctx.lineTo(sw*0.5, top);
       ctx.lineTo(tw*0.5, mid); ctx.lineTo(-tw*0.5, mid);
       ctx.closePath(); ctx.fill();
       ctx.strokeStyle = ink; ctx.lineWidth = 1.2; ctx.stroke();
-      // poitrine / volume
       const cw = m.shoulder * m.chest;
       roundBox(-cw, Y.chestY-4, cw*2, 9, 3.5, shade);
-      // slip / zone anthracite (planche)
       roundBox(-m.hip*0.7, Y.hipY-1, m.hip*1.4, 6, 2, ink);
-      // ligne accent
+      // bandeau accent (identité pièce / camp) — pas un fill corps
       ctx.fillStyle = accent;
       ctx.fillRect(-m.waist*0.55, Y.chestY+1, m.waist*1.1, 2.2);
+      // outline camp discret autour du torse
+      ctx.strokeStyle = outline; ctx.lineWidth = 1.35; ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.moveTo(-sw*0.5, top); ctx.lineTo(sw*0.5, top);
+      ctx.lineTo(tw*0.5, mid); ctx.lineTo(-tw*0.5, mid);
+      ctx.closePath(); ctx.stroke();
+      ctx.globalAlpha = 1;
     };
     const drawHead = ()=>{
       const hx = a.head.x, hy = a.head.y, r = m.headR;
       ctx.fillStyle = body;
       ctx.beginPath(); ctx.arc(hx, hy, r, 0, Math.PI*2); ctx.fill();
       ctx.strokeStyle = ink; ctx.lineWidth = 1.2; ctx.stroke();
-      // visière anthracite
       ctx.fillStyle = ink;
       const vw = r * 1.35, vh = r * 0.42;
       roundBox(hx - vw/2, hy - vh*0.35, vw, vh, 2, ink);
-      // lueur visière
       ctx.fillStyle = flash ? P.flash : accent;
-      ctx.globalAlpha = 0.85;
-      ctx.fillRect(hx - vw*0.35, hy - vh*0.05, vw*0.7, vh*0.35);
+      ctx.globalAlpha = 0.9;
+      ctx.fillRect(hx - vw*0.38, hy - vh*0.05, vw*0.76, vh*0.38);
       ctx.globalAlpha = 1;
-      if(e.isBoss){
-        ctx.fillStyle = P.accent;
-        ctx.beginPath();
-        ctx.moveTo(hx-6, hy-r-1); ctx.lineTo(hx-3, hy-r-7); ctx.lineTo(hx, hy-r-1);
-        ctx.lineTo(hx+3, hy-r-7); ctx.lineTo(hx+6, hy-r-1); ctx.closePath(); ctx.fill();
-      }
     };
-    const drawWeapon = ()=>{
-      if(!wStyle) return;
+
+    const drawWeaponAt = (style)=>{
+      if(!style || style==="none") return;
       const hand = a[wHand];
-      const sz = CHAR_WEAPON_SIZE[wStyle];
+      const sz = CHAR_WEAPON_SIZE[style] || CHAR_WEAPON_SIZE.sword;
       ctx.save();
       ctx.translate(hand.x, hand.y);
-      if(wStyle === "staff"){
-        // bâton 2 mains : angle vers l'autre main
+      const strokeW = ()=>{ ctx.strokeStyle = ink; ctx.lineWidth = 1.1; };
+      if(style === "staff"){
         const other = a[wHand==="handR"?"handL":"handR"];
         const ang = Math.atan2(other.y - hand.y, other.x - hand.x);
         ctx.rotate(ang);
-        ctx.fillStyle = P.beige; ctx.strokeStyle = ink; ctx.lineWidth = 1.1;
+        ctx.fillStyle = P.beige; strokeW();
         ctx.beginPath();
         const wx=-sz.len*0.25, wy=-sz.w/2, ww=sz.len, wh=sz.w, wr=1.5;
         ctx.moveTo(wx+wr,wy); ctx.arcTo(wx+ww,wy,wx+ww,wy+wh,wr); ctx.arcTo(wx+ww,wy+wh,wx,wy+wh,wr);
         ctx.arcTo(wx,wy+wh,wx,wy,wr); ctx.arcTo(wx,wy,wx+ww,wy,wr); ctx.closePath();
         ctx.fill(); ctx.stroke();
-        ctx.fillStyle = P.accent;
-        ctx.beginPath(); ctx.arc(sz.len*0.7, 0, 3.2, 0, Math.PI*2); ctx.fill();
-      } else {
-        // épée 1 main — taille fixe, pointe haut-avant
+        ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(sz.len*0.7, 0, 3.2, 0, Math.PI*2); ctx.fill();
+      } else if(style === "pistol"){
+        ctx.rotate(-Math.PI/2.8);
+        ctx.fillStyle = ink; roundBox(-1.5, -sz.len*0.15, 3, sz.len*0.55, 1, ink);
+        ctx.fillStyle = shade; roundBox(-sz.w*0.55, -sz.len, sz.w*1.1, sz.len*0.85, 1.5, shade);
+        ctx.fillStyle = accent; ctx.fillRect(-1, -sz.len-2, 2, 4);
+      } else if(style === "rifle" || style === "scope"){
+        ctx.rotate(-Math.PI/2.7);
+        ctx.fillStyle = shade; strokeW();
+        ctx.beginPath();
+        ctx.moveTo(-sz.w*0.4, 2); ctx.lineTo(sz.w*0.4, 2);
+        ctx.lineTo(sz.w*0.35, -sz.len); ctx.lineTo(-sz.w*0.35, -sz.len); ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = ink; ctx.fillRect(-sz.w*0.7, -sz.len*0.35, sz.w*1.4, 3);
+        if(style === "scope"){
+          ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(0, -sz.len*0.55, 2.4, 0, Math.PI*2); ctx.fill();
+        } else {
+          ctx.fillStyle = accent; ctx.fillRect(-1, -sz.len-1, 2, 5);
+        }
+      } else if(style === "lance"){
+        ctx.rotate(-Math.PI/2.55);
+        ctx.fillStyle = shade; strokeW();
+        ctx.beginPath();
+        ctx.moveTo(-sz.w*0.35, 3); ctx.lineTo(sz.w*0.35, 3);
+        ctx.lineTo(sz.w*0.2, -sz.len*0.75); ctx.lineTo(0, -sz.len); ctx.lineTo(-sz.w*0.2, -sz.len*0.75);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = accent; ctx.beginPath(); ctx.moveTo(0,-sz.len); ctx.lineTo(3,-sz.len+7); ctx.lineTo(-3,-sz.len+7); ctx.fill();
+      } else if(style === "blaster"){
+        ctx.rotate(-Math.PI/2.6);
+        ctx.fillStyle = ink; roundBox(-sz.w*0.55, -sz.len*0.2, sz.w*1.1, sz.len*0.55, 2, ink);
+        ctx.fillStyle = shade; roundBox(-sz.w*0.7, -sz.len, sz.w*1.4, sz.len*0.75, 2, shade);
+        ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(0, -sz.len+2, 2.8, 0, Math.PI*2); ctx.fill();
+      } else if(style === "harpoon"){
         ctx.rotate(-Math.PI/2.5);
-        ctx.fillStyle = P.beige; ctx.strokeStyle = ink; ctx.lineWidth = 1.1;
+        ctx.fillStyle = shade; strokeW();
+        ctx.beginPath();
+        ctx.moveTo(-1.2, 3); ctx.lineTo(1.2, 3); ctx.lineTo(1.2, -sz.len*0.7); ctx.lineTo(-1.2, -sz.len*0.7); ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = accent;
+        ctx.beginPath(); ctx.moveTo(0,-sz.len); ctx.lineTo(4,-sz.len+8); ctx.lineTo(0,-sz.len+5); ctx.lineTo(-4,-sz.len+8); ctx.closePath(); ctx.fill();
+      } else if(style === "emp" || style === "kinetic"){
+        ctx.rotate(-Math.PI/2.7);
+        ctx.fillStyle = shade; roundBox(-sz.w*0.6, -sz.len, sz.w*1.2, sz.len*0.9, 2, shade);
+        ctx.fillStyle = style==="emp" ? "#ffd23c" : "#27e0ff";
+        ctx.beginPath(); ctx.arc(0, -sz.len*0.55, 3.2, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = ink; ctx.lineWidth=1; ctx.stroke();
+      } else if(style === "drone"){
+        ctx.fillStyle = shade; strokeW();
+        ctx.beginPath(); ctx.arc(4, -6, 5.5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(4, -6, 2.2, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = ink; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(4,-2); ctx.stroke();
+      } else if(style === "nanite"){
+        ctx.rotate(-Math.PI/2.6);
+        ctx.fillStyle = shade; roundBox(-sz.w*0.5, -sz.len, sz.w, sz.len*0.85, 2, shade);
+        ctx.fillStyle = "#5ad1ff";
+        for(let i=0;i<3;i++){ ctx.beginPath(); ctx.arc(-2+i*2, -sz.len+3+i*3, 1.4, 0, Math.PI*2); ctx.fill(); }
+      } else {
+        // sword défaut
+        ctx.rotate(-Math.PI/2.5);
+        ctx.fillStyle = P.beige; strokeW();
         ctx.beginPath();
         ctx.moveTo(0, 2); ctx.lineTo(sz.w, -sz.len*0.15); ctx.lineTo(sz.w*0.45, -sz.len);
         ctx.lineTo(-sz.w*0.45, -sz.len); ctx.lineTo(-sz.w, -sz.len*0.15); ctx.closePath();
         ctx.fill(); ctx.stroke();
         ctx.strokeStyle = ink; ctx.beginPath();
         ctx.moveTo(-sz.w*1.2, -sz.len*0.12); ctx.lineTo(sz.w*1.2, -sz.len*0.12); ctx.stroke();
-        ctx.fillStyle = P.accent; ctx.fillRect(-1.2, 0, 2.4, 5);
+        ctx.fillStyle = accent; ctx.fillRect(-1.2, 0, 2.4, 5);
       }
       ctx.restore();
     };
 
-    // équipement permanent (armure / casque) — ancré, suit morph
-    const drawGear = ()=>{
-      const hasArmor = !!(e.isPlayer && e.equip && e.equip.armor) || (!e.isPlayer && (e.isBoss || e.elite));
-      const hasHelm = !!(e.isPlayer && e.equip && e.equip.implant) || (!!e.isBoss);
-      if(hasArmor){
-        ctx.strokeStyle = P.accent; ctx.lineWidth = 1.6;
-        ctx.globalAlpha = 0.7;
+    const drawArmorPiece = (armorId)=>{
+      if(!armorId || armorId==="none") return;
+      const shL = a.shoulderL, shR = a.shoulderR;
+      if(armorId==="light"){
+        ctx.strokeStyle = accent; ctx.lineWidth = 1.3; ctx.globalAlpha = 0.65;
+        ctx.beginPath(); ctx.moveTo(shL.x, shL.y); ctx.lineTo(shR.x, shR.y); ctx.stroke();
+        ctx.globalAlpha = 1;
+        roundBox(shL.x-2.5, shL.y-2, 5, 3.5, 1, shade);
+        roundBox(shR.x-2.5, shR.y-2, 5, 3.5, 1, shade);
+      } else if(armorId==="tactical"){
+        ctx.strokeStyle = accent; ctx.lineWidth = 1.6; ctx.globalAlpha = 0.7;
         ctx.beginPath();
         ctx.ellipse(0, a.bodyCenter.y, m.shoulder*0.95, (Y.hipY-Y.shoulderY)*0.42, 0, 0, Math.PI*2);
-        ctx.stroke();
+        ctx.stroke(); ctx.globalAlpha = 1;
+        roundBox(shL.x-3, shL.y-3, 6, 5, 1.5, shade);
+        roundBox(shR.x-3, shR.y-3, 6, 5, 1.5, shade);
+      } else if(armorId==="heavy"){
+        roundBox(-m.shoulder*1.05, Y.shoulderY-1, m.shoulder*2.1, (Y.hipY-Y.shoulderY)*0.7, 3, shade);
+        ctx.fillStyle = ink; ctx.globalAlpha = 0.35;
+        roundBox(-m.shoulder*0.7, Y.chestY-2, m.shoulder*1.4, 8, 2, ink);
         ctx.globalAlpha = 1;
-        // épaulières
-        roundBox(a.shoulderL.x-3, a.shoulderL.y-3, 6, 5, 1.5, shade);
-        roundBox(a.shoulderR.x-3, a.shoulderR.y-3, 6, 5, 1.5, shade);
-      }
-      if(hasHelm){
-        ctx.fillStyle = ink;
+        roundBox(shL.x-4, shL.y-4, 8, 7, 2, ink);
+        roundBox(shR.x-4, shR.y-4, 8, 7, 2, ink);
+        ctx.fillStyle = accent; ctx.fillRect(-2, Y.chestY, 4, 3);
+      } else if(armorId==="phase"){
+        ctx.strokeStyle = "#7fe9ff"; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.55 + Math.sin(t*5)*0.15;
+        ctx.setLineDash([3,2]);
         ctx.beginPath();
-        ctx.arc(a.head.x, a.head.y - 1, m.headR*1.05, Math.PI, 0); ctx.fill();
+        ctx.ellipse(0, a.bodyCenter.y, m.shoulder*1.05, (Y.hipY-Y.shoulderY)*0.48, 0, 0, Math.PI*2);
+        ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      } else if(armorId==="magnetic"){
+        roundBox(-m.hip*0.85, Y.hipY-2, m.hip*1.7, 8, 2, shade);
+        ctx.fillStyle = accent;
+        ctx.fillRect(-m.hip*0.7, Y.hipY+1, 3, 4); ctx.fillRect(m.hip*0.7-3, Y.hipY+1, 3, 4);
+      } else if(armorId==="reactive"){
+        ctx.strokeStyle = accent; ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(-m.shoulder, Y.shoulderY+2); ctx.lineTo(0, Y.chestY-2); ctx.lineTo(m.shoulder, Y.shoulderY+2);
+        ctx.stroke();
+        roundBox(shL.x-3.5, shL.y-3, 7, 6, 1.5, shade);
+        roundBox(shR.x-3.5, shR.y-3, 7, 6, 1.5, shade);
+        ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(0, Y.chestY+2, 2.5, 0, Math.PI*2); ctx.fill();
+      }
+    };
+
+    const drawHelmPiece = (helmId)=>{
+      if(!helmId || helmId==="none") return;
+      const hx = a.head.x, hy = a.head.y, r = m.headR;
+      if(helmId==="boss"){
+        ctx.fillStyle = ink;
+        ctx.beginPath(); ctx.arc(hx, hy-1, r*1.08, Math.PI, 0); ctx.fill();
         ctx.fillStyle = P.accent;
-        ctx.fillRect(a.head.x-1.2, a.head.y - m.headR - 6, 2.4, 6);
+        ctx.beginPath();
+        ctx.moveTo(hx-6, hy-r-1); ctx.lineTo(hx-3, hy-r-7); ctx.lineTo(hx, hy-r-1);
+        ctx.lineTo(hx+3, hy-r-7); ctx.lineTo(hx+6, hy-r-1); ctx.closePath(); ctx.fill();
+        return;
+      }
+      if(helmId==="drone"){
+        ctx.fillStyle = shade;
+        ctx.beginPath(); ctx.arc(hx, hy-1, r*1.05, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = ink; ctx.lineWidth=1.1; ctx.stroke();
+        ctx.fillStyle = accent; ctx.fillRect(hx-r*0.5, hy-1, r, 2);
+        return;
+      }
+      if(helmId==="medic"){
+        ctx.fillStyle = body;
+        ctx.beginPath(); ctx.arc(hx, hy-r*0.15, r*1.05, Math.PI, 0); ctx.fill();
+        ctx.strokeStyle = ink; ctx.stroke();
+        ctx.fillStyle = "#ffd23c"; ctx.fillRect(hx-1.2, hy-r-5, 2.4, 5);
+        ctx.fillRect(hx-3.5, hy-r-3.2, 7, 2);
+        return;
+      }
+      if(helmId==="soldier"){
+        ctx.fillStyle = ink;
+        ctx.beginPath(); ctx.arc(hx, hy-1, r*1.08, Math.PI*1.05, -0.05); ctx.fill();
+        ctx.fillStyle = shade; roundBox(hx-r*1.1, hy-2, r*2.2, 3.5, 1, shade);
+        ctx.fillStyle = accent; ctx.fillRect(hx-r*0.4, hy-r*0.2, r*0.8, 2);
+        return;
+      }
+      if(helmId==="gunner"){
+        ctx.fillStyle = ink;
+        ctx.beginPath(); ctx.arc(hx, hy-1, r*1.0, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = shade; roundBox(hx+r*0.2, hy-r*0.35, r*0.9, r*0.55, 1.5, shade);
+        ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(hx+r*0.7, hy-r*0.05, 1.8, 0, Math.PI*2); ctx.fill();
+        return;
+      }
+      // implants / casques techniques
+      ctx.fillStyle = ink;
+      ctx.beginPath(); ctx.arc(hx, hy-1, r*1.02, Math.PI, 0); ctx.fill();
+      if(helmId==="cortical"){
+        ctx.fillStyle = accent; ctx.fillRect(hx-1.2, hy-r-6, 2.4, 6);
+        ctx.fillRect(hx-4, hy-r*0.3, 8, 2);
+      } else if(helmId==="muscle"){
+        roundBox(hx-r*0.9, hy-r*0.2, r*1.8, 4, 1, shade);
+        ctx.fillStyle = accent; ctx.fillRect(hx-2, hy-r*0.1, 4, 2);
+      } else if(helmId==="gravity"){
+        ctx.strokeStyle = accent; ctx.lineWidth=1.4;
+        ctx.beginPath(); ctx.arc(hx, hy-r*0.2, r*0.55, 0, Math.PI*2); ctx.stroke();
+      } else if(helmId==="nanites"){
+        ctx.fillStyle = "#5ad1ff";
+        for(let i=0;i<4;i++){ ctx.beginPath(); ctx.arc(hx-3+i*2, hy-r-2-i%2, 1.2, 0, Math.PI*2); ctx.fill(); }
+      } else if(helmId==="electric"){
+        ctx.fillStyle = "#ffd23c";
+        ctx.beginPath(); ctx.moveTo(hx-2, hy-r-7); ctx.lineTo(hx+1, hy-r-3); ctx.lineTo(hx-1, hy-r-3); ctx.lineTo(hx+2, hy+1); ctx.fill();
+      } else if(helmId==="stabilizer"){
+        ctx.fillStyle = shade; roundBox(hx-r, hy-r*0.5, r*2, 3, 1, shade);
+        ctx.fillStyle = accent; ctx.fillRect(hx-1, hy-r-5, 2, 5);
+      } else if(helmId==="gyro"){
+        ctx.strokeStyle = accent; ctx.lineWidth=1.2;
+        ctx.beginPath(); ctx.arc(hx, hy-r*0.15, 3.5, 0, Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hx-4, hy-r*0.15); ctx.lineTo(hx+4, hy-r*0.15); ctx.stroke();
+      } else if(helmId==="evasion"){
+        ctx.fillStyle = shade; roundBox(hx-r*1.05, hy-3, r*2.1, 2.5, 1, shade);
+        ctx.globalAlpha=0.5; ctx.strokeStyle="#7fe9ff"; ctx.stroke(); ctx.globalAlpha=1;
+      } else if(helmId==="sight"){
+        ctx.fillStyle = shade; roundBox(hx+r*0.15, hy-r*0.4, r*0.95, r*0.5, 1.2, shade);
+        ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(hx+r*0.7, hy-r*0.1, 1.6, 0, Math.PI*2); ctx.fill();
+      } else if(helmId==="thruster"){
+        ctx.fillStyle = shade;
+        roundBox(hx-r-3, hy-2, 3, 5, 1, shade); roundBox(hx+r, hy-2, 3, 5, 1, shade);
+        ctx.fillStyle = accent; ctx.fillRect(hx-r-2.2, hy+2, 1.5, 3); ctx.fillRect(hx+r+0.7, hy+2, 1.5, 3);
+      } else {
+        ctx.fillStyle = accent; ctx.fillRect(hx-1.2, hy-r-6, 2.4, 6);
       }
     };
 
@@ -7280,14 +7673,13 @@ const CharBody = {
       else if(layer==="legR") drawLeg("R");
       else if(layer==="armL") drawArm("L");
       else if(layer==="armR") drawArm("R");
-      else if(layer==="torso"){ drawTorso(); drawGear(); }
-      else if(layer==="head") drawHead();
-      else if(layer==="weapon") drawWeapon();
+      else if(layer==="torso"){ drawTorso(); drawArmorPiece(kit.armor); }
+      else if(layer==="head"){ drawHead(); drawHelmPiece(kit.helm); }
+      else if(layer==="weapon") drawWeaponAt(wStyle);
     }
 
     ctx.restore();
 
-    // stocke ancrages écran pour sorts (limb / body / grid)
     const footScreen = { x: foot.x, y: foot.y };
     e._charAnchors = {
       limb: CharBody.spellAnchor(e, "limb", footScreen),
@@ -7295,6 +7687,7 @@ const CharBody = {
       grid: CharBody.spellAnchor(e, "grid", footScreen),
       morph: m.id || morph0.id,
       orient: orientId,
+      kit: { weapon: kit.weapon, armor: kit.armor, helm: kit.helm, morphId: kit.morphId },
     };
   }
 };
@@ -7619,20 +8012,9 @@ const Render = {
     const foot = { x: s.x, y: s.y + 2 + bob };
     const flash = e.hitFlash>0;
 
-    // aura légère (identité camp) — sous le corps
-    ctx.save();
-    ctx.globalAlpha = 0.22 + Math.sin(t*3)*0.06;
-    ctx.fillStyle = e.isPlayer ? "#E8590C" : (e.glow || "#DCD3C3");
-    ctx.beginPath(); ctx.ellipse(foot.x, foot.y - 18, 14, 20, 0, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-
-    // M-FIX — REPÈRE JOUEUR (UI cyan, distinct de la palette corps)
+    // Repère joueur (chevron) — anneau de camp dessiné dans CharBody
     if(e.isPlayer){
       ctx.save();
-      ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 2;
-      ctx.globalAlpha = 0.55 + Math.sin(t*4)*0.25;
-      ctx.beginPath(); ctx.ellipse(foot.x, foot.y+3, 21, 9, 0, 0, Math.PI*2); ctx.stroke();
-      ctx.globalAlpha = 1;
       const yy = foot.y - 56 + Math.sin(t*3)*2;
       ctx.fillStyle = "#27e0ff"; ctx.strokeStyle = "rgba(255,255,255,.95)"; ctx.lineWidth = 1.4;
       ctx.beginPath(); ctx.moveTo(foot.x-7, yy); ctx.lineTo(foot.x+7, yy); ctx.lineTo(foot.x, yy+9); ctx.closePath();
@@ -10399,6 +10781,78 @@ const UI = {
     }
   },
 
+  // ===================== GÉNÉRATEUR DE PERSONNAGE (CharGen) =====================
+  charGen:{
+    draft:null,
+    open(){
+      this.draft = Object.assign({ morphId:"standard", weapon:"sword", armor:"none", helm:"none" }, CharGen.loadEchoLook());
+      // si équipement porté : refléter les pièces inventaire dans le draft (priorité preview)
+      try{
+        const env = MetaProgress.activeEnvelope && MetaProgress.activeEnvelope();
+        const ins = env && env.installed;
+        if(ins){
+          const w = CharGen.weaponFromItem(ins.weapon); if(w) this.draft.weapon = w;
+          const a = CharGen.armorFromItem(ins.armor); if(a) this.draft.armor = a;
+          const h = CharGen.helmFromItem(ins.implant); if(h) this.draft.helm = h;
+        }
+      }catch(_e){}
+      this.render();
+      UI.hide("hubOverlay");
+      UI.show("chargenOverlay");
+      this._raf = requestAnimationFrame(()=>this.paint());
+    },
+    close(){
+      if(this._raf) cancelAnimationFrame(this._raf);
+      UI.hide("chargenOverlay");
+      UI.hub.open();
+    },
+    set(slot, id){ this.draft[slot] = id; this.render(); },
+    render(){
+      const d = this.draft;
+      const chip = (slot, id, label)=> '<button type="button" class="cg-chip'+(d[slot]===id?' on':'')+'" data-slot="'+slot+'" data-id="'+id+'">'+label+'</button>';
+      const row = (title, slot, catalog)=>{
+        let html = '<div class="cg-row"><label>'+title+'</label><div class="cg-chips">';
+        for(const id in catalog){ html += chip(slot, id, catalog[id].label || catalog[id].id || id); }
+        html += '</div></div>';
+        return html;
+      };
+      const morphCat = { standard:{label:"Standard"}, lourd:{label:"Lourd"}, fin:{label:"Fin"} };
+      UI.el("cgCols").innerHTML =
+        row("Morphologie","morphId", morphCat) +
+        row("Arme","weapon", CharGen.WEAPONS) +
+        row("Armure","armor", CharGen.ARMORS) +
+        row("Casque / implant","helm", CharGen.HELMS);
+      UI.el("cgCols").querySelectorAll(".cg-chip").forEach(btn=>{
+        btn.onclick = ()=> UI.charGen.set(btn.getAttribute("data-slot"), btn.getAttribute("data-id"));
+      });
+    },
+    paint(){
+      const c = UI.el("cgCanvas"); if(!c) return;
+      const cx = c.getContext("2d");
+      cx.clearRect(0,0,c.width,c.height);
+      // fond planche
+      const g = cx.createLinearGradient(0,0,0,c.height);
+      g.addColorStop(0,"#2a3038"); g.addColorStop(1,"#151a22");
+      cx.fillStyle = g; cx.fillRect(0,0,c.width,c.height);
+      const ent = CharGen.previewEntity(this.draft);
+      const foot = { x: c.width/2, y: c.height - 18 };
+      try{ CharBody.draw(cx, ent, foot, { t: performance.now()/1000 }); }catch(_e){}
+      this._raf = requestAnimationFrame(()=>this.paint());
+    },
+    save(){
+      CharGen.saveEchoLook(this.draft);
+      // propage au joueur en combat si présent
+      try{
+        if(State && State.player){
+          State.player.look = Object.assign({}, this.draft);
+          State.player.morphId = this.draft.morphId;
+        }
+      }catch(_e){}
+      UI.log("you", "Look ECHO enregistré ("+this.draft.morphId+" · "+this.draft.weapon+" · "+this.draft.armor+" · "+this.draft.helm+").");
+      this.close();
+    }
+  },
+
   // ===================== V0.95.5 — HUB PRINCIPAL : NEURO CORE HQ =====================
   hub:{
     SECTIONS:[
@@ -10409,6 +10863,7 @@ const UI = {
       {id:"simulateur",  name:"SIMULATEUR DE COMBAT", ico:"🎯", zone:"cmd", desc:"Banc d'essai — entraînement & homologation", act:()=>{ _pendingSimulator = true; UI.neuro.openFromHub("prep"); }},
       {id:"arsenal",     name:"ARSENAL",       ico:"📖", zone:"arsenal",  desc:"Sorts connus & évolutions", tab:"arsenal"},
       {id:"echo",        name:"ECHO",          ico:"🧬", zone:"cmd",      desc:"Profil immortel & historique", tab:"echo"},
+      {id:"chargen",     name:"GÉNÉRATEUR",   ico:"🧍", zone:"gen",      desc:"Apparence · armes · armures · casques", act:()=>{ UI.charGen.open(); }},
       {id:"hangar",      name:"HANGAR",        ico:"🦾", zone:"hangar",   desc:"Enveloppes · synchro · usure", tab:"hangar"},
       {id:"recherche",   name:"RECHERCHE",     ico:"⚗", zone:"research",  desc:"Prototypes & hybrides", tab:"recherche", soon:true},
       {id:"ingenieurs",  name:"INGÉNIEURS",    ico:"🛠", zone:"research",  desc:"Équipe & recrutement", tab:"ingenieurs"},
@@ -11128,6 +11583,8 @@ function init(){
   UI.el("lootIgnore").addEventListener("click", ()=> UI.loot.ignore());
   UI.el("lootCompareBtn").addEventListener("click", ()=> UI.loot.toggleCompare());
   UI.el("shopClose").addEventListener("click", ()=> UI.shop.close());
+  UI.el("cgClose").addEventListener("click", ()=> UI.charGen.close());
+  UI.el("cgSave").addEventListener("click", ()=> UI.charGen.save());
   UI.el("buildBtnFloat").addEventListener("click", ()=>{
     if(!State || State.over) return;
     // entre deux combats l'écran est éditable ; pendant un combat, consultation seule
