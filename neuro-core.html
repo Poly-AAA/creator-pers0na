@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NEURO CORE — V3.4.2</title>
+<title>NEURO CORE — V3.4.3</title>
 <style>
 /* =====================================================================
-   NEURO CORE — V3.4.2 (CharGen · équipements visibles · anneaux de camp)
+   NEURO CORE — V3.4.3 (ECHO sprites idle 8 dirs · test facing)
    Tactical Roguelite — HTML / CSS / JS Vanilla — Fichier unique autonome
    Direction artistique : 70% Dofus Touch / 20% Ghost in the Shell / 10% Esport
    Palette : cyan lumineux, turquoise, violet, orange, blanc, acier bleuté
@@ -1028,7 +1028,7 @@ aside.side{
 <div class="overlay" id="introOverlay">
   <div class="modal">
     <h1>NEURO CORE</h1>
-    <div class="sub">NEURO CORE — V3.4.2 · Mercenaire tactique (mobile OK)</div>
+    <div class="sub">NEURO CORE — V3.4.3 · Mercenaire tactique (mobile OK)</div>
     <div class="introbody">
       Autrefois esclave d'arène des grandes corporations, ton <b>ECHO</b> — une conscience numérique immortelle — a brisé ses chaînes.
       Désormais <b>mercenaire indépendant</b>, tu loues tes Enveloppes au plus offrant.
@@ -7295,6 +7295,75 @@ function charWeaponStyle(e){
   return k.weapon === "none" ? null : k.weapon;
 }
 
+/* =====================================================================
+   EchoSprites — test idle 8 directions (PNG) avant animations.
+   Joueur seulement : si les assets sont présents, remplace CharBody.
+   Pivot image : x=64, y=124 dans une frame 128×128.
+   ===================================================================== */
+const EchoSprites = {
+  DIRS: ["front","qFrontRight","sideRight","qBackRight","back","qBackLeft","sideLeft","qFrontLeft"],
+  imgs: {},
+  ready: false,
+  missing: [],
+  scale: 0.50,          // 100 px corps → ~50 px (aligné CharBody)
+  pivotX: 64,
+  pivotY: 124,
+  basePath: "assets/echo/body/",
+  fileName(dir){
+    return "echo_body_standard_idle_" + dir + "_f0_128.png";
+  },
+  url(dir){ return this.basePath + this.fileName(dir); },
+  load(){
+    const self = this;
+    self.missing = [];
+    const jobs = self.DIRS.map(dir => new Promise(resolve=>{
+      const img = new Image();
+      img.decoding = "async";
+      img.onload = ()=>{ self.imgs[dir] = img; resolve(true); };
+      img.onerror = ()=>{ self.missing.push(dir); resolve(false); };
+      img.src = self.url(dir) + "?v=" + Date.now();
+    }));
+    return Promise.all(jobs).then(oks=>{
+      self.ready = oks.every(Boolean) && self.DIRS.every(d=> self.imgs[d] && self.imgs[d].complete);
+      try{
+        if(self.ready) UI.log("sys", "ECHO sprites idle : 8/8 chargés (test facing).");
+        else if(self.missing.length && self.missing.length < 8)
+          UI.log("sys", "ECHO sprites partiels ("+(8-self.missing.length)+"/8). Manque : "+self.missing.join(", "));
+      }catch(_e){}
+      return self.ready;
+    });
+  },
+  /** Dessine le sprite joueur ; true si OK (sinon fallback CharBody). */
+  draw(ctx, e, foot, opts){
+    if(!e || !e.isPlayer || !this.ready) return false;
+    opts = opts || {};
+    const dir = (typeof charOrientOf==="function") ? charOrientOf(e) : "front";
+    const img = this.imgs[dir] || this.imgs.front;
+    if(!img) return false;
+    const s = this.scale;
+    const dx = foot.x - this.pivotX * s;
+    const dy = foot.y - this.pivotY * s;
+    ctx.save();
+    if(opts.flash){ ctx.globalAlpha = 0.85; }
+    // ombre simple
+    ctx.fillStyle = "rgba(46,46,48,.28)";
+    ctx.beginPath(); ctx.ellipse(foot.x, foot.y+3, 16, 7, 0, 0, Math.PI*2); ctx.fill();
+    ctx.drawImage(img, dx, dy, 128*s, 128*s);
+    ctx.restore();
+    // anneau camp + ancrages minimaux pour sorts
+    try{ CharBody.drawFactionRing(ctx, e, foot, opts.t||0); }catch(_e){}
+    e._charAnchors = {
+      limb: { x: foot.x + 10*s, y: foot.y - 40*s, layer:"front" },
+      bodyCenter: { x: foot.x, y: foot.y - 50*s, layer:"behind" },
+      grid: { x: foot.x, y: foot.y, layer:"behind" },
+      morph: "standard",
+      orient: dir,
+      sprite: true,
+    };
+    return true;
+  }
+};
+
 const CharBody = {
   PAL: CHAR_PAL, MORPH: CHAR_MORPH, Gen: CharGen,
   morphFor: charMorphFor,
@@ -8039,8 +8108,10 @@ const Render = {
       }
     }
 
-    // ===== CORPS DÉTAILLÉ (CharBody — planche référence) =====
-    CharBody.draw(ctx, e, foot, { flash, t });
+    // ===== CORPS : sprites ECHO (test) si dispo, sinon CharBody =====
+    if(!(e.isPlayer && EchoSprites.draw(ctx, e, foot, { flash, t }))){
+      CharBody.draw(ctx, e, foot, { flash, t });
+    }
 
     // marqueur cible de contrat (★)
     if(e.contractTarget){
@@ -11505,6 +11576,7 @@ function init(){
   ctx = canvas.getContext("2d");
 
   MetaProgress.load();   // charge la progression permanente des sorts/maîtrises
+  EchoSprites.load();    // test idle 8 dirs (si PNG présents)
 
   // événements pointeur (souris)
   canvas.addEventListener("mousemove", Input.onMove);

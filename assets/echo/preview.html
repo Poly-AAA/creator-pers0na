@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ECHO — preview 8 dirs</title>
+<style>
+  body{margin:0;font-family:Trebuchet MS,sans-serif;background:#151a22;color:#f2f0eb;padding:16px}
+  h1{font-size:18px;color:#E8590C}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+  .card{background:#1e2430;border:1px solid #2E2E30;border-radius:10px;padding:10px;text-align:center}
+  .card img{width:128px;height:128px;image-rendering:pixelated;background:
+    linear-gradient(45deg,#333 25%,transparent 25%),linear-gradient(-45deg,#333 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#333 75%),linear-gradient(-45deg,transparent 75%,#333 75%);
+    background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+  .ok{color:#3ce08a}.bad{color:#ff5a6a}
+  code{font-size:11px;color:#DCD3C3}
+</style>
+</head>
+<body>
+<h1>ECHO body idle — 8 directions</h1>
+<p>Place les PNG dans <code>assets/echo/body/</code> puis recharge.</p>
+<div class="grid" id="g"></div>
+<script>
+const DIRS=["front","qFrontRight","sideRight","qBackRight","back","qBackLeft","sideLeft","qFrontLeft"];
+const g=document.getElementById("g");
+DIRS.forEach(dir=>{
+  const card=document.createElement("div"); card.className="card";
+  const name=`echo_body_standard_idle_${dir}_f0_128.png`;
+  card.innerHTML=`<div><b>${dir}</b></div><img alt="${dir}"/><div class="status">…</div><code>${name}</code>`;
+  const img=card.querySelector("img");
+  const st=card.querySelector(".status");
+  img.onload=()=>{st.textContent="OK";st.className="status ok";};
+  img.onerror=()=>{st.textContent="MANQUANT";st.className="status bad"; img.removeAttribute("src");};
+  img.src=`body/${name}?v=${Date.now()}`;
+  g.appendChild(card);
+});
+</script>
+</body>
+</html>

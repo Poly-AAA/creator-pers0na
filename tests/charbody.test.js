@@ -157,3 +157,12 @@ describe("CharGen — mapping & presets", () => {
     assert.ok(Object.keys(CharGen.HELMS).length >= 10);
   });
 });
+
+describe("EchoSprites — test idle", () => {
+  it("module + chemins 8 dirs", () => {
+    assert.match(html, /const EchoSprites\s*=/);
+    assert.match(html, /echo_body_standard_idle_/);
+    assert.match(html, /EchoSprites\.draw/);
+    assert.match(html, /EchoSprites\.load/);
+  });
+});
