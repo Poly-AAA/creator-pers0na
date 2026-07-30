@@ -170,3 +170,5 @@ SORTIE :
 2. On remplit la section **STYLE** sans inventer.  
 3. Tu choisis **méthode A, B ou C** pour les habits.  
 4. On te colle le **prompt PixelLab final** prêt à copier.
+
+**Gemini (ECHO v1) :** prompt zéro liberté prêt → [`prompt-gemini-echo-v1.md`](./prompt-gemini-echo-v1.md).
