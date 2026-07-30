@@ -96,9 +96,9 @@ describe("G — game feel", () => {
   });
 
   it("ECHO : équipement visible + marqueur cible", () => {
-    assert.match(html, /e\.isPlayer && e\.equip/);
+    assert.match(html, /CharBody\.draw/);
     assert.match(html, /e\.contractTarget/);
-    assert.match(html, /SLOT_COLOR\.weapon/);
+    assert.match(html, /CHAR_WEAPON_SIZE|charWeaponStyle/);
   });
 });
 

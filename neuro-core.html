@@ -1826,7 +1826,9 @@ const Factory = {
       paPenalty:0,
       statuses:{},        // V0.8 — états actifs
       // anim
-      ax:0, ay:0, hitFlash:0
+      ax:0, ay:0, hitFlash:0,
+      // CharBody — morphologie Standard (joueur)
+      morphId:"standard", facing:{ dCol:0, dRow:1 },
     };
   },
 
@@ -1862,7 +1864,12 @@ const Factory = {
       atkCost: 3,
       paPenalty: 0,
       statuses:{},        // V0.8 — états actifs
-      ax:0, ay:0, hitFlash:0
+      ax:0, ay:0, hitFlash:0,
+      // CharBody — morphologie selon nature
+      morphId: (isBoss || arch.id==="brute" || arch.id==="gravity") ? "lourd"
+            : (arch.id==="duelist" || arch.id==="gunner" || arch.tactic==="kiter" || arch.tactic==="duelist") ? "fin"
+            : "standard",
+      facing:{ dCol:0, dRow:1 },
     };
     // V2.0 — modificateurs de contrat (zone hostile / cible retranchée)
     if(typeof State!=="undefined" && State && State.contractMods){
@@ -1923,6 +1930,7 @@ const Factory = {
     e.name = "BOSS — " + def.name;
     e.color = def.color; e.glow = def.glow;
     e.phaseIdx = 0; e.mechPeriod = def.mechPeriod || 2; e.lastMechRound = 0;
+    e.morphId = "lourd";   // CharBody — boss = silhouette lourde
     const m = def.statMul || {};
     e.pvMax = Math.round(e.pvMax * (m.hp||1)); e.pv = e.pvMax;
     e.pow   = Math.round(e.pow   * (m.pow||1));
@@ -4507,7 +4515,7 @@ const Summon = {
       pow:8, res:2, mob:12, impact:3,
       atkRange:3 + (ev.droneRange||0), atkCost:4, atkDmg:[5+dmgBonus, 8+dmgBonus],
       dmgMult: 1 + (ally ? ((owner.summonMult||0) + (Spells.schoolMastery(owner,"Nanites").summon||0)) : 0),
-      paPenalty:0, hitFlash:0
+      paPenalty:0, hitFlash:0, morphId:"fin", facing:{ dCol:0, dRow:1 }
     };
   },
 
@@ -4678,6 +4686,7 @@ const Crew = {
       atkRange:a.atkRange, atkCost:a.atkCost, atkDmg:[Math.round(a.atkDmg[0]*mp), Math.round(a.atkDmg[1]*mp)], crit:a.crit||0,
       res:0, resPA:0, resPM:0, dodge:0, precision:0, statuses:{}, shield:0,
       ax:0, ay:0, hitFlash:0,
+      morphId:"standard", facing:{ dCol:0, dRow:1 },
     };
     if(a.role==="healer"){ e.heal=[Math.round(a.heal[0]*mp), Math.round(a.heal[1]*mp)]; e.healRange=a.healRange; e.healCost=a.healCost; }
     return e;
@@ -4999,7 +5008,7 @@ const Field = {
       atkRange:4 + (ev.tRange||0), atkCost:4, atkDmg:[7+(ev.tDmg||0), 11+(ev.tDmg||0)],
       dmgMult: 1 + (ally ? ((owner.summonMult||0) + (Spells.schoolMastery(owner,"Nanites").summon||0)) : 0),
       zone: !!ev.tZone, pierce: !!ev.tPierce, suppress: !!ev.tSuppress,
-      paPenalty:0, hitFlash:0
+      paPenalty:0, hitFlash:0, morphId:"fin", facing:{ dCol:0, dRow:1 }
     };
   },
   sniper(owner){
@@ -5016,7 +5025,7 @@ const Field = {
       atkRange:7 + (ev.sRange||0), atkCost:4, atkDmg:[9+(ev.sDmg||0), 13+(ev.sDmg||0)],
       dmgMult: 1 + (ally ? ((owner.summonMult||0) + (Spells.schoolMastery(owner,"Nanites").summon||0)) : 0),
       crit: (ev.sCrit||0), pierce: !!ev.sPierce, double: !!ev.sDouble,
-      paPenalty:0, hitFlash:0
+      paPenalty:0, hitFlash:0, morphId:"fin", facing:{ dCol:0, dRow:1 }
     };
   },
   spawnSummon(owner, cell, kind){
@@ -5861,6 +5870,9 @@ const Combat = {
     const step = ()=>{
       if(i >= path.length){ Combat._animating = false; if(onDone) onDone(); return; }
       const next = path[i];
+      // CharBody — orientation depuis Δ case (ne change pas la logique de combat)
+      const dCol = Math.sign(next.c - entity.c), dRow = Math.sign(next.r - entity.r);
+      if(dCol || dRow){ entity.facing = { dCol, dRow }; entity._lastFacing = entity.facing; }
       entity.c = next.c; entity.r = next.r;
       entity.pm = Math.max(0, entity.pm - 1);
       if(entity.isPlayer){ MetaProgress.noteMove(1); MetaProgress.noteTrait("mobilite", 1); }   // V0.95/V1.9c
@@ -6952,6 +6964,342 @@ const FX = {
 /* =====================================================================
    RENDER — dessin de l'arène
    ===================================================================== */
+
+/* =====================================================================
+   CharBody — rendu personnage canvas (formes calculées, planche référence).
+   Ne modifie pas combat / IA / menus : uniquement silhouette + ancrages.
+   Palette planche : #F2F0EB #DCD3C3 #2E2E30 accent #E8590C
+   Hauteur visuelle ~50px, pivot pieds, cases 64×32.
+   ===================================================================== */
+const CHAR_PAL = {
+  cream:"#F2F0EB", beige:"#DCD3C3", ink:"#2E2E30", accent:"#E8590C",
+  shadow:"rgba(46,46,48,.28)", flash:"#ffffff",
+};
+const CHAR_MORPH = {
+  standard: { id:"standard", h:50, shoulder:10.5, hip:7.5, waist:7.2, limb:3.1, headR:5.4, chest:1.0, foot:3.4 },
+  lourd:    { id:"lourd",    h:54, shoulder:14.5, hip:11.5, waist:12.0, limb:4.4, headR:5.1, chest:1.38, foot:4.2 },
+  fin:      { id:"fin",      h:52, shoulder:7.6,  hip:5.6,  waist:5.2,  limb:2.35, headR:5.0, chest:0.72, foot:2.8 },
+};
+const CHAR_ORIENT = {
+  back:{ kind:"back", mirror:false },
+  qBackRight:{ kind:"qBack", mirror:false },
+  sideRight:{ kind:"side", mirror:false },
+  qFrontRight:{ kind:"qFront", mirror:false },
+  front:{ kind:"front", mirror:false },
+  qFrontLeft:{ kind:"qFront", mirror:true },
+  sideLeft:{ kind:"side", mirror:true },
+  qBackLeft:{ kind:"qBack", mirror:true },
+};
+const CHAR_KIND_F = {
+  front:  { sx:1.12, foot:0.42, head:1.05, arm:1.0, chest:1.0, skew:0 },
+  back:   { sx:1.12, foot:0.42, head:1.05, arm:1.0, chest:0.4, skew:0 },
+  side:   { sx:0.36, foot:0.12, head:0.78, arm:0.85, chest:0.55, skew:0 },
+  qFront: { sx:0.82, foot:0.85, head:1.0, arm:1.0, chest:1.0, skew:-0.45 },
+  qBack:  { sx:0.82, foot:0.75, head:1.0, arm:1.0, chest:0.45, skew:-0.45 },
+};
+// morphologie selon nature (joueur = standard ; ennemis selon archétype/tactique)
+function charMorphFor(e){
+  if(e.morphId && CHAR_MORPH[e.morphId]) return CHAR_MORPH[e.morphId];
+  if(e.isPlayer) return CHAR_MORPH.standard;
+  if(e.isBoss || e.bossKind) return CHAR_MORPH.lourd;
+  const a = e.archetype || "", t = e.tactic || "";
+  if(a==="brute" || a==="gravity" || t==="melee" || t==="gravity") return CHAR_MORPH.lourd;
+  if(a==="duelist" || a==="gunner" || t==="duelist" || t==="kiter" || e.isSummon) return CHAR_MORPH.fin;
+  return CHAR_MORPH.standard;
+}
+function charOrientFromDelta(dCol, dRow){
+  const sc = Math.sign(dCol), sr = Math.sign(dRow);
+  if(sc===0 && sr===0) return "front";
+  const key = sc+","+sr;
+  return ({
+    "0,-1":"back","1,-1":"qBackRight","1,0":"sideRight","1,1":"qFrontRight",
+    "0,1":"front","-1,1":"qFrontLeft","-1,0":"sideLeft","-1,-1":"qBackLeft"
+  })[key] || "front";
+}
+function charOrientOf(e){
+  if(e.facing && (e.facing.dCol || e.facing.dRow)) return charOrientFromDelta(e.facing.dCol, e.facing.dRow);
+  if(e._lastFacing) return charOrientFromDelta(e._lastFacing.dCol, e._lastFacing.dRow);
+  // défaut : joueur face caméra (vers -row iso = face), ennemis de face aussi
+  return e.isPlayer ? "front" : "front";
+}
+function charProject(morph, orientId){
+  const o = CHAR_ORIENT[orientId] || CHAR_ORIENT.front;
+  const f = CHAR_KIND_F[o.kind];
+  const m = Object.assign({}, morph);
+  m.shoulder *= f.sx; m.hip *= f.sx; m.waist *= f.sx;
+  m.foot *= f.foot; m.headR *= f.head; m.limb *= f.arm; m.chest *= f.chest;
+  m.kind = o.kind; m.mirror = o.mirror; m.skew = f.skew; m.orient = orientId;
+  return m;
+}
+function charAnchors(m){
+  const top = -m.h;
+  const headY = top + m.headR + 1;
+  const neckY = headY + m.headR * 0.85;
+  const shoulderY = neckY + 3;
+  const chestY = shoulderY + m.h * 0.16;
+  const waistY = chestY + m.h * 0.14;
+  const hipY = waistY + m.h * 0.08;
+  const kneeY = hipY + (0 - hipY) * 0.55;
+  const ankleY = -1.5;
+  const sh = m.shoulder, hi = m.hip;
+  return {
+    head:{x:0,y:headY}, neck:{x:0,y:neckY},
+    shoulderL:{x:-sh,y:shoulderY}, shoulderR:{x:sh,y:shoulderY},
+    elbowL:{x:-sh*1.05,y:(shoulderY+waistY)/2}, elbowR:{x:sh*1.05,y:(shoulderY+waistY)/2},
+    handL:{x:-sh*1.12,y:waistY+2}, handR:{x:sh*1.12,y:waistY+2},
+    bodyCenter:{x:0,y:(chestY+waistY)/2},
+    hip:{x:0,y:hipY}, hipL:{x:-hi*0.55,y:hipY}, hipR:{x:hi*0.55,y:hipY},
+    kneeL:{x:-m.foot*0.9,y:kneeY}, kneeR:{x:m.foot*0.9,y:kneeY},
+    footL:{x:-m.foot,y:ankleY}, footR:{x:m.foot,y:ankleY},
+    pivot:{x:0,y:0},
+    _y:{ top, headY, neckY, shoulderY, chestY, waistY, hipY, kneeY, ankleY }
+  };
+}
+function charWeaponHandLocal(mirror){ return mirror ? "handL" : "handR"; } // rebind après miroir
+function charWeaponStyle(e){
+  if(e.isPlayer && e.equip && e.equip.weapon){
+    const n = (e.equip.weapon.name||e.equip.weapon.base||"").toLowerCase();
+    if(/bâton|baton|staff|lance|neuro/.test(n)) return "staff";
+    return "sword";
+  }
+  if(e.isSummon) return null;
+  const t = e.tactic || "";
+  if(t==="tech" || t==="neuro" || t==="gravity") return "staff";
+  if(t==="kiter") return "sword";
+  return "sword";
+}
+// tailles d'arme FIXES (px) — jamais scalées par morphologie
+const CHAR_WEAPON_SIZE = { sword:{len:22, w:2.6}, staff:{len:34, w:2.2} };
+
+const CharBody = {
+  PAL: CHAR_PAL, MORPH: CHAR_MORPH,
+  morphFor: charMorphFor,
+  orientOf: charOrientOf,
+  orientFromDelta: charOrientFromDelta,
+  project: charProject,
+  anchors: charAnchors,
+  weaponHandLocal: charWeaponHandLocal,
+  /** Ancrage de sort : limb | bodyCenter | grid — positions écran */
+  spellAnchor(e, type, footScreen){
+    const morph = charProject(charMorphFor(e), charOrientOf(e));
+    const a = charAnchors(morph);
+    const mirror = morph.mirror ? -1 : 1;
+    const skew = morph.skew || 0;
+    const map = (p)=>{
+      let x = p.x, y = p.y;
+      // skew puis miroir (même ordre que le dessin)
+      x = x + skew * y;
+      x *= mirror;
+      return { x: footScreen.x + x, y: footScreen.y + y };
+    };
+    if(type === "grid") return { x: footScreen.x, y: footScreen.y, layer:"behind" };
+    if(type === "bodyCenter") return Object.assign(map(a.bodyCenter), { layer:"behind" });
+    // limb — main dominante écran (après rebind)
+    const hand = a[charWeaponHandLocal(morph.mirror)];
+    return Object.assign(map(hand), { layer:"front" });
+  },
+  /** Dessine le personnage ; foot = pivot pieds (écran). */
+  draw(ctx, e, foot, opts){
+    opts = opts || {};
+    const flash = !!opts.flash;
+    const t = opts.t || 0;
+    const morph0 = charMorphFor(e);
+    const orientId = charOrientOf(e);
+    const m = charProject(morph0, orientId);
+    const a = charAnchors(m);
+    const P = CHAR_PAL;
+    const body = flash ? P.flash : P.cream;
+    const shade = flash ? "#eee" : P.beige;
+    const ink = P.ink;
+    const accent = (e.isPlayer ? P.accent : (e.glow || P.accent));
+
+    // ombre au sol (case)
+    ctx.save();
+    ctx.fillStyle = P.shadow;
+    ctx.beginPath(); ctx.ellipse(foot.x, foot.y+3, 16, 7, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    const layersBackFirst = (m.kind === "back" || m.kind === "qBack")
+      ? ["legR","armR","torso","head","armL","legL","weapon"]
+      : (m.kind === "side")
+        ? ["legL","armL","torso","head","legR","armR","weapon"]
+        : ["legL","armL","torso","head","armR","legR","weapon"];
+
+    const drawCapsule = (x0,y0,x1,y1,r,col)=>{
+      const dx=x1-x0, dy=y1-y0, len=Math.hypot(dx,dy)||1;
+      const ux=dx/len, uy=dy/len, px=-uy*r, py=ux*r;
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(x0+px, y0+py); ctx.lineTo(x1+px, y1+py);
+      ctx.arc(x1,y1,r, Math.atan2(py,px), Math.atan2(py,px)+Math.PI);
+      ctx.lineTo(x0-px, y0-py);
+      ctx.arc(x0,y0,r, Math.atan2(-py,-px), Math.atan2(py,px));
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = ink; ctx.lineWidth = 1.1; ctx.stroke();
+    };
+    const roundBox = (x,y,w,h,rad,col)=>{
+      ctx.fillStyle = col;
+      const rr = Math.min(rad, w/2, h/2);
+      ctx.beginPath();
+      ctx.moveTo(x+rr,y); ctx.arcTo(x+w,y,x+w,y+h,rr); ctx.arcTo(x+w,y+h,x,y+h,rr);
+      ctx.arcTo(x,y+h,x,y,rr); ctx.arcTo(x,y,x+w,y,rr); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = ink; ctx.lineWidth = 1.15; ctx.stroke();
+    };
+
+    ctx.save();
+    ctx.translate(foot.x, foot.y);
+    if(m.mirror) ctx.scale(-1, 1);
+    if(m.skew) ctx.transform(1, 0, m.skew, 1, 0, 0);
+
+    const wStyle = charWeaponStyle(e);
+    const wHand = charWeaponHandLocal(m.mirror); // rebind dans l'espace local mirroir
+    const Y = a._y;
+
+    const drawLeg = (side)=>{
+      const hip = side==="L" ? a.hipL : a.hipR;
+      const knee = side==="L" ? a.kneeL : a.kneeR;
+      const footA = side==="L" ? a.footL : a.footR;
+      drawCapsule(hip.x, hip.y, knee.x, knee.y, m.limb*1.05, shade);
+      drawCapsule(knee.x, knee.y, footA.x, footA.y, m.limb*0.85, body);
+      // pied
+      ctx.fillStyle = ink;
+      ctx.beginPath(); ctx.ellipse(footA.x, footA.y+1.2, m.limb*1.3, m.limb*0.55, 0, 0, Math.PI*2); ctx.fill();
+    };
+    const drawArm = (side)=>{
+      const sh = side==="L" ? a.shoulderL : a.shoulderR;
+      const el = side==="L" ? a.elbowL : a.elbowR;
+      const ha = side==="L" ? a.handL : a.handR;
+      drawCapsule(sh.x, sh.y, el.x, el.y, m.limb*0.9, shade);
+      drawCapsule(el.x, el.y, ha.x, ha.y, m.limb*0.75, body);
+      ctx.fillStyle = ink;
+      ctx.beginPath(); ctx.arc(ha.x, ha.y, m.limb*0.7, 0, Math.PI*2); ctx.fill();
+    };
+    const drawTorso = ()=>{
+      const tw = m.waist * 2, sw = m.shoulder * 2;
+      const top = Y.shoulderY, bot = Y.hipY;
+      const mid = Y.waistY;
+      // hanches / bas
+      roundBox(-m.hip, mid-2, m.hip*2, bot-mid+4, 4, shade);
+      // torse trapèze approximé
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(-sw*0.5, top); ctx.lineTo(sw*0.5, top);
+      ctx.lineTo(tw*0.5, mid); ctx.lineTo(-tw*0.5, mid);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = ink; ctx.lineWidth = 1.2; ctx.stroke();
+      // poitrine / volume
+      const cw = m.shoulder * m.chest;
+      roundBox(-cw, Y.chestY-4, cw*2, 9, 3.5, shade);
+      // slip / zone anthracite (planche)
+      roundBox(-m.hip*0.7, Y.hipY-1, m.hip*1.4, 6, 2, ink);
+      // ligne accent
+      ctx.fillStyle = accent;
+      ctx.fillRect(-m.waist*0.55, Y.chestY+1, m.waist*1.1, 2.2);
+    };
+    const drawHead = ()=>{
+      const hx = a.head.x, hy = a.head.y, r = m.headR;
+      ctx.fillStyle = body;
+      ctx.beginPath(); ctx.arc(hx, hy, r, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = ink; ctx.lineWidth = 1.2; ctx.stroke();
+      // visière anthracite
+      ctx.fillStyle = ink;
+      const vw = r * 1.35, vh = r * 0.42;
+      roundBox(hx - vw/2, hy - vh*0.35, vw, vh, 2, ink);
+      // lueur visière
+      ctx.fillStyle = flash ? P.flash : accent;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(hx - vw*0.35, hy - vh*0.05, vw*0.7, vh*0.35);
+      ctx.globalAlpha = 1;
+      if(e.isBoss){
+        ctx.fillStyle = P.accent;
+        ctx.beginPath();
+        ctx.moveTo(hx-6, hy-r-1); ctx.lineTo(hx-3, hy-r-7); ctx.lineTo(hx, hy-r-1);
+        ctx.lineTo(hx+3, hy-r-7); ctx.lineTo(hx+6, hy-r-1); ctx.closePath(); ctx.fill();
+      }
+    };
+    const drawWeapon = ()=>{
+      if(!wStyle) return;
+      const hand = a[wHand];
+      const sz = CHAR_WEAPON_SIZE[wStyle];
+      ctx.save();
+      ctx.translate(hand.x, hand.y);
+      if(wStyle === "staff"){
+        // bâton 2 mains : angle vers l'autre main
+        const other = a[wHand==="handR"?"handL":"handR"];
+        const ang = Math.atan2(other.y - hand.y, other.x - hand.x);
+        ctx.rotate(ang);
+        ctx.fillStyle = P.beige; ctx.strokeStyle = ink; ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        const wx=-sz.len*0.25, wy=-sz.w/2, ww=sz.len, wh=sz.w, wr=1.5;
+        ctx.moveTo(wx+wr,wy); ctx.arcTo(wx+ww,wy,wx+ww,wy+wh,wr); ctx.arcTo(wx+ww,wy+wh,wx,wy+wh,wr);
+        ctx.arcTo(wx,wy+wh,wx,wy,wr); ctx.arcTo(wx,wy,wx+ww,wy,wr); ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = P.accent;
+        ctx.beginPath(); ctx.arc(sz.len*0.7, 0, 3.2, 0, Math.PI*2); ctx.fill();
+      } else {
+        // épée 1 main — taille fixe, pointe haut-avant
+        ctx.rotate(-Math.PI/2.5);
+        ctx.fillStyle = P.beige; ctx.strokeStyle = ink; ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(0, 2); ctx.lineTo(sz.w, -sz.len*0.15); ctx.lineTo(sz.w*0.45, -sz.len);
+        ctx.lineTo(-sz.w*0.45, -sz.len); ctx.lineTo(-sz.w, -sz.len*0.15); ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = ink; ctx.beginPath();
+        ctx.moveTo(-sz.w*1.2, -sz.len*0.12); ctx.lineTo(sz.w*1.2, -sz.len*0.12); ctx.stroke();
+        ctx.fillStyle = P.accent; ctx.fillRect(-1.2, 0, 2.4, 5);
+      }
+      ctx.restore();
+    };
+
+    // équipement permanent (armure / casque) — ancré, suit morph
+    const drawGear = ()=>{
+      const hasArmor = !!(e.isPlayer && e.equip && e.equip.armor) || (!e.isPlayer && (e.isBoss || e.elite));
+      const hasHelm = !!(e.isPlayer && e.equip && e.equip.implant) || (!!e.isBoss);
+      if(hasArmor){
+        ctx.strokeStyle = P.accent; ctx.lineWidth = 1.6;
+        ctx.globalAlpha = 0.7;
+        ctx.beginPath();
+        ctx.ellipse(0, a.bodyCenter.y, m.shoulder*0.95, (Y.hipY-Y.shoulderY)*0.42, 0, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        // épaulières
+        roundBox(a.shoulderL.x-3, a.shoulderL.y-3, 6, 5, 1.5, shade);
+        roundBox(a.shoulderR.x-3, a.shoulderR.y-3, 6, 5, 1.5, shade);
+      }
+      if(hasHelm){
+        ctx.fillStyle = ink;
+        ctx.beginPath();
+        ctx.arc(a.head.x, a.head.y - 1, m.headR*1.05, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = P.accent;
+        ctx.fillRect(a.head.x-1.2, a.head.y - m.headR - 6, 2.4, 6);
+      }
+    };
+
+    for(const layer of layersBackFirst){
+      if(layer==="legL") drawLeg("L");
+      else if(layer==="legR") drawLeg("R");
+      else if(layer==="armL") drawArm("L");
+      else if(layer==="armR") drawArm("R");
+      else if(layer==="torso"){ drawTorso(); drawGear(); }
+      else if(layer==="head") drawHead();
+      else if(layer==="weapon") drawWeapon();
+    }
+
+    ctx.restore();
+
+    // stocke ancrages écran pour sorts (limb / body / grid)
+    const footScreen = { x: foot.x, y: foot.y };
+    e._charAnchors = {
+      limb: CharBody.spellAnchor(e, "limb", footScreen),
+      bodyCenter: CharBody.spellAnchor(e, "bodyCenter", footScreen),
+      grid: CharBody.spellAnchor(e, "grid", footScreen),
+      morph: m.id || morph0.id,
+      orient: orientId,
+    };
+  }
+};
+
+
 const Render = {
   // recalcule l'échelle + l'origine pour centrer la grille
   layout(){
@@ -7266,40 +7614,35 @@ const Render = {
     if(Math.abs(e._rr - e.r) < 0.02) e._rr = e.r;
     const s = Iso.toScreen(e._rc, e._rr);
     const t = performance.now()/1000;
-    const bob = Math.sin(t*2 + (e.isPlayer?0:e.c)) * 2;
-    const cx = s.x, cy = s.y - 4 + bob;
-
-    // ombre portée
-    ctx.fillStyle="rgba(8,24,38,.35)";
-    ctx.beginPath();
-    ctx.ellipse(s.x, s.y+4, 18, 8, 0, 0, Math.PI*2); ctx.fill();
-
+    const bob = Math.sin(t*2 + (e.isPlayer?0:e.c)) * 1.5;
+    // pivot pieds = centre bas de la case (géométrie 64×32)
+    const foot = { x: s.x, y: s.y + 2 + bob };
     const flash = e.hitFlash>0;
-    const main = e.isPlayer ? "#27e0ff" : e.color;
-    const glow = e.isPlayer ? "#27e0ff" : e.glow;
 
-    // aura
-    ctx.globalAlpha=0.4+Math.sin(t*3)*0.1;
-    ctx.fillStyle=glow;
-    ctx.beginPath(); ctx.ellipse(cx, cy-14, 16, 22, 0,0,Math.PI*2); ctx.fill();
-    ctx.globalAlpha=1;
+    // aura légère (identité camp) — sous le corps
+    ctx.save();
+    ctx.globalAlpha = 0.22 + Math.sin(t*3)*0.06;
+    ctx.fillStyle = e.isPlayer ? "#E8590C" : (e.glow || "#DCD3C3");
+    ctx.beginPath(); ctx.ellipse(foot.x, foot.y - 18, 14, 20, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
 
-    // M-fix — REPÈRE PERSISTANT DU JOUEUR (l'ECHO partage la couleur des alliés) : anneau au sol + chevron
+    // M-FIX — REPÈRE JOUEUR (UI cyan, distinct de la palette corps)
     if(e.isPlayer){
       ctx.save();
       ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 2;
       ctx.globalAlpha = 0.55 + Math.sin(t*4)*0.25;
-      ctx.beginPath(); ctx.ellipse(s.x, s.y+4, 21, 9, 0, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(foot.x, foot.y+3, 21, 9, 0, 0, Math.PI*2); ctx.stroke();
       ctx.globalAlpha = 1;
-      const yy = cy - 42 + Math.sin(t*3)*2;
+      const yy = foot.y - 56 + Math.sin(t*3)*2;
       ctx.fillStyle = "#27e0ff"; ctx.strokeStyle = "rgba(255,255,255,.95)"; ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.moveTo(s.x-7, yy); ctx.lineTo(s.x+7, yy); ctx.lineTo(s.x, yy+9); ctx.closePath();
+      ctx.beginPath(); ctx.moveTo(foot.x-7, yy); ctx.lineTo(foot.x+7, yy); ctx.lineTo(foot.x, yy+9); ctx.closePath();
       ctx.fill(); ctx.stroke();
       ctx.restore();
     }
 
-    // V0.91 — CONTOUR LUMINEUX si l'unité est ciblable par le sort armé
+    // V0.91 — CONTOUR LUMINEUX si ciblable
     const hlc = Render._hl;
+    const cx = foot.x, cy = foot.y - 22;
     if(armedSkill && hlc){
       const k = Grid.key(e.c, e.r);
       const isTarget = hlc.target.has(k) || hlc.heal.has(k);
@@ -7309,69 +7652,37 @@ const Render = {
         ctx.save();
         ctx.globalAlpha = 0.5 + Math.sin(t*6)*0.3;
         ctx.strokeStyle = col; ctx.lineWidth = 2.5;
-        ctx.beginPath(); ctx.ellipse(cx, cy-12, 22, 28, 0, 0, Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(cx, cy-8, 22, 30, 0, 0, Math.PI*2); ctx.stroke();
         ctx.restore();
       }
     }
 
-    // corps (silhouette iso simple et lisible)
-    const bodyCol = flash ? "#ffffff" : main;
-    // jambes
-    ctx.fillStyle="rgba(10,28,44,.9)";
-    Render.roundRect(cx-9, cy-12, 18, 16, 4); ctx.fill();
-    // torse
-    ctx.fillStyle=bodyCol;
-    Render.roundRect(cx-11, cy-30, 22, 22, 6); ctx.fill();
-    ctx.strokeStyle="rgba(6,20,32,.6)"; ctx.lineWidth=1.5; ctx.stroke();
-    // détail lumineux (esport)
-    ctx.fillStyle = flash ? "#ff8a3c" : (e.isPlayer ? "#ffffff" : "#0c1f30");
-    ctx.fillRect(cx-7, cy-24, 14, 3);
-    // tête / visière
-    ctx.fillStyle="rgba(12,31,48,.95)";
-    ctx.beginPath(); ctx.arc(cx, cy-36, 8, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = flash ? "#fff" : glow;
-    ctx.fillRect(cx-6, cy-38, 12, 4); // visière
-    if(e.isBoss){
-      // couronne / marqueur boss
-      ctx.fillStyle="#ff8a3c";
-      ctx.beginPath();
-      ctx.moveTo(cx-8,cy-44); ctx.lineTo(cx-4,cy-50); ctx.lineTo(cx,cy-44);
-      ctx.lineTo(cx+4,cy-50); ctx.lineTo(cx+8,cy-44); ctx.closePath(); ctx.fill();
-    }
-    // V3.4 (S6/G) — marqueur cible de contrat (★)
+    // ===== CORPS DÉTAILLÉ (CharBody — planche référence) =====
+    CharBody.draw(ctx, e, foot, { flash, t });
+
+    // marqueur cible de contrat (★)
     if(e.contractTarget){
       ctx.save();
       ctx.globalAlpha = 0.7 + Math.sin(t*5)*0.3;
-      ctx.fillStyle = "#ffd23c";
+      ctx.fillStyle = "#E8590C";
       ctx.font = "bold 14px Trebuchet MS"; ctx.textAlign = "center";
-      ctx.fillText("★", cx, cy - 54);
-      ctx.strokeStyle = "#ffd23c"; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.ellipse(cx, cy-12, 24, 30, 0, 0, Math.PI*2); ctx.stroke();
+      ctx.fillText("★", foot.x, foot.y - 58);
+      ctx.strokeStyle = "#E8590C"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.ellipse(foot.x, foot.y - 22, 24, 32, 0, 0, Math.PI*2); ctx.stroke();
       ctx.restore();
     }
-    // V3.4 (G) — équipement visible sur l'ECHO (arme / armure / implant)
-    if(e.isPlayer && e.equip){
-      const w = e.equip.weapon, a = e.equip.armor, im = e.equip.implant;
-      if(a){
-        ctx.strokeStyle = SLOT_COLOR.armor || "#3ce08a"; ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.ellipse(cx, cy-16, 14, 18, 0, 0, Math.PI*2); ctx.stroke(); ctx.globalAlpha = 1;
-      }
-      if(w){
-        ctx.strokeStyle = SLOT_COLOR.weapon || "#ff5a6a"; ctx.lineWidth = 2.2;
-        ctx.beginPath(); ctx.moveTo(cx+10, cy-22); ctx.lineTo(cx+20, cy-30); ctx.stroke();
-        ctx.fillStyle = SLOT_COLOR.weapon || "#ff5a6a";
-        ctx.beginPath(); ctx.arc(cx+20, cy-30, 2.5, 0, Math.PI*2); ctx.fill();
-      }
-      if(im){
-        ctx.fillStyle = SLOT_COLOR.implant || "#a06bff";
-        ctx.globalAlpha = 0.7 + Math.sin(t*4)*0.2;
-        ctx.beginPath(); ctx.arc(cx-10, cy-34, 3, 0, Math.PI*2); ctx.fill();
-        ctx.globalAlpha = 1;
-      }
+
+    // ancrages de sorts (debug visuel discret si ancres affichées via opts — sinon stockés sur e._charAnchors)
+    if(State && State._debug && e._charAnchors){
+      const A = e._charAnchors;
+      [["limb","#E8590C"],["bodyCenter","#2E2E30"],["grid","#DCD3C3"]].forEach(([k,col])=>{
+        const p = A[k]; if(!p) return;
+        ctx.fillStyle = col; ctx.beginPath(); ctx.arc(p.x, p.y, 2.5, 0, Math.PI*2); ctx.fill();
+      });
     }
 
     // barre de vie au-dessus (V0.91 — permanente, désactivable via Accessibilité)
-    const bw=34, bh=5, bx=cx-bw/2, by=cy-58;
+    const bw=34, bh=5, bx=foot.x-bw/2, by=foot.y-62;
     if(UI.opts.bars){
       ctx.fillStyle="rgba(6,20,32,.7)"; Render.roundRect(bx-1,by-1,bw+2,bh+2,3); ctx.fill();
       const pct = clamp(e.pv/e.pvMax,0,1);
@@ -7387,7 +7698,8 @@ const Render = {
       ctx.save();
       ctx.globalAlpha = 0.35 + Math.sin(t*4)*0.15;
       ctx.strokeStyle="#7fe9ff"; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.ellipse(cx, cy-16, 20, 26, 0, 0, Math.PI*2); ctx.stroke();
+      const bc = (e._charAnchors && e._charAnchors.bodyCenter) || {x:foot.x,y:foot.y-22};
+      ctx.beginPath(); ctx.ellipse(bc.x, bc.y, 20, 26, 0, 0, Math.PI*2); ctx.stroke();
       ctx.restore();
     }
     // OVERCLOCK (V0.7) : double anneau violet pulsé
@@ -7395,7 +7707,8 @@ const Render = {
       ctx.save();
       ctx.globalAlpha = 0.4 + Math.sin(t*6)*0.2;
       ctx.strokeStyle="#8b6cf0"; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(cx, cy-16, 24, 0, Math.PI*2); ctx.stroke();
+      const bc2 = (e._charAnchors && e._charAnchors.bodyCenter) || {x:foot.x,y:foot.y-22};
+      ctx.beginPath(); ctx.arc(bc2.x, bc2.y, 24, 0, Math.PI*2); ctx.stroke();
       ctx.restore();
     }
     // INVOCATIONS AVANCÉES (V0.7) : petit pictogramme distinctif
@@ -7435,7 +7748,7 @@ const Render = {
     if(Combat.current()===e && !State.over){
       ctx.strokeStyle="#ffffff"; ctx.lineWidth=2;
       ctx.globalAlpha=0.6+Math.sin(t*5)*0.4;
-      ctx.beginPath(); ctx.arc(cx, cy-18, 30, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(foot.x, foot.y-24, 32, 0, Math.PI*2); ctx.stroke();
       ctx.globalAlpha=1;
     }
   },
