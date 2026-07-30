@@ -1,9 +1,9 @@
 {
   "name": "neuro-core",
-  "version": "3.4.1",
+  "version": "3.4.2",
   "private": true,
   "type": "module",
-  "description": "NEURO-CORE — RPG tactique HTML autonome (jeu jouable d'abord)",
+  "description": "NEURO-CORE \u2014 RPG tactique HTML autonome (jeu jouable d'abord)",
   "scripts": {
     "test": "node --test tests/*.test.js"
   }
