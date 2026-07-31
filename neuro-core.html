@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NEURO CORE — V3.4.7</title>
+<title>NEURO CORE — V3.4.8</title>
 <style>
 /* =====================================================================
-   NEURO CORE — V3.4.7 (attaque orientée vers la cible)
+   NEURO CORE — V3.4.8 (Attack1 calibré case ennemi)
    Tactical Roguelite — HTML / CSS / JS Vanilla — Fichier unique autonome
    Direction artistique : 70% Dofus Touch / 20% Ghost in the Shell / 10% Esport
    Palette : cyan lumineux, turquoise, violet, orange, blanc, acier bleuté
@@ -1028,7 +1028,7 @@ aside.side{
 <div class="overlay" id="introOverlay">
   <div class="modal">
     <h1>NEURO CORE</h1>
-    <div class="sub">NEURO CORE — V3.4.7 · Mercenaire tactique (mobile OK)</div>
+    <div class="sub">NEURO CORE — V3.4.8 · Mercenaire tactique (mobile OK)</div>
     <div class="introbody">
       Autrefois esclave d'arène des grandes corporations, ton <b>ECHO</b> — une conscience numérique immortelle — a brisé ses chaînes.
       Désormais <b>mercenaire indépendant</b>, tu loues tes Enveloppes au plus offrant.
@@ -7335,19 +7335,21 @@ const PackSprites = {
   // Orientations CharBody (réf. logique jeu)
   DIRS: ["front","qFrontRight","sideRight","qBackRight","back","qBackLeft","sideLeft","qFrontLeft"],
   /**
-   * Calibrage joueur (mappeur-vues) — Walk / Run / Attack / Hit / Die / Taunt :
-   * rangée sheet → vue réelle : 0=E 1=SE 2=S 3=SO 4=O 5=NO 6=N 7=NE
-   * Donc orient → row :
+   * Walk / Idle / Run / Hit / Die — calibrage mappeur-vues :
+   * rangée → 0=E 1=SE 2=S 3=SO 4=O 5=NO 6=N 7=NE
    */
   ROW_BY_ORIENT: {
-    front: 2,        // S
-    qFrontRight: 1,  // SE
-    sideRight: 0,    // E
-    qBackRight: 7,   // NE
-    back: 6,         // N
-    qBackLeft: 5,    // NO
-    sideLeft: 4,     // O
-    qFrontLeft: 3,   // SO
+    front: 2, qFrontRight: 1, sideRight: 0, qBackRight: 7,
+    back: 6, qBackLeft: 5, sideLeft: 4, qFrontLeft: 3,
+  },
+  /**
+   * Attack1 — calibrage joueur par CASE ENNEMI (Δcol/Δrow) :
+   * front=3 qFrontRight=2 sideRight=1 qBackRight=0
+   * back=7 qBackLeft=6 sideLeft=5 qFrontLeft=4
+   */
+  ROW_BY_ORIENT_ATTACK: {
+    front: 3, qFrontRight: 2, sideRight: 1, qBackRight: 0,
+    back: 7, qBackLeft: 6, sideLeft: 5, qFrontLeft: 4,
   },
   ANIMS: {
     idle:   { file:"Idle.png",        fps:8 },
@@ -7377,10 +7379,11 @@ const PackSprites = {
   uiLift(){
     return Math.round(this.targetBodyH + 10);
   },
-  dirRow(dir){
-    if(this.ROW_BY_ORIENT[dir] !== undefined) return this.ROW_BY_ORIENT[dir];
+  dirRow(dir, anim){
+    const map = (anim === "attack") ? this.ROW_BY_ORIENT_ATTACK : this.ROW_BY_ORIENT;
+    if(map[dir] !== undefined) return map[dir];
     const i = this.DIRS.indexOf(dir);
-    return i >= 0 ? i : 2; // défaut : face (S) = row 2
+    return i >= 0 ? i : 2;
   },
   pickAnim(e){
     if(!e.alive) return "die";
@@ -7431,7 +7434,7 @@ const PackSprites = {
     const sheet = this.sheets[anim] || this.sheets.idle;
     if(!sheet) return false;
     const dir = (typeof charOrientOf === "function") ? charOrientOf(e) : "front";
-    const row = this.dirRow(dir);
+    const row = this.dirRow(dir, anim);
     const fps = (this.ANIMS[anim] && this.ANIMS[anim].fps) || 8;
     let frame = Math.floor(t * fps) % this.cols;
     if(anim === "die") frame = Math.min(this.cols - 1, Math.floor((1 - Math.max(0, e.hitFlash||0)) * this.cols));
