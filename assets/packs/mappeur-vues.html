@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>Mappeur vues × actions — Thug</title>
+<style>
+  :root{
+    --bg:#0d121a; --panel:#141b26; --ink:#e8eef6; --muted:#8fa3b8;
+    --line:#2a3545; --accent:#E8590C; --cyan:#3ecfff; --ok:#3ce08a;
+    --tile:#1a2330;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{min-height:100%;background:var(--bg);color:var(--ink);
+    font-family:"Trebuchet MS","Segoe UI",Verdana,sans-serif}
+  body{
+    background:
+      radial-gradient(900px 500px at 50% -10%, #1c2a3c 0%, transparent 55%),
+      linear-gradient(180deg, #101822, #0a0e14 70%);
+    padding:12px 12px calc(18px + env(safe-area-inset-bottom));
+    max-width:720px; margin:0 auto;
+  }
+  h1{font-size:18px; letter-spacing:.5px; color:var(--accent); margin-bottom:4px}
+  .sub{font-size:13px; color:var(--muted); line-height:1.4; margin-bottom:14px}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:12px; margin-bottom:12px;
+  }
+  .lab{font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:8px}
+  .chips{display:flex; flex-wrap:wrap; gap:6px}
+  button.chip, .chip{
+    appearance:none; border:1px solid var(--line); background:var(--tile); color:var(--ink);
+    border-radius:10px; padding:9px 11px; font-size:13px; font-weight:700; cursor:pointer;
+    min-height:40px;
+  }
+  button.chip.on{border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 0 1px rgba(62,207,255,.25)}
+  button.chip.done{border-color:var(--ok); color:var(--ok)}
+  .compass{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:4px; max-width:220px; margin:8px auto 0;
+    text-align:center; font-size:11px; color:var(--muted);
+  }
+  .compass b{display:block; color:var(--ink); font-size:12px}
+  .hint{font-size:12px; color:var(--muted); line-height:1.45; margin-top:8px}
+  .rows{display:flex; flex-direction:column; gap:10px}
+  .row{
+    display:grid; grid-template-columns:72px 1fr; gap:10px; align-items:center;
+    background:rgba(0,0,0,.22); border:1px solid var(--line); border-radius:12px; padding:8px;
+  }
+  .preview{
+    width:72px; height:72px; image-rendering:pixelated; background:#0a0e14;
+    border-radius:8px; border:1px solid #243040; display:block;
+  }
+  .row meta{display:block}
+  .row .idx{font-size:12px; color:var(--accent); font-weight:700}
+  .row .ask{font-size:12px; color:var(--muted); margin:2px 0 6px}
+  .dirs{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px}
+  .dirs button{
+    font-size:11px; padding:7px 2px; min-height:34px; border-radius:8px;
+    border:1px solid var(--line); background:#121820; color:var(--ink); font-weight:700; cursor:pointer;
+  }
+  .dirs button.on{background:rgba(232,89,12,.18); border-color:var(--accent); color:#ffb48a}
+  .actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+  .actions button{
+    flex:1 1 140px; min-height:44px; border-radius:12px; border:1px solid var(--line);
+    background:var(--tile); color:var(--ink); font-weight:700; font-size:13px; cursor:pointer;
+  }
+  .actions button.primary{background:var(--accent); border-color:#ff7a3c; color:#1a0c04}
+  .actions button.ghost{background:transparent}
+  textarea{
+    width:100%; min-height:140px; margin-top:8px; border-radius:10px; border:1px solid var(--line);
+    background:#0a0e14; color:#d7e6f5; padding:10px; font:12px/1.4 ui-monospace, Menlo, Consolas, monospace;
+  }
+  #status{font-size:12px; color:var(--cyan); margin-bottom:10px}
+  .toast{
+    position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    background:#123024; color:var(--ok); border:1px solid #2a6a4a; border-radius:999px;
+    padding:8px 14px; font-size:12px; font-weight:700; opacity:0; pointer-events:none;
+    transition:opacity .2s;
+  }
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+  <h1>Mappeur vues × actions</h1>
+  <div class="sub">
+    Pour chaque <b>action</b> (marcher, taper…), regarde les 8 rangées du sprite
+    et dis-moi <b>quelle vue</b> tu vois vraiment (S, SE, E…). Ensuite copie le résultat et envoie-le-moi.
+  </div>
+  <div id="status">Chargement des planches…</div>
+
+  <div class="card">
+    <div class="lab">1 · Action / planche</div>
+    <div class="chips" id="animChips"></div>
+    <div class="hint">Hypothèse actuelle du jeu : rangée 0 = Sud (face), puis SE → E → NE → N → NO → O → SO.</div>
+    <div class="compass">
+      <div></div><div><b>N</b>dos</div><div></div>
+      <div><b>O</b>gauche</div><div style="color:var(--accent)"><b>✦</b></div><div><b>E</b>droite</div>
+      <div></div><div><b>S</b>face</div><div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="lab">2 · Pour chaque rangée : quelle vue vois-tu ?</div>
+    <div class="rows" id="rows"></div>
+  </div>
+
+  <div class="card">
+    <div class="lab">3 · Envoyer le mapping</div>
+    <div class="hint">Quand les 8 rangées sont étiquetées pour cette action, copie le texte et colle-le dans le chat.</div>
+    <div class="actions">
+      <button class="primary" id="btnCopy">📋 Copier le résultat</button>
+      <button class="ghost" id="btnReset">↺ Reset cette action</button>
+      <button class="ghost" id="btnAll">📄 Tout (toutes actions)</button>
+    </div>
+    <textarea id="out" readonly placeholder="Le mapping apparaîtra ici…"></textarea>
+  </div>
+
+  <div class="toast" id="toast">Copié</div>
+
+<script>
+const FRAME = 64, COLS = 8, ROWS = 8;
+const LOCAL = "./thug-16bit-outlined/";
+const CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/echo-sprite-idle-test-e78a/assets/packs/thug-16bit-outlined/";
+
+/** Vues possibles (iso NEURO) */
+const VUES = [
+  { id:"S",  label:"S · face" },
+  { id:"SE", label:"SE" },
+  { id:"E",  label:"E · droite" },
+  { id:"NE", label:"NE" },
+  { id:"N",  label:"N · dos" },
+  { id:"NO", label:"NO" },
+  { id:"O",  label:"O · gauche" },
+  { id:"SO", label:"SO" },
+  { id:"?",  label:"? flou" },
+];
+
+/** Mapping jeu actuel (hypothèse) : row index → vue */
+const HYPOTHESE = ["S","SE","E","NE","N","NO","O","SO"];
+
+const ANIMS = [
+  { id:"Idle",        file:"Idle.png",        fr:"Idle / attendre",     role:"idle" },
+  { id:"Walk",        file:"Walk.png",        fr:"Marcher",             role:"walk" },
+  { id:"Run",         file:"Run.png",         fr:"Courir",              role:"run" },
+  { id:"Attack1",     file:"Attack1.png",     fr:"Taper (coup 1)",      role:"attack" },
+  { id:"Attack2",     file:"Attack2.png",     fr:"Taper (coup 2)",      role:"attack" },
+  { id:"Attack3",     file:"Attack3.png",     fr:"Taper (coup 3)",      role:"attack" },
+  { id:"TakeDamage",  file:"TakeDamage.png",  fr:"Touché / hit",        role:"hit" },
+  { id:"Die",         file:"Die.png",         fr:"Mourir",              role:"die" },
+  { id:"Taunt",       file:"Taunt.png",       fr:"Provocation",         role:"taunt" },
+  { id:"StrafeLeft",  file:"StrafeLeft.png",  fr:"Strafe gauche",       role:"strafe" },
+  { id:"StrafeRight", file:"StrafeRight.png", fr:"Strafe droite",       role:"strafe" },
+];
+
+const sheets = {};          // animId → Image
+const labels = {};          // animId → [8 vue ids]
+let animId = "Walk";
+let frame = 0;
+let lastTs = 0;
+
+const statusEl = document.getElementById("status");
+const animChips = document.getElementById("animChips");
+const rowsEl = document.getElementById("rows");
+const outEl = document.getElementById("out");
+const toastEl = document.getElementById("toast");
+
+function ensureLabels(id){
+  if(!labels[id]) labels[id] = HYPOTHESE.slice();
+  return labels[id];
+}
+
+function loadImg(file){
+  return new Promise(resolve=>{
+    const tryUrl = (urls, i)=>{
+      if(i>=urls.length){ resolve(null); return; }
+      const img = new Image();
+      img.decoding = "async";
+      img.onload = ()=> resolve(img);
+      img.onerror = ()=> tryUrl(urls, i+1);
+      img.crossOrigin = "anonymous";
+      img.src = urls[i];
+    };
+    tryUrl([LOCAL+file, CDN+file], 0);
+  });
+}
+
+async function boot(){
+  const oks = await Promise.all(ANIMS.map(async a=>{
+    const img = await loadImg(a.file);
+    if(img) sheets[a.id] = img;
+    ensureLabels(a.id);
+    return !!img;
+  }));
+  const n = oks.filter(Boolean).length;
+  statusEl.textContent = n ? (n+"/"+ANIMS.length+" planches prêtes · tape une action puis étiquette les rangées")
+                           : "Assets introuvables (local + CDN).";
+  renderChips();
+  renderRows();
+  refreshOut();
+  requestAnimationFrame(tick);
+}
+
+function renderChips(){
+  animChips.innerHTML = "";
+  ANIMS.forEach(a=>{
+    if(!sheets[a.id]) return;
+    const b = document.createElement("button");
+    b.className = "chip" + (a.id===animId?" on":"") + (isComplete(a.id)?" done":"");
+    b.textContent = a.fr;
+    b.onclick = ()=>{ animId = a.id; frame = 0; renderChips(); renderRows(); refreshOut(); };
+    animChips.appendChild(b);
+  });
+}
+
+function isComplete(id){
+  const L = labels[id] || [];
+  return L.length===8 && L.every(v => v && v !== "?");
+}
+
+function renderRows(){
+  rowsEl.innerHTML = "";
+  const L = ensureLabels(animId);
+  for(let r=0;r<ROWS;r++){
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+    const canvas = document.createElement("canvas");
+    canvas.className = "preview";
+    canvas.width = FRAME*2; canvas.height = FRAME*2;
+    canvas.dataset.row = String(r);
+
+    const meta = document.createElement("div");
+    meta.innerHTML = `<span class="idx">Rangée ${r}</span>
+      <div class="ask">Hypothèse jeu : <b>${HYPOTHESE[r]}</b> — tu vois plutôt :</div>`;
+    const dirs = document.createElement("div");
+    dirs.className = "dirs";
+    VUES.forEach(v=>{
+      const b = document.createElement("button");
+      b.textContent = v.label;
+      if(L[r]===v.id) b.classList.add("on");
+      b.onclick = ()=>{
+        L[r] = v.id;
+        renderChips();
+        renderRows();
+        refreshOut();
+      };
+      dirs.appendChild(b);
+    });
+    meta.appendChild(dirs);
+    wrap.appendChild(canvas);
+    wrap.appendChild(meta);
+    rowsEl.appendChild(wrap);
+  }
+  paintAll();
+}
+
+function paintAll(){
+  const img = sheets[animId];
+  if(!img) return;
+  const f = frame % COLS;
+  rowsEl.querySelectorAll("canvas.preview").forEach(c=>{
+    const r = +c.dataset.row;
+    const ctx = c.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0,0,c.width,c.height);
+    ctx.fillStyle = "#0a0e14";
+    ctx.fillRect(0,0,c.width,c.height);
+    // draw frame centered-ish
+    const s = (c.width/FRAME) * 0.92;
+    const dw = FRAME*s, dh = FRAME*s;
+    const dx = (c.width-dw)/2, dy = (c.height-dh)/2;
+    ctx.drawImage(img, f*FRAME, r*FRAME, FRAME, FRAME, dx, dy, dw, dh);
+  });
+}
+
+function tick(ts){
+  if(ts - lastTs > 100){ // ~10 fps
+    frame = (frame+1) % COLS;
+    lastTs = ts;
+    paintAll();
+  }
+  requestAnimationFrame(tick);
+}
+
+function mappingBlock(id){
+  const a = ANIMS.find(x=>x.id===id);
+  const L = ensureLabels(id);
+  const lines = L.map((v,i)=>`  rangée ${i}: ${v}  (hypothèse était ${HYPOTHESE[i]})`);
+  return [
+    `Action: ${a.fr} [${a.id}]  role=${a.role}`,
+    `Mapping vues (rangée → vue réelle):`,
+    ...lines,
+    `Complet: ${isComplete(id)?"oui":"non"}`,
+  ].join("\n");
+}
+
+function refreshOut(){
+  outEl.value = mappingBlock(animId);
+}
+
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  setTimeout(()=> toastEl.classList.remove("show"), 1400);
+}
+
+async function copyText(t){
+  try{
+    await navigator.clipboard.writeText(t);
+    toast("Copié — colle-moi ça dans le chat");
+  }catch(_e){
+    outEl.focus(); outEl.select();
+    toast("Sélectionne le texte et copie");
+  }
+}
+
+document.getElementById("btnCopy").onclick = ()=>{
+  refreshOut();
+  copyText(outEl.value);
+};
+document.getElementById("btnReset").onclick = ()=>{
+  labels[animId] = HYPOTHESE.slice();
+  renderChips(); renderRows(); refreshOut();
+};
+document.getElementById("btnAll").onclick = ()=>{
+  const all = ANIMS.filter(a=>sheets[a.id]).map(a=>mappingBlock(a.id)).join("\n\n---\n\n");
+  outEl.value = all;
+  copyText(all);
+};
+
+boot();
+</script>
+</body>
+</html>

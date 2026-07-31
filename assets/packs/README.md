@@ -35,6 +35,12 @@ Grille probable :
 - **8×8** cases de **64×64**  
   ou **8×4** de **64×128** (à confirmer)
 
+## Outil : mappeur vues × actions
+
+`mappeur-vues.html` — page mobile pour annoter, pour chaque planche (Marcher / Taper…),
+quelle **vue** (S, SE, E…) correspond à chaque **rangée** du sheet. Copier le résultat
+et le coller dans le chat agent.
+
 ## Différence avec ECHO (notre pipeline)
 
 | Packs Dropbox | Notre ECHO |
