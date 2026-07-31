@@ -157,3 +157,40 @@ describe("CharGen — mapping & presets", () => {
     assert.ok(Object.keys(CharGen.HELMS).length >= 10);
   });
 });
+
+describe("PackSprites — Thug placeholder", () => {
+  it("module PackSprites + anims Idle/Walk", () => {
+    assert.match(html, /const PackSprites\s*=/);
+    assert.match(html, /thug-16bit-outlined/);
+    assert.match(html, /PackSprites\.draw/);
+    assert.match(html, /PackSprites\.load/);
+    assert.match(html, /pickAnim/);
+    assert.match(html, /const EchoSprites\s*=\s*PackSprites/);
+  });
+  it("échelle basée sur contentH (pas frame entière)", () => {
+    assert.match(html, /contentH:\s*24/);
+    assert.match(html, /targetBodyH:\s*68/);
+    assert.match(html, /targetBodyH\s*\/\s*this\.contentH/);
+  });
+  it("facing vers cible à l'attaque", () => {
+    assert.match(html, /function charFaceToward/);
+    assert.match(html, /charFaceToward\(caster,\s*arg\)/);
+    assert.match(html, /charFaceToward\(p,\s*hovEnt\)/);
+  });
+  it("mapping rangées calibré (Walk/Attack : S=row2, E=row0)", () => {
+    assert.match(html, /ROW_BY_ORIENT/);
+    assert.match(html, /front:\s*2/);
+    assert.match(html, /sideRight:\s*0/);
+  });
+  it("Attack1 mapping case ennemi (front=3, qBackRight=0)", () => {
+    assert.match(html, /ROW_BY_ORIENT_ATTACK/);
+    assert.match(html, /ROW_BY_ORIENT_ATTACK:[\s\S]*?front:\s*3/);
+    assert.match(html, /ROW_BY_ORIENT_ATTACK:[\s\S]*?qBackRight:\s*0/);
+    assert.match(html, /dirRow\(dir,\s*anim\)/);
+  });
+  it("attaque orientée vers la cible (_packAttackTarget)", () => {
+    assert.match(html, /_packAttackTarget/);
+    assert.match(html, /pulseAttack\(caster,\s*720,\s*arg\)/);
+    assert.match(html, /drawAttackAim/);
+  });
+});

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>NEURO CORE — Moteur graphique</title>
+<style>
+  :root {
+    --bg: #F2F0EB;
+    --tile: #DCD3C3;
+    --ink: #2E2E30;
+    --accent: #E8590C;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+  html, body {
+    margin: 0; height: 100%;
+    background: #1a1a1c; color: #e8e8e0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    overflow: hidden;
+  }
+  .app { height: 100dvh; display: flex; flex-direction: column; }
+  .topbar {
+    flex: 0 0 auto;
+    background: var(--ink);
+    color: var(--bg);
+    padding: 8px 12px;
+    font-size: 12px; font-weight: 700; text-align: center; letter-spacing: 1px;
+  }
+  .topbar span.accent { color: var(--accent); }
+  .info {
+    flex: 0 0 auto; font-size: 11px; color: #9aa;
+    text-align: center; padding: 4px 8px; min-height: 18px;
+  }
+  .stage {
+    flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+    min-height: 0; padding: 6px; background: #111;
+  }
+  #scene {
+    width: min(100%, calc(100dvh * 390 / 844));
+    max-height: 100%;
+    height: auto;
+    aspect-ratio: 390 / 844;
+    background: var(--bg);
+    touch-action: none;
+    border: 1px solid #333;
+    border-radius: 12px;
+  }
+  .controls {
+    flex: 0 0 auto; background: #16211a; border-top: 1px solid #000;
+    padding: 8px 12px; display: flex; flex-direction: column; gap: 6px;
+    max-height: 42dvh; overflow-y: auto;
+  }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .row label { font-size: 11px; color: #ccd; flex: 0 0 72px; }
+  .row input[type=color] {
+    width: 36px; height: 28px; padding: 0; border: 1px solid #2a4a33;
+    background: #1f2e24; border-radius: 4px; cursor: pointer;
+  }
+  .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ctrl-btn {
+    background: #1f2e24; border: 2px solid #2a4a33; color: #aabb;
+    padding: 6px 10px; border-radius: 4px; font-size: 11px; cursor: pointer;
+    min-height: 36px;
+  }
+  .ctrl-btn:hover { background: #2a4a33; }
+  .ctrl-btn.active { background: var(--accent); border-color: #ff8a4c; color: #fff; font-weight: bold; }
+  .section-title {
+    font-size: 10px; color: var(--accent); letter-spacing: 0.8px; text-transform: uppercase;
+    margin-top: 2px; padding-top: 6px; border-top: 1px solid #243328;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .slider-grid { display: flex; flex-direction: column; gap: 4px; }
+  .slider-row {
+    display: grid; grid-template-columns: 78px 1fr 32px;
+    align-items: center; gap: 6px;
+  }
+  .slider-row span.label { font-size: 10px; color: #9aa; }
+  .slider-row span.num { font-size: 10px; color: var(--accent); text-align: right; font-variant-numeric: tabular-nums; }
+  .slider-row input[type=range] { width: 100%; accent-color: var(--accent); }
+  .anim-row .ctrl-btn { flex: 1 1 auto; text-align: center; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">NEURO CORE — <span class="accent">Moteur graphique</span> · rig SVG · 8 orientations calculées</div>
+  <div class="info" id="info">Chargement…</div>
+  <div class="stage">
+    <svg id="scene" viewBox="0 0 390 844" role="img" aria-label="Viewport jeu 390×844"></svg>
+  </div>
+  <div class="controls">
+    <div class="section-title"><span>Animations de test</span></div>
+    <div class="row anim-row btn-group">
+      <button class="ctrl-btn" type="button" data-anim="idle">Idle</button>
+      <button class="ctrl-btn" type="button" data-anim="walk">Marche</button>
+      <button class="ctrl-btn" type="button" data-anim="attack">Attaque</button>
+      <button class="ctrl-btn" type="button" data-anim="cast">Cast</button>
+      <button class="ctrl-btn" type="button" data-anim="hit">Touché</button>
+      <button class="ctrl-btn" type="button" data-anim="dash">Dash</button>
+    </div>
+    <div class="row">
+      <label>Caméra</label>
+      <div class="btn-group">
+        <button class="ctrl-btn" type="button" id="zoomOut">Zoom −</button>
+        <button class="ctrl-btn" type="button" id="zoomIn">Zoom +</button>
+        <button class="ctrl-btn" type="button" id="frameBoth">Recadrer</button>
+      </div>
+    </div>
+
+    <div class="section-title"><span>Morphologie (héros)</span>
+      <button class="ctrl-btn" id="resetBody" type="button" style="padding:2px 8px;font-size:10px;">Reset</button>
+    </div>
+    <div class="row">
+      <label>Preset</label>
+      <div class="btn-group" id="morphSelector">
+        <button class="ctrl-btn" data-morph="heavy">Lourd</button>
+        <button class="ctrl-btn active" data-morph="standard">Standard</button>
+        <button class="ctrl-btn" data-morph="light">Fin</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>Poitrine</label>
+      <div class="btn-group" id="chestShapeSelector">
+        <button class="ctrl-btn" data-chest="flat">Plat</button>
+        <button class="ctrl-btn active" data-chest="pec">Pecs</button>
+        <button class="ctrl-btn" data-chest="soft">Doux</button>
+        <button class="ctrl-btn" data-chest="full">Plein</button>
+      </div>
+    </div>
+    <div class="slider-grid" id="bodySliders"></div>
+
+    <div class="section-title">Équipements</div>
+    <div class="row">
+      <label>Pantalon</label>
+      <div class="btn-group" id="pantsSelector">
+        <button class="ctrl-btn" data-pants="none">Aucun</button>
+        <button class="ctrl-btn active" data-pants="in">IN</button>
+        <button class="ctrl-btn" data-pants="over">OVER</button>
+      </div>
+      <input type="color" id="pantsColor" value="#4a6741">
+    </div>
+    <div class="row">
+      <label>Haut</label>
+      <div class="btn-group" id="torsoSelector">
+        <button class="ctrl-btn" data-torso="none">Aucun</button>
+        <button class="ctrl-btn active" data-torso="tunic">Tunique</button>
+      </div>
+      <input type="color" id="torsoColor" value="#8b5a2b">
+    </div>
+    <div class="row">
+      <label>Chapeau</label>
+      <div class="btn-group" id="hatSelector">
+        <button class="ctrl-btn active" data-hat="none">Aucun</button>
+        <button class="ctrl-btn" data-hat="cap">Casquette</button>
+      </div>
+      <input type="color" id="hatColor" value="#3d2b1f">
+    </div>
+    <div class="row">
+      <label>Arme</label>
+      <div class="btn-group" id="weaponSelector">
+        <button class="ctrl-btn" data-weapon="none">Aucune</button>
+        <button class="ctrl-btn active" data-weapon="sword">Épée</button>
+        <button class="ctrl-btn" data-weapon="staff">Bâton</button>
+      </div>
+    </div>
+    <div class="row">
+      <label>Ancres</label>
+      <div class="btn-group" id="anchorToggle">
+        <button class="ctrl-btn active" data-anchors="off">Masquer</button>
+        <button class="ctrl-btn" data-anchors="on">Afficher</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

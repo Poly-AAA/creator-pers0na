@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NEURO CORE — V3.4.2</title>
+<title>NEURO CORE — V3.4.8</title>
 <style>
 /* =====================================================================
-   NEURO CORE — V3.4.2 (CharGen · équipements visibles · anneaux de camp)
+   NEURO CORE — V3.4.8 (Attack1 calibré case ennemi)
    Tactical Roguelite — HTML / CSS / JS Vanilla — Fichier unique autonome
    Direction artistique : 70% Dofus Touch / 20% Ghost in the Shell / 10% Esport
    Palette : cyan lumineux, turquoise, violet, orange, blanc, acier bleuté
@@ -1028,7 +1028,7 @@ aside.side{
 <div class="overlay" id="introOverlay">
   <div class="modal">
     <h1>NEURO CORE</h1>
-    <div class="sub">NEURO CORE — V3.4.2 · Mercenaire tactique (mobile OK)</div>
+    <div class="sub">NEURO CORE — V3.4.8 · Mercenaire tactique (mobile OK)</div>
     <div class="introbody">
       Autrefois esclave d'arène des grandes corporations, ton <b>ECHO</b> — une conscience numérique immortelle — a brisé ses chaînes.
       Désormais <b>mercenaire indépendant</b>, tu loues tes Enveloppes au plus offrant.
@@ -5922,6 +5922,11 @@ const Combat = {
   resolveAttack(attacker, target, dmgMin, dmgMax, def, applyEffect){
     if(applyEffect === undefined) applyEffect = true;
     if(State) State.lastAct = performance.now();
+    // Toujours s’orienter vers la cible au moment du coup (joueur + IA)
+    if(target) charFaceToward(attacker, target);
+    if(attacker && attacker.isPlayer && typeof PackSprites!=="undefined" && def && def.type === "damage"){
+      PackSprites.pulseAttack(attacker, 720, target);
+    }
     // evo réelle (grimoire) OU evo virtuelle d'une invocation (tourelle/sniper)
     const stv = attacker._virtEvo ? attacker._virtEvo
               : (def ? (Spells.state(attacker, def.id).evo || {}) : {});
@@ -6291,6 +6296,9 @@ const Combat = {
     if(freeUse === "tp"){ caster._usedFreeTp = true; UI.log("you","🌀 Téléportation gratuite (Condensateur)."); }
     else if(freeUse === "first"){ caster._usedFreeSpell = true; UI.log("you","✨ Premier sort gratuit du combat."); }
     if(caster.isPlayer) MetaProgress.noteCast(def.id, def.school);   // V0.95 — statistiques : sorts utilisés / favori
+    // Orientation vers la cible (entité, case, ou direction dash) avant l’anim d’attaque
+    if(arg) charFaceToward(caster, arg);
+    if(caster.isPlayer && typeof PackSprites!=="undefined") PackSprites.pulseAttack(caster, 720, arg);
     // V1.9c — caractéristiques par usage (permanent, très lent)
     if(caster.isPlayer){
       if(def.type === "damage"){ MetaProgress.noteTrait((Spells.range(caster,def) <= 1) ? "force" : "precision", 1); }
@@ -7098,7 +7106,30 @@ function charOrientFromDelta(dCol, dRow){
     "0,1":"front","-1,1":"qFrontLeft","-1,0":"sideLeft","-1,-1":"qBackLeft"
   })[sc+","+sr] || "front";
 }
+function charFaceToward(e, target){
+  if(!e || !target) return false;
+  let dCol = 0, dRow = 0;
+  if(target.c !== undefined && target.r !== undefined){
+    dCol = Math.sign(target.c - e.c);
+    dRow = Math.sign(target.r - e.r);
+  } else if(target.dc !== undefined || target.dCol !== undefined){
+    dCol = Math.sign(target.dc !== undefined ? target.dc : target.dCol);
+    dRow = Math.sign(target.dr !== undefined ? target.dr : (target.dRow || 0));
+  }
+  if(dCol || dRow){
+    e.facing = { dCol, dRow };
+    e._lastFacing = e.facing;
+    return true;
+  }
+  return false;
+}
 function charOrientOf(e){
+  // Pendant une attaque pack : forcer la vue vers la cible mémorisée
+  if(e && e._packAttackT && e._packAttackTarget && performance.now() < e._packAttackT){
+    const tc = e._packAttackTarget;
+    const o = charOrientFromDelta(Math.sign(tc.c - e.c), Math.sign(tc.r - e.r));
+    if(o) return o;
+  }
   if(e.facing && (e.facing.dCol || e.facing.dRow)) return charOrientFromDelta(e.facing.dCol, e.facing.dRow);
   if(e._lastFacing) return charOrientFromDelta(e._lastFacing.dCol, e._lastFacing.dRow);
   return "front";
@@ -7294,6 +7325,159 @@ function charWeaponStyle(e){
   const k = CharGen.resolve(e);
   return k.weapon === "none" ? null : k.weapon;
 }
+
+/* =====================================================================
+   PackSprites — placeholder Thug 16-bit (Character Creator Modern free).
+   Joueur : Idle / Walk / Attack / Hit / Die · 8 directions · map iso.
+   Assets : assets/packs/thug-16bit-outlined/ (+ fallback CDN GitHub).
+   ===================================================================== */
+const PackSprites = {
+  // Orientations CharBody (réf. logique jeu)
+  DIRS: ["front","qFrontRight","sideRight","qBackRight","back","qBackLeft","sideLeft","qFrontLeft"],
+  /**
+   * Walk / Idle / Run / Hit / Die — calibrage mappeur-vues :
+   * rangée → 0=E 1=SE 2=S 3=SO 4=O 5=NO 6=N 7=NE
+   */
+  ROW_BY_ORIENT: {
+    front: 2, qFrontRight: 1, sideRight: 0, qBackRight: 7,
+    back: 6, qBackLeft: 5, sideLeft: 4, qFrontLeft: 3,
+  },
+  /**
+   * Attack1 — calibrage joueur par CASE ENNEMI (Δcol/Δrow) :
+   * front=3 qFrontRight=2 sideRight=1 qBackRight=0
+   * back=7 qBackLeft=6 sideLeft=5 qFrontLeft=4
+   */
+  ROW_BY_ORIENT_ATTACK: {
+    front: 3, qFrontRight: 2, sideRight: 1, qBackRight: 0,
+    back: 7, qBackLeft: 6, sideLeft: 5, qFrontLeft: 4,
+  },
+  ANIMS: {
+    idle:   { file:"Idle.png",        fps:8 },
+    walk:   { file:"Walk.png",        fps:10 },
+    run:    { file:"Run.png",         fps:12 },
+    attack: { file:"Attack1.png",     fps:12 },
+    hit:    { file:"TakeDamage.png",  fps:10 },
+    die:    { file:"Die.png",         fps:8 },
+  },
+  sheets: {},
+  ready: false,
+  frameW: 64,
+  frameH: 64,
+  cols: 8,
+  /** Hauteur utile du perso dans la frame 64 (mesurée Idle/Walk) — le reste est du padding */
+  contentH: 24,
+  /** Hauteur visuelle souhaitée sur la map (~ CharBody h:50, un peu plus lisible mobile) */
+  targetBodyH: 68,
+  footX: 32,
+  footY: 46,
+  localBase: "assets/packs/thug-16bit-outlined/",
+  cdnBase: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/echo-sprite-idle-test-e78a/assets/packs/thug-16bit-outlined/",
+  scale(){
+    return this.targetBodyH / this.contentH;
+  },
+  /** Décalage UI (chevron / barre PV) au-dessus des pieds */
+  uiLift(){
+    return Math.round(this.targetBodyH + 10);
+  },
+  dirRow(dir, anim){
+    const map = (anim === "attack") ? this.ROW_BY_ORIENT_ATTACK : this.ROW_BY_ORIENT;
+    if(map[dir] !== undefined) return map[dir];
+    const i = this.DIRS.indexOf(dir);
+    return i >= 0 ? i : 2;
+  },
+  pickAnim(e){
+    if(!e.alive) return "die";
+    if(e.hitFlash > 0.35) return "hit";
+    if(e._packAttackT && performance.now() < e._packAttackT) return "attack";
+    // déplacement en cours (lissage ou anim moveAlong)
+    const moving = (e._rc !== undefined && (Math.abs(e._rc - e.c) > 0.04 || Math.abs(e._rr - e.r) > 0.04))
+      || (typeof Combat !== "undefined" && Combat._animating && Combat.current && Combat.current() === e);
+    if(moving) return "walk";
+    return "idle";
+  },
+  _loadOne(file){
+    const self = this;
+    return new Promise(resolve=>{
+      const tryUrl = (urls, i)=>{
+        if(i >= urls.length){ resolve(null); return; }
+        const img = new Image();
+        img.decoding = "async";
+        img.onload = ()=> resolve(img);
+        img.onerror = ()=> tryUrl(urls, i+1);
+        img.crossOrigin = "anonymous";
+        img.src = urls[i];
+      };
+      tryUrl([self.localBase + file, self.cdnBase + file], 0);
+    });
+  },
+  load(){
+    const self = this;
+    const keys = Object.keys(self.ANIMS);
+    return Promise.all(keys.map(k => self._loadOne(self.ANIMS[k].file).then(img=>{
+      if(img) self.sheets[k] = img;
+      return !!img;
+    }))).then(oks=>{
+      self.ready = !!(self.sheets.idle && self.sheets.walk);
+      try{
+        if(self.ready) UI.log("sys", "Pack Thug placeholder : " + oks.filter(Boolean).length + "/" + keys.length + " anims (joueur).");
+        else UI.log("sys", "Pack Thug : assets manquants — fallback CharBody.");
+      }catch(_e){}
+      return self.ready;
+    });
+  },
+  /** true si dessiné (joueur) */
+  draw(ctx, e, foot, opts){
+    if(!e || !e.isPlayer || !this.ready || !this.sheets.idle) return false;
+    opts = opts || {};
+    const t = opts.t || (performance.now()/1000);
+    const anim = this.pickAnim(e);
+    const sheet = this.sheets[anim] || this.sheets.idle;
+    if(!sheet) return false;
+    const dir = (typeof charOrientOf === "function") ? charOrientOf(e) : "front";
+    const row = this.dirRow(dir, anim);
+    const fps = (this.ANIMS[anim] && this.ANIMS[anim].fps) || 8;
+    let frame = Math.floor(t * fps) % this.cols;
+    if(anim === "die") frame = Math.min(this.cols - 1, Math.floor((1 - Math.max(0, e.hitFlash||0)) * this.cols));
+
+    const s = this.scale();
+    const dx = foot.x - this.footX * s;
+    const dy = foot.y - this.footY * s;
+    const dw = this.frameW * s;
+    const dh = this.frameH * s;
+
+    ctx.save();
+    if(opts.flash) ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "rgba(46,46,48,.30)";
+    ctx.beginPath(); ctx.ellipse(foot.x, foot.y+3, 18, 7, 0, 0, Math.PI*2); ctx.fill();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(sheet, frame * this.frameW, row * this.frameH, this.frameW, this.frameH, dx, dy, dw, dh);
+    ctx.restore();
+
+    try{ CharBody.drawFactionRing(ctx, e, foot, t); }catch(_e){}
+    e._charAnchors = {
+      limb: { x: foot.x + this.targetBodyH * 0.22, y: foot.y - this.targetBodyH * 0.55, layer:"front" },
+      bodyCenter: { x: foot.x, y: foot.y - this.targetBodyH * 0.55, layer:"behind" },
+      grid: { x: foot.x, y: foot.y, layer:"behind" },
+      morph: "pack-thug",
+      orient: dir,
+      anim,
+      sprite: true,
+    };
+    return true;
+  },
+  /** Déclenche une brève anim d'attaque visuelle, orientée vers la cible */
+  pulseAttack(e, ms, target){
+    if(!e) return;
+    e._packAttackT = performance.now() + (ms || 720);
+    if(target && target.c !== undefined){
+      e._packAttackTarget = { c: target.c, r: target.r };
+      charFaceToward(e, target);
+    }
+  }
+};
+// Alias rétrocompat tests / appels
+const EchoSprites = PackSprites;
+
 
 const CharBody = {
   PAL: CHAR_PAL, MORPH: CHAR_MORPH, Gen: CharGen,
@@ -7902,7 +8086,8 @@ const Render = {
     if(!myTurn) return hl;
 
     // --- ZONE DE MENACE ENNEMIE (survol) : déplacement + zone d'attaque, rouge transparent ---
-    if(hoverEnemy && hoverEnemy.alive && isFoe(hoverEnemy)){
+    // (désactivé si un sort est armé — on privilégie le ciblage du sort + facing)
+    if(!armedSkill && hoverEnemy && hoverEnemy.alive && isFoe(hoverEnemy)){
       const f = hoverEnemy;
       const reach = Grid.reachable(f, f.pm, f).tiles;
       const stand = [{c:f.c, r:f.r}].concat(reach);
@@ -7925,6 +8110,13 @@ const Render = {
       const def = Spells.def(armedSkill);
       const range = Spells.range(p, def);
       const hovEnt = (hoverEnemy ? hoverEnemy : (hoverTile ? Grid.entityAt(hoverTile.c, hoverTile.r) : null));
+      // Preview : tourne le joueur vers la cible survolée / touchée
+      if(p && p.alive){
+        if(hovEnt && hovEnt !== p) charFaceToward(p, hovEnt);
+        else if(hoverTile && (def.type === "dash" || def.type === "teleport" || def.type === "gravjump" || def.type === "mine")){
+          charFaceToward(p, hoverTile);
+        }
+      }
 
       // ----- types V0.7 à ciblage spécial -----
       if(def.type === "teleport" || def.type === "gravjump"){
@@ -8013,9 +8205,10 @@ const Render = {
     const flash = e.hitFlash>0;
 
     // Repère joueur (chevron) — anneau de camp dessiné dans CharBody
+    const packLift = (e.isPlayer && PackSprites.ready) ? PackSprites.uiLift() : 56;
     if(e.isPlayer){
       ctx.save();
-      const yy = foot.y - 56 + Math.sin(t*3)*2;
+      const yy = foot.y - packLift + Math.sin(t*3)*2;
       ctx.fillStyle = "#27e0ff"; ctx.strokeStyle = "rgba(255,255,255,.95)"; ctx.lineWidth = 1.4;
       ctx.beginPath(); ctx.moveTo(foot.x-7, yy); ctx.lineTo(foot.x+7, yy); ctx.lineTo(foot.x, yy+9); ctx.closePath();
       ctx.fill(); ctx.stroke();
@@ -8024,7 +8217,7 @@ const Render = {
 
     // V0.91 — CONTOUR LUMINEUX si ciblable
     const hlc = Render._hl;
-    const cx = foot.x, cy = foot.y - 22;
+    const cx = foot.x, cy = foot.y - Math.round(packLift * 0.4);
     if(armedSkill && hlc){
       const k = Grid.key(e.c, e.r);
       const isTarget = hlc.target.has(k) || hlc.heal.has(k);
@@ -8039,8 +8232,10 @@ const Render = {
       }
     }
 
-    // ===== CORPS DÉTAILLÉ (CharBody — planche référence) =====
-    CharBody.draw(ctx, e, foot, { flash, t });
+    // ===== CORPS : Pack Thug placeholder (joueur) sinon CharBody =====
+    if(!(e.isPlayer && PackSprites.draw(ctx, e, foot, { flash, t }))){
+      CharBody.draw(ctx, e, foot, { flash, t });
+    }
 
     // marqueur cible de contrat (★)
     if(e.contractTarget){
@@ -8064,7 +8259,7 @@ const Render = {
     }
 
     // barre de vie au-dessus (V0.91 — permanente, désactivable via Accessibilité)
-    const bw=34, bh=5, bx=foot.x-bw/2, by=foot.y-62;
+    const bw=34, bh=5, bx=foot.x-bw/2, by=foot.y - packLift - 6;
     if(UI.opts.bars){
       ctx.fillStyle="rgba(6,20,32,.7)"; Render.roundRect(bx-1,by-1,bw+2,bh+2,3); ctx.fill();
       const pct = clamp(e.pv/e.pvMax,0,1);
@@ -8286,6 +8481,9 @@ const Render = {
     // 2c) V0.91 — CHEMIN NUMÉROTÉ du déplacement prévisualisé (1,2,3… = coût PM)
     Render.drawPathNumbers(hl);
 
+    // 2d) Ligne de visée vers la cible (sort armé) — confirme que le jeu “voit” l’ennemi
+    Render.drawAttackAim(hl);
+
     // 3) effets
     FX.draw();
 
@@ -8313,6 +8511,41 @@ const Render = {
       ctx.restore();
     }
     ctx.textAlign = "left";
+  },
+
+  /** Ligne joueur → cible quand un sort offensif est armé (hover / pending) */
+  drawAttackAim(hl){
+    if(!armedSkill || !State || !State.player || !State.player.alive) return;
+    const def = Spells.def(armedSkill);
+    if(!def || def.type !== "damage") return;
+    const p = State.player;
+    if(Combat.current() !== p) return;
+    let tgt = null;
+    if(hoverEnemy && isFoe(hoverEnemy) && hoverEnemy.alive) tgt = hoverEnemy;
+    else if(hoverTile){
+      const e = Grid.entityAt(hoverTile.c, hoverTile.r);
+      if(e && isFoe(e) && e.alive) tgt = e;
+    }
+    if(!tgt) return;
+    if(hl && hl.target && !hl.target.has(Grid.key(tgt.c, tgt.r))) return;
+    const a = Iso.toScreen(p._rc !== undefined ? p._rc : p.c, p._rr !== undefined ? p._rr : p.r);
+    const b = Iso.toScreen(tgt._rc !== undefined ? tgt._rc : tgt.c, tgt._rr !== undefined ? tgt._rr : tgt.r);
+    const ay = a.y - 28, by = b.y - 28;
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,.85)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(a.x, ay); ctx.lineTo(b.x, by); ctx.stroke();
+    ctx.setLineDash([]);
+    // pointe vers la cible
+    const ang = Math.atan2(by - ay, b.x - a.x);
+    ctx.fillStyle = "#ff8a3c";
+    ctx.beginPath();
+    ctx.moveTo(b.x, by);
+    ctx.lineTo(b.x - 10*Math.cos(ang - 0.4), by - 10*Math.sin(ang - 0.4));
+    ctx.lineTo(b.x - 10*Math.cos(ang + 0.4), by - 10*Math.sin(ang + 0.4));
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
   },
 
   // visualisation de debug : marque les obstacles bloquant la vue, les couvertures,
@@ -11254,6 +11487,17 @@ const Input = {
       if(pendingTap !== tapKey){
         pendingTap = tapKey; pendingCell = { c:t.c, r:t.r };
         hoverTile = { c:t.c, r:t.r };   // aperçu du chemin / de la portée
+        // Dès le 1er tap : se tourner vers la cible (ennemi / allié / case)
+        if(armedSkill){
+          const aim = clickedFoe || clickedAlly || (Grid.inBounds(t.c,t.r) ? { c:t.c, r:t.r } : null);
+          if(aim){
+            charFaceToward(p, aim);
+            if(clickedFoe && typeof PackSprites!=="undefined"){
+              // Preview courte de la pose d’attaque orientée
+              PackSprites.pulseAttack(p, 280, clickedFoe);
+            }
+          }
+        }
         UI.setHint(armedSkill ? "Re-tape la cible pour <b>lancer</b> le sort." : "Re-tape la case pour <b>confirmer</b> le déplacement.");
         return;
       }
@@ -11270,6 +11514,7 @@ const Input = {
       if(def.type === "damage"){
         if(clickedFoe && Grid.manhattan(p, clickedFoe) <= range){
           if(range > 1 && !Grid.hasLOS(p, clickedFoe)){ UI.setHint("Pas de <b>ligne de vue</b> — un obstacle bloque la cible."); return; }
+          charFaceToward(p, clickedFoe);
           Combat.castSpell(p, def, clickedFoe);
           armedSkill = null;
           if(!State.over){ UI.spells.update(); UI.refreshAll(); }
@@ -11277,7 +11522,9 @@ const Input = {
                   && Grid.manhattan(p, {c:t.c,r:t.r}) <= range && (range<=1 || Grid.hasLOS(p,{c:t.c,r:t.r}))){
           // DESTRUCTION : on cible un obstacle destructible
           const [lo,hi] = Spells.dmgRange(p, def);
+          charFaceToward(p, { c:t.c, r:t.r });
           p.pa -= cost; Spells.gainXP(p, def.id);
+          if(typeof PackSprites!=="undefined") PackSprites.pulseAttack(p, 720, { c:t.c, r:t.r });
           Combat.damageObstacle(Grid.key(t.c,t.r), randi(lo,hi));
           armedSkill = null;
           UI.spells.update(); UI.refreshAll();
@@ -11505,6 +11752,7 @@ function init(){
   ctx = canvas.getContext("2d");
 
   MetaProgress.load();   // charge la progression permanente des sorts/maîtrises
+  PackSprites.load();    // placeholder Thug 16-bit (Idle/Walk/…) pour le joueur
 
   // événements pointeur (souris)
   canvas.addEventListener("mousemove", Input.onMove);
@@ -11621,7 +11869,24 @@ function init(){
   requestAnimationFrame(loop);
 }
 
-window.addEventListener("DOMContentLoaded", init);
+window.addEventListener("error", function(ev){
+  try{
+    var d=document.getElementById("bootErr");
+    if(!d){ d=document.createElement("div"); d.id="bootErr";
+      d.style.cssText="position:fixed;inset:12px auto auto 12px;right:12px;z-index:99999;background:#3a1020;color:#ffd0d8;border:1px solid #ff3b4e;border-radius:10px;padding:10px 12px;font:12px/1.4 Trebuchet MS,sans-serif;max-width:92vw";
+      document.body.appendChild(d); }
+    d.textContent="Erreur JS : "+(ev && ev.message ? ev.message : "inconnue");
+  }catch(_e){}
+}, true);
+window.addEventListener("DOMContentLoaded", function(){
+  try{ init(); }
+  catch(err){
+    var d=document.createElement("div");
+    d.style.cssText="position:fixed;inset:0;z-index:99999;background:#0c1f30;color:#ffd0d8;padding:24px;font:14px/1.5 Trebuchet MS,sans-serif";
+    d.innerHTML="<h2>NEURO CORE — crash au démarrage</h2><pre style=\"white-space:pre-wrap\">"+String(err&&err.stack||err)+"</pre>";
+    document.body.appendChild(d);
+  }
+});
 </script>
 </body>
 </html>
