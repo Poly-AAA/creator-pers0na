@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>Test angle — Thug 8 vues sur map iso</title>
+<style>
+  :root{
+    --cream:#F2F0EB; --beige:#DCD3C3; --ink:#2E2E30; --accent:#E8590C;
+    --cyan:#27e0ff; --bg:#12161e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--cream);
+    font-family:Trebuchet MS,Segoe UI,sans-serif;
+    min-height:100dvh; display:flex; flex-direction:column;
+  }
+  header{
+    padding:10px 14px; border-bottom:1px solid #2a3140;
+    display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center;
+  }
+  header h1{font-size:15px; color:var(--accent); letter-spacing:.5px}
+  header .meta{font-size:12px; opacity:.75}
+  #wrap{
+    flex:1; position:relative; overflow:hidden;
+    background:linear-gradient(180deg,#1a2230,#0e1218);
+  }
+  canvas{display:block; width:100%; height:100%; touch-action:none}
+  .bar{
+    padding:10px 14px; border-top:1px solid #2a3140;
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  }
+  button,.chip{
+    background:#1e2633; color:var(--cream); border:1px solid #3a4558;
+    border-radius:8px; padding:8px 12px; font-size:13px; cursor:pointer;
+  }
+  button.on, .chip.on{border-color:var(--cyan); color:var(--cyan)}
+  button:active{transform:scale(.98)}
+  .dirs{display:flex; flex-wrap:wrap; gap:4px}
+  .hint{font-size:11px; opacity:.65; width:100%}
+  #status{font-size:12px; color:#9ad}
+</style>
+</head>
+<body>
+<header>
+  <h1>TEST ANGLE — map iso NEURO-CORE</h1>
+  <div class="meta">Pack : 16-bit Thug Outlined · Idle · même case · 8 vues</div>
+  <div id="status">Chargement…</div>
+</header>
+<div id="wrap"><canvas id="c"></canvas></div>
+<div class="bar">
+  <button id="btnPlay" class="on">⏸ Pause</button>
+  <button id="btnPrev">◀ Vue</button>
+  <button id="btnNext">Vue ▶</button>
+  <div class="dirs" id="dirChips"></div>
+  <div class="hint">
+    But : voir si l’angle top-down du pack colle avec la grille iso 64×32 déjà en place.
+    Le perso ne bouge pas de case — seules les directions tournent.
+  </div>
+</div>
+<script>
+/* Map iso = mêmes constantes que neuro-core */
+const TILE_W = 64, TILE_H = 32;
+const GRID = 7;                 // petite map de test
+const CELL = { c: 3, r: 3 };    // case fixe du perso
+
+/* Character Creator Modern / packs free : souvent lignes = 8 dirs, colonnes = frames */
+const FRAME_W = 64, FRAME_H = 64;
+const SHEET_COLS = 8, SHEET_ROWS = 8;
+
+/* Ordre des lignes (à ajuster si une vue paraît fausse) — convention CC Modern fréquente */
+const DIR_ORDER = [
+  { id:"front",       label:"S  face" },
+  { id:"qFrontRight", label:"SE" },
+  { id:"sideRight",   label:"E  droite" },
+  { id:"qBackRight",  label:"NE" },
+  { id:"back",        label:"N  dos" },
+  { id:"qBackLeft",   label:"NO" },
+  { id:"sideLeft",    label:"O  gauche" },
+  { id:"qFrontLeft",  label:"SO" },
+];
+
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+const statusEl = document.getElementById("status");
+const chipsEl = document.getElementById("dirChips");
+
+let sheet = null;
+let dirIndex = 0;
+let frameIndex = 0;   // idle anim légère
+let playing = true;
+let last = 0;
+let dpr = 1, scale = 1, ox = 0, oy = 0;
+
+DIR_ORDER.forEach((d,i)=>{
+  const b = document.createElement("button");
+  b.className = "chip" + (i===0?" on":"");
+  b.textContent = d.label;
+  b.onclick = ()=>{ dirIndex=i; syncChips(); draw(performance.now()); };
+  chipsEl.appendChild(b);
+});
+function syncChips(){
+  [...chipsEl.children].forEach((b,i)=> b.classList.toggle("on", i===dirIndex));
+}
+
+function toScreen(c, r){
+  return {
+    x: ox + (c - r) * (TILE_W/2),
+    y: oy + (c + r) * (TILE_H/2),
+  };
+}
+
+function layout(){
+  const wrap = document.getElementById("wrap");
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  dpr = Math.min(window.devicePixelRatio||1, 2);
+  canvas.width = w*dpr; canvas.height = h*dpr;
+  canvas.style.width = w+"px"; canvas.style.height = h+"px";
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  const gridW = GRID * TILE_W;
+  const gridH = GRID * TILE_H + 80;
+  scale = Math.min(w/gridW, h/gridH, 1.6) * 0.92;
+  // on simule zoom via ox/oy en espace non-scalé puis scale global
+  ox = w/(2*scale);
+  oy = h/(2*scale) - (GRID*TILE_H)/2 + 20;
+}
+
+function diamond(c, r, fill, stroke){
+  const s = toScreen(c,r);
+  const hw = TILE_W/2, hh = TILE_H/2;
+  ctx.beginPath();
+  ctx.moveTo(s.x, s.y - hh);
+  ctx.lineTo(s.x + hw, s.y);
+  ctx.lineTo(s.x, s.y + hh);
+  ctx.lineTo(s.x - hw, s.y);
+  ctx.closePath();
+  ctx.fillStyle = fill; ctx.fill();
+  if(stroke){ ctx.strokeStyle = stroke; ctx.lineWidth = 1.2; ctx.stroke(); }
+  return s;
+}
+
+function drawMap(){
+  // ordre peintre : c+r croissant
+  const cells = [];
+  for(let c=0;c<GRID;c++) for(let r=0;r<GRID;r++) cells.push({c,r,z:c+r});
+  cells.sort((a,b)=> a.z - b.z);
+
+  for(const t of cells){
+    const even = (t.c + t.r) % 2 === 0;
+    let fill = even ? "rgba(242,240,235,.14)" : "rgba(220,211,195,.10)";
+    let stroke = "rgba(46,46,48,.55)";
+    if(t.c===CELL.c && t.r===CELL.r){
+      fill = "rgba(232,89,12,.28)";
+      stroke = "#E8590C";
+    }
+    diamond(t.c, t.r, fill, stroke);
+  }
+}
+
+function drawChar(){
+  if(!sheet) return;
+  const foot = toScreen(CELL.c, CELL.r);
+  // pivot pieds ≈ bas centre de la case (comme neuro-core)
+  const pivotX = foot.x;
+  const pivotY = foot.y + 2;
+
+  // ombre
+  ctx.fillStyle = "rgba(0,0,0,.35)";
+  ctx.beginPath();
+  ctx.ellipse(pivotX, pivotY+2, 14, 6, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // échelle : frame 64 → ~ hauteur visuelle proche CharBody (~50px)
+  const drawScale = 1.15;
+  const dw = FRAME_W * drawScale;
+  const dh = FRAME_H * drawScale;
+  // ancre : bas-centre de la frame sur le pivot
+  const dx = pivotX - dw/2;
+  const dy = pivotY - dh + 4;
+
+  const sx = frameIndex * FRAME_W;
+  const sy = dirIndex * FRAME_H;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(sheet, sx, sy, FRAME_W, FRAME_H, dx, dy, dw, dh);
+
+  // marqueur pivot
+  ctx.fillStyle = "#27e0ff";
+  ctx.beginPath(); ctx.arc(pivotX, pivotY, 2.2, 0, Math.PI*2); ctx.fill();
+}
+
+function drawHud(){
+  const d = DIR_ORDER[dirIndex];
+  ctx.save();
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle = "rgba(18,22,30,.75)";
+  ctx.fillRect(10, 10, 220, 54);
+  ctx.fillStyle = "#E8590C";
+  ctx.font = "bold 13px Trebuchet MS";
+  ctx.fillText("Dir " + dirIndex + " · " + d.label, 18, 30);
+  ctx.fillStyle = "#F2F0EB";
+  ctx.font = "12px Trebuchet MS";
+  ctx.fillText("Case fixe ("+CELL.c+","+CELL.r+") · frame idle "+frameIndex, 18, 48);
+  ctx.restore();
+}
+
+function draw(t){
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+
+  ctx.save();
+  ctx.scale(scale, scale);
+  // ox/oy déjà en unités pré-scale
+  // redessiner en coord scaled : toScreen utilise ox,oy — OK
+  drawMap();
+  drawChar();
+  ctx.restore();
+
+  drawHud();
+}
+
+function loop(t){
+  if(playing && sheet){
+    if(t - last > 700){           // change de direction
+      dirIndex = (dirIndex + 1) % 8;
+      syncChips();
+      last = t;
+    }
+    // micro idle : avance frame toutes les ~120ms
+    frameIndex = Math.floor(t / 120) % SHEET_COLS;
+  }
+  draw(t);
+  requestAnimationFrame(loop);
+}
+
+document.getElementById("btnPlay").onclick = ()=>{
+  playing = !playing;
+  const b = document.getElementById("btnPlay");
+  b.textContent = playing ? "⏸ Pause" : "▶ Play";
+  b.classList.toggle("on", playing);
+  last = performance.now();
+};
+document.getElementById("btnPrev").onclick = ()=>{
+  dirIndex = (dirIndex + 7) % 8; syncChips(); draw(performance.now());
+};
+document.getElementById("btnNext").onclick = ()=>{
+  dirIndex = (dirIndex + 1) % 8; syncChips(); draw(performance.now());
+};
+
+window.addEventListener("resize", ()=>{ layout(); draw(performance.now()); });
+
+sheet = new Image();
+sheet.onload = ()=>{
+  statusEl.textContent = "OK — Idle.png 512×512 · grille 8×8 (64px) · rotation auto";
+  layout();
+  last = performance.now();
+  requestAnimationFrame(loop);
+};
+sheet.onerror = ()=>{
+  statusEl.textContent = "ERREUR : impossible de charger thug-16bit-outlined/Idle.png";
+};
+sheet.src = "thug-16bit-outlined/Idle.png?v=" + Date.now();
+</script>
+</body>
+</html>
