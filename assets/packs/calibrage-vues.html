@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>Calibrage vues × sprites</title>
+<style>
+  :root{
+    --bg:#0b1018; --ink:#eaf2ff; --muted:#8fa3b8; --accent:#E8590C;
+    --cyan:#27e0ff; --line:#2a3548; --ok:#3ce08a; --panel:#121a26;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    color:var(--ink);
+    font-family:"Trebuchet MS","Segoe UI",Verdana,sans-serif;
+    background:
+      radial-gradient(1000px 520px at 50% -10%, #1c2b40 0%, transparent 55%),
+      linear-gradient(180deg,#101826,#070a10);
+    display:flex; flex-direction:column;
+    max-width:520px; margin:0 auto;
+    min-height:100dvh;
+    padding:10px 12px calc(12px + env(safe-area-inset-bottom));
+  }
+  h1{font-size:17px;color:var(--accent)}
+  .sub{font-size:13px;color:var(--muted);line-height:1.45;margin:4px 0 10px}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:12px; margin-bottom:10px;
+  }
+  .lab{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chips button{
+    min-height:40px; border-radius:10px; border:1px solid var(--line);
+    background:#1a2330; color:var(--ink); font-weight:700; font-size:12px;
+    padding:8px 10px; cursor:pointer;
+  }
+  .chips button.on{border-color:var(--cyan); color:var(--cyan)}
+  .chips button.done{border-color:var(--ok); color:var(--ok)}
+  .progress{height:6px;border-radius:99px;background:#1a2330;overflow:hidden;margin-bottom:10px}
+  .progress > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#ffb07a);transition:width .2s}
+  .step-lab{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .question{font-size:15px;font-weight:700;line-height:1.4;margin-bottom:8px}
+  .question b{color:var(--cyan)}
+  #stage{
+    flex:1; min-height:320px; border-radius:16px; overflow:hidden;
+    border:1px solid var(--line); background:#0a0e14; position:relative;
+  }
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+  .badge{
+    position:absolute; left:10px; top:10px; z-index:2;
+    background:rgba(8,16,28,.88); border:1px solid var(--line);
+    border-radius:10px; padding:6px 10px; font-size:12px; font-weight:700;
+  }
+  .badge span{color:var(--accent)}
+  .hint-float{
+    position:absolute; left:10px; right:10px; bottom:10px; z-index:2;
+    background:rgba(8,16,28,.88); border:1px solid var(--line);
+    border-radius:12px; padding:8px 10px; font-size:12px; color:var(--muted); line-height:1.4;
+  }
+  .hint-float b{color:var(--ink)}
+  .bar{display:flex; gap:8px; margin-top:10px}
+  .bar button{
+    flex:1; min-height:48px; border-radius:12px; border:1px solid var(--line);
+    background:#1a2330; color:var(--ink); font-weight:800; font-size:14px; cursor:pointer;
+  }
+  .bar button.primary{background:var(--accent); border-color:#ff7a3c; color:#1a0c04}
+  .bar button:disabled{opacity:.35}
+  #pick.hide, #wizard.hide, #done.hide{display:none}
+  #done{display:none}
+  #done.show{display:block}
+  textarea{
+    width:100%; min-height:220px; margin-top:8px; border-radius:12px; border:1px solid var(--line);
+    background:#0a0e14; color:#d7e6f5; padding:10px;
+    font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;
+  }
+  .toast{
+    position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    background:#123024; color:var(--ok); border:1px solid #2a6a4a;
+    border-radius:999px; padding:8px 14px; font-size:12px; font-weight:700;
+    opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .toast.show{opacity:1}
+  .result-list{margin:8px 0; font-size:13px; line-height:1.55}
+  .result-list div{padding:7px 0; border-bottom:1px solid rgba(42,53,72,.7)}
+  .result-list b{color:var(--cyan)}
+</style>
+</head>
+<body>
+  <h1>Calibrage vues × sprites</h1>
+  <div class="sub">
+    Même méthode que l’attaque : <b>tape la case</b> vers laquelle le sprite regarde / frappe.
+    Pas de « droite / gauche » ambigus — uniquement la grille du jeu.
+  </div>
+
+  <!-- ÉCRAN 1 : choix du sprite -->
+  <div id="pick">
+    <div class="card">
+      <div class="lab">1 · Choisis le sprite / l’animation</div>
+      <div class="chips" id="animChips"></div>
+    </div>
+    <div class="bar">
+      <button id="btnStart" class="primary" type="button" disabled>▶ Calibrer ce sprite</button>
+    </div>
+  </div>
+
+  <!-- ÉCRAN 2 : wizard 8 rangées -->
+  <div id="wizard" class="hide">
+    <div class="progress"><i id="prog"></i></div>
+    <div class="step-lab"><span id="animName">—</span> · étape <span id="stepN">1</span>/8 · rangée <span id="rowN">0</span></div>
+    <div class="question">Cette rangée du sprite correspond à quelle <b>case</b> (direction sur la grille)&nbsp;?</div>
+    <div id="stage">
+      <canvas id="c"></canvas>
+      <div class="badge"><span id="badgeAnim">—</span> · rangée <span id="badgeRow">0</span></div>
+      <div class="hint-float" id="hintFloat">
+        Case orange = perso. Tape une case voisine = direction de CETTE vue du sprite.
+      </div>
+    </div>
+    <div class="bar">
+      <button id="btnBack" type="button">◀ Retour</button>
+      <button id="btnOk" class="primary" type="button" disabled>✓ Valider → suivante</button>
+    </div>
+  </div>
+
+  <!-- ÉCRAN 3 : résultat -->
+  <div id="done">
+    <div class="question">Mapping terminé</div>
+    <div class="sub">Copie et colle dans le chat — on branchera ce sprite dans le jeu.</div>
+    <div class="result-list" id="resultList"></div>
+    <textarea id="out" readonly></textarea>
+    <div class="bar">
+      <button id="btnOther" type="button">Autre sprite</button>
+      <button id="btnCopy" class="primary" type="button">📋 Copier</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Ok</div>
+
+<script>
+const TILE_W=64, TILE_H=32, FRAME=64, COLS=8, ROWS=8, GRID=5, PC=2, PR=2;
+const LOCAL="./thug-16bit-outlined/";
+const CDN="https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/echo-sprite-idle-test-e78a/assets/packs/thug-16bit-outlined/";
+
+const ANIMS = [
+  { id:"Idle",       file:"Idle.png",       fr:"Idle / attendre", role:"idle" },
+  { id:"Walk",       file:"Walk.png",       fr:"Marcher",         role:"walk" },
+  { id:"Run",        file:"Run.png",        fr:"Courir",          role:"run" },
+  { id:"Attack1",    file:"Attack1.png",    fr:"Taper (Attack1)", role:"attack" },
+  { id:"Attack2",    file:"Attack2.png",    fr:"Taper (Attack2)", role:"attack" },
+  { id:"Attack3",    file:"Attack3.png",    fr:"Taper (Attack3)", role:"attack" },
+  { id:"TakeDamage", file:"TakeDamage.png", fr:"Touché",          role:"hit" },
+  { id:"Die",        file:"Die.png",        fr:"Mourir",          role:"die" },
+  { id:"Taunt",      file:"Taunt.png",      fr:"Provocation",     role:"taunt" },
+];
+
+const NEIGHBORS = [
+  {dc:0,dr:1},{dc:1,dr:1},{dc:1,dr:0},{dc:1,dr:-1},
+  {dc:0,dr:-1},{dc:-1,dr:-1},{dc:-1,dr:0},{dc:-1,dr:1},
+];
+
+const sheets = {};
+const doneAnims = {}; // animId → answers[8]
+let animId = null;
+let sheet = null;
+let step = 0;
+let pick = null;
+let answers = new Array(8).fill(null);
+
+const canvas=document.getElementById("c");
+const ctx=canvas.getContext("2d");
+const stage=document.getElementById("stage");
+const btnOk=document.getElementById("btnOk");
+const btnBack=document.getElementById("btnBack");
+const btnStart=document.getElementById("btnStart");
+const toastEl=document.getElementById("toast");
+const hintFloat=document.getElementById("hintFloat");
+
+let dpr=1, frame=0, lastTs=0, userZoom=2.35;
+
+function loadImg(file){
+  return new Promise(resolve=>{
+    const tryUrl=(urls,i)=>{
+      if(i>=urls.length){ resolve(null); return; }
+      const img=new Image();
+      img.decoding="async";
+      img.onload=()=>resolve(img);
+      img.onerror=()=>tryUrl(urls,i+1);
+      img.crossOrigin="anonymous";
+      img.src=urls[i];
+    };
+    tryUrl([LOCAL+file, CDN+file], 0);
+  });
+}
+
+function layout(){
+  const w=stage.clientWidth, h=stage.clientHeight;
+  if(!w || !h) return;
+  dpr=Math.min(window.devicePixelRatio||1, 2);
+  canvas.width=Math.floor(w*dpr);
+  canvas.height=Math.floor(h*dpr);
+  canvas.style.width=w+"px";
+  canvas.style.height=h+"px";
+}
+
+function toScreen(c,r){ return { x:(c-r)*(TILE_W/2), y:(c+r)*(TILE_H/2) }; }
+
+function drawTile(x,y, fill, stroke, lw){
+  const hw=TILE_W/2, hh=TILE_H/2;
+  ctx.beginPath();
+  ctx.moveTo(x, y-hh); ctx.lineTo(x+hw, y); ctx.lineTo(x, y+hh); ctx.lineTo(x-hw, y);
+  ctx.closePath();
+  ctx.fillStyle=fill; ctx.fill();
+  if(stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=lw||1.6; ctx.stroke(); }
+}
+
+function isNeighbor(c,r){
+  const dc=c-PC, dr=r-PR;
+  return NEIGHBORS.some(n=>n.dc===dc && n.dr===dr);
+}
+
+function worldFromClient(clientX, clientY){
+  const rect=canvas.getBoundingClientRect();
+  const lx=clientX-rect.left, ly=clientY-rect.top;
+  const w=canvas.clientWidth, h=canvas.clientHeight;
+  const foot=toScreen(PC, PR);
+  const x=(lx - w/2)/userZoom + foot.x;
+  const y=(ly - (h/2+10))/userZoom + foot.y;
+  const a=x/(TILE_W/2), b=y/(TILE_H/2);
+  return { c:Math.round((a+b)/2), r:Math.round((b-a)/2) };
+}
+
+function describeDelta(dc,dr){
+  const sx=(dc-dr), sy=(dc+dr);
+  const parts=[];
+  if(sy>0) parts.push("bas écran");
+  if(sy<0) parts.push("haut écran");
+  if(sx>0) parts.push("droite écran");
+  if(sx<0) parts.push("gauche écran");
+  return parts.length ? parts.join(" + ") : "—";
+}
+
+function orientFromDelta(dc,dr){
+  const sc=Math.sign(dc), sr=Math.sign(dr);
+  return ({
+    "0,-1":"back","1,-1":"qBackRight","1,0":"sideRight","1,1":"qFrontRight",
+    "0,1":"front","-1,1":"qFrontLeft","-1,0":"sideLeft","-1,-1":"qBackLeft"
+  })[sc+","+sr] || "front";
+}
+
+function draw(){
+  const w=canvas.clientWidth, h=canvas.clientHeight;
+  if(!w||!h) return;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  const g=ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,"#152032"); g.addColorStop(1,"#0a0e14");
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  if(!sheet) return;
+
+  const foot=toScreen(PC,PR);
+  ctx.save();
+  ctx.translate(w/2, h/2 + 10);
+  ctx.scale(userZoom, userZoom);
+  ctx.translate(-foot.x, -foot.y);
+
+  for(let c=0;c<GRID;c++) for(let r=0;r<GRID;r++){
+    const s=toScreen(c,r);
+    const even=(c+r)%2===0;
+    const isP=c===PC&&r===PR;
+    const neigh=isNeighbor(c,r);
+    const selected = pick && (c===PC+pick.dc && r===PR+pick.dr);
+    let fill = even ? "rgba(40,55,75,.92)" : "rgba(28,40,55,.92)";
+    let stroke = "rgba(70,90,120,.35)";
+    let lw=1.2;
+    if(isP){ fill="rgba(232,89,12,.38)"; stroke="rgba(255,180,120,.95)"; lw=2; }
+    else if(selected){ fill="rgba(39,224,255,.35)"; stroke="rgba(120,230,255,1)"; lw=2.4; }
+    else if(neigh){ fill="rgba(39,224,255,.12)"; stroke="rgba(39,224,255,.45)"; lw=1.6; }
+    drawTile(s.x, s.y, fill, stroke, lw);
+    if(selected){
+      ctx.fillStyle="#d9f8ff";
+      ctx.font="bold 9px Trebuchet MS";
+      ctx.textAlign="center";
+      ctx.fillText("VERS ICI", s.x, s.y+3);
+    }
+  }
+
+  const f=frame%COLS, row=step;
+  const charH=118, sChar=charH/FRAME;
+  const dx=foot.x - 32*sChar, dy=foot.y - 46*sChar;
+  ctx.fillStyle="rgba(0,0,0,.35)";
+  ctx.beginPath(); ctx.ellipse(foot.x, foot.y+3, 17, 7, 0, 0, Math.PI*2); ctx.fill();
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(sheet, f*FRAME, row*FRAME, FRAME, FRAME, dx, dy, FRAME*sChar, FRAME*sChar);
+  ctx.fillStyle="#27e0ff";
+  ctx.beginPath();
+  ctx.moveTo(foot.x-6, foot.y-58); ctx.lineTo(foot.x+6, foot.y-58); ctx.lineTo(foot.x, foot.y-49);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function renderAnimChips(){
+  const box=document.getElementById("animChips");
+  box.innerHTML="";
+  ANIMS.forEach(a=>{
+    if(!sheets[a.id]) return;
+    const b=document.createElement("button");
+    b.type="button";
+    b.textContent=a.fr + (doneAnims[a.id] ? " ✓" : "");
+    if(animId===a.id) b.classList.add("on");
+    if(doneAnims[a.id]) b.classList.add("done");
+    b.onclick=()=>{
+      animId=a.id;
+      btnStart.disabled=false;
+      renderAnimChips();
+    };
+    box.appendChild(b);
+  });
+}
+
+function show(id){
+  document.getElementById("pick").classList.toggle("hide", id!=="pick");
+  document.getElementById("wizard").classList.toggle("hide", id!=="wizard");
+  const done=document.getElementById("done");
+  if(id==="done"){ done.style.display="block"; done.classList.add("show"); }
+  else { done.style.display="none"; done.classList.remove("show"); }
+}
+
+function syncWizard(){
+  const a=ANIMS.find(x=>x.id===animId);
+  document.getElementById("animName").textContent=a?a.fr:animId;
+  document.getElementById("badgeAnim").textContent=a?a.fr:animId;
+  document.getElementById("stepN").textContent=String(step+1);
+  document.getElementById("rowN").textContent=String(step);
+  document.getElementById("badgeRow").textContent=String(step);
+  document.getElementById("prog").style.width=((step)/8*100)+"%";
+  pick = answers[step] ? { dc:answers[step].dc, dr:answers[step].dr } : null;
+  btnOk.disabled = !pick;
+  btnBack.disabled = step===0;
+  if(pick){
+    hintFloat.innerHTML = "Direction choisie : <b>Δcol "+pick.dc+" · Δrow "+pick.dr+"</b> ("+describeDelta(pick.dc,pick.dr)+")";
+  } else {
+    hintFloat.innerHTML = "Case orange = perso. Tape une case <b>cyan</b> = direction de CETTE rangée du sprite.";
+  }
+  layout(); draw();
+}
+
+function finish(){
+  doneAnims[animId]=answers.map(a=>({dc:a.dc,dr:a.dr}));
+  show("done");
+  document.getElementById("prog").style.width="100%";
+  const a=ANIMS.find(x=>x.id===animId);
+  const list=document.getElementById("resultList");
+  list.innerHTML = answers.map((ans,row)=>{
+    return `<div>Rangée <b>#${row}</b> → Δcol ${ans.dc}, Δrow ${ans.dr} · <b>${orientFromDelta(ans.dc,ans.dr)}</b><br><span style="color:#8fa3b8;font-size:12px">${describeDelta(ans.dc,ans.dr)}</span></div>`;
+  }).join("");
+
+  const byOrient={};
+  answers.forEach((ans,row)=>{ byOrient[orientFromDelta(ans.dc,ans.dr)]=row; });
+  const orients=["front","qFrontRight","sideRight","qBackRight","back","qBackLeft","sideLeft","qFrontLeft"];
+
+  const lines=[
+    `Sprite: ${a.fr} [${a.id}]  role=${a.role}`,
+    "Calibrage par CASE (grille jeu) — vue = direction vers la case tapée",
+    "",
+    "Par rangée:",
+    ...answers.map((ans,row)=>`  rangée ${row}: Δcol=${ans.dc} Δrow=${ans.dr}  (${describeDelta(ans.dc,ans.dr)})  → ${orientFromDelta(ans.dc,ans.dr)}`),
+    "",
+    "ROW_BY_ORIENT:",
+    ...orients.map(o=>`  ${o}: ${byOrient[o] !== undefined ? byOrient[o] : "?"}`),
+  ];
+  document.getElementById("out").value=lines.join("\n");
+}
+
+function onPointer(clientX, clientY){
+  const t=worldFromClient(clientX, clientY);
+  if(t.c===PC && t.r===PR){ toast("C’est le perso — tape une case VOISINE"); return; }
+  if(!isNeighbor(t.c,t.r)){ toast("Tape une case autour (anneau cyan)"); return; }
+  pick={ dc:t.c-PC, dr:t.r-PR };
+  btnOk.disabled=false;
+  hintFloat.innerHTML = "Direction : <b>Δcol "+pick.dc+" · Δrow "+pick.dr+"</b> ("+describeDelta(pick.dc,pick.dr)+")";
+  draw();
+}
+
+canvas.addEventListener("click", e=> onPointer(e.clientX, e.clientY));
+canvas.addEventListener("touchend", e=>{
+  if(!e.changedTouches||!e.changedTouches[0]) return;
+  e.preventDefault();
+  const t=e.changedTouches[0];
+  onPointer(t.clientX, t.clientY);
+}, {passive:false});
+
+btnStart.onclick=()=>{
+  if(!animId || !sheets[animId]) return;
+  sheet=sheets[animId];
+  step=0; pick=null;
+  answers=new Array(8).fill(null);
+  show("wizard");
+  syncWizard();
+};
+btnOk.onclick=()=>{
+  if(!pick) return;
+  answers[step]={ dc:pick.dc, dr:pick.dr };
+  if(step>=7){ finish(); return; }
+  step++;
+  syncWizard();
+  toast("Validé — rangée suivante");
+};
+btnBack.onclick=()=>{
+  if(step<=0) return;
+  step--;
+  syncWizard();
+};
+document.getElementById("btnOther").onclick=()=>{
+  show("pick");
+  renderAnimChips();
+  btnStart.disabled=!animId;
+};
+document.getElementById("btnCopy").onclick=async()=>{
+  const t=document.getElementById("out").value;
+  try{ await navigator.clipboard.writeText(t); toast("Copié — colle-moi ça"); }
+  catch(_e){ document.getElementById("out").select(); toast("Sélectionne et copie"); }
+};
+
+function toast(msg){
+  toastEl.textContent=msg;
+  toastEl.classList.add("show");
+  setTimeout(()=>toastEl.classList.remove("show"),1300);
+}
+
+function tick(ts){
+  if(ts-lastTs>90){ frame=(frame+1)%COLS; lastTs=ts; if(!document.getElementById("wizard").classList.contains("hide")) draw(); }
+  requestAnimationFrame(tick);
+}
+
+(async()=>{
+  window.addEventListener("resize", ()=>{ layout(); draw(); });
+  await Promise.all(ANIMS.map(async a=>{
+    const img=await loadImg(a.file);
+    if(img) sheets[a.id]=img;
+  }));
+  renderAnimChips();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
