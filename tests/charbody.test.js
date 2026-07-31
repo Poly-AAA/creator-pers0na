@@ -182,4 +182,9 @@ describe("PackSprites — Thug placeholder", () => {
     assert.match(html, /front:\s*2/);
     assert.match(html, /sideRight:\s*0/);
   });
+  it("attaque orientée vers la cible (_packAttackTarget)", () => {
+    assert.match(html, /_packAttackTarget/);
+    assert.match(html, /pulseAttack\(caster,\s*720,\s*arg\)/);
+    assert.match(html, /drawAttackAim/);
+  });
 });
