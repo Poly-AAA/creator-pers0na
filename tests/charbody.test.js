@@ -167,4 +167,14 @@ describe("PackSprites — Thug placeholder", () => {
     assert.match(html, /pickAnim/);
     assert.match(html, /const EchoSprites\s*=\s*PackSprites/);
   });
+  it("échelle basée sur contentH (pas frame entière)", () => {
+    assert.match(html, /contentH:\s*24/);
+    assert.match(html, /targetBodyH:\s*68/);
+    assert.match(html, /targetBodyH\s*\/\s*this\.contentH/);
+  });
+  it("facing vers cible à l'attaque", () => {
+    assert.match(html, /function charFaceToward/);
+    assert.match(html, /charFaceToward\(caster,\s*arg\)/);
+    assert.match(html, /charFaceToward\(p,\s*hovEnt\)/);
+  });
 });
