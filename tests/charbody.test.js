@@ -190,7 +190,15 @@ describe("PackSprites — Thug placeholder", () => {
   });
   it("attaque orientée vers la cible (_packAttackTarget)", () => {
     assert.match(html, /_packAttackTarget/);
-    assert.match(html, /pulseAttack\(caster,\s*720,\s*arg\)/);
+    assert.match(html, /pulseAttack\(caster,\s*720,\s*arg/);
     assert.match(html, /drawAttackAim/);
+  });
+  it("Run si trajet ≥ 2 PM + Attack2 pour coup de poing", () => {
+    assert.match(html, /file:"Run\.png"/);
+    assert.match(html, /file:"Attack2\.png"/);
+    assert.match(html, /_packMovePM/);
+    assert.match(html, /_packMovePM \|\| 0\) >= 2\) \? "run"/);
+    assert.match(html, /def\.id === "punch" \? "attack2"/);
+    assert.match(html, /_packAttackAnim/);
   });
 });

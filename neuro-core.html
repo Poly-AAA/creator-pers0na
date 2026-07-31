@@ -5896,9 +5896,16 @@ const Combat = {
     inputLocked = true;
     Combat._animating = true;   // V0.91.1 — déplacement en cours
     Combat._animStart = performance.now();   // M-fix — horodatage pour détecter un flag bloqué
+    // Coût PM du trajet (cases franchies) — ≥ 2 → anim Run côté PackSprites
+    entity._packMovePM = path.length - 1;
     let i = 1;
     const step = ()=>{
-      if(i >= path.length){ Combat._animating = false; if(onDone) onDone(); return; }
+      if(i >= path.length){
+        Combat._animating = false;
+        entity._packMovePM = 0;
+        if(onDone) onDone();
+        return;
+      }
       const next = path[i];
       // CharBody — orientation depuis Δ case (ne change pas la logique de combat)
       const dCol = Math.sign(next.c - entity.c), dRow = Math.sign(next.r - entity.r);
@@ -5912,7 +5919,7 @@ const Combat = {
       FX.ping(entity.c, entity.r, "rgba(39,224,255,.5)");
       // MINES MAGNÉTIQUES (V0.7) : déclenchées par le déplacement d'une unité du camp opposé
       Field.checkMines(entity);
-      if(!entity.alive){ Combat._animating = false; if(onDone) onDone(); return; }   // l'unité peut mourir sur une mine
+      if(!entity.alive){ Combat._animating = false; entity._packMovePM = 0; if(onDone) onDone(); return; }
       setTimeout(step, 120);
     };
     step();
@@ -5925,7 +5932,7 @@ const Combat = {
     // Toujours s’orienter vers la cible au moment du coup (joueur + IA)
     if(target) charFaceToward(attacker, target);
     if(attacker && attacker.isPlayer && typeof PackSprites!=="undefined" && def && def.type === "damage"){
-      PackSprites.pulseAttack(attacker, 720, target);
+      PackSprites.pulseAttack(attacker, 720, target, def.id === "punch" ? "attack2" : "attack");
     }
     // evo réelle (grimoire) OU evo virtuelle d'une invocation (tourelle/sniper)
     const stv = attacker._virtEvo ? attacker._virtEvo
@@ -6298,7 +6305,9 @@ const Combat = {
     if(caster.isPlayer) MetaProgress.noteCast(def.id, def.school);   // V0.95 — statistiques : sorts utilisés / favori
     // Orientation vers la cible (entité, case, ou direction dash) avant l’anim d’attaque
     if(arg) charFaceToward(caster, arg);
-    if(caster.isPlayer && typeof PackSprites!=="undefined") PackSprites.pulseAttack(caster, 720, arg);
+    if(caster.isPlayer && typeof PackSprites!=="undefined"){
+      PackSprites.pulseAttack(caster, 720, arg, def.id === "punch" ? "attack2" : "attack");
+    }
     // V1.9c — caractéristiques par usage (permanent, très lent)
     if(caster.isPlayer){
       if(def.type === "damage"){ MetaProgress.noteTrait((Spells.range(caster,def) <= 1) ? "force" : "precision", 1); }
@@ -7349,12 +7358,13 @@ const PackSprites = {
   /** @deprecated même table que ROW_BY_ORIENT (V3.4 unifié) — conservé pour rétrocompat */
   get ROW_BY_ORIENT_ATTACK(){ return this.ROW_BY_ORIENT; },
   ANIMS: {
-    idle:   { file:"Idle.png",        fps:8 },
-    walk:   { file:"Walk.png",        fps:10 },
-    run:    { file:"Run.png",         fps:12 },
-    attack: { file:"Attack1.png",     fps:12 },
-    hit:    { file:"TakeDamage.png",  fps:10 },
-    die:    { file:"Die.png",         fps:8 },
+    idle:    { file:"Idle.png",        fps:8 },
+    walk:    { file:"Walk.png",        fps:10 },
+    run:     { file:"Run.png",         fps:12 },
+    attack:  { file:"Attack1.png",     fps:12 },  // distance / sorts dégâts
+    attack2: { file:"Attack2.png",     fps:12 },  // coup de poing
+    hit:     { file:"TakeDamage.png",  fps:10 },
+    die:     { file:"Die.png",         fps:8 },
   },
   sheets: {},
   ready: false,
@@ -7385,11 +7395,14 @@ const PackSprites = {
   pickAnim(e){
     if(!e.alive) return "die";
     if(e.hitFlash > 0.35) return "hit";
-    if(e._packAttackT && performance.now() < e._packAttackT) return "attack";
+    if(e._packAttackT && performance.now() < e._packAttackT){
+      return e._packAttackAnim || "attack";
+    }
     // déplacement en cours (lissage ou anim moveAlong)
     const moving = (e._rc !== undefined && (Math.abs(e._rc - e.c) > 0.04 || Math.abs(e._rr - e.r) > 0.04))
       || (typeof Combat !== "undefined" && Combat._animating && Combat.current && Combat.current() === e);
-    if(moving) return "walk";
+    // ≥ 2 PM sur ce trajet → course ; 1 PM → marche
+    if(moving) return ((e._packMovePM || 0) >= 2) ? "run" : "walk";
     return "idle";
   },
   _loadOne(file){
@@ -7428,7 +7441,9 @@ const PackSprites = {
     opts = opts || {};
     const t = opts.t || (performance.now()/1000);
     const anim = this.pickAnim(e);
-    const sheet = this.sheets[anim] || this.sheets.idle;
+    const sheet = this.sheets[anim] || (anim === "run" ? this.sheets.walk : null)
+               || (anim === "attack2" ? this.sheets.attack : null)
+               || this.sheets.idle;
     if(!sheet) return false;
     const dir = (typeof charOrientOf === "function") ? charOrientOf(e) : "front";
     const row = this.dirRow(dir, anim);
@@ -7462,10 +7477,12 @@ const PackSprites = {
     };
     return true;
   },
-  /** Déclenche une brève anim d'attaque visuelle, orientée vers la cible */
-  pulseAttack(e, ms, target){
+  /** Déclenche une brève anim d'attaque visuelle, orientée vers la cible.
+   *  anim : "attack" (Attack1, défaut) ou "attack2" (Attack2, coup de poing). */
+  pulseAttack(e, ms, target, anim){
     if(!e) return;
     e._packAttackT = performance.now() + (ms || 720);
+    e._packAttackAnim = anim || "attack";
     if(target && target.c !== undefined){
       e._packAttackTarget = { c: target.c, r: target.r };
       charFaceToward(e, target);
@@ -11491,7 +11508,7 @@ const Input = {
             charFaceToward(p, aim);
             if(clickedFoe && typeof PackSprites!=="undefined"){
               // Preview courte de la pose d’attaque orientée
-              PackSprites.pulseAttack(p, 280, clickedFoe);
+              PackSprites.pulseAttack(p, 280, clickedFoe, armedSkill === "punch" ? "attack2" : "attack");
             }
           }
         }
@@ -11521,7 +11538,7 @@ const Input = {
           const [lo,hi] = Spells.dmgRange(p, def);
           charFaceToward(p, { c:t.c, r:t.r });
           p.pa -= cost; Spells.gainXP(p, def.id);
-          if(typeof PackSprites!=="undefined") PackSprites.pulseAttack(p, 720, { c:t.c, r:t.r });
+          if(typeof PackSprites!=="undefined") PackSprites.pulseAttack(p, 720, { c:t.c, r:t.r }, def.id === "punch" ? "attack2" : "attack");
           Combat.damageObstacle(Grid.key(t.c,t.r), randi(lo,hi));
           armedSkill = null;
           UI.spells.update(); UI.refreshAll();
