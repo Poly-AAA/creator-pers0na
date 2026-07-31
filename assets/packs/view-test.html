@@ -3,277 +3,280 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<title>Test angle — Thug 8 vues (zoom)</title>
+<title>Test Thug — anims + 8 vues</title>
 <style>
-  :root{
-    --cream:#F2F0EB; --accent:#E8590C; --cyan:#27e0ff; --bg:#0c1018;
-  }
+  :root{ --cream:#F2F0EB; --accent:#E8590C; --cyan:#27e0ff; --bg:#0c1018; }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{
     background:var(--bg); color:var(--cream);
     font-family:Trebuchet MS,Segoe UI,sans-serif;
     min-height:100dvh; display:flex; flex-direction:column;
   }
-  header{
-    padding:10px 12px; border-bottom:1px solid #2a3140;
-    display:flex; flex-direction:column; gap:4px;
-  }
+  header{ padding:10px 12px; border-bottom:1px solid #2a3140; }
   header h1{font-size:16px; color:var(--accent)}
-  header .meta{font-size:12px; opacity:.8}
-  #status{font-size:12px; color:#8ec8ff}
+  header .meta{font-size:12px; opacity:.8; margin-top:2px}
+  #status{font-size:12px; color:#8ec8ff; margin-top:4px}
   #wrap{
-    flex:1; position:relative; overflow:hidden; min-height:300px;
+    flex:1; min-height:280px; position:relative; overflow:hidden;
     background:radial-gradient(ellipse at 50% 45%, #1a2436 0%, #0c1018 70%);
   }
-  canvas{display:block; width:100%; height:100%; touch-action:none}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
   .bigdir{
-    font-size:22px; font-weight:bold; color:var(--accent);
-    text-align:center; padding:6px 8px 0; letter-spacing:1px;
+    font-size:18px; font-weight:bold; color:var(--accent);
+    text-align:center; padding:6px 8px 0;
   }
   .bar{
     padding:10px 12px calc(10px + env(safe-area-inset-bottom));
-    border-top:1px solid #2a3140;
+    border-top:1px solid #2a3140; background:#10151f;
     display:flex; flex-direction:column; gap:8px;
-    background:#10151f;
   }
   .row{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
   button{
     background:#1e2633; color:var(--cream); border:1px solid #3a4558;
-    border-radius:10px; padding:10px 12px; font-size:14px; font-weight:bold;
-    cursor:pointer; min-height:42px;
+    border-radius:10px; padding:9px 11px; font-size:13px; font-weight:bold;
+    cursor:pointer; min-height:40px;
   }
   button.on{border-color:var(--cyan); color:var(--cyan)}
-  button:active{transform:scale(.97)}
-  .dirs{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; width:100%}
-  .dirs button{font-size:12px; padding:8px 4px}
+  .dirs,.anims{display:grid; gap:5px; width:100%}
+  .dirs{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .anims{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .dirs button,.anims button{font-size:11px; padding:8px 4px}
+  .label{font-size:11px; opacity:.65; text-transform:uppercase; letter-spacing:1px}
   .hint{font-size:11px; opacity:.7; line-height:1.35}
 </style>
 </head>
 <body>
 <header>
-  <h1>TEST ANGLE — map iso + zoom</h1>
-  <div class="meta">Thug Idle · pieds collés à la case orange · 8 vues</div>
+  <h1>TEST THUG — anims + 8 directions</h1>
+  <div class="meta">Placeholder moche OK · on vérifie angle + anims sur la map iso</div>
   <div id="status">Chargement…</div>
 </header>
 <div id="wrap"><canvas id="c"></canvas></div>
-<div class="bigdir" id="bigDir">—</div>
+<div class="bigdir" id="bigLabel">—</div>
 <div class="bar">
+  <div class="label">Animation</div>
+  <div class="anims" id="animChips"></div>
   <div class="row">
-    <button id="btnPlay" class="on">⏸ Pause</button>
-    <button id="btnPrev">◀</button>
-    <button id="btnNext">▶</button>
+    <button id="btnPlay" class="on">⏸ Pause dir</button>
+    <button id="btnPrev">◀ Dir</button>
+    <button id="btnNext">Dir ▶</button>
     <button id="btnZoomOut">− Zoom</button>
     <button id="btnZoomIn">+ Zoom</button>
     <button id="btnBigger">Perso +</button>
     <button id="btnSmaller">Perso −</button>
     <button id="btnReset">Reset</button>
   </div>
+  <div class="label">Direction</div>
   <div class="dirs" id="dirChips"></div>
   <div class="hint">
-    Zoom = carte + perso ensemble. Perso +/− = taille sur la case.
-    Pince à 2 doigts = zoom · 1 doigt = déplacer.
+    Oui, le pack a des animations. Change Idle / Walk / Run / Attack…
+    Le perso reste sur la case orange ; les dirs tournent (ou manuellement).
   </div>
 </div>
 <script>
-const TILE_W = 64, TILE_H = 32;
-const GRID = 5;
-const CELL = { c: 2, r: 2 };
-const FRAME_W = 64, FRAME_H = 64;
-const SHEET_COLS = 8;
+const TILE_W=64, TILE_H=32, GRID=5, CELL={c:2,r:2};
+const FRAME_W=64, FRAME_H=64, SHEET_COLS=8;
+const CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/echo-sprite-idle-test-e78a/assets/packs/thug-16bit-outlined/";
 
 const DIR_ORDER = [
-  { id:"front",       label:"0 · S face" },
-  { id:"qFrontRight", label:"1 · SE" },
-  { id:"sideRight",   label:"2 · E" },
-  { id:"qBackRight",  label:"3 · NE" },
-  { id:"back",        label:"4 · N dos" },
-  { id:"qBackLeft",   label:"5 · NO" },
-  { id:"sideLeft",    label:"6 · O" },
-  { id:"qFrontLeft",  label:"7 · SO" },
+  {id:"front", label:"0 · S"},
+  {id:"qFrontRight", label:"1 · SE"},
+  {id:"sideRight", label:"2 · E"},
+  {id:"qBackRight", label:"3 · NE"},
+  {id:"back", label:"4 · N"},
+  {id:"qBackLeft", label:"5 · NO"},
+  {id:"sideLeft", label:"6 · O"},
+  {id:"qFrontLeft", label:"7 · SO"},
 ];
 
-const canvas = document.getElementById("c");
-const ctx = canvas.getContext("2d");
-const statusEl = document.getElementById("status");
-const chipsEl = document.getElementById("dirChips");
-const bigDir = document.getElementById("bigDir");
+const ANIMS = [
+  { id:"Idle", file:"Idle.png", fps:8, loop:true },
+  { id:"Walk", file:"Walk.png", fps:10, loop:true },
+  { id:"Run", file:"Run.png", fps:12, loop:true },
+  { id:"Attack1", file:"Attack1.png", fps:12, loop:true },
+  { id:"Attack2", file:"Attack2.png", fps:12, loop:true },
+  { id:"TakeDamage", file:"TakeDamage.png", fps:10, loop:true },
+  { id:"Taunt", file:"Taunt.png", fps:10, loop:true },
+  { id:"Die", file:"Die.png", fps:8, loop:false },
+];
 
-let sheet = null;
-let dirIndex = 0;
-let frameIndex = 0;
-let playing = true;
-let lastDirSwitch = 0;
-let dpr = 1;
-let userZoom = 2.2;
-/** Hauteur visuelle du perso en unités map (case = 32 de haut). ~3 cases ≈ bien lisible */
-let charH = 110;
-let panX = 0, panY = 0;
-/** Cache ancre pieds dans la frame 64×64 (bas du contenu opaque) */
-const footAnchor = {}; // key dir,frame -> {fx, fy} en px source
+const canvas=document.getElementById("c");
+const ctx=canvas.getContext("2d");
+const statusEl=document.getElementById("status");
+const bigLabel=document.getElementById("bigLabel");
+const dirChips=document.getElementById("dirChips");
+const animChips=document.getElementById("animChips");
+
+let sheets={};           // animId -> Image
+let animIndex=0;
+let dirIndex=0;
+let frameIndex=0;
+let rotateDirs=true;
+let lastDirSwitch=0;
+let dpr=1, userZoom=2.2, charH=110, panX=0, panY=0;
 
 DIR_ORDER.forEach((d,i)=>{
-  const b = document.createElement("button");
-  b.textContent = d.label;
+  const b=document.createElement("button");
+  b.textContent=d.label;
   if(i===0) b.classList.add("on");
-  b.onclick = ()=>{ dirIndex=i; syncUI(); };
-  chipsEl.appendChild(b);
+  b.onclick=()=>{ dirIndex=i; syncUI(); };
+  dirChips.appendChild(b);
+});
+ANIMS.forEach((a,i)=>{
+  const b=document.createElement("button");
+  b.textContent=a.id;
+  if(i===0) b.classList.add("on");
+  b.onclick=()=>{ animIndex=i; frameIndex=0; syncUI(); };
+  animChips.appendChild(b);
 });
 
 function syncUI(){
-  [...chipsEl.children].forEach((b,i)=> b.classList.toggle("on", i===dirIndex));
-  bigDir.textContent = DIR_ORDER[dirIndex].label;
+  [...dirChips.children].forEach((b,i)=>b.classList.toggle("on", i===dirIndex));
+  [...animChips.children].forEach((b,i)=>b.classList.toggle("on", i===animIndex));
+  const a=ANIMS[animIndex], d=DIR_ORDER[dirIndex];
+  bigLabel.textContent = a.id + "  ·  " + d.label;
 }
 
-function toScreen(c, r){
-  return {
-    x: (c - r) * (TILE_W/2),
-    y: (c + r) * (TILE_H/2),
-  };
-}
-
-/** Trouve le point de contact au sol dans une frame (bas du sprite opaque, centre x) */
-function findFoot(dir, frame){
-  const key = dir+","+frame;
-  if(footAnchor[key]) return footAnchor[key];
-  if(!sheet) return { fx: FRAME_W/2, fy: FRAME_H - 2 };
-
-  // Ancre pieds approximative stable (contenu Thug ~ centre-bas de la frame)
-  // Évite getImageData (CORS) qui casse sur CDN
-  const anchor = { fx: FRAME_W/2, fy: 46 };
-  footAnchor[key] = anchor;
-  return anchor;
+function toScreen(c,r){
+  return { x:(c-r)*(TILE_W/2), y:(c+r)*(TILE_H/2) };
 }
 
 function layout(){
-  const wrap = document.getElementById("wrap");
-  const w = wrap.clientWidth, h = wrap.clientHeight;
-  dpr = Math.min(window.devicePixelRatio||1, 2);
-  canvas.width = w*dpr; canvas.height = h*dpr;
-  canvas.style.width = w+"px"; canvas.style.height = h+"px";
+  const wrap=document.getElementById("wrap");
+  const w=wrap.clientWidth, h=wrap.clientHeight;
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  canvas.width=w*dpr; canvas.height=h*dpr;
+  canvas.style.width=w+"px"; canvas.style.height=h+"px";
+}
+
+function currentSheet(){
+  return sheets[ANIMS[animIndex].id] || null;
 }
 
 function draw(){
-  const w = canvas.clientWidth, h = canvas.clientHeight;
+  const w=canvas.clientWidth, h=canvas.clientHeight;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,w,h);
-
-  const g = ctx.createLinearGradient(0,0,0,h);
+  const g=ctx.createLinearGradient(0,0,0,h);
   g.addColorStop(0,"#1a2436"); g.addColorStop(1,"#0c1018");
-  ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
 
-  // Centre = pieds de la case perso (coordonnées map pures)
-  const footMap = toScreen(CELL.c, CELL.r);
-  const sc = userZoom;
-
+  const footMap=toScreen(CELL.c, CELL.r);
+  const sc=userZoom;
   ctx.save();
-  // Écran : centre + pan, puis zoom autour du centre
-  ctx.translate(w/2 + panX, h/2 + panY);
+  ctx.translate(w/2+panX, h/2+panY);
   ctx.scale(sc, sc);
-  ctx.translate(-footMap.x, -footMap.y + 8);
+  ctx.translate(-footMap.x, -footMap.y+8);
 
-  // --- MAP ---
-  const cells = [];
+  const cells=[];
   for(let c=0;c<GRID;c++) for(let r=0;r<GRID;r++) cells.push({c,r,z:c+r});
   cells.sort((a,b)=>a.z-b.z);
   for(const t of cells){
-    const s = toScreen(t.c, t.r);
-    const hw = TILE_W/2, hh = TILE_H/2;
-    const even = (t.c+t.r)%2===0;
-    const isCell = t.c===CELL.c && t.r===CELL.r;
+    const s=toScreen(t.c,t.r);
+    const hw=TILE_W/2, hh=TILE_H/2;
+    const even=(t.c+t.r)%2===0;
+    const isCell=t.c===CELL.c && t.r===CELL.r;
     ctx.beginPath();
-    ctx.moveTo(s.x, s.y-hh);
-    ctx.lineTo(s.x+hw, s.y);
-    ctx.lineTo(s.x, s.y+hh);
-    ctx.lineTo(s.x-hw, s.y);
+    ctx.moveTo(s.x,s.y-hh); ctx.lineTo(s.x+hw,s.y); ctx.lineTo(s.x,s.y+hh); ctx.lineTo(s.x-hw,s.y);
     ctx.closePath();
-    ctx.fillStyle = isCell ? "rgba(232,89,12,.5)" : (even ? "rgba(242,240,235,.2)" : "rgba(220,211,195,.12)");
+    ctx.fillStyle=isCell?"rgba(232,89,12,.5)":(even?"rgba(242,240,235,.2)":"rgba(220,211,195,.12)");
     ctx.fill();
-    ctx.strokeStyle = isCell ? "#E8590C" : "rgba(80,90,110,.8)";
-    ctx.lineWidth = isCell ? 2/sc : 1.2/sc;
+    ctx.strokeStyle=isCell?"#E8590C":"rgba(80,90,110,.8)";
+    ctx.lineWidth=isCell?2/sc:1.2/sc;
     ctx.stroke();
   }
 
-  // --- PERSO : ancré par les PIEDS du contenu opaque ---
-  if(sheet){
-    const foot = toScreen(CELL.c, CELL.r);
-    const pivotX = foot.x;
-    const pivotY = foot.y + 2;
-    const fr = frameIndex % SHEET_COLS;
-    const anc = findFoot(dirIndex, fr);
+  const sheet=currentSheet();
+  if(sheet && sheet.complete){
+    const foot=toScreen(CELL.c,CELL.r);
+    const pivotX=foot.x, pivotY=foot.y+2;
+    const fr=frameIndex % SHEET_COLS;
+    const sChar=charH/FRAME_H;
+    const dw=FRAME_W*sChar, dh=FRAME_H*sChar;
+    // ancre pieds approx (contenu Thug ~ y=46, x centre)
+    const fx=FRAME_W/2, fy=46;
+    const dx=pivotX-fx*sChar, dy=pivotY-fy*sChar;
 
-    // échelle pour que la frame fasse charH de haut en unités map
-    const sChar = charH / FRAME_H;
-    const dw = FRAME_W * sChar;
-    const dh = FRAME_H * sChar;
+    ctx.fillStyle="rgba(0,0,0,.45)";
+    ctx.beginPath(); ctx.ellipse(pivotX, pivotY+3, 18, 8, 0, 0, Math.PI*2); ctx.fill();
 
-    // point pieds source → doit coincider avec pivot map
-    const dx = pivotX - anc.fx * sChar;
-    const dy = pivotY - anc.fy * sChar;
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(sheet, fr*FRAME_W, dirIndex*FRAME_H, FRAME_W, FRAME_H, dx, dy, dw, dh);
 
-    // ombre sous les pieds (pivot)
-    ctx.fillStyle = "rgba(0,0,0,.45)";
-    ctx.beginPath();
-    ctx.ellipse(pivotX, pivotY+3, 18, 8, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(
-      sheet,
-      fr * FRAME_W, dirIndex * FRAME_H, FRAME_W, FRAME_H,
-      dx, dy, dw, dh
-    );
-
-    // repères
-    ctx.strokeStyle = "#27e0ff";
-    ctx.lineWidth = 2/sc;
+    ctx.strokeStyle="#27e0ff"; ctx.lineWidth=2/sc;
     ctx.beginPath(); ctx.ellipse(pivotX, pivotY+2, 20, 9, 0, 0, Math.PI*2); ctx.stroke();
-    ctx.fillStyle = "#27e0ff";
-    ctx.beginPath(); ctx.arc(pivotX, pivotY, 3/sc, 0, Math.PI*2); ctx.fill();
   }
-
   ctx.restore();
 
-  // HUD
-  ctx.fillStyle = "rgba(12,16,24,.85)";
-  ctx.fillRect(10, 10, 200, 40);
-  ctx.fillStyle = "#F2F0EB";
-  ctx.font = "bold 13px Trebuchet MS";
-  ctx.fillText("Zoom ×"+userZoom.toFixed(1)+" · hauteur "+Math.round(charH)+"px", 18, 34);
+  ctx.fillStyle="rgba(12,16,24,.85)";
+  ctx.fillRect(10,10,210,40);
+  ctx.fillStyle="#F2F0EB";
+  ctx.font="bold 13px Trebuchet MS";
+  ctx.fillText("Zoom ×"+userZoom.toFixed(1)+" · h "+Math.round(charH), 18, 34);
 }
 
 function loop(t){
-  if(playing && sheet){
-    if(!lastDirSwitch) lastDirSwitch = t;
-    if(t - lastDirSwitch > 1100){
-      dirIndex = (dirIndex + 1) % 8;
+  const anim=ANIMS[animIndex];
+  const fps=anim.fps||10;
+  const n=SHEET_COLS;
+  if(anim.loop){
+    frameIndex=Math.floor(t/1000*fps)%n;
+  } else {
+    frameIndex=Math.min(n-1, Math.floor(((t/1000)*fps)%(n+8))); // hold last
+  }
+  if(rotateDirs){
+    if(!lastDirSwitch) lastDirSwitch=t;
+    if(t-lastDirSwitch>1400){
+      dirIndex=(dirIndex+1)%8;
       syncUI();
-      lastDirSwitch = t;
+      lastDirSwitch=t;
     }
-    frameIndex = Math.floor(t / 140) % SHEET_COLS;
   }
   draw();
   requestAnimationFrame(loop);
 }
 
-document.getElementById("btnPlay").onclick = ()=>{
-  playing = !playing;
-  const b = document.getElementById("btnPlay");
-  b.textContent = playing ? "⏸ Pause" : "▶ Play";
-  b.classList.toggle("on", playing);
-  lastDirSwitch = performance.now();
+function loadAll(){
+  let left=ANIMS.length, ok=0;
+  statusEl.textContent="Chargement des anims… 0/"+ANIMS.length;
+  ANIMS.forEach(a=>{
+    const img=new Image();
+    img.crossOrigin="anonymous";
+    img.onload=()=>{
+      sheets[a.id]=img; ok++; left--;
+      statusEl.textContent="Chargement… "+ok+"/"+ANIMS.length;
+      if(left===0){
+        statusEl.textContent="OK — "+ok+" anims · placeholder en attendant de beaux graphismes";
+        layout(); syncUI();
+        requestAnimationFrame(loop);
+      }
+    };
+    img.onerror=()=>{
+      left--;
+      statusEl.textContent="Manque "+a.file+" ("+ok+" ok)";
+      if(left===0 && ok){ layout(); syncUI(); requestAnimationFrame(loop); }
+    };
+    img.src=CDN+a.file;
+  });
+}
+
+document.getElementById("btnPlay").onclick=()=>{
+  rotateDirs=!rotateDirs;
+  const b=document.getElementById("btnPlay");
+  b.textContent=rotateDirs?"⏸ Pause dir":"▶ Auto dir";
+  b.classList.toggle("on", rotateDirs);
+  lastDirSwitch=performance.now();
 };
-document.getElementById("btnPrev").onclick = ()=>{ dirIndex=(dirIndex+7)%8; syncUI(); };
-document.getElementById("btnNext").onclick = ()=>{ dirIndex=(dirIndex+1)%8; syncUI(); };
-document.getElementById("btnZoomIn").onclick = ()=>{ userZoom=Math.min(5.5, userZoom+0.3); };
-document.getElementById("btnZoomOut").onclick = ()=>{ userZoom=Math.max(0.7, userZoom-0.3); };
-document.getElementById("btnBigger").onclick = ()=>{ charH=Math.min(200, charH+12); };
-document.getElementById("btnSmaller").onclick = ()=>{ charH=Math.max(48, charH-12); };
-document.getElementById("btnReset").onclick = ()=>{
-  userZoom=2.2; charH=110; panX=0; panY=0;
-};
+document.getElementById("btnPrev").onclick=()=>{ dirIndex=(dirIndex+7)%8; syncUI(); };
+document.getElementById("btnNext").onclick=()=>{ dirIndex=(dirIndex+1)%8; syncUI(); };
+document.getElementById("btnZoomIn").onclick=()=>{ userZoom=Math.min(5.5,userZoom+0.3); };
+document.getElementById("btnZoomOut").onclick=()=>{ userZoom=Math.max(0.7,userZoom-0.3); };
+document.getElementById("btnBigger").onclick=()=>{ charH=Math.min(200,charH+12); };
+document.getElementById("btnSmaller").onclick=()=>{ charH=Math.max(48,charH-12); };
+document.getElementById("btnReset").onclick=()=>{ userZoom=2.2; charH=110; panX=0; panY=0; };
 
 let touch={mode:null,sx:0,sy:0,panX0:0,panY0:0,pinch0:1,zoom0:1};
-canvas.addEventListener("touchstart", e=>{
+canvas.addEventListener("touchstart",e=>{
   if(e.touches.length>=2){
     touch.mode="pinch";
     const dx=e.touches[0].clientX-e.touches[1].clientX;
@@ -285,44 +288,25 @@ canvas.addEventListener("touchstart", e=>{
     touch.panX0=panX; touch.panY0=panY;
   }
 },{passive:true});
-canvas.addEventListener("touchmove", e=>{
-  if(touch.mode==="pinch" && e.touches.length>=2){
+canvas.addEventListener("touchmove",e=>{
+  if(touch.mode==="pinch"&&e.touches.length>=2){
     const dx=e.touches[0].clientX-e.touches[1].clientX;
     const dy=e.touches[0].clientY-e.touches[1].clientY;
-    const d=Math.hypot(dx,dy)||1;
-    userZoom=Math.max(0.7, Math.min(5.5, touch.zoom0*(d/touch.pinch0)));
+    userZoom=Math.max(0.7,Math.min(5.5, touch.zoom0*((Math.hypot(dx,dy)||1)/touch.pinch0)));
     e.preventDefault();
-  } else if(touch.mode==="pan" && e.touches.length===1){
+  } else if(touch.mode==="pan"&&e.touches.length===1){
     panX=touch.panX0+(e.touches[0].clientX-touch.sx);
     panY=touch.panY0+(e.touches[0].clientY-touch.sy);
     e.preventDefault();
   }
 },{passive:false});
-canvas.addEventListener("wheel", e=>{
+canvas.addEventListener("wheel",e=>{
   e.preventDefault();
-  userZoom=Math.max(0.7, Math.min(5.5, userZoom+(e.deltaY<0?0.2:-0.2)));
+  userZoom=Math.max(0.7,Math.min(5.5,userZoom+(e.deltaY<0?0.2:-0.2)));
 },{passive:false});
+window.addEventListener("resize", layout);
 
-window.addEventListener("resize", ()=>{ layout(); });
-
-// Charge la planche (CDN GitHub d'abord = lien stable sans tunnel)
-const SHEET_URLS = [
-  "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/echo-sprite-idle-test-e78a/assets/packs/thug-16bit-outlined/Idle.png",
-  "thug-16bit-outlined/Idle.png"
-];
-(function loadSheet(i){
-  if(i >= SHEET_URLS.length){ statusEl.textContent = "ERREUR Idle.png"; return; }
-  sheet = new Image();
-  sheet.crossOrigin = "anonymous";
-  sheet.onload = ()=>{
-    statusEl.textContent = "OK — pieds sur la case · source: " + (i===0?"CDN GitHub":"local");
-    layout(); syncUI();
-    lastDirSwitch = performance.now();
-    requestAnimationFrame(loop);
-  };
-  sheet.onerror = ()=> loadSheet(i+1);
-  sheet.src = SHEET_URLS[i] + (i?"?v="+Date.now():"");
-})(0);
+loadAll();
 </script>
 </body>
 </html>
