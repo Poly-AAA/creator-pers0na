@@ -158,11 +158,13 @@ describe("CharGen — mapping & presets", () => {
   });
 });
 
-describe("EchoSprites — test idle", () => {
-  it("module + chemins 8 dirs", () => {
-    assert.match(html, /const EchoSprites\s*=/);
-    assert.match(html, /echo_body_standard_idle_/);
-    assert.match(html, /EchoSprites\.draw/);
-    assert.match(html, /EchoSprites\.load/);
+describe("PackSprites — Thug placeholder", () => {
+  it("module PackSprites + anims Idle/Walk", () => {
+    assert.match(html, /const PackSprites\s*=/);
+    assert.match(html, /thug-16bit-outlined/);
+    assert.match(html, /PackSprites\.draw/);
+    assert.match(html, /PackSprites\.load/);
+    assert.match(html, /pickAnim/);
+    assert.match(html, /const EchoSprites\s*=\s*PackSprites/);
   });
 });

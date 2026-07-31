@@ -1,6 +1,6 @@
 {
   "name": "neuro-core",
-  "version": "3.4.3",
+  "version": "3.4.4",
   "private": true,
   "type": "module",
   "description": "NEURO-CORE \u2014 RPG tactique HTML autonome (jeu jouable d'abord)",

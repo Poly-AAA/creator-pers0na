@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NEURO CORE — V3.4.3</title>
+<title>NEURO CORE — V3.4.4</title>
 <style>
 /* =====================================================================
-   NEURO CORE — V3.4.3 (ECHO sprites idle 8 dirs · test facing)
+   NEURO CORE — V3.4.4 (Thug placeholder · Idle/Walk/Attack sur map iso)
    Tactical Roguelite — HTML / CSS / JS Vanilla — Fichier unique autonome
    Direction artistique : 70% Dofus Touch / 20% Ghost in the Shell / 10% Esport
    Palette : cyan lumineux, turquoise, violet, orange, blanc, acier bleuté
@@ -1028,7 +1028,7 @@ aside.side{
 <div class="overlay" id="introOverlay">
   <div class="modal">
     <h1>NEURO CORE</h1>
-    <div class="sub">NEURO CORE — V3.4.3 · Mercenaire tactique (mobile OK)</div>
+    <div class="sub">NEURO CORE — V3.4.4 · Mercenaire tactique (mobile OK)</div>
     <div class="introbody">
       Autrefois esclave d'arène des grandes corporations, ton <b>ECHO</b> — une conscience numérique immortelle — a brisé ses chaînes.
       Désormais <b>mercenaire indépendant</b>, tu loues tes Enveloppes au plus offrant.
@@ -6291,6 +6291,7 @@ const Combat = {
     if(freeUse === "tp"){ caster._usedFreeTp = true; UI.log("you","🌀 Téléportation gratuite (Condensateur)."); }
     else if(freeUse === "first"){ caster._usedFreeSpell = true; UI.log("you","✨ Premier sort gratuit du combat."); }
     if(caster.isPlayer) MetaProgress.noteCast(def.id, def.school);   // V0.95 — statistiques : sorts utilisés / favori
+    if(caster.isPlayer && typeof PackSprites!=="undefined") PackSprites.pulseAttack(caster, 480);
     // V1.9c — caractéristiques par usage (permanent, très lent)
     if(caster.isPlayer){
       if(def.type === "damage"){ MetaProgress.noteTrait((Spells.range(caster,def) <= 1) ? "force" : "precision", 1); }
@@ -7296,73 +7297,124 @@ function charWeaponStyle(e){
 }
 
 /* =====================================================================
-   EchoSprites — test idle 8 directions (PNG) avant animations.
-   Joueur seulement : si les assets sont présents, remplace CharBody.
-   Pivot image : x=64, y=124 dans une frame 128×128.
+   PackSprites — placeholder Thug 16-bit (Character Creator Modern free).
+   Joueur : Idle / Walk / Attack / Hit / Die · 8 directions · map iso.
+   Assets : assets/packs/thug-16bit-outlined/ (+ fallback CDN GitHub).
    ===================================================================== */
-const EchoSprites = {
+const PackSprites = {
   DIRS: ["front","qFrontRight","sideRight","qBackRight","back","qBackLeft","sideLeft","qFrontLeft"],
-  imgs: {},
-  ready: false,
-  missing: [],
-  scale: 0.50,          // 100 px corps → ~50 px (aligné CharBody)
-  pivotX: 64,
-  pivotY: 124,
-  basePath: "assets/echo/body/",
-  fileName(dir){
-    return "echo_body_standard_idle_" + dir + "_f0_128.png";
+  ANIMS: {
+    idle:   { file:"Idle.png",        fps:8 },
+    walk:   { file:"Walk.png",        fps:10 },
+    run:    { file:"Run.png",         fps:12 },
+    attack: { file:"Attack1.png",     fps:12 },
+    hit:    { file:"TakeDamage.png",  fps:10 },
+    die:    { file:"Die.png",         fps:8 },
   },
-  url(dir){ return this.basePath + this.fileName(dir); },
+  sheets: {},
+  ready: false,
+  frameW: 64,
+  frameH: 64,
+  cols: 8,
+  /** Hauteur visuelle map (~ CharBody) */
+  charH: 52,
+  footX: 32,
+  footY: 46,
+  localBase: "assets/packs/thug-16bit-outlined/",
+  cdnBase: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/echo-sprite-idle-test-e78a/assets/packs/thug-16bit-outlined/",
+  dirRow(dir){
+    const i = this.DIRS.indexOf(dir);
+    return i >= 0 ? i : 0;
+  },
+  pickAnim(e){
+    if(!e.alive) return "die";
+    if(e.hitFlash > 0.35) return "hit";
+    if(e._packAttackT && performance.now() < e._packAttackT) return "attack";
+    // déplacement en cours (lissage ou anim moveAlong)
+    const moving = (e._rc !== undefined && (Math.abs(e._rc - e.c) > 0.04 || Math.abs(e._rr - e.r) > 0.04))
+      || (typeof Combat !== "undefined" && Combat._animating && Combat.current && Combat.current() === e);
+    if(moving) return "walk";
+    return "idle";
+  },
+  _loadOne(file){
+    const self = this;
+    return new Promise(resolve=>{
+      const tryUrl = (urls, i)=>{
+        if(i >= urls.length){ resolve(null); return; }
+        const img = new Image();
+        img.decoding = "async";
+        img.onload = ()=> resolve(img);
+        img.onerror = ()=> tryUrl(urls, i+1);
+        img.crossOrigin = "anonymous";
+        img.src = urls[i];
+      };
+      tryUrl([self.localBase + file, self.cdnBase + file], 0);
+    });
+  },
   load(){
     const self = this;
-    self.missing = [];
-    const jobs = self.DIRS.map(dir => new Promise(resolve=>{
-      const img = new Image();
-      img.decoding = "async";
-      img.onload = ()=>{ self.imgs[dir] = img; resolve(true); };
-      img.onerror = ()=>{ self.missing.push(dir); resolve(false); };
-      img.src = self.url(dir) + "?v=" + Date.now();
-    }));
-    return Promise.all(jobs).then(oks=>{
-      self.ready = oks.every(Boolean) && self.DIRS.every(d=> self.imgs[d] && self.imgs[d].complete);
+    const keys = Object.keys(self.ANIMS);
+    return Promise.all(keys.map(k => self._loadOne(self.ANIMS[k].file).then(img=>{
+      if(img) self.sheets[k] = img;
+      return !!img;
+    }))).then(oks=>{
+      self.ready = !!(self.sheets.idle && self.sheets.walk);
       try{
-        if(self.ready) UI.log("sys", "ECHO sprites idle : 8/8 chargés (test facing).");
-        else if(self.missing.length && self.missing.length < 8)
-          UI.log("sys", "ECHO sprites partiels ("+(8-self.missing.length)+"/8). Manque : "+self.missing.join(", "));
+        if(self.ready) UI.log("sys", "Pack Thug placeholder : " + oks.filter(Boolean).length + "/" + keys.length + " anims (joueur).");
+        else UI.log("sys", "Pack Thug : assets manquants — fallback CharBody.");
       }catch(_e){}
       return self.ready;
     });
   },
-  /** Dessine le sprite joueur ; true si OK (sinon fallback CharBody). */
+  /** true si dessiné (joueur) */
   draw(ctx, e, foot, opts){
-    if(!e || !e.isPlayer || !this.ready) return false;
+    if(!e || !e.isPlayer || !this.ready || !this.sheets.idle) return false;
     opts = opts || {};
-    const dir = (typeof charOrientOf==="function") ? charOrientOf(e) : "front";
-    const img = this.imgs[dir] || this.imgs.front;
-    if(!img) return false;
-    const s = this.scale;
-    const dx = foot.x - this.pivotX * s;
-    const dy = foot.y - this.pivotY * s;
+    const t = opts.t || (performance.now()/1000);
+    const anim = this.pickAnim(e);
+    const sheet = this.sheets[anim] || this.sheets.idle;
+    if(!sheet) return false;
+    const dir = (typeof charOrientOf === "function") ? charOrientOf(e) : "front";
+    const row = this.dirRow(dir);
+    const fps = (this.ANIMS[anim] && this.ANIMS[anim].fps) || 8;
+    let frame = Math.floor(t * fps) % this.cols;
+    if(anim === "die") frame = Math.min(this.cols - 1, Math.floor((1 - Math.max(0, e.hitFlash||0)) * this.cols));
+
+    const s = this.charH / this.frameH;
+    const dx = foot.x - this.footX * s;
+    const dy = foot.y - this.footY * s;
+    const dw = this.frameW * s;
+    const dh = this.frameH * s;
+
     ctx.save();
-    if(opts.flash){ ctx.globalAlpha = 0.85; }
-    // ombre simple
-    ctx.fillStyle = "rgba(46,46,48,.28)";
-    ctx.beginPath(); ctx.ellipse(foot.x, foot.y+3, 16, 7, 0, 0, Math.PI*2); ctx.fill();
-    ctx.drawImage(img, dx, dy, 128*s, 128*s);
+    if(opts.flash) ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "rgba(46,46,48,.30)";
+    ctx.beginPath(); ctx.ellipse(foot.x, foot.y+3, 14, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(sheet, frame * this.frameW, row * this.frameH, this.frameW, this.frameH, dx, dy, dw, dh);
     ctx.restore();
-    // anneau camp + ancrages minimaux pour sorts
-    try{ CharBody.drawFactionRing(ctx, e, foot, opts.t||0); }catch(_e){}
+
+    try{ CharBody.drawFactionRing(ctx, e, foot, t); }catch(_e){}
     e._charAnchors = {
-      limb: { x: foot.x + 10*s, y: foot.y - 40*s, layer:"front" },
-      bodyCenter: { x: foot.x, y: foot.y - 50*s, layer:"behind" },
+      limb: { x: foot.x + 12*s, y: foot.y - 28*s, layer:"front" },
+      bodyCenter: { x: foot.x, y: foot.y - 30*s, layer:"behind" },
       grid: { x: foot.x, y: foot.y, layer:"behind" },
-      morph: "standard",
+      morph: "pack-thug",
       orient: dir,
+      anim,
       sprite: true,
     };
     return true;
+  },
+  /** Déclenche une brève anim d'attaque visuelle */
+  pulseAttack(e, ms){
+    if(!e) return;
+    e._packAttackT = performance.now() + (ms || 420);
   }
 };
+// Alias rétrocompat tests / appels
+const EchoSprites = PackSprites;
+
 
 const CharBody = {
   PAL: CHAR_PAL, MORPH: CHAR_MORPH, Gen: CharGen,
@@ -8108,8 +8160,8 @@ const Render = {
       }
     }
 
-    // ===== CORPS : sprites ECHO (test) si dispo, sinon CharBody =====
-    if(!(e.isPlayer && EchoSprites.draw(ctx, e, foot, { flash, t }))){
+    // ===== CORPS : Pack Thug placeholder (joueur) sinon CharBody =====
+    if(!(e.isPlayer && PackSprites.draw(ctx, e, foot, { flash, t }))){
       CharBody.draw(ctx, e, foot, { flash, t });
     }
 
@@ -11576,7 +11628,7 @@ function init(){
   ctx = canvas.getContext("2d");
 
   MetaProgress.load();   // charge la progression permanente des sorts/maîtrises
-  EchoSprites.load();    // test idle 8 dirs (si PNG présents)
+  PackSprites.load();    // placeholder Thug 16-bit (Idle/Walk/…) pour le joueur
 
   // événements pointeur (souris)
   canvas.addEventListener("mousemove", Input.onMove);
