@@ -91,7 +91,7 @@
   <div class="card">
     <div class="lab">1 · Action / planche</div>
     <div class="chips" id="animChips"></div>
-    <div class="hint">Hypothèse actuelle du jeu : rangée 0 = Sud (face), puis SE → E → NE → N → NO → O → SO.</div>
+    <div class="hint">Calibrage combat (Walk/Attack…) : rangée 0 = Est, puis SE → S → SO → O → NO → N → NE. Strafe* gardent l’ancien ordre S→SE→E…</div>
     <div class="compass">
       <div></div><div><b>N</b>dos</div><div></div>
       <div><b>O</b>gauche</div><div style="color:var(--accent)"><b>✦</b></div><div><b>E</b>droite</div>
@@ -136,7 +136,8 @@ const VUES = [
 ];
 
 /** Mapping jeu actuel (hypothèse) : row index → vue */
-const HYPOTHESE = ["S","SE","E","NE","N","NO","O","SO"];
+/** Hypothèse jeu calibrée (Walk/Attack… — mappeur joueur) : rangée → vue */
+const HYPOTHESE = ["E","SE","S","SO","O","NO","N","NE"];
 
 const ANIMS = [
   { id:"Idle",        file:"Idle.png",        fr:"Idle / attendre",     role:"idle" },

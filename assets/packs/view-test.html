@@ -79,14 +79,15 @@ const FRAME_W=64, FRAME_H=64, SHEET_COLS=8;
 const CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/echo-sprite-idle-test-e78a/assets/packs/thug-16bit-outlined/";
 
 const DIR_ORDER = [
-  {id:"front", label:"0 · S"},
-  {id:"qFrontRight", label:"1 · SE"},
-  {id:"sideRight", label:"2 · E"},
-  {id:"qBackRight", label:"3 · NE"},
-  {id:"back", label:"4 · N"},
-  {id:"qBackLeft", label:"5 · NO"},
-  {id:"sideLeft", label:"6 · O"},
-  {id:"qFrontLeft", label:"7 · SO"},
+  // Index = rangée sheet Thug (calibrage Walk/Attack)
+  {id:"sideRight",   label:"0 · E",  row:0},
+  {id:"qFrontRight", label:"1 · SE", row:1},
+  {id:"front",       label:"2 · S",  row:2},
+  {id:"qFrontLeft",  label:"3 · SO", row:3},
+  {id:"sideLeft",    label:"4 · O",  row:4},
+  {id:"qBackLeft",   label:"5 · NO", row:5},
+  {id:"back",        label:"6 · N",  row:6},
+  {id:"qBackRight",  label:"7 · NE", row:7},
 ];
 
 const ANIMS = [

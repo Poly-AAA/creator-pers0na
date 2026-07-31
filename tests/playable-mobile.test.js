@@ -1,5 +1,5 @@
 /**
- * Tests V3.4.5 — parcours jouable mobile (marqueurs).
+ * Tests V3.4.6 — parcours jouable mobile (marqueurs).
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const html = readFileSync(join(root, "neuro-core.html"), "utf8");
 
-describe("V3.4.5 — jeu jouable mobile", () => {
+describe("V3.4.6 — jeu jouable mobile", () => {
   it("expose bannière d'objectif", () => {
     assert.match(html, /id="objBanner"/);
     assert.match(html, /updateObjectiveBanner\s*\(/);
@@ -31,7 +31,7 @@ describe("V3.4.5 — jeu jouable mobile", () => {
     assert.match(html, /COMMENCER — BUREAU LOCAL/);
   });
 
-  it("version V3.4.5", () => {
-    assert.match(html, /NEURO CORE — V3\.4\.5/);
+  it("version V3.4.6", () => {
+    assert.match(html, /NEURO CORE — V3\.4\.6/);
   });
 });

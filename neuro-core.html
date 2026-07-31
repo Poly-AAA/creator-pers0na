@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NEURO CORE — V3.4.5</title>
+<title>NEURO CORE — V3.4.6</title>
 <style>
 /* =====================================================================
-   NEURO CORE — V3.4.5 (Thug scale + facing vers cible)
+   NEURO CORE — V3.4.6 (Thug : mapping vues calibré joueur)
    Tactical Roguelite — HTML / CSS / JS Vanilla — Fichier unique autonome
    Direction artistique : 70% Dofus Touch / 20% Ghost in the Shell / 10% Esport
    Palette : cyan lumineux, turquoise, violet, orange, blanc, acier bleuté
@@ -1028,7 +1028,7 @@ aside.side{
 <div class="overlay" id="introOverlay">
   <div class="modal">
     <h1>NEURO CORE</h1>
-    <div class="sub">NEURO CORE — V3.4.5 · Mercenaire tactique (mobile OK)</div>
+    <div class="sub">NEURO CORE — V3.4.6 · Mercenaire tactique (mobile OK)</div>
     <div class="introbody">
       Autrefois esclave d'arène des grandes corporations, ton <b>ECHO</b> — une conscience numérique immortelle — a brisé ses chaînes.
       Désormais <b>mercenaire indépendant</b>, tu loues tes Enveloppes au plus offrant.
@@ -7316,7 +7316,23 @@ function charWeaponStyle(e){
    Assets : assets/packs/thug-16bit-outlined/ (+ fallback CDN GitHub).
    ===================================================================== */
 const PackSprites = {
+  // Orientations CharBody (réf. logique jeu)
   DIRS: ["front","qFrontRight","sideRight","qBackRight","back","qBackLeft","sideLeft","qFrontLeft"],
+  /**
+   * Calibrage joueur (mappeur-vues) — Walk / Run / Attack / Hit / Die / Taunt :
+   * rangée sheet → vue réelle : 0=E 1=SE 2=S 3=SO 4=O 5=NO 6=N 7=NE
+   * Donc orient → row :
+   */
+  ROW_BY_ORIENT: {
+    front: 2,        // S
+    qFrontRight: 1,  // SE
+    sideRight: 0,    // E
+    qBackRight: 7,   // NE
+    back: 6,         // N
+    qBackLeft: 5,    // NO
+    sideLeft: 4,     // O
+    qFrontLeft: 3,   // SO
+  },
   ANIMS: {
     idle:   { file:"Idle.png",        fps:8 },
     walk:   { file:"Walk.png",        fps:10 },
@@ -7346,8 +7362,9 @@ const PackSprites = {
     return Math.round(this.targetBodyH + 10);
   },
   dirRow(dir){
+    if(this.ROW_BY_ORIENT[dir] !== undefined) return this.ROW_BY_ORIENT[dir];
     const i = this.DIRS.indexOf(dir);
-    return i >= 0 ? i : 0;
+    return i >= 0 ? i : 2; // défaut : face (S) = row 2
   },
   pickAnim(e){
     if(!e.alive) return "die";

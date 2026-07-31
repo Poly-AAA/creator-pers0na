@@ -177,4 +177,9 @@ describe("PackSprites — Thug placeholder", () => {
     assert.match(html, /charFaceToward\(caster,\s*arg\)/);
     assert.match(html, /charFaceToward\(p,\s*hovEnt\)/);
   });
+  it("mapping rangées calibré (Walk/Attack : S=row2, E=row0)", () => {
+    assert.match(html, /ROW_BY_ORIENT/);
+    assert.match(html, /front:\s*2/);
+    assert.match(html, /sideRight:\s*0/);
+  });
 });
