@@ -137,28 +137,9 @@ function findFoot(dir, frame){
   if(footAnchor[key]) return footAnchor[key];
   if(!sheet) return { fx: FRAME_W/2, fy: FRAME_H - 2 };
 
-  const c = document.createElement("canvas");
-  c.width = FRAME_W; c.height = FRAME_H;
-  const x = c.getContext("2d");
-  x.clearRect(0,0,FRAME_W,FRAME_H);
-  x.drawImage(sheet, frame*FRAME_W, dir*FRAME_H, FRAME_W, FRAME_H, 0, 0, FRAME_W, FRAME_H);
-  const data = x.getImageData(0,0,FRAME_W,FRAME_H).data;
-
-  let minX=FRAME_W, maxX=0, maxY=0, found=false;
-  for(let y=0;y<FRAME_H;y++){
-    for(let px=0;px<FRAME_W;px++){
-      const a = data[(y*FRAME_W+px)*4+3];
-      if(a > 24){
-        found = true;
-        if(px<minX) minX=px;
-        if(px>maxX) maxX=px;
-        if(y>maxY) maxY=y;
-      }
-    }
-  }
-  const anchor = found
-    ? { fx: (minX+maxX)/2, fy: maxY }
-    : { fx: FRAME_W/2, fy: FRAME_H - 2 };
+  // Ancre pieds approximative stable (contenu Thug ~ centre-bas de la frame)
+  // Évite getImageData (CORS) qui casse sur CDN
+  const anchor = { fx: FRAME_W/2, fy: 46 };
   footAnchor[key] = anchor;
   return anchor;
 }
@@ -324,15 +305,24 @@ canvas.addEventListener("wheel", e=>{
 
 window.addEventListener("resize", ()=>{ layout(); });
 
-sheet = new Image();
-sheet.onload = ()=>{
-  statusEl.textContent = "OK — pieds recalés sur la case · zoom carte+perso ensemble";
-  layout(); syncUI();
-  lastDirSwitch = performance.now();
-  requestAnimationFrame(loop);
-};
-sheet.onerror = ()=> statusEl.textContent = "ERREUR Idle.png";
-sheet.src = "thug-16bit-outlined/Idle.png?v=" + Date.now();
+// Charge la planche (CDN GitHub d'abord = lien stable sans tunnel)
+const SHEET_URLS = [
+  "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/echo-sprite-idle-test-e78a/assets/packs/thug-16bit-outlined/Idle.png",
+  "thug-16bit-outlined/Idle.png"
+];
+(function loadSheet(i){
+  if(i >= SHEET_URLS.length){ statusEl.textContent = "ERREUR Idle.png"; return; }
+  sheet = new Image();
+  sheet.crossOrigin = "anonymous";
+  sheet.onload = ()=>{
+    statusEl.textContent = "OK — pieds sur la case · source: " + (i===0?"CDN GitHub":"local");
+    layout(); syncUI();
+    lastDirSwitch = performance.now();
+    requestAnimationFrame(loop);
+  };
+  sheet.onerror = ()=> loadSheet(i+1);
+  sheet.src = SHEET_URLS[i] + (i?"?v="+Date.now():"");
+})(0);
 </script>
 </body>
 </html>
