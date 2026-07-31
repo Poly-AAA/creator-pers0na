@@ -7332,25 +7332,22 @@ function charWeaponStyle(e){
    Assets : assets/packs/thug-16bit-outlined/ (+ fallback CDN GitHub).
    ===================================================================== */
 const PackSprites = {
-  // Orientations CharBody (réf. logique jeu)
+  // Orientations CharBody (réf. logique jeu) — ordre = index atan2(Δcol, Δrow)/45°
+  // 0 face · 1 ¾ face-droit · 2 profil droit · 3 ¾ dos-droit
+  // 4 dos · 5 ¾ dos-gauche · 6 profil gauche · 7 ¾ face-gauche
   DIRS: ["front","qFrontRight","sideRight","qBackRight","back","qBackLeft","sideLeft","qFrontLeft"],
   /**
-   * Walk / Idle / Run / Hit / Die — calibrage mappeur-vues :
-   * rangée → 0=E 1=SE 2=S 3=SO 4=O 5=NO 6=N 7=NE
+   * Mapping validé NEURO CORE V3.4 (contrôle croisé marche → 6 anims) :
+   * DIR_ROW[index logique] = ligne dans la feuille. Formule : (3 - i) mod 8.
+   * UNE seule table pour Idle / Walk / Attack / Hit / Die — pas de table Attack séparée.
    */
+  DIR_ROW: [3, 2, 1, 0, 7, 6, 5, 4],
   ROW_BY_ORIENT: {
-    front: 2, qFrontRight: 1, sideRight: 0, qBackRight: 7,
-    back: 6, qBackLeft: 5, sideLeft: 4, qFrontLeft: 3,
-  },
-  /**
-   * Attack1 — calibrage joueur par CASE ENNEMI (Δcol/Δrow) :
-   * front=3 qFrontRight=2 sideRight=1 qBackRight=0
-   * back=7 qBackLeft=6 sideLeft=5 qFrontLeft=4
-   */
-  ROW_BY_ORIENT_ATTACK: {
     front: 3, qFrontRight: 2, sideRight: 1, qBackRight: 0,
     back: 7, qBackLeft: 6, sideLeft: 5, qFrontLeft: 4,
   },
+  /** @deprecated même table que ROW_BY_ORIENT (V3.4 unifié) — conservé pour rétrocompat */
+  get ROW_BY_ORIENT_ATTACK(){ return this.ROW_BY_ORIENT; },
   ANIMS: {
     idle:   { file:"Idle.png",        fps:8 },
     walk:   { file:"Walk.png",        fps:10 },
@@ -7371,7 +7368,7 @@ const PackSprites = {
   footX: 32,
   footY: 46,
   localBase: "assets/packs/thug-16bit-outlined/",
-  cdnBase: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/echo-sprite-idle-test-e78a/assets/packs/thug-16bit-outlined/",
+  cdnBase: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/thug-16bit-outlined/",
   scale(){
     return this.targetBodyH / this.contentH;
   },
@@ -7379,11 +7376,11 @@ const PackSprites = {
   uiLift(){
     return Math.round(this.targetBodyH + 10);
   },
-  dirRow(dir, anim){
-    const map = (anim === "attack") ? this.ROW_BY_ORIENT_ATTACK : this.ROW_BY_ORIENT;
-    if(map[dir] !== undefined) return map[dir];
+  dirRow(dir, _anim){
+    if(this.ROW_BY_ORIENT[dir] !== undefined) return this.ROW_BY_ORIENT[dir];
     const i = this.DIRS.indexOf(dir);
-    return i >= 0 ? i : 2;
+    if(i >= 0) return this.DIR_ROW[i];
+    return 3; // face
   },
   pickAnim(e){
     if(!e.alive) return "die";

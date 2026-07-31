@@ -177,16 +177,16 @@ describe("PackSprites — Thug placeholder", () => {
     assert.match(html, /charFaceToward\(caster,\s*arg\)/);
     assert.match(html, /charFaceToward\(p,\s*hovEnt\)/);
   });
-  it("mapping rangées calibré (Walk/Attack : S=row2, E=row0)", () => {
-    assert.match(html, /ROW_BY_ORIENT/);
-    assert.match(html, /front:\s*2/);
-    assert.match(html, /sideRight:\s*0/);
+  it("mapping V3.4 unifié (DIR_ROW = [3,2,1,0,7,6,5,4] pour toutes les anims)", () => {
+    assert.match(html, /DIR_ROW:\s*\[\s*3\s*,\s*2\s*,\s*1\s*,\s*0\s*,\s*7\s*,\s*6\s*,\s*5\s*,\s*4\s*\]/);
+    assert.match(html, /ROW_BY_ORIENT:\s*\{[\s\S]*?front:\s*3/);
+    assert.match(html, /ROW_BY_ORIENT:\s*\{[\s\S]*?sideRight:\s*1/);
+    assert.match(html, /ROW_BY_ORIENT:\s*\{[\s\S]*?qBackRight:\s*0/);
+    assert.match(html, /ROW_BY_ORIENT:\s*\{[\s\S]*?back:\s*7/);
+    assert.match(html, /dirRow\(dir/);
   });
-  it("Attack1 mapping case ennemi (front=3, qBackRight=0)", () => {
-    assert.match(html, /ROW_BY_ORIENT_ATTACK/);
-    assert.match(html, /ROW_BY_ORIENT_ATTACK:[\s\S]*?front:\s*3/);
-    assert.match(html, /ROW_BY_ORIENT_ATTACK:[\s\S]*?qBackRight:\s*0/);
-    assert.match(html, /dirRow\(dir,\s*anim\)/);
+  it("plus de table Attack séparée (getter alias = ROW_BY_ORIENT)", () => {
+    assert.match(html, /get ROW_BY_ORIENT_ATTACK\(\)\{\s*return this\.ROW_BY_ORIENT;\s*\}/);
   });
   it("attaque orientée vers la cible (_packAttackTarget)", () => {
     assert.match(html, /_packAttackTarget/);

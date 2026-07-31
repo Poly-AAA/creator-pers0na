@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEURO CORE — Contrôle croisé des animations</title>
+<style>
+  :root{
+    --bg:#07131c; --panel:#0c2231; --line:#14384c;
+    --cyan:#27e0ff; --dim:#6c9bb2; --ink:#e6f6fd; --hot:#E8590C; --ok:#1fd6b8;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:14px}
+  body{padding:16px 14px 40px}
+  .wrap{max-width:900px;margin:0 auto}
+  .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+  h1{font-size:20px;margin:6px 0 4px;font-weight:700}
+  .lead{color:var(--dim);font-size:12px;line-height:1.5;max-width:60ch}
+
+  .nav{display:flex;align-items:center;gap:10px;margin:18px 0 6px;flex-wrap:wrap}
+  .nav .cur{
+    flex:1;min-width:180px;background:var(--panel);border:1px solid var(--hot);border-radius:9px;
+    padding:9px 12px
+  }
+  .nav .cur b{color:var(--hot);display:block;font-size:15px}
+  .nav .cur span{color:var(--dim);font-size:11px}
+  button{
+    font:inherit;cursor:pointer;background:#0a1c28;color:var(--cyan);
+    border:1px solid var(--line);border-radius:9px;padding:12px 16px
+  }
+  button:hover{border-color:var(--cyan)}
+  button:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
+
+  .panels{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+  @media(max-width:720px){.panels{grid-template-columns:repeat(2,1fr)}}
+  figure{
+    margin:0;background:radial-gradient(120% 90% at 50% 35%, #0e2c3f 0%, #061019 100%);
+    border:1px solid var(--line);border-radius:10px;overflow:hidden
+  }
+  figure.ref{border-color:var(--ok)}
+  canvas{display:block;width:100%;height:auto;image-rendering:pixelated}
+  figcaption{
+    padding:7px 10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--dim);border-top:1px solid var(--line);display:flex;justify-content:space-between
+  }
+  figure.ref figcaption{color:var(--ok)}
+  figcaption em{font-style:normal;color:var(--cyan)}
+  .note{
+    margin-top:18px;border-left:2px solid var(--hot);padding:2px 0 2px 12px;
+    color:var(--dim);font-size:12px;line-height:1.6;max-width:70ch
+  }
+  .note b{color:var(--ink);font-weight:400}
+  .status{margin-top:10px;font-size:11px;color:var(--dim)}
+  .status.ok{color:var(--ok)}
+  .status.err{color:#ff6b6b}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Contrôle croisé · V3.4 validé</div>
+  <h1>Les 6 animations, même direction</h1>
+  <p class="lead">
+    Toutes utilisent <code>DIR_ROW = [3,2,1,0,7,6,5,4]</code> (validé sur la marche).
+    Si l'une d'elles ne part pas dans le même sens que les autres, elle a un ordre
+    de lignes différent — et elle saute aux yeux ici.
+  </p>
+
+  <div class="nav">
+    <button id="prev" type="button">← Direction précédente</button>
+    <div class="cur"><b id="curName">face</b><span id="curInfo"></span></div>
+    <button id="next" type="button">Direction suivante →</button>
+  </div>
+
+  <div class="panels" id="panels"></div>
+  <p class="status" id="status">Chargement des planches…</p>
+
+  <p class="note">
+    <b>Ce que tu cherches :</b> les six personnages doivent tous viser la flèche orange.
+    Passe les 8 directions avec les boutons ou les flèches du clavier. Si une seule case
+    diverge, note laquelle et sur quelle direction — le correctif tient en une ligne
+    (<code>PackSprites.DIR_ROW</code> / <code>ROW_BY_ORIENT</code> dans <code>neuro-core.html</code>).
+  </p>
+
+</div>
+
+<script>
+/* Mapping validé NEURO CORE V3.4 — ligne = (3 - index) mod 8 */
+const DIR_ROW = [3, 2, 1, 0, 7, 6, 5, 4];
+const F = 64, COLS = 8;
+const NAMES = [
+  "face", "3/4 face-droit", "profil droit", "3/4 dos-droit",
+  "dos", "3/4 dos-gauche", "profil gauche", "3/4 face-gauche"
+];
+const LIST = [
+  { k:"walk",   file:"Walk.png",       fps:12, label:"Marche",   ref:true },
+  { k:"idle",   file:"Idle.png",       fps:8,  label:"Repos" },
+  { k:"attack", file:"Attack1.png",    fps:14, label:"Distance" },
+  { k:"melee",  file:"Attack3.png",    fps:14, label:"Mêlée" },
+  { k:"hurt",   file:"TakeDamage.png", fps:12, label:"Touché" },
+  { k:"die",    file:"Die.png",        fps:10, label:"Mort" }
+];
+const BASE = "thug-16bit-outlined/";
+
+let dir = 0, ready = false, n = 0;
+const imgs = {};
+
+LIST.forEach(a => {
+  const im = new Image();
+  im.onload = () => { if (++n === LIST.length) { ready = true; statusOk(); } };
+  im.onerror = () => { statusErr(a.file); };
+  im.src = BASE + a.file;
+  imgs[a.k] = im;
+});
+
+const statusEl = document.getElementById("status");
+function statusOk(){ statusEl.textContent = "6/6 planches · DIR_ROW verrouillé"; statusEl.className = "status ok"; }
+function statusErr(f){ statusEl.textContent = "Échec chargement : " + f; statusEl.className = "status err"; }
+
+const delta = i => {
+  const y = i * 45 * Math.PI / 180;
+  return { dc: Math.round(Math.sin(y)), dr: Math.round(Math.cos(y)) };
+};
+
+const W = 300, H = 250, TW = 96, TH = 48, OX = W / 2, OY = H / 2 + 22;
+const iso = (c, r) => ({ x: OX + (c - r) * TW / 2, y: OY + (c + r) * TH / 2 });
+
+const panels = document.getElementById("panels");
+LIST.forEach(a => {
+  const fig = document.createElement("figure");
+  if (a.ref) fig.className = "ref";
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const cap = document.createElement("figcaption");
+  cap.innerHTML = "<span>" + a.label + (a.ref ? " · référence" : "") + "</span><em id='r_" + a.k + "'></em>";
+  fig.append(cv, cap); panels.appendChild(fig);
+  a.cx = cv.getContext("2d");
+});
+
+function diamond(cx, c, r, fill, stroke, w){
+  const p = iso(c, r);
+  cx.beginPath();
+  cx.moveTo(p.x, p.y - TH / 2); cx.lineTo(p.x + TW / 2, p.y);
+  cx.lineTo(p.x, p.y + TH / 2); cx.lineTo(p.x - TW / 2, p.y);
+  cx.closePath();
+  if (fill) { cx.fillStyle = fill; cx.fill(); }
+  cx.strokeStyle = stroke; cx.lineWidth = w || 1; cx.stroke();
+}
+function arrow(cx, a, b){
+  const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+  const s = { x: a.x + ux * 30, y: a.y + uy * 30 }, e = { x: b.x - ux * 18, y: b.y - uy * 18 };
+  cx.strokeStyle = "#E8590C"; cx.lineWidth = 3; cx.lineCap = "round";
+  cx.beginPath(); cx.moveTo(s.x, s.y); cx.lineTo(e.x, e.y); cx.stroke();
+  const ang = Math.atan2(uy, ux);
+  cx.fillStyle = "#E8590C"; cx.beginPath(); cx.moveTo(e.x, e.y);
+  cx.lineTo(e.x - 11 * Math.cos(ang - 0.42), e.y - 11 * Math.sin(ang - 0.42));
+  cx.lineTo(e.x - 11 * Math.cos(ang + 0.42), e.y - 11 * Math.sin(ang + 0.42));
+  cx.closePath(); cx.fill();
+}
+
+function head(){
+  const d = delta(dir);
+  document.getElementById("curName").textContent = NAMES[dir];
+  document.getElementById("curInfo").textContent =
+    "Δcol " + (d.dc >= 0 ? "+" : "") + d.dc + " · Δrow " + (d.dr >= 0 ? "+" : "") + d.dr +
+    "  ·  ligne " + DIR_ROW[dir] + " de chaque feuille";
+  LIST.forEach(a => {
+    const el = document.getElementById("r_" + a.k);
+    if (el) el.textContent = "ligne " + DIR_ROW[dir];
+  });
+}
+document.getElementById("prev").onclick = () => { dir = (dir + 7) % 8; head(); };
+document.getElementById("next").onclick = () => { dir = (dir + 1) % 8; head(); };
+addEventListener("keydown", ev => {
+  if (ev.key === "ArrowLeft") { dir = (dir + 7) % 8; head(); }
+  if (ev.key === "ArrowRight") { dir = (dir + 1) % 8; head(); }
+});
+
+function loop(){
+  requestAnimationFrame(loop);
+  if (!ready) return;
+  const d = delta(dir), row = DIR_ROW[dir];
+  LIST.forEach(a => {
+    const cx = a.cx;
+    cx.clearRect(0, 0, W, H);
+    for (let c = -1; c <= 1; c++) for (let r = -1; r <= 1; r++) {
+      const on = (c === d.dc && r === d.dr);
+      if (c === 0 && r === 0) diamond(cx, c, r, "rgba(39,224,255,.10)", "#2a6d8c", 1.2);
+      else diamond(cx, c, r, on ? "rgba(232,89,12,.28)" : "rgba(10,28,40,.45)", on ? "#E8590C" : "#123244", on ? 2 : 1);
+    }
+    arrow(cx, iso(0, 0), iso(d.dc, d.dr));
+    const im = imgs[a.k]; if (!im || !im.complete) return;
+    const col = Math.floor(performance.now() / 1000 * a.fps) % COLS;
+    const g = iso(0, 0), S = 4;
+    cx.imageSmoothingEnabled = false;
+    cx.drawImage(im, col * F, row * F, F, F, g.x - F * S / 2, g.y - 45 * S, F * S, F * S);
+  });
+}
+head(); loop();
+</script>
+</body>
+</html>

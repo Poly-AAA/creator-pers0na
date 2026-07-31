@@ -35,11 +35,32 @@ Grille probable :
 - **8×8** cases de **64×64**  
   ou **8×4** de **64×128** (à confirmer)
 
-## Outil : mappeur vues × actions
+## Mapping directions (V3.4 validé)
 
-`mappeur-vues.html` — page mobile pour annoter, pour chaque planche (Marcher / Taper…),
-quelle **vue** (S, SE, E…) correspond à chaque **rangée** du sheet. Copier le résultat
-et le coller dans le chat agent.
+Index logique = `atan2(Δcol, Δrow) / 45°` (0 = face / Δrow+1 … 4 = dos / Δrow−1).
+
+```
+DIR_ROW = [3, 2, 1, 0, 7, 6, 5, 4]   // ligne = (3 - index) mod 8
+```
+
+| Index | Orient | Δcol,Δrow | Ligne sheet |
+|------:|--------|-----------|------------:|
+| 0 | face | 0,+1 | 3 |
+| 1 | ¾ face-droit | +1,+1 | 2 |
+| 2 | profil droit | +1,0 | 1 |
+| 3 | ¾ dos-droit | +1,−1 | 0 |
+| 4 | dos | 0,−1 | 7 |
+| 5 | ¾ dos-gauche | −1,−1 | 6 |
+| 6 | profil gauche | −1,0 | 5 |
+| 7 | ¾ face-gauche | −1,+1 | 4 |
+
+**Une seule table** pour Idle / Walk / Attack / Hit / Die (contrôle croisé).
+
+## Outils
+
+- `controle-croise-animations.html` — les 6 anims côte à côte, même `DIR_ROW` (référence validée)
+- `mappeur-vues.html` — annoter rangée ↔ vue si un nouveau pack diverge
+- `calibrage-vues.html` — calibrage par case grille (Δcol/Δrow)
 
 ## Différence avec ECHO (notre pipeline)
 
