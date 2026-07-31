@@ -35,6 +35,15 @@ Grille probable :
 - **8×8** cases de **64×64**  
   ou **8×4** de **64×128** (à confirmer)
 
+## Fichier source (orientations validées)
+
+Le fichier modifié avec le mapping verrouillé est versionné à la racine :
+
+- `neuro-core-sprite.html` — **même fichier** (Sprite + `DIR_ROW` validé, mêlée/distance)
+- `controle-croise-animations.html` — contrôle croisé des 6 anims (même `DIR_ROW`)
+
+`neuro-core.html` (V3.4.8) reprend le même `DIR_ROW` dans `PackSprites`.
+
 ## Mapping directions (V3.4 validé)
 
 Index logique = `atan2(Δcol, Δrow) / 45°` (0 = face / Δrow+1 … 4 = dos / Δrow−1).
