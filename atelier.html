@@ -465,7 +465,10 @@ function garment(){
 function applyMockupImage(k, im){
   mockupImgs[k] = im;
   photoCache.key = "";
-  if(viewMode === "photo") drawPhoto();
+  if(viewMode === "photo"){
+    drawPhoto();
+    refresh();
+  }
 }
 
 function loadOneMockup(k, src, fallback){
@@ -1272,8 +1275,8 @@ function refresh(){
   el.run.disabled = !items.length;
   if(viewMode === "photo"){
     el["stage-tip"].textContent = customMockup || mockupImgs[el.gtype.value]
-      ? "Rendu photo — pour voir le rendu. Repasse en Plat pour placer / mesurer."
-      : "Rendu photo. En Plat tu mesures en cm ; ici tu visualises.";
+      ? "Photo réelle — repasse en Plat pour placer / mesurer."
+      : "Chargement photo… tu peux aussi charger ta propre JPG.";
   } else {
     el["stage-tip"].textContent = items.length
       ? (sel >= 0 ? "Glisse / redimensionne — la barre compare au vêtement en cm." : "Touche une vignette pour régler · + pour ajouter une image.")
