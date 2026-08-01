@@ -809,6 +809,91 @@ aside.side{
 #spellInfo .si-grid span{color:var(--acier-clair)}
 #spellInfo .si-grid b{color:var(--blanc)}
 
+
+/* ====== GAME BOY HUD (layout joueur, sans chevauchement) ====== */
+#spellBarMobile, #passTurnFloat{ display:none !important; }
+#zoomCtl{ display:none !important; }
+#gbHud{
+  position:absolute; inset:0; z-index:28; pointer-events:none;
+  font:11px/1.2 "Trebuchet MS",sans-serif;
+}
+#gbHud .gb-w{ position:absolute; pointer-events:auto; }
+#gbHud .gb-w.ghost{ pointer-events:none; }
+#gbConfirm{
+  display:none; align-items:center; justify-content:center; text-align:center;
+  background:rgba(255,138,60,.16); border:1.5px solid rgba(255,138,60,.5);
+  border-radius:999px; color:#ff8a3c; font-weight:800; font-size:11px; padding:4px 8px;
+}
+#gbConfirm.show{ display:flex; }
+#gbDpad{
+  width:100%; height:100%; display:grid; place-items:center;
+}
+#gbDpad .dpad-wrap{ width:94%; aspect-ratio:1; position:relative; }
+#gbDpad .dpad{
+  position:relative; width:100%; aspect-ratio:1; transform:rotate(45deg); transform-origin:center;
+}
+#gbDpad .dpad::before, #gbDpad .dpad::after{
+  content:""; position:absolute; left:50%; top:50%; border-radius:999px; pointer-events:none;
+  background:rgba(180,210,230,.12); box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);
+}
+#gbDpad .dpad::before{ width:92%; height:16%; transform:translate(-50%,-50%); }
+#gbDpad .dpad::after{ width:16%; height:92%; transform:translate(-50%,-50%); }
+#gbDpad button{
+  position:absolute; width:26%; height:26%; border:0; border-radius:50%;
+  background:rgba(20,40,58,.28); color:rgba(180,230,255,.9); font-size:12px; font-weight:900;
+  backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.3), inset 0 -3px 6px rgba(0,0,0,.22);
+  touch-action:manipulation;
+}
+#gbDpad button:active{ background:rgba(39,224,255,.35); color:#fff; }
+#gbDpad .u{left:37%; top:-4%} #gbDpad .d{left:37%; bottom:-4%}
+#gbDpad .l{left:-4%; top:37%} #gbDpad .r{right:-4%; top:37%}
+#gbDpad .c{
+  left:37%; top:37%; width:26%; height:26%; border-radius:50%;
+  background:rgba(8,18,28,.2); color:rgba(160,190,210,.7); font-size:7px;
+  transform:rotate(-45deg);
+}
+#gbSpells{
+  width:100%; height:100%; display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  padding:6px; align-content:center; justify-items:center;
+}
+#gbSpells button{
+  width:min(72px,42%); aspect-ratio:1; border:0; border-radius:50%;
+  background:rgba(18,40,58,.32); color:#d8e6f2; padding:6px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+  box-shadow:inset 0 0 0 1.5px rgba(39,224,255,.4), inset 0 -4px 8px rgba(0,0,0,.25);
+  touch-action:manipulation;
+}
+#gbSpells button .n{font-size:9px;font-weight:800;color:var(--sc,#27e0ff);text-align:center;line-height:1.1;max-width:64px;overflow:hidden}
+#gbSpells button .m{font-size:8px;color:rgba(180,200,220,.75);margin-top:2px}
+#gbSpells button.armed{ box-shadow:inset 0 0 0 2px #ffd23c, 0 0 12px rgba(255,210,60,.35); transform:scale(1.04); }
+#gbSpells button.disabled{ opacity:.4; filter:grayscale(.4); }
+#gbEnd{
+  width:100%; height:100%; border:0; border-radius:999px;
+  background:rgba(168,74,20,.45); color:#fff; font-weight:900; font-size:11px;
+  backdrop-filter:blur(2px);
+  box-shadow:inset 0 0 0 1.5px rgba(255,200,150,.45);
+  touch-action:manipulation;
+}
+#gbZoom{
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center; gap:4px;
+  background:rgba(8,20,32,.35); border-radius:999px; border:1px solid rgba(39,224,255,.3);
+  padding:2px 4px;
+}
+#gbZoom button{
+  width:28px; height:28px; border-radius:50%; border:1px solid rgba(39,224,255,.45);
+  background:rgba(18,40,58,.4); color:#27e0ff; font-weight:900; font-size:14px;
+  touch-action:manipulation;
+}
+#gbZoom span{ min-width:36px; text-align:center; color:#7a93a8; font-size:10px; }
+/* hint repositionné par GBHud */
+#hint.gb-placed{
+  position:absolute !important; left:auto; right:auto; bottom:auto !important;
+  margin:0; max-width:none; pointer-events:none;
+  background:rgba(8,20,32,.55); border-radius:8px;
+}
+
 /* ====== RESPONSIVE ====== */
 @media (max-width:860px){
   aside.side{
@@ -887,7 +972,31 @@ aside.side{
       <button class="btn orange" id="passTurnFloat">⏭ FIN DE TOUR</button>
       <button class="btn ghost" id="buildBtnFloat">⚙ BUILD</button>
       <button class="btn ghost" id="debugBtnFloat">🐞 DEBUG</button>
-      <!-- M1 — barre de sorts tactile (visible sur téléphone, superposée à l'arène) -->
+      <!-- Game Boy HUD (layout joueur) -->
+      <div id="gbHud" aria-label="Contrôles Game Boy">
+        <div class="gb-w" id="gbConfirmWrap"><div id="gbConfirm">Confirmer déplacement</div></div>
+        <div class="gb-w" id="gbDpadWrap">
+          <div id="gbDpad">
+            <div class="dpad-wrap"><div class="dpad">
+              <button type="button" class="u" data-dir="u" aria-label="Iso NE">▲</button>
+              <button type="button" class="l" data-dir="l" aria-label="Iso NW">◀</button>
+              <button type="button" class="c" data-dir="c" aria-label="Confirmer">OK</button>
+              <button type="button" class="r" data-dir="r" aria-label="Iso SE">▶</button>
+              <button type="button" class="d" data-dir="d" aria-label="Iso SW">▼</button>
+            </div></div>
+          </div>
+        </div>
+        <div class="gb-w" id="gbSpellsWrap"><div id="gbSpells"></div></div>
+        <div class="gb-w" id="gbEndWrap"><button type="button" id="gbEnd">FIN DE TOUR</button></div>
+        <div class="gb-w" id="gbZoomWrap">
+          <div id="gbZoom">
+            <button type="button" id="gbZoomOut">−</button>
+            <span id="gbZoomVal">100%</span>
+            <button type="button" id="gbZoomIn">+</button>
+          </div>
+        </div>
+      </div>
+      <!-- M1 — ancienne barre (masquée, remplacée par GB HUD) -->
       <div id="spellBarMobile"></div>
       <div id="debugPanel"></div>
       <div id="entityTip"></div>
@@ -7929,6 +8038,7 @@ const UI = {
   setZoom(z){
     camera.userZoom = clamp(z, 0.75, 3.5);
     const el = UI.el("zoomVal"); if(el) el.textContent = Math.round(camera.userZoom*100)+"%";
+    if(typeof GBHud!=="undefined") GBHud.syncZoom();
     if(canvas) Render.layout();
   },
   stepZoom(dir){
@@ -8031,6 +8141,7 @@ const UI = {
         });
       }
       UI.spells.renderMobile();
+      if(typeof GBHud!=="undefined") GBHud.renderSpells();
       UI.spells.update();
     },
 
@@ -8097,6 +8208,7 @@ const UI = {
         b.classList.toggle("disabled", !canUse);
         b.classList.toggle("armed", armedSkill === def.id && canUse);
       }
+      if(typeof GBHud!=="undefined"){ GBHud.renderSpells(); GBHud.updateSpells(); }
       UI.spells.renderMastery();
       // M1 — mise à jour de la barre tactile mobile
       const mob = UI.el("spellBarMobile");
@@ -8191,6 +8303,11 @@ const UI = {
         UI.setHint("Sort désélectionné.");
       }
       UI.spells.update();
+      if(typeof GBHud!=="undefined"){
+        if(armedSkill) GBHud.refreshTargets();
+        else { GBHud.targets = []; GBHud.selected = null; }
+        GBHud.updateSpells();
+      }
     }
   },
 
@@ -10051,6 +10168,325 @@ const UI = {
   }
 };
 
+
+/* =====================================================================
+   GBHud — contrôles type Game Boy (layout sans chevauchement)
+   Croix iso 45° · 4 sorts · zoom · fin de tour · confirm déplacement
+   ===================================================================== */
+const GB_LAYOUT = {
+  hint:    { x:2,  y:52, w:46, h:5,  z:5  },
+  dpad:    { x:0,  y:58, w:48, h:40, z:10 },
+  spells:  { x:52, y:62, w:46, h:24, z:10 },
+  end:     { x:58, y:88, w:18, h:8,  z:11 },
+  zoom:    { x:80, y:0,  w:18, h:8,  z:11 },
+  confirm: { x:2,  y:46, w:46, h:6,  z:12 },
+};
+
+const PadMove = {
+  WINDOW_MS: 420,
+  pending: null,   // { key, dc, dr, taps, t0, timer }
+  queue: [],       // steps {dc,dr} à enchaîner pendant un move
+  lastKey: null,
+  targetIdx: 0,
+
+  // Après rotate(45°) CSS : u→NE(-r), r→SE(+c), d→SW(+r), l→NW(-c)
+  VEC: { u:{dc:0,dr:-1}, r:{dc:1,dr:0}, d:{dc:0,dr:1}, l:{dc:-1,dr:0} },
+
+  clearTimer(){
+    if(this.pending && this.pending.timer){ clearTimeout(this.pending.timer); this.pending.timer = null; }
+  },
+  clearPending(){
+    this.clearTimer();
+    this.pending = null;
+    GBHud.hideConfirm();
+    hoverTile = null;
+  },
+
+  canControl(){
+    if(!State || State.over || inputLocked) return false;
+    const cur = Combat.current && Combat.current();
+    return !!(cur && cur.isPlayer && State.player && State.player.alive);
+  },
+
+  buildPath(dc, dr, steps){
+    const p = State.player;
+    const path = [{ c:p.c, r:p.r }];
+    for(let i=1; i<=steps; i++){
+      const c = p.c + dc*i, r = p.r + dr*i;
+      if(!Grid.inBounds(c,r) || Grid.blocksMove(c,r) || Grid.entityAt(c,r)) break;
+      path.push({ c, r });
+    }
+    return path;
+  },
+
+  preview(dc, dr, pm){
+    const path = this.buildPath(dc, dr, Math.max(0, pm));
+    if(path.length > 1){
+      const last = path[path.length-1];
+      hoverTile = { c:last.c, r:last.r };
+    } else {
+      // preview 1 case même si pm=0 (intention)
+      const c = State.player.c + dc, r = State.player.r + dr;
+      hoverTile = Grid.inBounds(c,r) ? { c, r } : null;
+    }
+  },
+
+  commit(dc, dr, pm){
+    const p = State.player;
+    if(!p || pm <= 0 || p.pm <= 0){ this.clearPending(); return; }
+    const steps = Math.min(pm, p.pm);
+    const path = this.buildPath(dc, dr, steps);
+    this.clearPending();
+    if(path.length < 2){ UI.setHint("Case bloquée."); return; }
+    p._packMovePM = path.length - 1;
+    this.lastKey = dc+","+dr;
+    Combat.moveAlong(p, path, ()=>{
+      this.lastKey = null;
+      // vider la file d’enchaînement
+      if(this.queue.length && PadMove.canControl()){
+        const q = this.queue.splice(0, this.queue.length);
+        // regrouper pas dans la même direction
+        let dc0 = q[0].dc, dr0 = q[0].dr, n = 0;
+        for(const s of q){
+          if(s.dc===dc0 && s.dr===dr0) n++;
+          else break;
+        }
+        if(n > 0) PadMove.commit(dc0, dr0, n);
+      }
+      UI.refreshAll();
+    });
+  },
+
+  armTimer(){
+    this.clearTimer();
+    if(!this.pending) return;
+    const snap = this.pending;
+    snap.timer = setTimeout(()=>{
+      if(PadMove.pending !== snap) return;
+      const pm = Math.max(0, snap.taps - 1); // 2 appuis = 1 PM
+      if(pm >= 1) PadMove.commit(snap.dc, snap.dr, pm);
+      else PadMove.clearPending();
+    }, this.WINDOW_MS);
+  },
+
+  onDir(dir){
+    if(dir === "c"){ this.onConfirm(); return; }
+    const v = this.VEC[dir]; if(!v) return;
+    if(!this.canControl()) return;
+
+    // Sort armé : flèches = défiler les cibles
+    if(armedSkill){
+      GBHud.cycleTarget(dir === "u" || dir === "r" ? +1 : -1);
+      return;
+    }
+
+    const key = v.dc+","+v.dr;
+    const moving = !!(Combat._animating && Combat.current && Combat.current().isPlayer);
+
+    // Enchaînement pendant le déplacement en cours
+    if(moving){
+      this.queue.push({ dc:v.dc, dr:v.dr });
+      UI.setHint("Enchaînement · +1 PM");
+      GBHud.flashConfirm("Enchaîne…");
+      return;
+    }
+
+    if(this.pending && this.pending.key === key){
+      this.pending.taps++;
+      const pm = this.pending.taps - 1;
+      this.preview(v.dc, v.dr, Math.max(1, pm));
+      GBHud.showConfirm(this.pending.taps, pm);
+      this.armTimer();
+      return;
+    }
+
+    // Nouvelle direction : 1er appui = prévisualisation
+    this.clearPending();
+    this.pending = { key, dc:v.dc, dr:v.dr, taps:1, t0:performance.now(), timer:null };
+    this.preview(v.dc, v.dr, 0);
+    GBHud.showConfirm(1, 0);
+    this.armTimer();
+  },
+
+  onConfirm(){
+    if(armedSkill){ GBHud.castOnSelected(); return; }
+    if(!this.pending) return;
+    const pm = Math.max(0, this.pending.taps - 1);
+    if(pm >= 1) this.commit(this.pending.dc, this.pending.dr, pm);
+    else {
+      // confirmer le preview d’1 case = 1 PM
+      this.commit(this.pending.dc, this.pending.dr, 1);
+    }
+  }
+};
+
+const GBHud = {
+  targets: [],
+  selected: null,
+
+  applyBox(el, box){
+    if(!el || !box) return;
+    el.style.left = box.x + "%";
+    el.style.top = box.y + "%";
+    el.style.width = box.w + "%";
+    el.style.height = box.h + "%";
+    el.style.zIndex = String(box.z);
+  },
+
+  mount(){
+    const L = GB_LAYOUT;
+    this.applyBox(document.getElementById("gbConfirmWrap"), L.confirm);
+    this.applyBox(document.getElementById("gbDpadWrap"), L.dpad);
+    this.applyBox(document.getElementById("gbSpellsWrap"), L.spells);
+    this.applyBox(document.getElementById("gbEndWrap"), L.end);
+    this.applyBox(document.getElementById("gbZoomWrap"), L.zoom);
+    const hint = document.getElementById("hint");
+    if(hint){
+      hint.classList.add("gb-placed");
+      this.applyBox(hint, L.hint);
+    }
+
+    const root = document.getElementById("gbDpad");
+    if(root && !root.dataset.bound){
+      root.dataset.bound = "1";
+      root.querySelectorAll("button[data-dir]").forEach(b=>{
+        b.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); PadMove.onDir(b.dataset.dir); });
+      });
+    }
+    const end = document.getElementById("gbEnd");
+    if(end && !end.dataset.bound){
+      end.dataset.bound = "1";
+      end.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); Combat.endPlayerTurn(); });
+    }
+    const zi = document.getElementById("gbZoomIn");
+    const zo = document.getElementById("gbZoomOut");
+    const zv = document.getElementById("gbZoomVal");
+    if(zi && !zi.dataset.bound){
+      zi.dataset.bound = "1";
+      zi.addEventListener("click", (e)=>{ e.stopPropagation(); UI.stepZoom(+1); GBHud.syncZoom(); });
+      zo.addEventListener("click", (e)=>{ e.stopPropagation(); UI.stepZoom(-1); GBHud.syncZoom(); });
+      if(zv){ zv.style.cursor="pointer"; zv.addEventListener("click", ()=>{ camera.userPanX=0; camera.userPanY=0; UI.setZoom(1); GBHud.syncZoom(); }); }
+    }
+    this.renderSpells();
+    this.syncZoom();
+  },
+
+  syncZoom(){
+    const el = document.getElementById("gbZoomVal");
+    if(el) el.textContent = Math.round((camera.userZoom||1)*100) + "%";
+    const old = document.getElementById("zoomVal");
+    if(old) old.textContent = Math.round((camera.userZoom||1)*100) + "%";
+  },
+
+  renderSpells(){
+    const box = document.getElementById("gbSpells");
+    if(!box || typeof Loadout === "undefined") return;
+    const defs = Loadout.equippedDefs().slice(0, 4);
+    const sig = defs.map(d=>d.id).join(",");
+    if(box.dataset.sig !== sig){
+      box.dataset.sig = sig;
+      box.innerHTML = "";
+      defs.forEach(def=>{
+        const b = document.createElement("button");
+        b.type = "button";
+        b.dataset.id = def.id;
+        b.style.setProperty("--sc", (typeof SCHOOL_COLOR!=="undefined" && SCHOOL_COLOR[def.school]) || "#27e0ff");
+        b.innerHTML = '<span class="n"></span><span class="m"></span>';
+        b.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); UI.spells.select(def.id); GBHud.refreshTargets(); });
+        box.appendChild(b);
+      });
+    }
+    this.updateSpells();
+  },
+
+  updateSpells(){
+    const box = document.getElementById("gbSpells");
+    if(!box || !State || !State.player) return;
+    const p = State.player;
+    const myTurn = !!(Combat.current && Combat.current() && Combat.current().isPlayer && !inputLocked && !State.over);
+    for(const b of box.children){
+      const def = Spells.def(b.dataset.id); if(!def) continue;
+      const cost = Spells.cost(p, def);
+      const range = Spells.range(p, def);
+      b.querySelector(".n").textContent = def.name;
+      b.querySelector(".m").textContent = cost+" PA · Pt"+range;
+      b.classList.toggle("armed", armedSkill === def.id);
+      b.classList.toggle("disabled", !myTurn || p.pa < cost);
+    }
+    const end = document.getElementById("gbEnd");
+    if(end) end.disabled = !myTurn;
+  },
+
+  showConfirm(taps, pm){
+    const el = document.getElementById("gbConfirm");
+    if(!el) return;
+    el.classList.add("show");
+    if(taps <= 1) el.textContent = "Preview · retape pour 1 PM";
+    else el.textContent = taps+"× → "+pm+" PM"+(pm>=2?" · COURSE":"");
+  },
+  flashConfirm(msg){
+    const el = document.getElementById("gbConfirm");
+    if(!el) return;
+    el.classList.add("show");
+    el.textContent = msg;
+  },
+  hideConfirm(){
+    const el = document.getElementById("gbConfirm");
+    if(el) el.classList.remove("show");
+  },
+
+  refreshTargets(){
+    this.targets = [];
+    this.selected = null;
+    if(!armedSkill || !State) return;
+    const def = Spells.def(armedSkill); if(!def) return;
+    const p = State.player;
+    const range = Spells.range(p, def);
+    for(const e of State.entities){
+      if(!e.alive) continue;
+      if(Grid.manhattan(p, e) > range) continue;
+      if(def.type === "damage" && isFoe(e)) this.targets.push(e);
+      else if((def.type === "heal" || def.type === "shield") && isAlly(e)) this.targets.push(e);
+      else if(def.type === "swap") this.targets.push(e);
+    }
+    if(this.targets.length){
+      this.targetIdx = 0;
+      this.selectTarget(this.targets[0]);
+    }
+  },
+
+  selectTarget(e){
+    this.selected = e;
+    if(e){
+      hoverTile = { c:e.c, r:e.r };
+      hoverEnemy = isFoe(e) ? e : null;
+      // flash visuel
+      e.hitFlash = Math.max(e.hitFlash||0, 0.35);
+      UI.setHint("Cible · <b>"+e.name+"</b> — OK / croix pour valider");
+    }
+  },
+
+  cycleTarget(delta){
+    if(!this.targets.length) this.refreshTargets();
+    if(!this.targets.length){ UI.setHint("Aucune cible dans la zone."); return; }
+    this.targetIdx = (this.targetIdx + delta + this.targets.length) % this.targets.length;
+    this.selectTarget(this.targets[this.targetIdx]);
+  },
+
+  castOnSelected(){
+    if(!armedSkill || !this.selected) { UI.setHint("Choisis une cible avec la croix."); return; }
+    const def = Spells.def(armedSkill);
+    const t = this.selected;
+    if(def.type === "damage" || def.type === "heal" || def.type === "shield" || def.type === "swap"){
+      Combat.castSpell(State.player, def, t);
+      armedSkill = null;
+      this.targets = []; this.selected = null;
+      UI.spells.update(); UI.refreshAll();
+    }
+  }
+};
+
+
 /* =====================================================================
    INPUT — clic / tactile sur l'arène
    ===================================================================== */
@@ -10506,6 +10942,7 @@ function init(){
   UI.el("restartBtn").addEventListener("click", ()=>{ UI.hide("deathOverlay"); UI.hub.open(); });
 
   // ===== V0.91.1 — ZOOM (boutons uniquement ; la molette est désactivée) =====
+  if(typeof GBHud!=="undefined") GBHud.mount();
   UI.el("zoomIn").addEventListener("click", ()=> UI.stepZoom(+1));
   UI.el("zoomOut").addEventListener("click", ()=> UI.stepZoom(-1));
   { const zv = UI.el("zoomVal"); if(zv){ zv.style.cursor="pointer"; zv.title="Recentrer"; zv.addEventListener("click", ()=>{ camera.userPanX=0; camera.userPanY=0; UI.setZoom(1); }); } }
