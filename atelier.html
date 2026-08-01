@@ -1,0 +1,1892 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TYPONS — sérigraphie DIY</title>
+<meta name="theme-color" content="#141110">
+<style>
+:root{
+  --ground:#141110; --ground-2:#1d1917; --ground-3:#272220; --line:#3a322e;
+  --paper:#ece5da; --dim:#948a82; --safelight:#ffb02e;
+  /* svh évite le thrash resize iOS (barre URL) qui gelait le canvas */
+  --stage-h:min(58svh, 62vh, 680px);
+  --pad:14px;
+  --safe-b:env(safe-area-inset-bottom, 0px);
+  --safe-t:env(safe-area-inset-top, 0px);
+  --font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --font-display:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;overflow-x:hidden}
+body{
+  background:
+    radial-gradient(120% 80% at 50% -10%, #2a221c 0%, transparent 55%),
+    var(--ground);
+  color:var(--paper);
+  font-family:var(--font-sans);
+  font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%;
+  padding:0 0 calc(108px + var(--safe-b));
+}
+.wrap{max-width:760px;margin:0 auto;padding:0 var(--pad)}
+
+/* barre compacte — le mockup garde la place hero */
+.topbar{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
+  padding:calc(10px + var(--safe-t)) 0 10px;
+}
+.topbar h1{
+  font-family:var(--font-display);
+  font-weight:800;
+  font-size:clamp(22px,7vw,34px);line-height:.9;letter-spacing:-.02em;margin:0;
+  text-transform:uppercase;
+}
+.topbar p{color:var(--dim);margin:0;font-size:12px;text-align:right;max-width:18ch;line-height:1.35}
+
+.garment-bar{
+  display:grid;grid-template-columns:1.2fr .8fr 52px;gap:8px;
+  padding:0 0 10px;
+}
+.garment-bar .field{gap:4px}
+.garment-bar label{font-size:10px}
+.garment-bar select, .garment-bar input[type=color]{
+  min-height:44px;padding:8px 10px;font-size:14px;
+}
+.garment-bar input[type=color]{padding:4px}
+.print-badge{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--safelight);margin:0 0 6px;
+}
+.sizebar{
+  font-family:var(--font-mono);font-size:12px;color:var(--dim);
+  margin:0 0 12px;line-height:1.45;
+}
+.sizebar b{color:var(--paper);font-weight:600}
+
+/* stage plein écran large — t-shirt entier et maxi */
+#stage-shell{
+  margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);
+  width:100vw;position:relative;
+  background:linear-gradient(180deg, #191513 0%, var(--ground-2) 40%, #171311 100%);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+#stage{
+  position:relative;touch-action:none;overflow:hidden;
+  height:var(--stage-h);
+}
+#stage canvas{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  touch-action:none;-webkit-user-select:none;user-select:none;
+  max-width:100%;max-height:100%;
+}
+#mock, #viewphoto{display:none !important}
+#mock.on, #viewphoto.on{display:block !important}
+.photo-tools{
+  display:none;gap:8px;margin:0 0 10px;position:relative;z-index:4;
+}
+.photo-tools.on{display:flex}
+.photo-tools .btn{
+  min-height:44px;padding:10px 14px;font-size:12px;
+  background:var(--ground-2);color:var(--paper);
+  border:1px solid var(--line);
+}
+.photo-tools .btn:hover{border-color:var(--safelight);color:var(--safelight)}
+#stage-tip{
+  position:absolute;left:0;right:0;bottom:0;z-index:5;
+  font-family:var(--font-mono);font-size:11px;color:var(--dim);
+  padding:10px 14px calc(10px + var(--safe-b));
+  background:linear-gradient(to top,rgba(20,17,16,.94),transparent);
+  pointer-events:none;
+}
+.view-toggle{
+  display:flex;gap:0;border:1px solid var(--line);background:var(--ground-2);
+  margin:0 0 10px;width:fit-content;max-width:100%;position:relative;z-index:3;
+}
+.view-toggle button{
+  border:0;background:transparent;color:var(--dim);
+  font-family:var(--font-mono);font-size:12px;letter-spacing:.06em;
+  text-transform:uppercase;padding:12px 18px;min-height:44px;cursor:pointer;
+}
+.view-toggle button.active{color:#1a1207;background:var(--safelight)}
+
+.step{border-bottom:1px solid var(--line);padding:18px 0}
+.step > h2{
+  font-family:var(--font-mono);font-size:11px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--safelight);margin:0 0 12px;
+}
+.step > h2 span{color:var(--dim);float:right;letter-spacing:.06em}
+.hint{color:var(--dim);font-size:13px;margin:9px 0 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field > label{
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;
+  color:var(--dim);text-transform:uppercase;
+}
+input[type=number],input[type=text],select{
+  width:100%;background:var(--ground-2);color:var(--paper);border:1px solid var(--line);
+  border-radius:0;padding:12px 11px;font-family:var(--font-mono);font-size:16px;
+}
+input:focus,select:focus{outline:2px solid var(--safelight);outline-offset:1px}
+input[type=range]{width:100%;accent-color:var(--safelight);height:36px}
+input[type=color]{width:100%;height:44px;padding:3px;background:var(--ground-2);border:1px solid var(--line)}
+.rowval{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rowval b{font-family:var(--font-mono);font-size:13px;font-weight:600}
+.check{display:flex;align-items:center;gap:10px;padding:10px 0;font-size:14px;cursor:pointer;min-height:44px}
+.check input{width:20px;height:20px;accent-color:var(--safelight);flex:none}
+button{font-family:inherit}
+.btn{
+  background:var(--ground-3);color:var(--paper);border:1px solid var(--line);
+  padding:12px 14px;min-height:44px;font-family:var(--font-mono);font-size:13px;cursor:pointer;
+}
+.btn:hover{border-color:var(--safelight);color:var(--safelight)}
+.btn:disabled{opacity:.3;cursor:default}
+.btn.wide{width:100%}
+.btn.danger:hover{border-color:#e5484d;color:#e5484d}
+
+#strip{
+  display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+}
+#strip::-webkit-scrollbar{display:none}
+.thumb{
+  flex:none;width:68px;height:68px;background:#fff;border:2px solid var(--line);
+  padding:2px;cursor:pointer;position:relative;
+}
+.thumb.sel{border-color:var(--safelight)}
+.thumb img{width:100%;height:100%;object-fit:contain;display:block}
+.thumb i{
+  position:absolute;top:-1px;left:-1px;background:var(--safelight);color:#1a1207;
+  font-family:var(--font-mono);font-style:normal;font-size:10px;
+  padding:1px 4px;font-weight:600;
+}
+.thumb.add{
+  background:var(--ground-2);color:var(--dim);display:flex;align-items:center;
+  justify-content:center;font-size:28px;line-height:1;border-style:dashed;
+}
+
+#ctrl{border:1px solid var(--line);background:var(--ground-2);padding:12px 13px 14px;margin-top:12px;display:none}
+#ctrl.on{display:block}
+#ctrl h3{
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--safelight);margin:0 0 4px;
+}
+#ctrl .dims{font-family:var(--font-mono);font-size:12px;color:var(--dim);margin:0 0 6px}
+
+.frame{display:grid;grid-template-columns:1fr 64px 64px 44px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.frame:first-child{border-top:none}
+.frame .u{font-family:var(--font-mono);font-size:11px;color:var(--dim)}
+
+.act{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:linear-gradient(to top,var(--ground) 70%,transparent);
+  padding:14px var(--pad) calc(14px + var(--safe-b));
+}
+.act-inner{max-width:760px;margin:0 auto}
+button.go{
+  width:100%;background:var(--safelight);color:#1a1207;border:none;
+  font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:.04em;
+  font-size:17px;padding:16px;min-height:52px;cursor:pointer;
+}
+button.go:disabled{background:var(--ground-3);color:var(--dim);cursor:not-allowed}
+#bar{height:2px;background:var(--ground-3);margin-bottom:10px;display:none}
+#bar i{display:block;height:100%;width:0;background:var(--safelight);transition:width .2s}
+#status{font-family:var(--font-mono);font-size:12px;color:var(--dim);text-align:center;margin:8px 0 0;min-height:16px}
+
+#out{display:none;padding-top:24px}
+#plan{border-left:2px solid var(--safelight);padding:12px 0 12px 14px;margin-bottom:18px;font-size:14px}
+#plan h3{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--safelight);margin:0 0 8px}
+#plan ol{margin:0;padding-left:18px}
+#plan li{margin-bottom:5px}
+#plan .flag{color:var(--safelight)}
+.plate{border:1px solid var(--line);background:var(--ground-2);margin-bottom:14px}
+.plate-h{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid var(--line)}
+.plate-h .sw{width:22px;height:22px;border:1px solid var(--line);flex:none}
+.plate-h b{font-size:14px}
+.plate-h code{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--dim)}
+.plate img{display:block;width:100%;background:#fff}
+.cap{
+  margin:0;padding:7px 13px;border-bottom:1px solid var(--line);
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--dim);
+}
+.plate-f{padding:11px 13px}
+.plate-f a{
+  display:block;text-align:center;padding:12px;background:var(--ground-3);color:var(--paper);
+  text-decoration:none;font-family:var(--font-mono);font-size:13px;border:1px solid var(--line);
+  min-height:44px;
+}
+.plate-f a:hover{border-color:var(--safelight);color:var(--safelight)}
+footer{color:var(--dim);font-size:12px;padding:26px 0 0;line-height:1.6}
+details.step > summary{
+  list-style:none;cursor:pointer;
+  font-family:var(--font-mono);font-size:11px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--safelight);
+  padding:4px 0 2px;min-height:44px;display:flex;align-items:center;justify-content:space-between;
+}
+details.step > summary::-webkit-details-marker{display:none}
+details.step > summary::after{content:"+";color:var(--dim);font-size:16px}
+details.step[open] > summary::after{content:"–"}
+details.step .step-body{padding-top:12px}
+@media (min-width:760px){
+  :root{ --stage-h:min(78vh, 860px); }
+  .garment-bar{grid-template-columns:1fr 1fr 72px; max-width:420px}
+}
+@media (max-width:759px){
+  /* Cap mémoire GPU téléphone : pas de canvas 2.5× plein écran */
+  #stage canvas{ image-rendering:auto; }
+}
+@media (max-width:520px){ .grid{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="topbar">
+  <h1>Typons</h1>
+  <p>Sérigraphie DIY — mockup → trame → cadres → films imprimables</p>
+</header>
+
+<p class="print-badge" id="ghint">Choisis la pièce, pose tes images, règle la trame, indique tes cadres.</p>
+<p class="sizebar" id="sizebar">—</p>
+<div class="garment-bar">
+  <div class="field">
+    <label for="gtype">Pièce</label>
+    <select id="gtype">
+      <option value="tee" selected>T-shirt</option>
+      <option value="sweat">Sweat</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="gsize">Taille</label>
+    <select id="gsize">
+      <option value="S">S</option>
+      <option value="M">M</option>
+      <option value="L">L</option>
+      <option value="XL" selected>XL</option>
+      <option value="XXL">XXL</option>
+      <option value="XXXL">XXXL</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="gcol">Couleur</label>
+    <input type="color" id="gcol" value="#f2f0eb">
+  </div>
+</div>
+
+<section class="step" style="border:0;padding:0 0 8px">
+  <h2 style="margin-bottom:8px">Visuel<span id="itemcount">0 image</span></h2>
+  <div class="view-toggle" role="group" aria-label="Mode d'affichage" id="view-toggle">
+    <button type="button" id="view-flat" class="active" aria-pressed="true">Plat</button>
+    <button type="button" id="view-photo" aria-pressed="false">Photo</button>
+  </div>
+  <div class="photo-tools" id="photo-tools">
+    <button type="button" class="btn" id="loadmock">Charger une photo…</button>
+  </div>
+  <div id="stage-shell">
+    <div id="stage">
+      <canvas id="mock" class="on" width="360" height="440"></canvas>
+      <canvas id="viewphoto" width="360" height="440"></canvas>
+      <p id="stage-tip">Touche + pour ajouter une image, puis place-la partout sur le t-shirt.</p>
+    </div>
+  </div>
+  <div id="strip"></div>
+  <div id="ctrl"></div>
+  <button class="btn wide" id="add" style="display:none">+ Ajouter une image</button>
+  <input type="file" id="file" accept="image/*" hidden>
+  <input type="file" id="mockfile" accept="image/jpeg,image/png,image/webp,image/*" hidden>
+  <div id="items" hidden></div>
+</section>
+
+<details class="step" open>
+  <summary>Trame</summary>
+  <div class="step-body">
+    <div class="field">
+      <label for="preset">Effet voulu</label>
+      <select id="preset">
+        <option value="photo">Photo fine — dégradés doux</option>
+        <option value="std" selected>Textile standard — polyvalent</option>
+        <option value="gros">Gros points — trame visible, bootleg</option>
+        <option value="poster">Très gros points — effet affiche</option>
+        <option value="puff">Puff / encre épaisse</option>
+        <option value="trait">Aucun tramage — aplats purs</option>
+      </select>
+    </div>
+    <p class="hint" id="phint">—</p>
+    <div class="field" style="margin-top:12px">
+      <div class="rowval"><label for="lpi">Finesse</label><b id="lpi-v">35 lpi</b></div>
+      <input type="range" id="lpi" min="10" max="65" step="1" value="35">
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <div class="field">
+        <div class="rowval"><label for="gain">Gain textile</label><b id="gain-v">15 %</b></div>
+        <input type="range" id="gain" min="0" max="45" step="1" value="15">
+      </div>
+      <div class="field">
+        <label for="shape">Point</label>
+        <select id="shape"><option value="dot" selected>Rond</option><option value="square">Carré</option></select>
+      </div>
+    </div>
+  </div>
+</details>
+
+<details class="step">
+  <summary>Couleurs</summary>
+  <div class="step-body">
+    <div class="grid">
+      <div class="field">
+        <label for="mode">Séparation</label>
+        <select id="mode">
+          <option value="mono" selected>1 couleur</option>
+          <option value="index">Aplats — N couleurs</option>
+          <option value="cmyk">Quadri CMJN</option>
+        </select>
+      </div>
+      <div class="field" id="ncolwrap" style="display:none">
+        <div class="rowval"><label for="ncol">Nombre d'encres</label><b id="ncol-v">3</b></div>
+        <input type="range" id="ncol" min="2" max="6" step="1" value="3">
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" id="base"> Base blanche sous les couleurs</label>
+    <label class="check"><input type="checkbox" id="dropbg" checked> Laisser le textile faire une des couleurs</label>
+    <p class="hint" id="chint">—</p>
+  </div>
+</details>
+
+<details class="step" open>
+  <summary>Cadres que tu as</summary>
+  <div class="step-body">
+    <p class="hint" style="margin-top:0">Indique combien de cadres et leurs tailles (cm). L’app calcule si ça rentre et combien de sessions d’insolation.</p>
+    <div id="frames"></div>
+    <button class="btn wide" id="addframe" style="margin-top:10px">+ Ajouter un cadre</button>
+    <p class="hint" id="fhint">—</p>
+  </div>
+</details>
+
+<div class="act">
+  <div class="act-inner">
+    <div id="bar"><i></i></div>
+    <button class="go" id="run">Faire les typons PNG</button>
+    <p id="status"></p>
+  </div>
+</div>
+
+<section id="out">
+  <div id="plan"></div>
+  <div id="plates"></div>
+</section>
+
+<footer>
+  Export PNG imprimable (pas de SVG). Pose les images sur le tee/sweat pour juger la taille,
+  choisis la trame selon l’effet, indique tes cadres — l’app sort les films.
+  <br><a href="diy/" style="color:var(--safelight)">Hub DIY</a> · outils autonomes
+</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+var TAU = Math.PI * 2;
+var MAXPX = 8e6;
+var DPI = 300;
+
+/* ---------- donnees vetements (cm, mesures a plat) ---------- */
+var GARMENTS = {
+  tee:    { n:"T-shirt", sleeve:0.30, hem:0 },
+  sweat:  { n:"Sweat",   sleeve:0.62, hem:6 }
+};
+var SIZES = {
+  S:{ w:46, h:70 }, M:{ w:51, h:72 }, L:{ w:56, h:74 },
+  XL:{ w:61, h:76 }, XXL:{ w:66, h:78 }, XXXL:{ w:71, h:80 }
+};
+var PRESETS = {
+  photo:  { lpi:48, t:"Maille fine 43T/110 minimum, cadre très tendu. Les dégradés passent, mais la moindre sous-exposition bouche les points." },
+  std:    { lpi:35, t:"Maille 34T/90. Le meilleur compromis sur coton : les points tiennent à l'insolation et l'encre passe bien." },
+  gros:   { lpi:22, t:"Maille 24T/62 ou plus grosse. Les points se voient à l'œil nu — c'est l'effet recherché." },
+  poster: { lpi:14, t:"Trame franchement visible, très tolérante au repérage approximatif. Pardonne beaucoup en DIY." },
+  puff:   { lpi:18, t:"L'encre puff gonfle à la chaleur et avale les détails. Gros points obligatoires, maille grosse, un seul passage épais." },
+  trait:  { lpi:0,  t:"Pas de trame du tout : uniquement des aplats pleins. Le plus simple à insoler et à racler, aucun dégradé possible." }
+};
+
+/* ---------- etat ---------- */
+var items = [];
+var sel = -1;
+var frames = [{ w:42, h:59.4 }];
+var urls = [];
+var viewMode = "flat"; // flat | photo
+var customMockup = null; // Image chargee par l'utilisateur (JPG photo t-shirt)
+var customMockupId = 0;
+var MOCKUP_INLINE = {
+  tee: "data:image/jpeg;base64,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"
+};
+var MOCKUP_PNG = {
+  // Fichier local si dispo, sinon data-URI embarquée (mobile / preview)
+  tee: "mockups/tee-front.jpg",
+  sweat: null,
+  hoodie: null
+};
+var mockupImgs = {};
+var mockupsRequested = false;
+var photoCache = { key:"", cv:null }; // cache rendu photo
+var lastStageSize = { w:0, h:0 };
+var IS_MOBILE = (function(){
+  try{
+    return window.matchMedia("(max-width:759px), (pointer:coarse)").matches
+      || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
+  }catch(e){ return true; }
+})();
+var el = {};
+["gtype","gsize","gcol","ghint","sizebar","mock","viewphoto","stage","stage-tip","add","file","mockfile",
+ "items","itemcount","photo-tools","loadmock",
+ "preset","phint","lpi","lpi-v","gain","gain-v","shape","mode","ncol","ncol-v","ncolwrap",
+ "base","dropbg","chint","frames","addframe","fhint","run","status","bar","out","plan","plates",
+ "strip","ctrl","view-flat","view-photo"
+].forEach(function(id){ el[id] = document.getElementById(id); });
+
+var mock = el.mock, mx = mock.getContext("2d", { alpha:false });
+var viewphoto = el.viewphoto;
+var photoCtx = viewphoto ? viewphoto.getContext("2d", { willReadFrequently:true, alpha:false }) : null;
+
+if(!mock || !viewphoto || !photoCtx){
+  console.error("Atelier: canvas manquant", { mock:!!mock, viewphoto:!!viewphoto });
+}
+
+function garment(){
+  var g = GARMENTS[el.gtype.value], s = SIZES[el.gsize.value];
+  // DIY : toute la surface du vetement est imprimable, manches et bas compris
+  return {
+    n:g.n, w:s.w, h:s.h, sleeve:g.sleeve, hem:g.hem,
+    printW:s.w, printH:s.h, printX:0, printY:0
+  };
+}
+
+function applyMockupImage(k, im){
+  mockupImgs[k] = im;
+  photoCache.key = "";
+  if(viewMode === "photo"){
+    drawPhoto();
+    refresh();
+  }
+}
+
+function loadOneMockup(k, src, fallback){
+  if(!src && !fallback) return;
+  var im = new Image();
+  var done = false;
+  var finish = function(){
+    if(done) return;
+    if(!(im.naturalWidth || im.width)) return;
+    done = true;
+    applyMockupImage(k, im);
+  };
+  im.onload = finish;
+  im.onerror = function(){
+    if(fallback && src !== fallback){
+      console.warn("Mockup fichier KO, fallback inline:", src);
+      loadOneMockup(k, fallback, null);
+    } else {
+      console.warn("Mockup introuvable:", src || fallback);
+    }
+  };
+  im.src = src || fallback;
+  // Cache navigateur : parfois complete avant onload
+  if(im.complete) finish();
+}
+
+function loadMockups(){
+  if(mockupsRequested) return;
+  mockupsRequested = true;
+  Object.keys(MOCKUP_PNG).forEach(function(k){
+    loadOneMockup(k, MOCKUP_PNG[k], (MOCKUP_INLINE && MOCKUP_INLINE[k]) || null);
+  });
+}
+
+function ensureMockupsForPhoto(){
+  if(!mockupsRequested) loadMockups();
+}
+
+function hexRgb(hex){
+  var h = (hex || "#cccccc").replace("#","");
+  if(h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+
+/* ---------- dessin du vetement a plat ---------- */
+function drawGarment(cx, G, S){
+  var w = G.w, h = G.h;
+  var neck = w * 0.20, shoulder = w * 0.06, arm = h * G.sleeve;
+  var body = w * 0.86;
+  var bx = (w - body) / 2;
+
+  cx.fillStyle = el.gcol.value;
+  cx.strokeStyle = "rgba(0,0,0,.28)";
+  cx.lineWidth = Math.max(1, 0.12 * S);
+  cx.beginPath();
+  cx.moveTo((w - neck) / 2 * S, 0);
+  cx.quadraticCurveTo(w / 2 * S, h * 0.055 * S, (w + neck) / 2 * S, 0);
+  cx.lineTo((w - shoulder) * S, h * 0.02 * S);
+  cx.lineTo(w * S, arm * 0.42 * S);
+  cx.lineTo((w - bx * 0.55) * S, arm * S);
+  cx.lineTo((w - bx) * S, arm * 0.62 * S);
+  cx.lineTo((w - bx) * S, (h - G.hem) * S);
+  cx.lineTo((w - bx) * S, h * S);
+  cx.lineTo(bx * S, h * S);
+  cx.lineTo(bx * S, arm * 0.62 * S);
+  cx.lineTo(bx * 0.55 * S, arm * S);
+  cx.lineTo(0, arm * 0.42 * S);
+  cx.lineTo(shoulder * S, h * 0.02 * S);
+  cx.closePath();
+  cx.fill();
+  cx.stroke();
+
+  if(G.hem){
+    cx.beginPath();
+    cx.moveTo(bx * S, (h - G.hem) * S);
+    cx.lineTo((w - bx) * S, (h - G.hem) * S);
+    cx.stroke();
+  }
+}
+
+function fitStageCanvas(cv, G){
+  // Résolution limitée sur mobile pour éviter le gel GPU
+  var stage = el.stage;
+  var cssW = stage.clientWidth || window.innerWidth || 390;
+  var cssH = stage.clientHeight || Math.round(cssW * 1.25);
+  var aspect = G.w / G.h;
+  var pad = 0.01;
+  var usableW = cssW * (1 - pad * 2);
+  var usableH = cssH * (1 - pad * 2);
+  var dispW, dispH;
+  if(usableW / usableH > aspect){
+    dispH = usableH; dispW = dispH * aspect;
+  } else {
+    dispW = usableW; dispH = dispW / aspect;
+  }
+  var rawDpr = window.devicePixelRatio || 1;
+  var dprCap = IS_MOBILE ? 1.5 : 2;
+  var dpr = Math.min(dprCap, rawDpr);
+  var tw = Math.max(2, Math.round(dispW * dpr));
+  var th = Math.max(2, Math.round(dispH * dpr));
+  var maxEdge = IS_MOBILE ? 1100 : 1800;
+  var edge = Math.max(tw, th);
+  if(edge > maxEdge){
+    var k = maxEdge / edge;
+    tw = Math.max(2, Math.round(tw * k));
+    th = Math.max(2, Math.round(th * k));
+  }
+  if(cv.width !== tw) cv.width = tw;
+  if(cv.height !== th) cv.height = th;
+  cv.style.width = Math.round(dispW) + "px";
+  cv.style.height = Math.round(dispH) + "px";
+  return { S: cv.width / G.w, dpr:dpr, dispW:dispW, dispH:dispH };
+}
+
+function garmentPath(cx, G, S){
+  var w = G.w, h = G.h;
+  var neck = w * 0.20, shoulder = w * 0.06, arm = h * G.sleeve;
+  var body = w * 0.86, bx = (w - body) / 2;
+  cx.beginPath();
+  cx.moveTo((w - neck) / 2 * S, 0);
+  cx.quadraticCurveTo(w / 2 * S, h * 0.055 * S, (w + neck) / 2 * S, 0);
+  cx.lineTo((w - shoulder) * S, h * 0.02 * S);
+  cx.lineTo(w * S, arm * 0.42 * S);
+  cx.lineTo((w - bx * 0.55) * S, arm * S);
+  cx.lineTo((w - bx) * S, arm * 0.62 * S);
+  cx.lineTo((w - bx) * S, (h - G.hem) * S);
+  cx.lineTo((w - bx) * S, h * S);
+  cx.lineTo(bx * S, h * S);
+  cx.lineTo(bx * S, arm * 0.62 * S);
+  cx.lineTo(bx * 0.55 * S, arm * S);
+  cx.lineTo(0, arm * 0.42 * S);
+  cx.lineTo(shoulder * S, h * 0.02 * S);
+  cx.closePath();
+}
+
+function drawMock(){
+  var G = garment();
+  var fit = fitStageCanvas(mock, G);
+  var S = fit.S;
+  mx.setTransform(1, 0, 0, 1, 0, 0);
+  mx.clearRect(0, 0, mock.width, mock.height);
+  mx.fillStyle = "#171311";
+  mx.fillRect(0, 0, mock.width, mock.height);
+
+  // Plat = dessin technique pour concevoir / mesurer (pas de photo)
+  drawGarment(mx, G, S);
+
+  mx.save();
+  mx.strokeStyle = "rgba(255,176,46,.35)";
+  mx.lineWidth = Math.max(1, 0.08 * S);
+  mx.setLineDash([Math.max(4, 0.35 * S), Math.max(3, 0.25 * S)]);
+  garmentPath(mx, G, S);
+  mx.stroke();
+  mx.restore();
+
+  items.forEach(function(it, i){
+    if(!it.prepared) return;
+    mx.save();
+    mx.translate(it.cx * S, it.cy * S);
+    mx.rotate(it.rot * Math.PI / 180);
+    mx.drawImage(it.prepared, -it.w / 2 * S, -it.h / 2 * S, it.w * S, it.h * S);
+    mx.restore();
+    if(i === sel && viewMode === "flat"){
+      mx.save();
+      mx.strokeStyle = "#ffb02e";
+      mx.lineWidth = Math.max(2, 0.12 * S);
+      mx.setLineDash([Math.max(4, 0.3 * S), Math.max(3, 0.22 * S)]);
+      mx.translate(it.cx * S, it.cy * S);
+      mx.rotate(it.rot * Math.PI / 180);
+      mx.strokeRect(-it.w / 2 * S, -it.h / 2 * S, it.w * S, it.h * S);
+      mx.restore();
+    }
+  });
+
+  if(viewMode === "photo") drawPhoto();
+}
+
+/* ---------- Rendu photo (style PSD) : photo + displace luminance + multiply ---------- */
+function buildDesignLayer(W, H, G){
+  var cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  var c = cv.getContext("2d");
+  var S = W / G.w;
+  items.forEach(function(it){
+    if(!it.prepared) return;
+    c.save();
+    c.translate(it.cx * S, it.cy * S);
+    c.rotate(it.rot * Math.PI / 180);
+    c.drawImage(it.prepared, -it.w / 2 * S, -it.h / 2 * S, it.w * S, it.h * S);
+    c.restore();
+  });
+  return cv;
+}
+
+function makeProceduralShirt(W, H, G){
+  var cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  var c = cv.getContext("2d");
+  var S = W / G.w;
+  var rgb = hexRgb(el.gcol.value);
+  c.fillStyle = "#171311";
+  c.fillRect(0, 0, W, H);
+  garmentPath(c, G, S);
+  c.fillStyle = "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
+  c.fill();
+
+  // Ombrage global + plis (la luminance servira de carte de déplacement)
+  c.save();
+  garmentPath(c, G, S);
+  c.clip();
+  var grd = c.createLinearGradient(0, 0, W, H);
+  grd.addColorStop(0, "rgba(255,255,255,.16)");
+  grd.addColorStop(0.35, "rgba(0,0,0,0)");
+  grd.addColorStop(0.55, "rgba(0,0,0,.10)");
+  grd.addColorStop(1, "rgba(0,0,0,.22)");
+  c.fillStyle = grd;
+  c.fillRect(0, 0, W, H);
+
+  // Bandes de plis douces
+  for(var k = 0; k < 7; k++){
+    var y0 = H * (0.18 + k * 0.1);
+    var g2 = c.createLinearGradient(0, y0 - H * 0.04, 0, y0 + H * 0.04);
+    var dark = k % 2 ? 0.10 : 0.06;
+    g2.addColorStop(0, "rgba(0,0,0,0)");
+    g2.addColorStop(0.5, "rgba(0,0,0," + dark + ")");
+    g2.addColorStop(1, "rgba(255,255,255,0)");
+    c.fillStyle = g2;
+    c.fillRect(0, y0 - H * 0.05, W, H * 0.1);
+  }
+  // Creux manches / côtés
+  var side = c.createLinearGradient(0, 0, W * 0.2, 0);
+  side.addColorStop(0, "rgba(0,0,0,.18)");
+  side.addColorStop(1, "rgba(0,0,0,0)");
+  c.fillStyle = side; c.fillRect(0, 0, W * 0.22, H);
+  var side2 = c.createLinearGradient(W, 0, W * 0.8, 0);
+  side2.addColorStop(0, "rgba(0,0,0,.18)");
+  side2.addColorStop(1, "rgba(0,0,0,0)");
+  c.fillStyle = side2; c.fillRect(W * 0.78, 0, W * 0.22, H);
+
+  // Grain textile léger (petit tile, pas un putImageData full-frame)
+  var tile = document.createElement("canvas");
+  tile.width = tile.height = 64;
+  var tc = tile.getContext("2d");
+  var nd = tc.createImageData(64, 64);
+  for(var i = 0; i < nd.data.length; i += 4){
+    var n = (Math.random() * 30) | 0;
+    nd.data[i] = nd.data[i+1] = nd.data[i+2] = n;
+    nd.data[i+3] = 22;
+  }
+  tc.putImageData(nd, 0, 0);
+  var pat = c.createPattern(tile, "repeat");
+  c.fillStyle = pat;
+  c.globalAlpha = 0.55;
+  c.fillRect(0, 0, W, H);
+  c.globalAlpha = 1;
+  c.restore();
+
+  c.strokeStyle = "rgba(0,0,0,.28)";
+  c.lineWidth = Math.max(1, 0.1 * S);
+  garmentPath(c, G, S);
+  c.stroke();
+  return cv;
+}
+
+function shirtPhotoCanvas(W, H, G){
+  var src = customMockup || mockupImgs[el.gtype.value];
+  var cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  var c = cv.getContext("2d");
+  c.fillStyle = "#141110";
+  c.fillRect(0, 0, W, H);
+  if(src && src.complete && (src.naturalWidth || src.width) > 0){
+    // Mockups atelier : stretch exact sur l'UV vêtement (même cadrage que le plat)
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = "high";
+    c.drawImage(src, 0, 0, W, H);
+  } else {
+    c.drawImage(makeProceduralShirt(W, H, G), 0, 0);
+  }
+  return cv;
+}
+
+function blurLuma(map, w, h, radius){
+  if(radius < 1) return map;
+  var tmp = new Float32Array(map.length);
+  var r = radius | 0, out = new Float32Array(map.length);
+  var x, y, i, s, c, k;
+  for(y = 0; y < h; y++){
+    for(x = 0; x < w; x++){
+      s = 0; c = 0;
+      for(k = -r; k <= r; k++){
+        i = x + k;
+        if(i < 0 || i >= w) continue;
+        s += map[y * w + i]; c++;
+      }
+      tmp[y * w + x] = s / c;
+    }
+  }
+  for(x = 0; x < w; x++){
+    for(y = 0; y < h; y++){
+      s = 0; c = 0;
+      for(k = -r; k <= r; k++){
+        i = y + k;
+        if(i < 0 || i >= h) continue;
+        s += tmp[i * w + x]; c++;
+      }
+      out[y * w + x] = s / c;
+    }
+  }
+  return out;
+}
+
+/* Warp du design seul via luminance photo (comme Displace Photoshop) */
+function displaceDesign(designCv, photoCv, strength){
+  var w = photoCv.width, h = photoCv.height;
+  var pctx = photoCv.getContext("2d", { willReadFrequently:true });
+  var dctx = designCv.getContext("2d", { willReadFrequently:true });
+  var photo = pctx.getImageData(0, 0, w, h);
+  var design = dctx.getImageData(0, 0, w, h);
+  var pd = photo.data, dd = design.data;
+  var luma = new Float32Array(w * h);
+  var i, x, y;
+  for(i = 0; i < w * h; i++){
+    var o = i * 4;
+    luma[i] = (0.2126 * pd[o] + 0.7152 * pd[o+1] + 0.0722 * pd[o+2]) / 255;
+  }
+  var map = blurLuma(luma, w, h, Math.max(1, Math.round(Math.min(w, h) * 0.006)));
+  var amp = strength * Math.min(w, h);
+  var out = dctx.createImageData(w, h);
+  var od = out.data;
+  for(y = 0; y < h; y++){
+    for(x = 0; x < w; x++){
+      var idx = y * w + x;
+      var L = map[idx];
+      var sx = Math.round(x + (L - 0.5) * amp);
+      var sy = Math.round(y + (L - 0.5) * amp * 0.85);
+      var o = idx * 4;
+      if(sx >= 0 && sx < w && sy >= 0 && sy < h){
+        var so = (sy * w + sx) * 4;
+        od[o] = dd[so]; od[o+1] = dd[so+1]; od[o+2] = dd[so+2]; od[o+3] = dd[so+3];
+      }
+    }
+  }
+  var result = document.createElement("canvas");
+  result.width = w; result.height = h;
+  result.getContext("2d").putImageData(out, 0, 0);
+  return result;
+}
+
+function photoCacheKey(W, H){
+  return [
+    el.gtype.value, el.gsize.value, el.gcol.value, W, H,
+    customMockup ? ("custom:" + customMockupId) : (MOCKUP_PNG[el.gtype.value] || "proc"),
+    items.map(function(it){
+      return [it.name, it.cx.toFixed(2), it.cy.toFixed(2), it.w.toFixed(2), it.h.toFixed(2),
+        it.rot, it.bright, it.contrast, it.sat, it.thr].join(":");
+    }).join("|")
+  ].join("/");
+}
+
+function drawPhoto(){
+  if(!photoCtx || !viewphoto) return;
+  try{
+    var G = garment();
+    fitStageCanvas(viewphoto, G);
+    var W = viewphoto.width, H = viewphoto.height;
+    var S = W / G.w;
+    photoCtx.setTransform(1, 0, 0, 1, 0, 0);
+    photoCtx.clearRect(0, 0, W, H);
+    photoCtx.fillStyle = "#171311";
+    photoCtx.fillRect(0, 0, W, H);
+
+    var key = photoCacheKey(W, H);
+    if(photoCache.key === key && photoCache.cv){
+      photoCtx.drawImage(photoCache.cv, 0, 0, W, H);
+      return;
+    }
+
+    var maxEdge = IS_MOBILE ? 520 : 900;
+    var scale = Math.min(1, maxEdge / Math.max(W, H));
+    var rw = Math.max(2, Math.round(W * scale));
+    var rh = Math.max(2, Math.round(H * scale));
+    var rS = rw / G.w;
+
+    var shirt = shirtPhotoCanvas(rw, rh, G);
+    var design = buildDesignLayer(rw, rh, G);
+    var strength = (customMockup || mockupImgs[el.gtype.value]) ? 0.028 : 0.022;
+    // Displace pixel-par-pixel = trop lourd sur téléphone → skip si trop grand / pas d'images
+    var doDisplace = items.length && (!IS_MOBILE || (rw * rh) <= 280000);
+    var warped = doDisplace ? displaceDesign(design, shirt, strength) : (items.length ? design : null);
+
+    // Compose : photo → clip silhouette → multiply design (recette PSD)
+    var composed = document.createElement("canvas");
+    composed.width = rw; composed.height = rh;
+    var cx = composed.getContext("2d");
+    cx.drawImage(shirt, 0, 0);
+    if(warped){
+      cx.save();
+      garmentPath(cx, G, rS);
+      cx.clip();
+      cx.globalCompositeOperation = "multiply";
+      cx.drawImage(warped, 0, 0);
+      cx.restore();
+    }
+
+    photoCache.key = key;
+    photoCache.cv = composed;
+    photoCtx.imageSmoothingEnabled = true;
+    photoCtx.imageSmoothingQuality = "high";
+    photoCtx.drawImage(composed, 0, 0, W, H);
+    say("");
+  } catch(err){
+    console.error(err);
+    say("Rendu photo interrompu : " + (err && err.message ? err.message : err));
+  }
+}
+
+function setViewMode(mode){
+  viewMode = mode === "photo" ? "photo" : "flat";
+
+  var btnFlat = document.getElementById("view-flat");
+  var btnPhoto = document.getElementById("view-photo");
+  var tools = document.getElementById("photo-tools");
+  var cFlat = document.getElementById("mock");
+  var cPhoto = document.getElementById("viewphoto");
+
+  if(btnFlat){
+    btnFlat.classList.toggle("active", viewMode === "flat");
+    btnFlat.setAttribute("aria-pressed", viewMode === "flat" ? "true" : "false");
+  }
+  if(btnPhoto){
+    btnPhoto.classList.toggle("active", viewMode === "photo");
+    btnPhoto.setAttribute("aria-pressed", viewMode === "photo" ? "true" : "false");
+  }
+  if(tools) tools.classList.toggle("on", viewMode === "photo");
+
+  if(cFlat){
+    cFlat.classList.toggle("on", viewMode === "flat");
+    cFlat.style.setProperty("display", viewMode === "flat" ? "block" : "none", "important");
+  }
+  if(cPhoto){
+    cPhoto.classList.toggle("on", viewMode === "photo");
+    cPhoto.style.setProperty("display", viewMode === "photo" ? "block" : "none", "important");
+  }
+
+  mock = cFlat || mock;
+  viewphoto = cPhoto || viewphoto;
+  if(viewphoto) photoCtx = viewphoto.getContext("2d", { willReadFrequently:true, alpha:false });
+
+  if(viewMode === "photo"){
+    ensureMockupsForPhoto();
+    if(el["stage-tip"]) el["stage-tip"].textContent = "Rendu photo…";
+    say("Mode photo");
+    // 1er paint immédiat (même sans mockup), puis raffine quand l'image arrive
+    try{ drawPhoto(); }catch(err){ console.error(err); }
+    requestAnimationFrame(function(){
+      if(viewMode !== "photo") return;
+      try{ drawPhoto(); }catch(err){ console.error(err); }
+      if(el["stage-tip"]){
+        el["stage-tip"].textContent = (customMockup || mockupImgs[el.gtype.value])
+          ? "Photo réelle — repasse en Plat pour placer / mesurer."
+          : "Photo en cours… ou charge ta propre JPG.";
+      }
+      refresh();
+    });
+  } else {
+    say("");
+    drawMock();
+    refresh();
+  }
+  return viewMode;
+}
+
+/* ---------- reglages image ---------- */
+function prepare(it){
+  var pw = Math.max(2, Math.round(it.w / 2.54 * DPI));
+  var ph = Math.max(2, Math.round(pw * it.h / it.w));
+  var maxPx = IS_MOBILE ? 2.5e6 : 6e6;
+  if(pw * ph > maxPx){ var k = Math.sqrt(maxPx / (pw * ph)); pw = Math.round(pw * k); ph = Math.round(ph * k); }
+  // Aperçu mockup : pas besoin de 300 dpi en mémoire tant qu'on n'exporte pas
+  var previewMax = IS_MOBILE ? 900 : 1400;
+  if(Math.max(pw, ph) > previewMax){
+    var k2 = previewMax / Math.max(pw, ph);
+    pw = Math.max(2, Math.round(pw * k2));
+    ph = Math.max(2, Math.round(ph * k2));
+  }
+  var cv = document.createElement("canvas");
+  cv.width = pw; cv.height = ph;
+  var c = cv.getContext("2d", { willReadFrequently:true });
+  c.drawImage(it.img, 0, 0, pw, ph);
+
+  var d = c.getImageData(0, 0, pw, ph);
+  var a = d.data;
+  var br = it.bright / 100, ct = (it.contrast + 100) / 100, sa = it.sat / 100;
+  for(var i = 0; i < a.length; i += 4){
+    if(!a[i+3]) continue;
+    var r = a[i] / 255, g = a[i+1] / 255, b = a[i+2] / 255;
+    r += br; g += br; b += br;
+    r = (r - .5) * ct + .5; g = (g - .5) * ct + .5; b = (b - .5) * ct + .5;
+    var lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    r = lum + (r - lum) * sa; g = lum + (g - lum) * sa; b = lum + (b - lum) * sa;
+    if(it.thr > 0){
+      var L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      var v = L < it.thr / 100 ? 0 : 1;
+      r = g = b = v;
+    }
+    a[i] = clamp255(r * 255); a[i+1] = clamp255(g * 255); a[i+2] = clamp255(b * 255);
+  }
+  c.putImageData(d, 0, 0);
+  it.prepared = cv;
+}
+function clamp255(v){ return v < 0 ? 0 : v > 255 ? 255 : v | 0; }
+
+/* ---------- items UI ---------- */
+function defaultImagePose(G, index){
+  // Décale chaque nouvelle image pour qu'elle ne se cache pas sous la précédente
+  var n = index | 0;
+  var col = n % 3;
+  var row = (n / 3) | 0;
+  var cx = G.printX + G.printW * (0.35 + col * 0.15);
+  var cy = G.printY + G.printH * (0.28 + row * 0.16);
+  cx = Math.max(G.printW * 0.2, Math.min(G.printW * 0.8, cx));
+  cy = Math.max(G.printH * 0.18, Math.min(G.printH * 0.75, cy));
+  return { cx:cx, cy:cy };
+}
+
+function redrawStage(){
+  photoCache.key = "";
+  if(viewMode === "photo") drawPhoto();
+  else drawMock();
+}
+
+function selectItem(i, opts){
+  opts = opts || {};
+  if(i < 0 || i >= items.length){
+    sel = -1;
+  } else {
+    sel = i;
+  }
+  // Placer / sélectionner : le mode Plat est le bon outil
+  if(opts.preferFlat && viewMode === "photo" && sel >= 0){
+    drawItems();
+    setViewMode("flat");
+    say("Plat — tu peux déplacer l'image " + pad(sel + 1) + ".");
+    return;
+  }
+  drawItems();
+  redrawStage();
+  refresh();
+}
+
+function addImage(file){
+  if(!file) return;
+  var ext = ((file.name || "").split(".").pop() || "").toLowerCase();
+  if(/heic|heif/.test(ext) || /heic|heif/.test(file.type || "")){
+    say("Photo iPhone en HEIC : illisible par le navigateur. Réglages › Appareil photo › Formats › « Le plus compatible »."); return;
+  }
+  var fr = new FileReader();
+  fr.onload = function(){
+    var im = new Image();
+    im.onload = function(){
+      var G = garment();
+      var w = Math.min(G.printW * 0.7, 18);
+      var pose = defaultImagePose(G, items.length);
+      items.push({
+        img:im, name:file.name || "image", src:fr.result,
+        w:w, h:w * im.naturalHeight / im.naturalWidth,
+        cx:pose.cx, cy:pose.cy,
+        rot:0, bright:0, contrast:0, sat:100, thr:0, prepared:null
+      });
+      var it = items[items.length - 1];
+      prepare(it);
+      sel = items.length - 1;
+      photoCache.key = "";
+      // Ajout depuis Photo → bascule Plat pour voir / placer la nouvelle image
+      if(viewMode === "photo"){
+        setViewMode("flat");
+        say("Image " + pad(sel + 1) + " ajoutée — place-la en Plat, puis repasse en Photo.");
+      } else {
+        drawItems(); drawMock(); refresh();
+        say("Image " + pad(sel + 1) + " · " + items.length + " au total.");
+      }
+    };
+    im.onerror = function(){ say("Image illisible. Réexporte en PNG ou JPG."); };
+    im.src = fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+
+function drawItems(){ drawStrip(); drawCtrl(); }
+
+function bindTap(node, fn){
+  if(!node) return;
+  var locked = false;
+  node.addEventListener("click", function(e){
+    if(locked) return;
+    fn(e);
+  });
+  node.addEventListener("touchend", function(e){
+    e.preventDefault();
+    locked = true;
+    fn(e);
+    setTimeout(function(){ locked = false; }, 350);
+  }, { passive:false });
+}
+
+function drawStrip(){
+  el.strip.innerHTML = "";
+  el.itemcount.textContent = items.length + " image" + (items.length > 1 ? "s" : "");
+  items.forEach(function(it, i){
+    var t = document.createElement("button");
+    t.type = "button";
+    t.className = "thumb" + (i === sel ? " sel" : "");
+    t.setAttribute("aria-label", "Régler l'image " + (i + 1));
+    t.innerHTML = '<i>' + pad(i + 1) + '</i><img src="' + it.src + '" alt="">';
+    bindTap(t, function(){
+      // Re-touche la vignette sélectionnée = désélection ; sinon sélectionne
+      if(sel === i) selectItem(-1);
+      else selectItem(i, { preferFlat: viewMode === "photo" });
+    });
+    el.strip.appendChild(t);
+  });
+  var plus = document.createElement("button");
+  plus.type = "button";
+  plus.className = "thumb add";
+  plus.textContent = "+";
+  plus.setAttribute("aria-label", "Ajouter une image");
+  bindTap(plus, function(){ el.file.click(); });
+  el.strip.appendChild(plus);
+}
+
+function drawCtrl(){
+  el.ctrl.innerHTML = "";
+  if(sel < 0 || !items[sel]){ el.ctrl.className = ""; return; }
+  el.ctrl.className = "on";
+  var it = items[sel];
+
+  var h = document.createElement("h3");
+  h.textContent = "Image " + pad(sel + 1);
+  el.ctrl.appendChild(h);
+  var dims = document.createElement("p");
+  dims.className = "dims";
+  function dimTxt(){
+    var G = garment();
+    var pct = Math.round((it.w / G.w) * 100);
+    return it.w.toFixed(1).replace(".", ",") + " × " + it.h.toFixed(1).replace(".", ",") +
+      " cm · " + pct + " % de la largeur · à " +
+      Math.max(0, it.cy - it.h / 2).toFixed(1).replace(".", ",") + " cm du haut";
+  }
+  dims.textContent = dimTxt();
+  el.ctrl.appendChild(dims);
+  it._dims = dims; it._dimTxt = dimTxt;
+
+  el.ctrl.appendChild(slider("Largeur", 2, 70, 0.5, it.w, function(v){
+    it.h = it.h * v / it.w; it.w = v; prepare(it); redrawStage(); dims.textContent = dimTxt(); refresh();
+  }, function(v){ return v.toFixed(1).replace(".", ",") + " cm"; }));
+  el.ctrl.appendChild(slider("Rotation", -180, 180, 1, it.rot, function(v){ it.rot = v; redrawStage(); }, function(v){ return v + "°"; }));
+  el.ctrl.appendChild(slider("Luminosité", -50, 50, 1, it.bright, function(v){ it.bright = v; prepare(it); redrawStage(); }, function(v){ return v + " %"; }));
+  el.ctrl.appendChild(slider("Contraste", -50, 100, 1, it.contrast, function(v){ it.contrast = v; prepare(it); redrawStage(); }, function(v){ return v + " %"; }));
+  el.ctrl.appendChild(slider("Saturation", 0, 200, 5, it.sat, function(v){ it.sat = v; prepare(it); redrawStage(); }, function(v){ return v + " %"; }));
+  el.ctrl.appendChild(slider("Seuil noir/blanc", 0, 90, 1, it.thr, function(v){ it.thr = v; prepare(it); redrawStage(); }, function(v){ return v === 0 ? "désactivé" : v + " %"; }));
+
+  var row = document.createElement("div");
+  row.className = "grid";
+  row.style.marginTop = "12px";
+  var ctr = document.createElement("button");
+  ctr.className = "btn";
+  ctr.textContent = "Centrer";
+  ctr.addEventListener("click", function(){
+    var G = garment(); it.cx = G.w / 2; redrawStage(); dims.textContent = dimTxt(); refresh();
+  });
+  var del = document.createElement("button");
+  del.className = "btn danger";
+  del.textContent = "Retirer";
+  del.addEventListener("click", function(){
+    items.splice(sel, 1); sel = -1; drawItems(); redrawStage(); refresh();
+  });
+  row.appendChild(ctr); row.appendChild(del);
+  el.ctrl.appendChild(row);
+}
+
+function slider(label, min, max, step, val, on, fmt){
+  var f = document.createElement("div");
+  f.className = "field";
+  f.style.marginTop = "10px";
+  var row = document.createElement("div");
+  row.className = "rowval";
+  var lb = document.createElement("label"); lb.textContent = label;
+  var bv = document.createElement("b"); bv.textContent = fmt(val);
+  row.appendChild(lb); row.appendChild(bv);
+  var r = document.createElement("input");
+  r.type = "range"; r.min = min; r.max = max; r.step = step; r.value = val;
+  r.setAttribute("aria-label", label);
+  r.addEventListener("input", function(){
+    var v = parseFloat(r.value);
+    bv.textContent = fmt(v);
+    on(v);
+  });
+  f.appendChild(row); f.appendChild(r);
+  return f;
+}
+function esc(s){ return String(s).replace(/[<>&"]/g, function(c){ return { "<":"&lt;", ">":"&gt;", "&":"&amp;", '"':"&quot;" }[c]; }); }
+
+/* ---------- glisser sur le vetement (mode Plat uniquement) ---------- */
+var drag = null;
+function stagePoint(e){
+  var r = mock.getBoundingClientRect();
+  var G = garment();
+  var S = r.width / G.w;
+  return { x:(e.clientX - r.left) / S, y:(e.clientY - r.top) / S };
+}
+function onStageDown(e){
+  if(viewMode !== "flat") return;
+  var p = stagePoint(e);
+  for(var i = items.length - 1; i >= 0; i--){
+    var it = items[i];
+    var dx = p.x - it.cx, dy = p.y - it.cy;
+    var a = -it.rot * Math.PI / 180;
+    var rx = dx * Math.cos(a) - dy * Math.sin(a), ry = dx * Math.sin(a) + dy * Math.cos(a);
+    if(Math.abs(rx) <= it.w / 2 && Math.abs(ry) <= it.h / 2){
+      sel = i; drag = { i:i, ox:dx, oy:dy };
+      mock.setPointerCapture(e.pointerId);
+      drawItems(); drawMock();
+      return;
+    }
+  }
+  sel = -1; drawItems(); drawMock();
+}
+function onStageMove(e){
+  if(!drag || viewMode !== "flat") return;
+  e.preventDefault();
+  var p = stagePoint(e);
+  var it = items[drag.i];
+  it.cx = p.x - drag.ox; it.cy = p.y - drag.oy;
+  var G = garment();
+  // DIY : on peut déborder légèrement — toute la pièce reste la zone utile
+  it.cx = Math.max(-it.w / 3, Math.min(G.w + it.w / 3, it.cx));
+  it.cy = Math.max(-it.h / 3, Math.min(G.h + it.h / 3, it.cy));
+  if(it._dims) it._dims.textContent = it._dimTxt();
+  photoCache.key = "";
+  drawMock();
+}
+function onStageUp(){
+  if(drag){ drag = null; photoCache.key = ""; refresh(); }
+}
+[mock, el.stage].forEach(function(node){
+  node.addEventListener("pointerdown", onStageDown);
+  node.addEventListener("pointermove", onStageMove);
+  node.addEventListener("pointerup", onStageUp);
+  node.addEventListener("pointercancel", onStageUp);
+});
+
+/* ---------- cadres ---------- */
+var BORDER = 5;  // cm de bord minimum a l'interieur du cadre
+function usable(f){ return { w:Math.max(0, f.w - 2 * BORDER), h:Math.max(0, f.h - 2 * BORDER) }; }
+
+function drawFrames(){
+  el.frames.innerHTML = "";
+  frames.forEach(function(f, i){
+    var row = document.createElement("div");
+    row.className = "frame";
+    var u = usable(f);
+    var lab = document.createElement("span");
+    lab.innerHTML = "Cadre " + (i + 1) + '<br><span class="u">zone utile ' +
+      u.w.toFixed(0) + " × " + u.h.toFixed(0) + " cm</span>";
+    row.appendChild(lab);
+    [["w", f.w], ["h", f.h]].forEach(function(d){
+      var inp = document.createElement("input");
+      inp.type = "number"; inp.step = "0.5"; inp.min = "10"; inp.value = d[1];
+      inp.setAttribute("aria-label", (d[0] === "w" ? "Largeur" : "Hauteur") + " du cadre " + (i + 1));
+      inp.addEventListener("change", function(){
+        var v = parseFloat(inp.value);
+        if(isFinite(v) && v >= 10){ f[d[0]] = v; drawFrames(); refresh(); }
+      });
+      row.appendChild(inp);
+    });
+    var rm = document.createElement("button");
+    rm.className = "btn danger";
+    rm.textContent = "×";
+    rm.setAttribute("aria-label", "Retirer le cadre " + (i + 1));
+    rm.disabled = frames.length < 2;
+    rm.addEventListener("click", function(){ frames.splice(i, 1); drawFrames(); refresh(); });
+    row.appendChild(rm);
+    el.frames.appendChild(row);
+  });
+}
+
+/* ---------- bilan ---------- */
+function designBox(){
+  if(!items.length) return null;
+  var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  items.forEach(function(it){
+    var a = it.rot * Math.PI / 180;
+    var hw = it.w / 2, hh = it.h / 2;
+    [[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]].forEach(function(p){
+      var x = it.cx + p[0] * Math.cos(a) - p[1] * Math.sin(a);
+      var y = it.cy + p[0] * Math.sin(a) + p[1] * Math.cos(a);
+      if(x < x0) x0 = x; if(x > x1) x1 = x;
+      if(y < y0) y0 = y; if(y > y1) y1 = y;
+    });
+  });
+  return { x:x0, y:y0, w:x1 - x0, h:y1 - y0 };
+}
+
+function inkCount(){
+  var m = el.mode.value;
+  var n = m === "cmyk" ? 4 : m === "index" ? parseInt(el.ncol.value, 10) - (el.dropbg.checked ? 1 : 0) : 1;
+  return Math.max(1, n) + (el.base.checked ? 1 : 0);
+}
+
+function refresh(){
+  var G = garment();
+  el.ghint.textContent = G.n + " " + el.gsize.value + " · zone imprimable = pièce entière";
+
+  var box = designBox();
+  if(el.sizebar){
+    if(box){
+      var pctW = Math.round((box.w / G.w) * 100);
+      var pctH = Math.round((box.h / G.h) * 100);
+      el.sizebar.innerHTML =
+        "Vêtement <b>" + G.w + " × " + G.h + " cm</b> · motif <b>" +
+        box.w.toFixed(1).replace(".", ",") + " × " + box.h.toFixed(1).replace(".", ",") +
+        " cm</b> (" + pctW + " % largeur · " + pctH + " % hauteur) · " +
+        items.length + " image" + (items.length > 1 ? "s" : "");
+    } else {
+      el.sizebar.innerHTML =
+        "Vêtement <b>" + G.w + " × " + G.h + " cm</b> à plat — ajoute une image pour comparer la taille d’impression.";
+    }
+  }
+
+  var P = PRESETS[el.preset.value];
+  if(el.lpi.dataset.sync !== "off"){ el.lpi.value = P.lpi || 35; }
+  el.lpi.disabled = P.lpi === 0;
+  var lpi = P.lpi === 0 ? 0 : parseFloat(el.lpi.value);
+  el["lpi-v"].textContent = lpi ? lpi + " lpi" : "aplats";
+  el["gain-v"].textContent = el.gain.value + " %";
+  el["ncol-v"].textContent = el.ncol.value;
+  el.ncolwrap.style.display = el.mode.value === "index" ? "flex" : "none";
+  el.phint.textContent = P.t + (lpi ? "  Point de " + (25.4 / lpi).toFixed(2).replace(".", ",") + " mm." : "");
+
+  var inks = inkCount();
+  el.chint.textContent = inks + " encre" + (inks > 1 ? "s" : "") + " = " + inks + " écran" +
+    (inks > 1 ? "s" : "") + " à insoler." +
+    (el.mode.value === "index" && el.dropbg.checked ? " La couleur la plus proche du textile n'est pas imprimée." : "");
+
+  var msgs = [];
+  frames.forEach(function(f, i){
+    var u = usable(f);
+    if(box && (box.w > u.w || box.h > u.h)){
+      msgs.push("Cadre " + (i + 1) + " trop petit pour un visuel de " +
+        box.w.toFixed(1).replace(".", ",") + " × " + box.h.toFixed(1).replace(".", ",") + " cm.");
+    }
+  });
+  var cap = frames.filter(function(f){
+    var u = usable(f);
+    return box && box.w <= u.w && box.h <= u.h;
+  }).length;
+  if(box){
+    if(!cap) msgs.push("Aucun cadre ne peut recevoir ce visuel — réduis-le ou prends un cadre plus grand.");
+    else if(cap < inks) msgs.push(inks + " encres pour " + cap + " cadre" + (cap > 1 ? "s" : "") +
+      " utilisable" + (cap > 1 ? "s" : "") + " : il faudra dégraver et réinsoler entre les passes.");
+  }
+  el.fhint.textContent = msgs.length ? msgs.join(" ") :
+    (box ? "Visuel de " + box.w.toFixed(1).replace(".", ",") + " × " + box.h.toFixed(1).replace(".", ",") +
+           " cm — ça rentre sur " + cap + " cadre" + (cap > 1 ? "s" : "") + " sur " + frames.length + "."
+         : "Tu as " + frames.length + " cadre" + (frames.length > 1 ? "s" : "") +
+           ". Bord de 5 cm réservé à l'intérieur pour l'encre et la racle.");
+
+  el.run.disabled = !items.length;
+  if(viewMode === "photo"){
+    el["stage-tip"].textContent = customMockup || mockupImgs[el.gtype.value]
+      ? (items.length > 1
+        ? "Photo — " + items.length + " images. Touche une vignette (ou Plat) pour en placer une."
+        : "Photo réelle — repasse en Plat pour placer / mesurer.")
+      : "Chargement photo… tu peux aussi charger ta propre JPG.";
+  } else {
+    el["stage-tip"].textContent = items.length
+      ? (sel >= 0 ? "Glisse / redimensionne — la barre compare au vêtement en cm." : "Touche une vignette pour régler · + pour ajouter une image.")
+      : "Touche + pour ajouter une image (plusieurs possibles), puis place-la sur le tee/sweat.";
+  }
+}
+
+/* ---------- ecouteurs ---------- */
+el.add.addEventListener("click", function(){ el.file.click(); });
+el.file.addEventListener("change", function(e){ addImage(e.target.files[0]); e.target.value = ""; });
+el.addframe.addEventListener("click", function(){
+  frames.push({ w:42, h:59.4 }); drawFrames(); refresh();
+});
+["gtype","gsize","gcol"].forEach(function(id){
+  el[id].addEventListener("change", function(){
+    photoCache.key = "";
+    if(viewMode === "photo") drawPhoto(); else drawMock();
+    refresh();
+  });
+});
+el.preset.addEventListener("change", function(){ el.lpi.dataset.sync = "on"; refresh(); });
+el.lpi.addEventListener("input", function(){ el.lpi.dataset.sync = "off"; refresh(); });
+["gain","shape","mode","ncol","base","dropbg"].forEach(function(id){
+  el[id].addEventListener("input", refresh);
+  el[id].addEventListener("change", refresh);
+});
+function bindModeButton(btn, mode){
+  if(!btn) return;
+  var go = function(e){
+    if(e){ e.preventDefault(); e.stopPropagation(); }
+    setViewMode(mode);
+  };
+  btn.addEventListener("click", go);
+  // iOS : certains WebViews mangent le click si un parent a touch-action:none
+  btn.addEventListener("touchend", function(e){
+    e.preventDefault();
+    go(e);
+  }, { passive:false });
+}
+bindModeButton(el["view-flat"], "flat");
+bindModeButton(el["view-photo"], "photo");
+el.loadmock.addEventListener("click", function(){ el.mockfile.click(); });
+el.mockfile.addEventListener("change", function(e){
+  var f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if(!f) return;
+  var fr = new FileReader();
+  fr.onload = function(){
+    var im = new Image();
+    im.onload = function(){
+      customMockup = im;
+      customMockupId++;
+      photoCache.key = "";
+      if(viewMode !== "photo") setViewMode("photo");
+      else drawPhoto();
+      refresh();
+      say("Photo t-shirt chargée — rendu displace + multiply.");
+    };
+    im.onerror = function(){ say("Photo illisible. Réessaie en JPG ou PNG."); };
+    im.src = fr.result;
+  };
+  fr.readAsDataURL(f);
+});
+var resizeTimer = 0;
+function onStageResize(){
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function(){
+    var stage = el.stage;
+    if(!stage) return;
+    var w = stage.clientWidth | 0;
+    var h = stage.clientHeight | 0;
+    // Ignore micro-changements (barre URL iOS) — évite boucle redraw
+    if(Math.abs(w - lastStageSize.w) < 8 && Math.abs(h - lastStageSize.h) < 8) return;
+    lastStageSize.w = w; lastStageSize.h = h;
+    photoCache.key = "";
+    if(viewMode === "photo") drawPhoto(); else drawMock();
+  }, IS_MOBILE ? 220 : 120);
+}
+window.addEventListener("resize", onStageResize);
+if(window.visualViewport){
+  window.visualViewport.addEventListener("resize", onStageResize);
+}
+
+function say(t){ el.status.textContent = t; }
+function progress(p){
+  el.bar.style.display = p === null ? "none" : "block";
+  if(p !== null) el.bar.firstElementChild.style.width = Math.round(p * 100) + "%";
+}
+function wait(){ return new Promise(function(r){ setTimeout(r, 16); }); }
+function pad(n){ return n < 10 ? "0" + n : "" + n; }
+function slug(s){
+  return s.toLowerCase().replace(/[àâä]/g,"a").replace(/[éèêë]/g,"e").replace(/[îï]/g,"i")
+    .replace(/[ôö]/g,"o").replace(/[ùûü]/g,"u").replace(/ç/g,"c").replace(/[^a-z0-9]+/g,"-");
+}
+
+/* ---------- composition a la resolution d'impression ---------- */
+function buildDesign(box){
+  var w = Math.round(box.w / 2.54 * DPI), h = Math.round(box.h / 2.54 * DPI);
+  if(w * h > MAXPX){
+    var k = Math.sqrt(MAXPX / (w * h));
+    w = Math.round(w * k); h = Math.round(h * k);
+  }
+  var S = w / box.w;
+  var cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  var c = cv.getContext("2d", { willReadFrequently:true });
+  items.forEach(function(it){
+    c.save();
+    c.translate((it.cx - box.x) * S, (it.cy - box.y) * S);
+    c.rotate(it.rot * Math.PI / 180);
+    c.drawImage(it.prepared, -it.w / 2 * S, -it.h / 2 * S, it.w * S, it.h * S);
+    c.restore();
+  });
+  return { cv:cv, w:w, h:h, dpi:S * 2.54 };
+}
+
+/* ---------- separation ---------- */
+function toneMaps(design, cell, mode, n){
+  var step = Math.max(1, Math.floor(cell / 2) || 1);
+  var tw = Math.max(2, Math.round(design.w / step)), th = Math.max(2, Math.round(design.h / step));
+  var cv = document.createElement("canvas");
+  cv.width = tw; cv.height = th;
+  var c = cv.getContext("2d", { willReadFrequently:true });
+  c.imageSmoothingQuality = "high";
+  c.drawImage(design.cv, 0, 0, tw, th);
+  var d = c.getImageData(0, 0, tw, th).data;
+  var N = tw * th;
+
+  var px = [];
+  for(var i = 0; i < N; i++){
+    var a = d[i*4+3] / 255;
+    px.push([ (d[i*4]/255)*a + (1-a), (d[i*4+1]/255)*a + (1-a), (d[i*4+2]/255)*a + (1-a), a ]);
+  }
+
+  var plates = [];
+  if(mode === "mono"){
+    var m = new Float32Array(N);
+    for(i = 0; i < N; i++) m[i] = 1 - (0.2126*px[i][0] + 0.7152*px[i][1] + 0.0722*px[i][2]);
+    plates.push({ id:"mono", name:"Encre", ink:"#1a1a1a", map:m, halftone:true });
+  } else if(mode === "cmyk"){
+    var ids = [["y","Jaune","#ffe800"],["m","Magenta","#e6007e"],["c","Cyan","#009fe3"],["k","Noir","#1a1a1a"]];
+    var maps = { c:new Float32Array(N), m:new Float32Array(N), y:new Float32Array(N), k:new Float32Array(N) };
+    for(i = 0; i < N; i++){
+      var r = px[i][0], g = px[i][1], b = px[i][2];
+      var k = 1 - Math.max(r, g, b), den = 1 - k;
+      maps.k[i] = k;
+      if(den > 1e-4){
+        maps.c[i] = (1 - r - k) / den; maps.m[i] = (1 - g - k) / den; maps.y[i] = (1 - b - k) / den;
+      }
+    }
+    ids.forEach(function(t){ plates.push({ id:t[0], name:t[1], ink:t[2], map:maps[t[0]], halftone:true }); });
+  } else {
+    plates = indexSeparate(px, N, n);
+  }
+  return { plates:plates, tw:tw, th:th };
+}
+
+// quantification median-cut puis un aplat par couleur
+function indexSeparate(px, N, n){
+  var sample = [];
+  var stride = Math.max(1, Math.floor(N / 20000));
+  for(var i = 0; i < N; i += stride) if(px[i][3] > 0.5) sample.push(px[i]);
+  if(!sample.length) return [];
+
+  var boxes = [sample];
+  while(boxes.length < n){
+    var bi = 0, best = -1;
+    boxes.forEach(function(b, j){
+      if(b.length < 2) return;
+      var r = spread(b);
+      if(r.range > best){ best = r.range; bi = j; }
+    });
+    if(best < 0) break;
+    var b = boxes[bi], ax = spread(b).axis;
+    b.sort(function(p, q){ return p[ax] - q[ax]; });
+    var mid = b.length >> 1;
+    boxes.splice(bi, 1, b.slice(0, mid), b.slice(mid));
+  }
+
+  var pal = boxes.map(function(b){
+    var s = [0, 0, 0];
+    b.forEach(function(p){ s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; });
+    return [s[0] / b.length, s[1] / b.length, s[2] / b.length];
+  });
+
+  // la couleur la plus claire est celle que le textile peut remplacer
+  var skip = -1;
+  if(el.dropbg.checked){
+    var bright = -1;
+    pal.forEach(function(p, j){
+      var L = 0.2126*p[0] + 0.7152*p[1] + 0.0722*p[2];
+      if(L > bright){ bright = L; skip = j; }
+    });
+  }
+
+  var maps = pal.map(function(){ return new Float32Array(N); });
+  for(i = 0; i < N; i++){
+    if(px[i][3] < 0.5) continue;
+    var bestD = Infinity, bj = 0;
+    for(var j = 0; j < pal.length; j++){
+      var dr = px[i][0]-pal[j][0], dg = px[i][1]-pal[j][1], db = px[i][2]-pal[j][2];
+      var dd = dr*dr + dg*dg + db*db;
+      if(dd < bestD){ bestD = dd; bj = j; }
+    }
+    maps[bj][i] = 1;
+  }
+
+  var out = [];
+  pal.forEach(function(p, j){
+    if(j === skip) return;
+    out.push({
+      id:"i" + j, name:"Encre " + (out.length + 1),
+      ink:"rgb(" + Math.round(p[0]*255) + "," + Math.round(p[1]*255) + "," + Math.round(p[2]*255) + ")",
+      map:maps[j], halftone:false
+    });
+  });
+  return out;
+}
+function spread(b){
+  var lo = [1,1,1], hi = [0,0,0];
+  b.forEach(function(p){
+    for(var k = 0; k < 3; k++){ if(p[k] < lo[k]) lo[k] = p[k]; if(p[k] > hi[k]) hi[k] = p[k]; }
+  });
+  var axis = 0, range = -1;
+  for(var k = 0; k < 3; k++){ if(hi[k] - lo[k] > range){ range = hi[k] - lo[k]; axis = k; } }
+  return { axis:axis, range:range };
+}
+
+/* ---------- rendu d'un film ---------- */
+function renderFilm(ctx, w, h, plate, tone, cell, angle){
+  var map = plate.map, tw = tone.tw, th = tone.th;
+  var kx = tw / w, ky = th / h;
+  ctx.fillStyle = "#000";
+
+  if(!plate.halftone || !cell){
+    // aplat plein : un pixel de sortie par valeur
+    var id = ctx.createImageData(w, h);
+    for(var y = 0; y < h; y++){
+      var sy = Math.min(th - 1, y * ky | 0);
+      for(var x = 0; x < w; x++){
+        var sx = Math.min(tw - 1, x * kx | 0);
+        var on = map[sy * tw + sx] > 0.5;
+        var o = (y * w + x) * 4;
+        id.data[o] = id.data[o+1] = id.data[o+2] = on ? 0 : 255;
+        id.data[o+3] = 255;
+      }
+    }
+    ctx.putImageData(id, 0, 0);
+    return;
+  }
+
+  var gamma = 1 + parseFloat(el.gain.value) / 100;
+  var square = el.shape.value === "square";
+  var t = angle * Math.PI / 180, cos = Math.cos(t), sin = Math.sin(t);
+  var maxR = cell * 0.72, cx0 = w / 2, cy0 = h / 2;
+  var reach = Math.ceil((Math.hypot(w, h) / 2) / cell) + 2;
+  ctx.beginPath();
+  for(var j = -reach; j <= reach; j++){
+    for(var i = -reach; i <= reach; i++){
+      var pxx = cx0 + cell * (i*cos - j*sin), pyy = cy0 + cell * (i*sin + j*cos);
+      if(pxx < -cell || pxx > w + cell || pyy < -cell || pyy > h + cell) continue;
+      var sx2 = Math.min(tw - 1, Math.max(0, pxx * kx | 0));
+      var sy2 = Math.min(th - 1, Math.max(0, pyy * ky | 0));
+      var v = map[sy2 * tw + sx2];
+      if(v <= 0) continue;
+      if(v > 1) v = 1;
+      v = Math.pow(v, gamma);
+      if(v <= 0.05) continue;
+      if(v >= 0.95) v = 1;
+      if(square){
+        var s = cell * Math.sqrt(v) * 0.5;
+        var ax = cos*s, ay = sin*s, bx = -sin*s, by = cos*s;
+        ctx.moveTo(pxx-ax-bx, pyy-ay-by); ctx.lineTo(pxx+ax-bx, pyy+ay-by);
+        ctx.lineTo(pxx+ax+bx, pyy+ay+by); ctx.lineTo(pxx-ax+bx, pyy-ay+by);
+        ctx.closePath();
+      } else {
+        var r2 = maxR * Math.sqrt(v);
+        ctx.moveTo(pxx + r2, pyy); ctx.arc(pxx, pyy, r2, 0, TAU);
+      }
+    }
+  }
+  ctx.fill();
+}
+
+function marks(ctx, w, h, dpi){
+  var mm = dpi / 25.4, off = 6*mm, arm = 3*mm;
+  ctx.save();
+  ctx.strokeStyle = "#000"; ctx.lineWidth = Math.max(1, 0.3*mm);
+  [[off,off],[w-off,off],[off,h-off],[w-off,h-off]].forEach(function(p){
+    ctx.beginPath();
+    ctx.moveTo(p[0]-arm, p[1]); ctx.lineTo(p[0]+arm, p[1]);
+    ctx.moveTo(p[0], p[1]-arm); ctx.lineTo(p[0], p[1]+arm);
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(p[0], p[1], 1.6*mm, 0, TAU); ctx.stroke();
+  });
+  ctx.restore();
+}
+
+/* ---------- affichage ---------- */
+function shot(parent, canvas, alt, caption){
+  var im = new Image();
+  im.alt = alt;
+  im.src = canvas.toDataURL("image/png");
+  parent.appendChild(im);
+  var c = document.createElement("p");
+  c.className = "cap"; c.textContent = caption;
+  parent.appendChild(c);
+}
+function shrink(cv, pw){
+  var w = Math.min(pw, cv.width);
+  var o = document.createElement("canvas");
+  o.width = w; o.height = Math.max(1, Math.round(cv.height * w / cv.width));
+  var c = o.getContext("2d");
+  c.fillStyle = "#fff"; c.fillRect(0, 0, o.width, o.height);
+  c.drawImage(cv, 0, 0, o.width, o.height);
+  return o;
+}
+function detail(cv){
+  var dw = Math.min(cv.width, 700), dh = Math.min(cv.height, 320);
+  var o = document.createElement("canvas");
+  o.width = dw; o.height = dh;
+  var c = o.getContext("2d");
+  c.fillStyle = "#fff"; c.fillRect(0, 0, dw, dh);
+  c.drawImage(cv, (cv.width-dw)/2|0, (cv.height-dh)/2|0, dw, dh, 0, 0, dw, dh);
+  return o;
+}
+function card(name, ink, code, cv, file, showDetail){
+  var d = document.createElement("div");
+  d.className = "plate";
+  var h = document.createElement("div");
+  h.className = "plate-h";
+  h.innerHTML = '<span class="sw" style="background:' + ink + '"></span><b>' + esc(name) +
+    '</b><code>' + esc(code) + '</code>';
+  d.appendChild(h);
+  shot(d, shrink(cv, 700), "Film " + name, "Aperçu");
+  if(showDetail) shot(d, detail(cv), "Détail " + name, "Détail à 100 % — taille réelle des points");
+  var f = document.createElement("div");
+  f.className = "plate-f";
+  var a = document.createElement("a");
+  a.textContent = "Télécharger " + file;
+  a.download = file; a.href = "#";
+  f.appendChild(a);
+  d.appendChild(f);
+  el.plates.appendChild(d);
+  cv.toBlob(function(b){ var u = URL.createObjectURL(b); urls.push(u); a.href = u; }, "image/png");
+}
+
+/* ---------- plan de production ---------- */
+function buildPlan(plates, box, lpi){
+  var G = garment();
+  var caps = frames.map(function(f, i){
+    var u = usable(f);
+    return { i:i, ok:box.w <= u.w && box.h <= u.h, u:u };
+  });
+  var ok = caps.filter(function(c){ return c.ok; });
+  var sessions = ok.length ? Math.ceil(plates.length / ok.length) : 0;
+
+  var html = "<h3>Plan de tirage</h3><ol>";
+  html += "<li>" + G.n + " " + el.gsize.value + " — visuel de " +
+    box.w.toFixed(1).replace(".", ",") + " × " + box.h.toFixed(1).replace(".", ",") +
+    " cm, posé à " + (box.y).toFixed(1).replace(".", ",") + " cm du haut du vêtement.</li>";
+  html += "<li>" + plates.length + " écran" + (plates.length > 1 ? "s" : "") + " à insoler" +
+    (lpi ? ", trame " + lpi + " lpi (point de " + (25.4/lpi).toFixed(2).replace(".", ",") + " mm)" : ", aplats sans trame") + ".</li>";
+
+  if(!ok.length){
+    html += '<li class="flag">Aucun cadre assez grand : il faut ' +
+      (box.w + 2*BORDER).toFixed(0) + " × " + (box.h + 2*BORDER).toFixed(0) +
+      " cm minimum, bords compris.</li>";
+  } else if(sessions > 1){
+    html += '<li class="flag">' + plates.length + " écrans pour " + ok.length + " cadre" +
+      (ok.length > 1 ? "s" : "") + " : " + sessions +
+      " sessions, avec dégravage et réinsolation entre chaque.</li>";
+  } else {
+    html += "<li>Un cadre par couleur, tout se tire d'affilée.</li>";
+  }
+
+  html += "<li>Ordre des passes : " + plates.map(function(p, i){
+    return pad(i + 1) + " " + p.name.toLowerCase();
+  }).join(" → ") + ".</li>";
+  html += "<li>Cale sur les mires : elles sont au même endroit sur tous les films.</li>";
+  html += "</ol>";
+  el.plan.innerHTML = html;
+}
+
+/* ---------- run ---------- */
+async function run(){
+  if(!items.length) return;
+  var box = designBox();
+  el.run.disabled = true;
+  urls.forEach(URL.revokeObjectURL); urls = [];
+  el.plates.innerHTML = ""; el.plan.innerHTML = "";
+  el.out.style.display = "block";
+  progress(0);
+
+  say("Composition…");
+  await wait();
+  var design = buildDesign(box);
+  var lpi = PRESETS[el.preset.value].lpi === 0 ? 0 : parseFloat(el.lpi.value);
+  var cell = lpi ? design.dpi / lpi : 0;
+
+  say("Séparation…");
+  await wait();
+  var tone = toneMaps(design, cell || 4, el.mode.value, parseInt(el.ncol.value, 10));
+  var plates = tone.plates;
+
+  if(el.base.checked){
+    var bm = new Float32Array(tone.tw * tone.th);
+    plates.forEach(function(p){
+      for(var i = 0; i < bm.length; i++) if(p.map[i] > 0.02) bm[i] = 1;
+    });
+    plates.unshift({ id:"base", name:"Base blanche", ink:"#ffffff", map:bm, halftone:false });
+  }
+
+  buildPlan(plates, box, lpi);
+
+  var angles = [0, 75, 15, 45, 30, 60, 22];
+  for(var i = 0; i < plates.length; i++){
+    var p = plates[i];
+    say("Film " + (i + 1) + "/" + plates.length + "…");
+    await wait();
+    var cv = document.createElement("canvas");
+    cv.width = design.w; cv.height = design.h;
+    var c = cv.getContext("2d");
+    c.fillStyle = "#fff"; c.fillRect(0, 0, cv.width, cv.height);
+    renderFilm(c, design.w, design.h, p, tone, cell, angles[i % angles.length]);
+    marks(c, design.w, design.h, design.dpi);
+    card(p.name, p.ink,
+      pad(i + 1) + " · " + box.w.toFixed(1).replace(".", ",") + " cm" + (p.halftone && lpi ? " · " + lpi + " lpi" : " · aplat"),
+      cv, pad(i + 1) + "-" + slug(p.name) + ".png", p.halftone && !!lpi);
+    progress((i + 1) / plates.length);
+    await wait();
+  }
+
+  progress(null);
+  say(plates.length + " film" + (plates.length > 1 ? "s" : "") + " · " + design.w + " × " + design.h + " px");
+  el.run.disabled = false;
+  el.out.scrollIntoView({ behavior:"smooth", block:"start" });
+}
+el.run.addEventListener("click", function(){
+  run().catch(function(e){
+    progress(null); el.run.disabled = false;
+    say("Interrompu : " + e.message + ". Réduis la taille du visuel.");
+  });
+});
+
+/* Boot léger : 1er paint HTML, puis canvas plat (sans mockup JPG ni displace) */
+function applyDiyHandoff(){
+  try{
+    var q = new URLSearchParams(location.search);
+    var g = q.get("garment");
+    var hand = null;
+    try{ hand = JSON.parse(sessionStorage.getItem("atelier-diy-handoff") || "null"); }catch(e){}
+    if(hand && hand.garment) g = g || hand.garment;
+    if(g && el.gtype){
+      el.gtype.value = (g === "sweat") ? "sweat" : "tee";
+      drawMock(); refresh();
+    }
+    if(hand && hand.file && hand.file.dataUrl){
+      var im = new Image();
+      im.onload = function(){
+        var G = garment();
+        var w = Math.min(G.printW * 0.7, 18);
+        var pose = defaultImagePose(G, items.length);
+        items.push({
+          img:im, name:hand.file.name || "import", src:hand.file.dataUrl,
+          w:w, h:w * im.naturalHeight / im.naturalWidth,
+          cx:pose.cx, cy:pose.cy,
+          rot:0, bright:0, contrast:0, sat:100, thr:0, prepared:null
+        });
+        prepare(items[items.length - 1]);
+        sel = items.length - 1;
+        photoCache.key = "";
+        drawItems(); drawMock(); refresh();
+        say("Visuel importé depuis le hub DIY.");
+      };
+      im.onerror = function(){ say("Import DIY illisible."); };
+      im.src = hand.file.dataUrl;
+    }
+  }catch(e){}
+}
+
+function boot(){
+  try{
+    drawFrames();
+    drawItems();
+    setViewMode("flat");
+    if(el.stage){
+      lastStageSize.w = el.stage.clientWidth | 0;
+      lastStageSize.h = el.stage.clientHeight | 0;
+    }
+    refresh();
+    applyDiyHandoff();
+  }catch(err){
+    console.error(err);
+    if(el.status) el.status.textContent = "Erreur démarrage : " + (err.message || err);
+  }
+}
+if(document.readyState === "loading"){
+  document.addEventListener("DOMContentLoaded", function(){ requestAnimationFrame(boot); });
+} else {
+  requestAnimationFrame(boot);
+}
+
+// Aide test / intégration : charger un visuel depuis une URL
+window.AtelierDebug = {
+  loadDesignFromUrl: function(url, name){
+    return fetch(url).then(function(r){
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      return r.blob();
+    }).then(function(b){
+      return new Promise(function(resolve, reject){
+        var fr = new FileReader();
+        fr.onload = function(){
+          var im = new Image();
+          im.onload = function(){
+            var G = garment();
+            var w = Math.min(G.printW * 0.7, 18);
+            var pose = defaultImagePose(G, items.length);
+            items.push({
+              img:im, name:name || "design.png", src:fr.result,
+              w:w, h:w * im.naturalHeight / im.naturalWidth,
+              cx:pose.cx, cy:pose.cy,
+              rot:0, bright:0, contrast:0, sat:100, thr:0, prepared:null
+            });
+            prepare(items[items.length - 1]);
+            sel = items.length - 1;
+            photoCache.key = "";
+            drawItems(); redrawStage(); refresh();
+            resolve(items.length);
+          };
+          im.onerror = reject;
+          im.src = fr.result;
+        };
+        fr.onerror = reject;
+        fr.readAsDataURL(b);
+      });
+    });
+  },
+  view: function(mode){ setViewMode(mode); return viewMode; },
+  clear: function(){ items = []; sel = -1; photoCache.key = ""; drawItems(); drawMock(); refresh(); },
+  mockupReady: function(){ return !!(customMockup || mockupImgs[el.gtype.value]); }
+};
+})();
+</script>
+</body>
+</html>

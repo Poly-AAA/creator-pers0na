@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12100f">
+<meta name="description" content="Typons sérigraphie DIY — mockup tee/sweat, trame, cadres, films PNG imprimables.">
+<title>ATELIER DIY — Typons</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="css/app.css">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <h1 class="brand">Atelier <span>DIY</span></h1>
+    <p class="tag">Sérigraphie · films PNG · gratuit</p>
+  </header>
+
+  <p class="manifesto">
+    Tu poses ton image sur un <b>t-shirt / sweat</b>, tu règles la taille et la trame,
+    tu indiques <b>tes cadres</b> — l’app sort les <b>typons imprimables</b>.
+    Pas de SVG : export PNG prêt à insoler.
+  </p>
+
+  <a class="card on" href="../atelier.html" style="display:block;text-decoration:none;margin-bottom:10px">
+    <b>Ouvrir Typons</b>
+    <small>Mockup → images → trame → cadres → films PNG</small>
+    <small class="ok">Outil principal</small>
+  </a>
+
+  <a class="card" href="cyanotype.html" style="display:block;text-decoration:none;margin-bottom:10px">
+    <b>Cyanotype</b>
+    <small>Négatif 1 canal + inversion (outil à part)</small>
+  </a>
+
+  <h2 style="margin-top:22px">Parcours Typons</h2>
+  <ol class="roadmap">
+    <li>Choisir <b>t-shirt ou sweat</b> + taille</li>
+    <li>Ajouter une ou plusieurs <b>images</b>, les placer / régler</li>
+    <li>Choisir la <b>trame</b> (effet, épaisseur d’encre)</li>
+    <li>Indiquer <b>nombre et taille des cadres</b></li>
+    <li>Générer les <b>typons PNG</b> à imprimer</li>
+  </ol>
+
+  <footer class="note">
+    PWA, tout local. D’autres techniques (patch, broderie) viendront en outils séparés — pas dans un éditeur monstre.
+  </footer>
+</div>
+<script>
+if ("serviceWorker" in navigator) {
+  // Enregistrement différé : ne bloque jamais le 1er paint
+  window.addEventListener("load", function () {
+    setTimeout(function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    }, 800);
+  });
+}
+</script>
+</body>
+</html>

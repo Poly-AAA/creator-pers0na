@@ -4,6 +4,17 @@ Prototype HTML/CSS/JS pur pour un tactical RPG (style Dofus) : grille isométriq
 
 Ouvre `index.html` dans un navigateur pour tester.
 
+---
+
+## Typons (sérigraphie DIY)
+
+Outil autonome : **mockup tee/sweat → images → trame → cadres → PNG imprimables**.
+
+- `atelier.html` — produit principal (pas de SVG)
+- `diy/` — hub léger + `cyanotype.html` à part
+
+Flux : poser l’image sur le vêtement pour juger la taille (cm), choisir la trame, indiquer les cadres dispo, générer les films.
+
 ## Phase 0 — Fondations ✅
 
 - Grille isométrique 2:1 cliquable
