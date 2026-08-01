@@ -6765,30 +6765,50 @@ const Sprite = {
   // hauteur du personnage à l'écran (pour caler les barres de vie)
   topOffset(){ return (Sprite.FOOT - 21) * Sprite.SCALE; },
 
-  /* Panneau de test flottant : 2 attaques + réglages, sans toucher à l'UI. */
+  /* Panneau de test sprite — replié par défaut, en haut à droite
+     (ne doit jamais recouvrir FIN DE TOUR / barre de sorts). */
   debugPanel(){
     if(document.getElementById("spriteDbg")) return;
-    const d = document.createElement("div");
-    d.id = "spriteDbg";
-    d.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:9999;display:flex;"
-      + "gap:6px;flex-wrap:wrap;max-width:46vw;font:11px/1.2 monospace";
+    const wrap = document.createElement("div");
+    wrap.id = "spriteDbg";
+    wrap.style.cssText = "position:fixed;right:8px;top:96px;z-index:40;display:flex;"
+      + "flex-direction:column;align-items:flex-end;gap:4px;font:11px/1.2 monospace;"
+      + "pointer-events:none";
+    const btnCss = "pointer-events:auto;background:#0d2434;color:#27e0ff;border:1px solid #27e0ff;"
+      + "border-radius:6px;padding:5px 8px;font:inherit;opacity:.92";
+    const openBtn = document.createElement("button");
+    openBtn.textContent = "⚙ SPRITE";
+    openBtn.style.cssText = btnCss;
+    openBtn.title = "Outils de test sprite (replié pour ne pas gêner le jeu)";
+    const panel = document.createElement("div");
+    panel.style.cssText = "display:none;flex-direction:column;gap:4px;align-items:stretch;"
+      + "pointer-events:auto;background:rgba(8,20,32,.88);padding:6px;border-radius:8px;"
+      + "border:1px solid rgba(39,224,255,.35)";
+    let open = false;
+    openBtn.onclick = (ev)=>{
+      ev.preventDefault(); ev.stopPropagation();
+      open = !open;
+      panel.style.display = open ? "flex" : "none";
+      openBtn.textContent = open ? "✕ SPRITE" : "⚙ SPRITE";
+    };
     const mk = (label, fn) => {
       const b = document.createElement("button");
       b.textContent = label;
-      b.style.cssText = "background:#0d2434;color:#27e0ff;border:1px solid #27e0ff;"
-        + "border-radius:6px;padding:6px 8px;font:inherit";
+      b.style.cssText = btnCss + ";width:100%;text-align:left";
       b.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); fn(); };
-      d.appendChild(b);
+      panel.appendChild(b);
       return b;
     };
-    mk("MÊLÉE",  () => { const p = State && State.player; if(p) Sprite.play(p, "melee"); });
-    mk("DISTANCE", () => { const p = State && State.player; if(p) Sprite.play(p, "shoot"); });
-    mk("COURSE", () => { const p = State && State.player; if(p){ p._packMovePM = 2; Sprite.play(p, "run"); } });
+    mk("MÊLÉE (Attack2)",  () => { const p = State && State.player; if(p) Sprite.play(p, "melee"); });
+    mk("DISTANCE (Attack1)", () => { const p = State && State.player; if(p) Sprite.play(p, "shoot"); });
+    mk("COURSE (Run)", () => { const p = State && State.player; if(p){ p._packMovePM = 2; Sprite.play(p, "run"); } });
     const tog = mk("SPRITE: ON", () => {
       Sprite.ON = !Sprite.ON;
       tog.textContent = "SPRITE: " + (Sprite.ON ? "ON" : "OFF");
     });
-    document.body.appendChild(d);
+    wrap.appendChild(openBtn);
+    wrap.appendChild(panel);
+    document.body.appendChild(wrap);
   }
 };
 
