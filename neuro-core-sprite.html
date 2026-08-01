@@ -896,6 +896,17 @@ aside.side{
   touch-action:manipulation;
 }
 #gbZoom span{ min-width:36px; text-align:center; color:#c5d8e8; font-size:10px; }
+#gbPm{
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center; gap:6px;
+  background:rgba(8,28,24,.88); border-radius:999px; border:1.5px solid rgba(31,214,184,.65);
+  color:#54f2d0; font-weight:900; font-size:13px; letter-spacing:.5px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.35);
+  pointer-events:none;
+}
+#gbPm .lab{ font-size:10px; color:rgba(180,230,220,.9); font-weight:800; letter-spacing:1px; }
+#gbPm .v{ font-variant-numeric:tabular-nums; min-width:1.6em; text-align:center; }
+#gbPm.low{ border-color:rgba(255,138,60,.75); color:#ffb07a; background:rgba(40,22,12,.88); }
+#gbPm.zero{ border-color:rgba(255,59,78,.7); color:#ff8a9a; }
 /* hint repositionné par GBHud */
 #hint.gb-placed{
   position:absolute !important; left:auto; right:auto; bottom:auto !important;
@@ -984,12 +995,13 @@ aside.side{
       <!-- Game Boy HUD (layout joueur) -->
       <div id="gbHud" aria-label="Contrôles Game Boy">
         <div class="gb-w" id="gbConfirmWrap"><div id="gbConfirm">Confirmer déplacement</div></div>
+        <div class="gb-w" id="gbPmWrap"><div id="gbPm"><span class="lab">PM</span><span class="v" id="gbPmVal">3</span><span class="lab">/</span><span class="v" id="gbPmMax">3</span></div></div>
         <div class="gb-w" id="gbDpadWrap">
           <div id="gbDpad">
             <div class="dpad-wrap"><div class="dpad">
               <button type="button" class="u" data-dir="u" aria-label="Iso NE">▲</button>
               <button type="button" class="l" data-dir="l" aria-label="Iso NW">◀</button>
-              <button type="button" class="c" data-dir="c" aria-label="Confirmer">OK</button>
+              <button type="button" class="c" data-dir="c" aria-label="Lancer sort">●</button>
               <button type="button" class="r" data-dir="r" aria-label="Iso SE">▶</button>
               <button type="button" class="d" data-dir="d" aria-label="Iso SW">▼</button>
             </div></div>
@@ -5026,6 +5038,7 @@ const Combat = {
   startFight(){
     const n = State.fight;                 // numéro de combat (1-based)
     camera.userPanX = 0; camera.userPanY = 0;   // M3 — recentrage tactile à chaque nouvelle scène
+    if(typeof GBHud !== "undefined") GBHud.lastTargetId = null; // nouvelle scène = pas de sticky cible
     MetaProgress.noteFight(n);             // statistique globale ECHO : combat le plus profond atteint
     State.combatXP = {};                   // récap de progression des sorts pour ce combat
     // slots équipés disponibles pour ce combat (Départ 4 ; +1 aux combats 10/20/35)
@@ -5408,7 +5421,16 @@ const Combat = {
       // les ennemis ont pu bouger : on recalcule les overlays depuis la position réelle du curseur
       hoverTile = null; hoverEnemy = null; UI.hideTip();
       Input.recomputeHover();
-      UI.setHint("À toi de jouer — déplace-toi (cases cyan) ou choisis un sort (<b>A Z E R Q S D F</b>).");
+      // lastTargetId conservé : prochain sort vise d'abord la dernière cible si encore valide
+      if(typeof GBHud !== "undefined"){
+        if(GBHud.lastTargetId){
+          const still = State.entities.find(x => x.id === GBHud.lastTargetId && x.alive);
+          if(!still) GBHud.lastTargetId = null;
+        }
+        GBHud.syncPm();
+        GBHud.updateSpells();
+      }
+      UI.setHint("À toi — flèches = PM · sort = cibler (proche / faible / dernière cible).");
       UI.spells.update();
     } else if(e.isSummon){
       inputLocked = true;
@@ -6033,6 +6055,11 @@ const Combat = {
   // lance un sort (joueur, IA ou drone). 'arg' = entité cible, case {c,r}, ou direction {dc,dr} (dash).
   castSpell(caster, def, arg, onDone){
     if(State) State.lastAct = performance.now();
+    // Mémorise la dernière cible joueur (prochain sort / prochain tour)
+    if(caster && caster.isPlayer && typeof GBHud !== "undefined" && arg && arg.id){
+      if(def.type === "damage" && typeof isFoe === "function" && isFoe(arg)) GBHud.rememberTarget(arg);
+      else if((def.type === "heal" || def.type === "shield") && arg.alive) GBHud.rememberTarget(arg);
+    }
     let cost = Spells.cost(caster, def);
     // V0.92 — TÉLÉPORTATION GRATUITE (légendaire) : 1ʳᵉ téléportation du combat sans coût
     let freeUse = false;
@@ -8088,7 +8115,8 @@ const UI = {
     UI.el("hudTurn").textContent  = State.round;
     UI.el("hudPV").textContent    = p.pv;
     UI.el("hudPA").textContent    = p.pa;
-    UI.el("hudPM").textContent    = p.pm;
+    UI.el("hudPM").textContent    = p.pm + "/" + p.pmMax;
+    if(typeof GBHud !== "undefined") GBHud.syncPm();
 
     // panneau ECHO
     UI.el("pvText").textContent = p.pv+" / "+p.pvMax;
@@ -10214,6 +10242,7 @@ const GB_LAYOUT = {
   end:     { x:58, y:88, w:28, h:9,  z:40 },
   zoom:    { x:80, y:0,  w:18, h:8,  z:11 },
   confirm: { x:2,  y:46, w:46, h:6,  z:12 },
+  pm:      { x:2,  y:0,  w:22, h:7,  z:12 },
 };
 
 const PadMove = {
@@ -10345,6 +10374,7 @@ const PadMove = {
 const GBHud = {
   targets: [],
   selected: null,
+  lastTargetId: null, // dernière cible attaquée (persistante entre sorts / tours)
 
   applyBox(el, box){
     if(!el || !box) return;
@@ -10362,11 +10392,14 @@ const GBHud = {
       if(el){ el.style.display = "none"; el.classList.remove("show"); }
     });
     const L = GB_LAYOUT;
-    this.applyBox(document.getElementById("gbConfirmWrap"), L.confirm);
+    const confWrap = document.getElementById("gbConfirmWrap");
+    if(confWrap){ confWrap.style.display = "none"; } // plus de bandeau A / confirm move
+    this.applyBox(document.getElementById("gbPmWrap"), L.pm);
     this.applyBox(document.getElementById("gbDpadWrap"), L.dpad);
     this.applyBox(document.getElementById("gbSpellsWrap"), L.spells);
     this.applyBox(document.getElementById("gbEndWrap"), L.end);
     this.applyBox(document.getElementById("gbZoomWrap"), L.zoom);
+    this.syncPm();
     const hint = document.getElementById("hint");
     if(hint){
       hint.classList.add("gb-placed");
@@ -10483,8 +10516,24 @@ const GBHud = {
     }
   },
 
+  syncPm(){
+    const p = State && State.player;
+    const el = document.getElementById("gbPm");
+    const v = document.getElementById("gbPmVal");
+    const m = document.getElementById("gbPmMax");
+    if(!el || !v || !m || !p) return;
+    v.textContent = String(p.pm|0);
+    m.textContent = String(p.pmMax|0);
+    el.classList.toggle("zero", (p.pm|0) <= 0);
+    el.classList.toggle("low", (p.pm|0) > 0 && (p.pm|0) <= 1);
+    // topbar aussi en reste / max
+    const hud = document.getElementById("hudPM");
+    if(hud) hud.textContent = (p.pm|0) + "/" + (p.pmMax|0);
+  },
+
   updateSpells(){
     const box = document.getElementById("gbSpells");
+    this.syncPm();
     if(!box || !State || !State.player) return;
     const p = State.player;
     const myTurn = !!(Combat.current && Combat.current() && Combat.current().isPlayer && !State.over);
@@ -10511,6 +10560,21 @@ const GBHud = {
     if(el){ el.classList.remove("show"); el.style.display = "none"; }
   },
 
+  /** Tri : dernière cible (si valide) → plus proche → moins de PV. */
+  rankTargets(list, p){
+    const lastId = this.lastTargetId;
+    list.sort((a, b)=>{
+      const aLast = (lastId && a.id === lastId) ? 0 : 1;
+      const bLast = (lastId && b.id === lastId) ? 0 : 1;
+      if(aLast !== bLast) return aLast - bLast;
+      const da = Grid.manhattan(p, a), db = Grid.manhattan(p, b);
+      if(da !== db) return da - db;
+      if(a.pv !== b.pv) return a.pv - b.pv;
+      return String(a.id).localeCompare(String(b.id));
+    });
+    return list;
+  },
+
   refreshTargets(){
     this.targets = [];
     this.selected = null;
@@ -10528,10 +10592,10 @@ const GBHud = {
       else if(def.type === "buff" && e === p) this.targets.push(e);
       else if(def.type === "swap") this.targets.push(e);
     }
-    // Cible soi pour heal/shield/buff si dans la liste absente
     if((def.type === "heal" || def.type === "shield" || def.type === "buff") && !this.targets.includes(p)){
-      if(Grid.manhattan(p, p) <= range) this.targets.unshift(p);
+      if(Grid.manhattan(p, p) <= range) this.targets.push(p);
     }
+    this.rankTargets(this.targets, p);
     if(this.targets.length){
       this.targetIdx = 0;
       this.selectTarget(this.targets[0]);
@@ -10557,6 +10621,10 @@ const GBHud = {
     this.selectTarget(this.targets[this.targetIdx]);
   },
 
+  rememberTarget(t){
+    if(t && t.alive && t.id) this.lastTargetId = t.id;
+  },
+
   castOnSelected(){
     if(!armedSkill || !this.selected) { UI.setHint("Choisis une cible (flèches), puis centre."); return; }
     if(inputLocked && !Combat._animating) inputLocked = false;
@@ -10567,6 +10635,9 @@ const GBHud = {
       UI.setHint("Utilise le tactile pour ce type de sort.");
       return;
     }
+    // Mémorise l'adversaire (ou allié soigné) pour le prochain armement / prochain tour
+    if(def.type === "damage" && isFoe(t)) this.rememberTarget(t);
+    else if((def.type === "heal" || def.type === "shield") && t) this.rememberTarget(t);
     const castArg = (def.type === "buff") ? State.player : t;
     Combat.castSpell(State.player, def, castArg);
     armedSkill = null;
