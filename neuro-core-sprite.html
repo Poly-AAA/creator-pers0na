@@ -6895,7 +6895,13 @@ const Sprite = {
 
   /** Ligne sheet pour une anim (Walk ≠ Shoot si calibrés séparément). */
   rowFor(sheetKey, dirIdx){
-    const map = Sprite.DIR_ROW_SHEET[sheetKey];
+    const sheets = Sprite.DIR_ROW_SHEET || {};
+    let map = sheets[sheetKey];
+    // run / idle suivent walk si pas d'override dédié ; melee suit shoot
+    if(!(map && map.length === 8)){
+      if(sheetKey === "run" || sheetKey === "idle") map = sheets.walk;
+      else if(sheetKey === "melee") map = sheets.shoot;
+    }
     const table = (map && map.length === 8) ? map : Sprite.DIR_ROW;
     return table[dirIdx] || 0;
   },
