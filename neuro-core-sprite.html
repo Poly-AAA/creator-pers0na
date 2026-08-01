@@ -72,6 +72,7 @@ header.topbar{
 .chip.pv{border-color:rgba(255,59,78,.6)}
 .chip.pa{border-color:rgba(39,224,255,.6)}
 .chip.pm{border-color:rgba(31,214,184,.6)}
+.chip.pm span:last-child{font-variant-numeric:tabular-nums;min-width:2.4em;text-align:center}
 
 main.stage{position:relative;flex:1;display:flex;min-height:0}
 
@@ -444,7 +445,7 @@ aside.side{
 
 /* ====== INFO-BULLE D'ENTITÉ (survol) ====== */
 #entityTip{
-  position:fixed;z-index:16;pointer-events:none;display:none;
+  position:fixed;z-index:50;pointer-events:none;display:none;
   background:rgba(8,22,36,.94);border:1px solid rgba(39,224,255,.55);
   border-radius:10px;padding:8px 10px;font-size:12px;color:var(--ink);
   box-shadow:var(--bord-neon);min-width:120px;max-width:200px;
@@ -455,6 +456,8 @@ aside.side{
 #entityTip .et-row{display:flex;justify-content:space-between;gap:10px;line-height:1.5}
 #entityTip .et-row span:first-child{color:var(--acier-clair)}
 #entityTip .et-row b{color:var(--blanc)}
+#entityTip .et-row.et-mine{margin-top:2px;padding-top:4px;border-top:1px solid rgba(31,214,184,.25)}
+#entityTip .et-row.et-mine span:first-child{color:#9fe8d8}
 #entityTip .et-states{margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;gap:4px}
 #entityTip .et-state{border-left:3px solid #888;padding:2px 6px;background:rgba(255,255,255,.04);border-radius:0 4px 4px 0}
 #entityTip .et-state .ets-h{display:flex;justify-content:space-between;gap:10px;font-size:11px}
@@ -10132,12 +10135,19 @@ const UI = {
       const sch = UI.dominantSchool(ent);
       if(sch) combatRows += '<div class="et-row"><span>École dominante</span><b style="color:'+(SCHOOL_COLOR[sch]||"#9fb6cc")+'">'+sch+'</b></div>';
     }
+    // PM / PA affichés = toujours ceux du JOUEUR (pas de la cible).
+    // Sur une cible on garde PV (+ bouclier) pour le jugement tactique.
+    const me = State && State.player;
+    const myPm = me ? ('<div class="et-row et-mine"><span>Tes PM</span><b style="color:#54f2d0">'+me.pm+' / '+me.pmMax+'</b></div>') : '';
+    const myPa = me ? ('<div class="et-row et-mine"><span>Tes PA</span><b style="color:#27e0ff">'+me.pa+' / '+me.paMax+'</b></div>') : '';
+    const isMe = !!(me && ent === me);
     tip.innerHTML =
       '<div class="et-name '+side+'">'+ent.name+'</div>'+
       '<div class="et-row"><span>PV</span><b>'+ent.pv+' / '+ent.pvMax+'</b></div>'+
       (ent.shield>0?'<div class="et-row"><span>Bouclier</span><b style="color:#7fe9ff">⛨ '+ent.shield+'</b></div>':'')+
-      '<div class="et-row"><span>PA</span><b>'+ent.pa+' / '+ent.paMax+'</b></div>'+
-      '<div class="et-row"><span>PM</span><b>'+ent.pm+' / '+ent.pmMax+'</b></div>'+
+      (isMe
+        ? (myPa + myPm)
+        : (myPm + myPa))+
       combatRows + extra;
     tip.style.display = "block";
     // clamp dans la fenêtre pour ne jamais sortir de l'écran
@@ -10610,7 +10620,16 @@ const GBHud = {
       hoverTile = null; // évite le tracé de chemin PM vers l'ennemi
       e._gbAim = true;
       for(const x of State.entities){ if(x !== e) x._gbAim = false; }
-      UI.setHint("Cible · <b>"+(e.isPlayer?"ECHO":e.name)+"</b> — centre ou retape le sort");
+      // Affiche la fiche cible avec NOS PM (pas ceux de l'ennemi)
+      try{
+        const s = Iso.toScreen(e.c, e.r);
+        const rect = canvas.getBoundingClientRect();
+        const cx = rect.left + s.x * (camera.scale||1);
+        const cy = rect.top  + s.y * (camera.scale||1);
+        UI.showTip(e, cx, cy);
+      }catch(_e){}
+      const me = State.player;
+      UI.setHint("Cible · <b>"+(e.isPlayer?"ECHO":e.name)+"</b> · PV "+e.pv+" — <b>PM "+(me?me.pm:0)+"/"+(me?me.pmMax:0)+"</b> · centre = lancer");
     }
   },
 
@@ -10644,6 +10663,7 @@ const GBHud = {
     this.targets = []; this.selected = null;
     for(const x of State.entities){ x._gbAim = false; }
     this.hideConfirm();
+    UI.hideTip();
     UI.setHint("Sort lancé.");
     UI.spells.update(); UI.refreshAll();
     this.updateSpells();
