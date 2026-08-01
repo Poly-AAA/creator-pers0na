@@ -41,7 +41,7 @@ Grille probable :
 |--|--|
 | Source zip | `2D-Character-Knight.zip` |
 | Planches | 29 PNG Shadowless, chacune **960×512** |
-| Grille | **8×8** cellules **120×64** |
+| Grille | **15×8** cellules **64×64** (15 frames × 8 directions) |
 | Mapping jeu | Idle / Walk / Run / **Melee** (mêlée) / **CastSpell** (distance) / TakeDamage / Die |
 
 Dossier prêt : `assets/packs/knight-2d/`.  

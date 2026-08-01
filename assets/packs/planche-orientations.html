@@ -140,7 +140,7 @@
   <div class="toast" id="toast">Ok</div>
 
 <script>
-const F=64, COLS=8, W=320, H=260, TW=72, TH=36, OX=W/2, OY=H/2+28;
+const W=320, H=260, TW=72, TH=36, OX=W/2, OY=H/2+28;
 const NAMES=[
   {i:0, short:"Face",      tip:"Δrow +1"},
   {i:1, short:"¾ Face D",  tip:"Δcol+1 Δrow+1"},
@@ -157,14 +157,15 @@ const PACKS = {
     id:"thug", label:"Thug 16-bit",
     local:"./thug-16bit-outlined/",
     cdn:"https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/thug-16bit-outlined/",
-    frameW:64, frameH:64, foot:45, scale:3.2,
+    frameW:64, frameH:64, cols:8, foot:45, scale:3.2,
     walk:"Walk.png", shoot:"Attack1.png"
   },
   knight: {
     id:"knight", label:"Knight 2D",
     local:"./knight-2d/",
     cdn:"https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/knight-2d/",
-    frameW:120, frameH:64, foot:58, scale:2.0,
+    // 960×512 → 15×8 cellules 64×64
+    frameW:64, frameH:64, cols:15, foot:45, scale:3.2,
     walk:"Walk.png", shoot:"CastSpell.png"
   }
 };
@@ -176,7 +177,7 @@ const FILES = {
 };
 const LOCAL = PACK.local;
 const CDN = PACK.cdn;
-let F=PACK.frameW, FH=PACK.frameH;
+let F=PACK.frameW, FH=PACK.frameH, COLS=PACK.cols||8;
 
 let dir = 0;
 let split = false;
