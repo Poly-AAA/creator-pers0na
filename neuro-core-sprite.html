@@ -6813,14 +6813,15 @@ const Sprite = {
       localBase: "assets/packs/knight-2d/",
       cdnBase: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/knight-2d/",
       // Planches 960×512 = 15 frames × 8 directions, cellules 64×64 (pas 120×64)
-      frameW: 64, frameH: 64, cols: 15, scale: 4, foot: 45,
+      // Pied réel ~43px dans la case → foot 43 pour coller au damier iso
+      frameW: 64, frameH: 64, cols: 15, scale: 5, foot: 43, gy: 6,
       useB64: false,
       sheets: [
         ["idle",  "Idle.png",       null],
         ["walk",  "Walk.png",       null],
         ["run",   "Run.png",        null],
-        ["melee", "Melee.png",      null],
-        ["shoot", "CastSpell.png",  null],
+        ["melee", "Melee2.png",     null], // 2e anim d'attaque (à la place de Melee/CastSpell)
+        ["shoot", "Melee2.png",     null],
         ["hurt",  "TakeDamage.png", null],
         ["die",   "Die.png",        null],
       ]
@@ -6883,6 +6884,7 @@ const Sprite = {
     Sprite.COLS = pack.cols || 8;
     Sprite.SCALE = pack.scale;
     Sprite.FOOT = pack.foot;
+    Sprite.GY = pack.gy || 0; // décalage sol (plante le sprite sur le damier)
   },
 
   setPack(id){
@@ -7074,8 +7076,8 @@ const Sprite = {
       return b;
     };
     mk("IDLE (sur place)", () => { const p = State && State.player; if(p){ p._packMovePM = 0; p._sp = null; Sprite.play(p, "idle"); } });
-    mk("MÊLÉE (Attack2)",  () => { const p = State && State.player; if(p) Sprite.play(p, "melee"); });
-    mk("DISTANCE (Attack1)", () => { const p = State && State.player; if(p) Sprite.play(p, "shoot"); });
+    mk("ATTAQUE (melee)",  () => { const p = State && State.player; if(p) Sprite.play(p, "melee"); });
+    mk("ATTAQUE (shoot)", () => { const p = State && State.player; if(p) Sprite.play(p, "shoot"); });
     mk("COURSE (Run)", () => { const p = State && State.player; if(p){ p._packMovePM = 2; Sprite.play(p, "run"); } });
     mk("📐 PLANCHE orient.", () => {
       const q = "?pack=" + (Sprite.packId||"thug");
@@ -7477,7 +7479,8 @@ const Render = {
       ctx.restore();
     }
     // corps — SPRITE 16-bit si disponible (test), sinon silhouette d'origine
-    const spriteDrawn = Sprite.use(e) && Sprite.draw(e, cx, s.y + 2 + bob*0.4, flash);
+    const gy = s.y + 2 + bob*0.4 + (Sprite.use(e) ? (Sprite.GY || 0) : 0);
+    const spriteDrawn = Sprite.use(e) && Sprite.draw(e, cx, gy, flash);
     const bodyCol = flash ? "#ffffff" : main;
     if(!spriteDrawn){
     // jambes
