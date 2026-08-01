@@ -877,19 +877,9 @@ aside.side{
 #gbSpells button .m{font-size:8px;color:rgba(200,220,235,.9);margin-top:2px}
 #gbSpells button.armed{ box-shadow:inset 0 0 0 2px #ffd23c, 0 0 12px rgba(255,210,60,.45); transform:scale(1.04); }
 #gbSpells button.disabled{ opacity:.55; filter:grayscale(.3); }
-#gbActWrap{
-  display:flex; align-items:stretch; gap:6px; width:100%; height:100%;
-  z-index:40 !important;
-}
-#gbA{
-  flex:0 0 34%; border:0; border-radius:50%;
-  background:rgba(40,140,80,.92); color:#fff; font-weight:900; font-size:18px;
-  box-shadow:inset 0 0 0 2px rgba(180,255,200,.55), 0 3px 8px rgba(0,0,0,.35);
-  touch-action:manipulation;
-}
-#gbA:active{ background:rgba(60,200,110,.95); transform:scale(.96); }
+#gbEndWrap{ z-index:40 !important; }
 #gbEnd{
-  flex:1; height:100%; border:0; border-radius:999px;
+  width:100%; height:100%; border:0; border-radius:999px;
   background:rgba(168,74,20,.88); color:#fff; font-weight:900; font-size:11px;
   backdrop-filter:blur(3px);
   box-shadow:inset 0 0 0 1.5px rgba(255,200,150,.55), 0 3px 8px rgba(0,0,0,.35);
@@ -1006,10 +996,7 @@ aside.side{
           </div>
         </div>
         <div class="gb-w" id="gbSpellsWrap"><div id="gbSpells"></div></div>
-        <div class="gb-w" id="gbActWrap">
-          <button type="button" id="gbA" title="Valider déplacement / sort">A</button>
-          <button type="button" id="gbEnd">FIN DE TOUR</button>
-        </div>
+        <div class="gb-w" id="gbEndWrap"><button type="button" id="gbEnd">FIN DE TOUR</button></div>
         <div class="gb-w" id="gbZoomWrap">
           <div id="gbZoom">
             <button type="button" id="gbZoomOut">−</button>
@@ -10224,24 +10211,23 @@ const GB_LAYOUT = {
   hint:    { x:2,  y:52, w:46, h:5,  z:5  },
   dpad:    { x:0,  y:58, w:48, h:40, z:10 },
   spells:  { x:52, y:62, w:46, h:24, z:10 },
-  end:     { x:50, y:87, w:48, h:10, z:40 },
+  end:     { x:58, y:88, w:28, h:9,  z:40 },
   zoom:    { x:80, y:0,  w:18, h:8,  z:11 },
   confirm: { x:2,  y:46, w:46, h:6,  z:12 },
 };
 
 const PadMove = {
-  // Preview : croix allonge / raccourcit · OK (centre) valide · pas de multi-tap timeout
-  preview: null,   // { dc, dr, steps }
+  // Flèche = 1 PM immédiat dans cette direction (pas de preview / pas de bouton A)
   queue: [],
   lastKey: null,
+  preview: null, // inutilisé — gardé pour compat updateSpells
 
-  // Après rotate(45°) CSS : u→NE(-r), r→SE(+c), d→SW(+r), l→NW(-c)
   VEC: { u:{dc:0,dr:-1}, r:{dc:1,dr:0}, d:{dc:0,dr:1}, l:{dc:-1,dr:0} },
 
   clear(){
-    this.preview = null;
     this.queue = [];
     this.lastKey = null;
+    this.preview = null;
     hoverTile = null;
     if(typeof GBHud !== "undefined") GBHud.hideConfirm();
   },
@@ -10254,135 +10240,105 @@ const PadMove = {
     return !!(cur && cur.isPlayer && State.player && State.player.alive);
   },
 
-  maxSteps(dc, dr){
+  stepOnce(dc, dr){
     const p = State.player;
-    let n = 0;
-    for(let i=1; i<=p.pm; i++){
+    if(!p || p.pm <= 0){ UI.setHint("Plus de PM."); return; }
+    const c = p.c + dc, r = p.r + dr;
+    if(!Grid.inBounds(c,r) || Grid.blocksMove(c,r) || Grid.entityAt(c,r)){
+      UI.setHint("Case bloquée.");
+      return;
+    }
+    const path = [{ c:p.c, r:p.r }, { c, r }];
+    // Course si on enchaîne encore pendant l’anim (file)
+    p._packMovePM = 1;
+    this.lastKey = dc+","+dr;
+    Combat.moveAlong(p, path, ()=>{
+      inputLocked = false;
+      Combat._animating = false;
+      this.lastKey = null;
+      const q = this.queue.splice(0, this.queue.length);
+      UI.refreshAll();
+      if(typeof GBHud !== "undefined") GBHud.updateSpells();
+      if(q.length && p.alive && p.pm > 0){
+        const s = q[0];
+        let n = 0;
+        for(const x of q){
+          if(x.dc===s.dc && x.dr===s.dr) n++;
+          else break;
+        }
+        for(let i=n; i<q.length; i++) this.queue.push(q[i]);
+        PadMove.stepN(s.dc, s.dr, n);
+      }
+    });
+  },
+
+  stepN(dc, dr, n){
+    const p = State.player;
+    if(!p || n < 1 || p.pm <= 0) return;
+    const path = [{ c:p.c, r:p.r }];
+    for(let i=1; i<=Math.min(n, p.pm); i++){
       const c = p.c + dc*i, r = p.r + dr*i;
       if(!Grid.inBounds(c,r) || Grid.blocksMove(c,r) || Grid.entityAt(c,r)) break;
-      n = i;
+      path.push({ c, r });
     }
-    return n;
-  },
-
-  buildPath(dc, dr, steps){
-    const p = State.player;
-    const path = [{ c:p.c, r:p.r }];
-    const max = Math.min(steps, this.maxSteps(dc, dr));
-    for(let i=1; i<=max; i++) path.push({ c: p.c + dc*i, r: p.r + dr*i });
-    return path;
-  },
-
-  refreshUI(){
-    if(!this.preview){
-      hoverTile = null;
-      if(typeof GBHud !== "undefined") GBHud.hideConfirm();
-      return;
+    if(path.length < 2) return;
+    // Retirer de la file les n pas déjà consommés (même dir)
+    let left = path.length - 1;
+    while(left > 0 && this.queue.length){
+      const h = this.queue[0];
+      if(h.dc===dc && h.dr===dr){ this.queue.shift(); left--; }
+      else break;
     }
-    const { dc, dr, steps } = this.preview;
-    const path = this.buildPath(dc, dr, steps);
-    const real = Math.max(0, path.length - 1);
-    this.preview.steps = real;
-    if(real < 1){
-      this.clear();
-      UI.setHint("Direction bloquée.");
-      return;
-    }
-    const last = path[path.length - 1];
-    hoverTile = { c:last.c, r:last.r };
-    const run = real >= 2 ? " · COURSE" : "";
-    if(typeof GBHud !== "undefined"){
-      GBHud.showConfirmMove(real, run);
-    }
-    UI.setHint("<b>"+real+" PM</b> preview"+run+" — même flèche = +1 · inverse = −1 · <b>OK</b> = valider");
-  },
-
-  commitPreview(){
-    if(!this.preview || this.preview.steps < 1) return;
-    if(!this.canControl()) return;
-    const p = State.player;
-    const { dc, dr, steps } = this.preview;
-    const path = this.buildPath(dc, dr, steps);
-    this.clear();
-    if(path.length < 2){ UI.setHint("Case bloquée."); return; }
     p._packMovePM = path.length - 1;
     this.lastKey = dc+","+dr;
     Combat.moveAlong(p, path, ()=>{
       inputLocked = false;
       Combat._animating = false;
       this.lastKey = null;
+      const q = this.queue.splice(0, this.queue.length);
       UI.refreshAll();
       if(typeof GBHud !== "undefined") GBHud.updateSpells();
-      UI.setHint("Déplacement OK · PA/PM restants ou FIN DE TOUR");
+      if(q.length && p.alive && p.pm > 0){
+        const s = q[0];
+        let n2 = 0;
+        for(const x of q){
+          if(x.dc===s.dc && x.dr===s.dr) n2++;
+          else break;
+        }
+        // Remettre le reste non fusionné
+        for(let i=n2; i<q.length; i++) this.queue.push(q[i]);
+        PadMove.stepN(s.dc, s.dr, n2);
+      }
     });
   },
 
   onDir(dir){
-    if(dir === "c"){ this.onConfirm(); return; }
+    if(dir === "c"){
+      // Centre : lancer sort si armé, sinon rien
+      if(armedSkill && typeof GBHud !== "undefined") GBHud.pressConfirm();
+      return;
+    }
     const v = this.VEC[dir]; if(!v) return;
 
-    // Pendant une anim : ignore (pas d’enchaînement auto — on valide d’abord)
-    if(Combat._animating) return;
-
     if(armedSkill){
+      // En mode sort : flèches = changer de cible
       if(typeof GBHud !== "undefined") GBHud.cycleTarget(dir === "u" || dir === "r" ? +1 : -1);
       return;
     }
 
-    if(!this.canControl() && !this.preview){
-      // preview en cours peut continuer même si inputLocked orphelin
-      if(inputLocked){ inputLocked = false; }
-      if(!this.canControl()) return;
-    }
-    // Autoriser l’édition du preview même si inputLocked léger
-    if(inputLocked && this.preview){ /* ok */ }
-    else if(!this.canControl()){
-      inputLocked = false;
-      if(!this.canControl()) return;
-    }
-
-    const key = v.dc+","+v.dr;
-    if(!this.preview){
-      const max = this.maxSteps(v.dc, v.dr);
-      if(max < 1){ UI.setHint("Impossible dans cette direction."); return; }
-      this.preview = { dc:v.dc, dr:v.dr, steps:1, key };
-      this.refreshUI();
+    if(Combat._animating){
+      // Enchaîne pendant le slide
+      this.queue.push({ dc:v.dc, dr:v.dr });
       return;
     }
 
-    // Même direction → +1 PM
-    if(this.preview.key === key){
-      const max = this.maxSteps(this.preview.dc, this.preview.dr);
-      this.preview.steps = Math.min(max, this.preview.steps + 1);
-      this.refreshUI();
-      return;
-    }
-
-    // Sens inverse → −1 PM
-    if(this.preview.dc === -v.dc && this.preview.dr === -v.dr){
-      this.preview.steps -= 1;
-      if(this.preview.steps <= 0){ this.clear(); UI.setHint("Preview annulée."); return; }
-      this.refreshUI();
-      return;
-    }
-
-    // Autre direction → nouveau preview à 1
-    const max = this.maxSteps(v.dc, v.dr);
-    if(max < 1){ UI.setHint("Impossible dans cette direction."); return; }
-    this.preview = { dc:v.dc, dr:v.dr, steps:1, key };
-    this.refreshUI();
+    if(inputLocked) inputLocked = false;
+    if(!this.canControl()) return;
+    this.stepOnce(v.dc, v.dr);
   },
 
   onConfirm(){
-    if(armedSkill){
-      if(typeof GBHud !== "undefined") GBHud.castOnSelected();
-      return;
-    }
-    if(this.preview && this.preview.steps >= 1){
-      this.commitPreview();
-      return;
-    }
-    UI.setHint("Choisis une direction, ajuste les PM, puis OK.");
+    if(armedSkill && typeof GBHud !== "undefined") GBHud.pressConfirm();
   }
 };
 
@@ -10409,7 +10365,7 @@ const GBHud = {
     this.applyBox(document.getElementById("gbConfirmWrap"), L.confirm);
     this.applyBox(document.getElementById("gbDpadWrap"), L.dpad);
     this.applyBox(document.getElementById("gbSpellsWrap"), L.spells);
-    this.applyBox(document.getElementById("gbActWrap"), L.end);
+    this.applyBox(document.getElementById("gbEndWrap"), L.end);
     this.applyBox(document.getElementById("gbZoomWrap"), L.zoom);
     const hint = document.getElementById("hint");
     if(hint){
@@ -10421,20 +10377,13 @@ const GBHud = {
     if(root && !root.dataset.bound){
       root.dataset.bound = "1";
       root.querySelectorAll("button[data-dir]").forEach(b=>{
-        b.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); if(b.dataset.dir==="c") GBHud.pressA(); else PadMove.onDir(b.dataset.dir); });
+        b.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); PadMove.onDir(b.dataset.dir); });
       });
     }
     const conf = document.getElementById("gbConfirm");
     if(conf && !conf.dataset.bound){
       conf.dataset.bound = "1";
-      conf.style.cursor = "pointer";
-      conf.style.pointerEvents = "auto";
-      conf.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); GBHud.pressA(); });
-    }
-    const btnA = document.getElementById("gbA");
-    if(btnA && !btnA.dataset.bound){
-      btnA.dataset.bound = "1";
-      btnA.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); GBHud.pressA(); });
+      conf.style.display = "none"; // plus de bandeau confirm move
     }
     const end = document.getElementById("gbEnd");
     if(end && !end.dataset.bound){
@@ -10490,7 +10439,7 @@ const GBHud = {
     this.updateSpells();
   },
 
-  /** Arme un sort (annule le preview move). A = lancer sur la cible. */
+  /** Arme un sort (annule le déplacement en file). Centre / retape = lancer. */
   armSpell(id){
     if(!State || State.over) return;
     if(inputLocked && !Combat._animating) inputLocked = false;
@@ -10503,7 +10452,6 @@ const GBHud = {
       UI.setHint("PA insuffisants pour <b>"+def.name+"</b>.");
       return;
     }
-    // Annule le preview de déplacement pour ne pas confondre avec la cible
     if(typeof PadMove !== "undefined") PadMove.clear();
     if(armedSkill === id){
       // 2ᵉ appui sur le même sort : lance si cible, sinon désarme
@@ -10518,24 +10466,21 @@ const GBHud = {
     clearPendingTap();
     this.refreshTargets();
     const n = this.targets.length;
-    UI.setHint("<b>"+def.name+"</b> — "+(n? (n+" cible(s), croix pour changer, <b>A</b> pour lancer") : "aucune cible à portée"));
+    UI.setHint("<b>"+def.name+"</b> — "+(n? (n+" cible(s) · flèches = changer · centre / retape = lancer") : "aucune cible à portée"));
     UI.spells.update();
     this.updateSpells();
   },
 
-  /** Bouton A : valider déplacement OU lancer le sort sur la cible. */
-  pressA(){
+  /** Centre pad / 2ᵉ appui sort : lancer sur la cible. */
+  pressConfirm(){
     if(inputLocked && !Combat._animating) inputLocked = false;
-    if(armedSkill){
+    if(!armedSkill){ UI.setHint("Flèches = 1 PM · tape un sort pour attaquer."); return; }
+    if(this.selected) this.castOnSelected();
+    else {
+      this.refreshTargets();
       if(this.selected) this.castOnSelected();
-      else {
-        this.refreshTargets();
-        if(this.selected) this.castOnSelected();
-        else UI.setHint("Pas de cible — croix pour choisir, ou retape le sort.");
-      }
-      return;
+      else UI.setHint("Pas de cible — flèches pour choisir.");
     }
-    if(typeof PadMove !== "undefined") PadMove.onConfirm();
   },
 
   updateSpells(){
@@ -10555,33 +10500,15 @@ const GBHud = {
     }
     const end = document.getElementById("gbEnd");
     if(end){ end.disabled = false; end.style.pointerEvents = myTurn ? "auto" : "none"; end.style.opacity = myTurn ? "1" : ".45"; }
-    const a = document.getElementById("gbA");
-    if(a){
-      a.style.pointerEvents = myTurn ? "auto" : "none";
-      a.style.opacity = myTurn ? "1" : ".45";
-      const ready = !!(PadMove.preview && PadMove.preview.steps >= 1) || !!(armedSkill && GBHud.selected);
-      a.style.boxShadow = ready
-        ? "inset 0 0 0 2px #ffd23c, 0 0 14px rgba(255,210,60,.45)"
-        : "inset 0 0 0 2px rgba(180,255,200,.55), 0 3px 8px rgba(0,0,0,.35)";
-    }
+
   },
 
-  showConfirmMove(pm, runExtra){
-    const el = document.getElementById("gbConfirm");
-    if(!el) return;
-    el.classList.add("show");
-    el.textContent = pm+" PM preview"+(runExtra||"")+" · tape ici ou OK";
-  },
-  showConfirm(taps, pm){ this.showConfirmMove(pm, pm>=2?" · COURSE":""); },
-  flashConfirm(msg){
-    const el = document.getElementById("gbConfirm");
-    if(!el) return;
-    el.classList.add("show");
-    el.textContent = msg;
-  },
+  showConfirmMove(){ /* plus de confirm A — déplacement immédiat */ },
+  showConfirm(){},
+  flashConfirm(){},
   hideConfirm(){
     const el = document.getElementById("gbConfirm");
-    if(el) el.classList.remove("show");
+    if(el){ el.classList.remove("show"); el.style.display = "none"; }
   },
 
   refreshTargets(){
@@ -10619,8 +10546,7 @@ const GBHud = {
       hoverTile = null; // évite le tracé de chemin PM vers l'ennemi
       e._gbAim = true;
       for(const x of State.entities){ if(x !== e) x._gbAim = false; }
-      UI.setHint("Cible · <b>"+(e.isPlayer?"ECHO":e.name)+"</b> — <b>A</b> pour lancer");
-      if(typeof GBHud !== "undefined") GBHud.flashConfirm("A · lancer "+(Spells.def(armedSkill)||{}).name);
+      UI.setHint("Cible · <b>"+(e.isPlayer?"ECHO":e.name)+"</b> — centre ou retape le sort");
     }
   },
 
@@ -10632,7 +10558,7 @@ const GBHud = {
   },
 
   castOnSelected(){
-    if(!armedSkill || !this.selected) { UI.setHint("Choisis une cible — puis appuie sur <b>A</b>."); return; }
+    if(!armedSkill || !this.selected) { UI.setHint("Choisis une cible (flèches), puis centre."); return; }
     if(inputLocked && !Combat._animating) inputLocked = false;
     const def = Spells.def(armedSkill);
     const t = this.selected;
