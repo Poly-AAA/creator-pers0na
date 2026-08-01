@@ -830,7 +830,8 @@ aside.side{
   background:rgba(40,22,12,.88); border:1.5px solid rgba(255,138,60,.7);
   border-radius:999px; color:#ffb07a; font-weight:800; font-size:11px; padding:4px 8px;
 }
-#gbConfirm.show{ display:flex; }
+#gbConfirm.show{ display:flex; pointer-events:auto; cursor:pointer; }
+#gbEndWrap{ z-index:40 !important; }
 #gbDpad{
   width:100%; height:100%; display:grid; place-items:center;
 }
@@ -5599,22 +5600,25 @@ const Combat = {
   endPlayerTurn(){
     const e = Combat.current();
     if(!e || !e.isPlayer || State.over) return;
-    // M-fix — une animation récente protège le tour, mais un flag bloqué (>1,2 s) ne doit plus empêcher de passer
-    if(Combat._animating){
-      if(performance.now() - (Combat._animStart||0) < 1200) return;
-      Combat._animating = false;
-    }
-    // Débloque un inputLocked orphelin (ex. move pad sans unlock)
+    // Ne jamais rester bloqué : on force le reset des flags avant de passer
+    Combat._animating = false;
     inputLocked = false;
-    if(typeof PadMove !== "undefined") PadMove.clearPending();
-    if(Combat._advancing) return;     // anti double-clic
-    Combat._advancing = true;
-    inputLocked = true;
+    if(typeof PadMove !== "undefined") PadMove.clear();
     armedSkill = null;
     clearPendingTap();
-    UI.spells.update();
-    Combat.advance();
-    Combat._advancing = false;
+    if(Combat._advancing) Combat._advancing = false;
+    Combat._advancing = true;
+    try{
+      inputLocked = true;
+      UI.spells.update();
+      if(typeof GBHud !== "undefined") GBHud.updateSpells();
+      Combat.advance();
+    }catch(err){
+      try{ console.error("endPlayerTurn", err); }catch(_e){}
+      inputLocked = false;
+    }finally{
+      Combat._advancing = false;
+    }
   },
 
   // déplacement d'une entité le long d'un chemin (animé), coûte 1 PM / case
@@ -5660,8 +5664,15 @@ const Combat = {
     Combat._animStart = performance.now();   // M-fix — horodatage pour détecter un flag bloqué
     entity._packMovePM = path.length - 1;
     let i = 1;
+    const finish = ()=>{
+      Combat._animating = false;
+      entity._packMovePM = 0;
+      // Tour joueur : toujours rendre la main (évite soft-lock pad / callbacks)
+      if(entity && entity.isPlayer) inputLocked = false;
+      if(onDone) onDone();
+    };
     const step = ()=>{
-      if(i >= path.length){ Combat._animating = false; entity._packMovePM = 0; if(onDone) onDone(); return; }
+      if(i >= path.length){ finish(); return; }
       const next = path[i];
       entity.c = next.c; entity.r = next.r;
       entity.pm = Math.max(0, entity.pm - 1);
@@ -5672,7 +5683,7 @@ const Combat = {
       FX.ping(entity.c, entity.r, "rgba(39,224,255,.5)");
       // MINES MAGNÉTIQUES (V0.7) : déclenchées par le déplacement d'une unité du camp opposé
       Field.checkMines(entity);
-      if(!entity.alive){ Combat._animating = false; entity._packMovePM = 0; if(onDone) onDone(); return; }
+      if(!entity.alive){ finish(); return; }
       setTimeout(step, 120);
     };
     step();
@@ -10188,149 +10199,165 @@ const GB_LAYOUT = {
   hint:    { x:2,  y:52, w:46, h:5,  z:5  },
   dpad:    { x:0,  y:58, w:48, h:40, z:10 },
   spells:  { x:52, y:62, w:46, h:24, z:10 },
-  end:     { x:58, y:88, w:18, h:8,  z:11 },
+  end:     { x:58, y:88, w:18, h:8,  z:40 },
   zoom:    { x:80, y:0,  w:18, h:8,  z:11 },
   confirm: { x:2,  y:46, w:46, h:6,  z:12 },
 };
 
 const PadMove = {
-  WINDOW_MS: 420,
-  pending: null,   // { key, dc, dr, taps, t0, timer }
-  queue: [],       // steps {dc,dr} à enchaîner pendant un move
+  // Preview : croix allonge / raccourcit · OK (centre) valide · pas de multi-tap timeout
+  preview: null,   // { dc, dr, steps }
+  queue: [],
   lastKey: null,
-  targetIdx: 0,
 
   // Après rotate(45°) CSS : u→NE(-r), r→SE(+c), d→SW(+r), l→NW(-c)
   VEC: { u:{dc:0,dr:-1}, r:{dc:1,dr:0}, d:{dc:0,dr:1}, l:{dc:-1,dr:0} },
 
-  clearTimer(){
-    if(this.pending && this.pending.timer){ clearTimeout(this.pending.timer); this.pending.timer = null; }
-  },
-  clearPending(){
-    this.clearTimer();
-    this.pending = null;
-    GBHud.hideConfirm();
+  clear(){
+    this.preview = null;
+    this.queue = [];
+    this.lastKey = null;
     hoverTile = null;
+    if(typeof GBHud !== "undefined") GBHud.hideConfirm();
   },
+  clearPending(){ this.clear(); },
 
   canControl(){
-    if(!State || State.over || inputLocked) return false;
+    if(!State || State.over) return false;
+    if(Combat._animating) return false;
     const cur = Combat.current && Combat.current();
     return !!(cur && cur.isPlayer && State.player && State.player.alive);
+  },
+
+  maxSteps(dc, dr){
+    const p = State.player;
+    let n = 0;
+    for(let i=1; i<=p.pm; i++){
+      const c = p.c + dc*i, r = p.r + dr*i;
+      if(!Grid.inBounds(c,r) || Grid.blocksMove(c,r) || Grid.entityAt(c,r)) break;
+      n = i;
+    }
+    return n;
   },
 
   buildPath(dc, dr, steps){
     const p = State.player;
     const path = [{ c:p.c, r:p.r }];
-    for(let i=1; i<=steps; i++){
-      const c = p.c + dc*i, r = p.r + dr*i;
-      if(!Grid.inBounds(c,r) || Grid.blocksMove(c,r) || Grid.entityAt(c,r)) break;
-      path.push({ c, r });
-    }
+    const max = Math.min(steps, this.maxSteps(dc, dr));
+    for(let i=1; i<=max; i++) path.push({ c: p.c + dc*i, r: p.r + dr*i });
     return path;
   },
 
-  preview(dc, dr, pm){
-    const path = this.buildPath(dc, dr, Math.max(0, pm));
-    if(path.length > 1){
-      const last = path[path.length-1];
-      hoverTile = { c:last.c, r:last.r };
-    } else {
-      // preview 1 case même si pm=0 (intention)
-      const c = State.player.c + dc, r = State.player.r + dr;
-      hoverTile = Grid.inBounds(c,r) ? { c, r } : null;
+  refreshUI(){
+    if(!this.preview){
+      hoverTile = null;
+      if(typeof GBHud !== "undefined") GBHud.hideConfirm();
+      return;
     }
+    const { dc, dr, steps } = this.preview;
+    const path = this.buildPath(dc, dr, steps);
+    const real = Math.max(0, path.length - 1);
+    this.preview.steps = real;
+    if(real < 1){
+      this.clear();
+      UI.setHint("Direction bloquée.");
+      return;
+    }
+    const last = path[path.length - 1];
+    hoverTile = { c:last.c, r:last.r };
+    const run = real >= 2 ? " · COURSE" : "";
+    if(typeof GBHud !== "undefined"){
+      GBHud.showConfirmMove(real, run);
+    }
+    UI.setHint("<b>"+real+" PM</b> preview"+run+" — même flèche = +1 · inverse = −1 · <b>OK</b> = valider");
   },
 
-  commit(dc, dr, pm){
+  commitPreview(){
+    if(!this.preview || this.preview.steps < 1) return;
+    if(!this.canControl()) return;
     const p = State.player;
-    if(!p || pm <= 0 || p.pm <= 0){ this.clearPending(); return; }
-    const steps = Math.min(pm, p.pm);
+    const { dc, dr, steps } = this.preview;
     const path = this.buildPath(dc, dr, steps);
-    this.clearPending();
+    this.clear();
     if(path.length < 2){ UI.setHint("Case bloquée."); return; }
     p._packMovePM = path.length - 1;
     this.lastKey = dc+","+dr;
     Combat.moveAlong(p, path, ()=>{
-      // Critique : comme le move tactile — sinon inputLocked reste true et tout est mort
       inputLocked = false;
       Combat._animating = false;
       this.lastKey = null;
-      const q = this.queue.splice(0, this.queue.length);
       UI.refreshAll();
       if(typeof GBHud !== "undefined") GBHud.updateSpells();
-      // Enchaînement demandé pendant l’anim
-      if(q.length && PadMove.canControl() && p.pm > 0){
-        let dc0 = q[0].dc, dr0 = q[0].dr, n = 0;
-        for(const s of q){
-          if(s.dc===dc0 && s.dr===dr0) n++;
-          else break;
-        }
-        if(n > 0) PadMove.commit(dc0, dr0, n);
-      }
+      UI.setHint("Déplacement OK · PA/PM restants ou FIN DE TOUR");
     });
-  },
-
-  armTimer(){
-    this.clearTimer();
-    if(!this.pending) return;
-    const snap = this.pending;
-    snap.timer = setTimeout(()=>{
-      if(PadMove.pending !== snap) return;
-      const pm = Math.max(0, snap.taps - 1); // 2 appuis = 1 PM
-      if(pm >= 1) PadMove.commit(snap.dc, snap.dr, pm);
-      else PadMove.clearPending();
-    }, this.WINDOW_MS);
   },
 
   onDir(dir){
     if(dir === "c"){ this.onConfirm(); return; }
     const v = this.VEC[dir]; if(!v) return;
-    if(!this.canControl()) return;
 
-    // Sort armé : flèches = défiler les cibles
+    // Pendant une anim : ignore (pas d’enchaînement auto — on valide d’abord)
+    if(Combat._animating) return;
+
     if(armedSkill){
-      GBHud.cycleTarget(dir === "u" || dir === "r" ? +1 : -1);
+      if(typeof GBHud !== "undefined") GBHud.cycleTarget(dir === "u" || dir === "r" ? +1 : -1);
       return;
+    }
+
+    if(!this.canControl() && !this.preview){
+      // preview en cours peut continuer même si inputLocked orphelin
+      if(inputLocked){ inputLocked = false; }
+      if(!this.canControl()) return;
+    }
+    // Autoriser l’édition du preview même si inputLocked léger
+    if(inputLocked && this.preview){ /* ok */ }
+    else if(!this.canControl()){
+      inputLocked = false;
+      if(!this.canControl()) return;
     }
 
     const key = v.dc+","+v.dr;
-    const moving = !!(Combat._animating && Combat.current && Combat.current().isPlayer);
-
-    // Enchaînement pendant le déplacement en cours
-    if(moving){
-      this.queue.push({ dc:v.dc, dr:v.dr });
-      UI.setHint("Enchaînement · +1 PM");
-      GBHud.flashConfirm("Enchaîne…");
+    if(!this.preview){
+      const max = this.maxSteps(v.dc, v.dr);
+      if(max < 1){ UI.setHint("Impossible dans cette direction."); return; }
+      this.preview = { dc:v.dc, dr:v.dr, steps:1, key };
+      this.refreshUI();
       return;
     }
 
-    if(this.pending && this.pending.key === key){
-      this.pending.taps++;
-      const pm = this.pending.taps - 1;
-      this.preview(v.dc, v.dr, Math.max(1, pm));
-      GBHud.showConfirm(this.pending.taps, pm);
-      this.armTimer();
+    // Même direction → +1 PM
+    if(this.preview.key === key){
+      const max = this.maxSteps(this.preview.dc, this.preview.dr);
+      this.preview.steps = Math.min(max, this.preview.steps + 1);
+      this.refreshUI();
       return;
     }
 
-    // Nouvelle direction : 1er appui = prévisualisation
-    this.clearPending();
-    this.pending = { key, dc:v.dc, dr:v.dr, taps:1, t0:performance.now(), timer:null };
-    this.preview(v.dc, v.dr, 0);
-    GBHud.showConfirm(1, 0);
-    this.armTimer();
+    // Sens inverse → −1 PM
+    if(this.preview.dc === -v.dc && this.preview.dr === -v.dr){
+      this.preview.steps -= 1;
+      if(this.preview.steps <= 0){ this.clear(); UI.setHint("Preview annulée."); return; }
+      this.refreshUI();
+      return;
+    }
+
+    // Autre direction → nouveau preview à 1
+    const max = this.maxSteps(v.dc, v.dr);
+    if(max < 1){ UI.setHint("Impossible dans cette direction."); return; }
+    this.preview = { dc:v.dc, dr:v.dr, steps:1, key };
+    this.refreshUI();
   },
 
   onConfirm(){
-    if(armedSkill){ GBHud.castOnSelected(); return; }
-    if(!this.pending) return;
-    const pm = Math.max(0, this.pending.taps - 1);
-    if(pm >= 1) this.commit(this.pending.dc, this.pending.dr, pm);
-    else {
-      // confirmer le preview d’1 case = 1 PM
-      this.commit(this.pending.dc, this.pending.dr, 1);
+    if(armedSkill){
+      if(typeof GBHud !== "undefined") GBHud.castOnSelected();
+      return;
     }
+    if(this.preview && this.preview.steps >= 1){
+      this.commitPreview();
+      return;
+    }
+    UI.setHint("Choisis une direction, ajuste les PM, puis OK.");
   }
 };
 
@@ -10372,10 +10399,26 @@ const GBHud = {
         b.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); PadMove.onDir(b.dataset.dir); });
       });
     }
+    const conf = document.getElementById("gbConfirm");
+    if(conf && !conf.dataset.bound){
+      conf.dataset.bound = "1";
+      conf.style.cursor = "pointer";
+      conf.style.pointerEvents = "auto";
+      const acc = (e)=>{ e.preventDefault(); e.stopPropagation(); PadMove.onConfirm(); };
+      conf.addEventListener("click", acc);
+      conf.addEventListener("pointerup", acc);
+    }
     const end = document.getElementById("gbEnd");
     if(end && !end.dataset.bound){
       end.dataset.bound = "1";
-      end.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); Combat.endPlayerTurn(); });
+      const go = (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        inputLocked = false;
+        Combat._animating = false;
+        Combat.endPlayerTurn();
+      };
+      end.addEventListener("click", go);
+      end.addEventListener("pointerup", go);
     }
     const zi = document.getElementById("gbZoomIn");
     const zo = document.getElementById("gbZoomOut");
@@ -10435,16 +10478,16 @@ const GBHud = {
     }
     const end = document.getElementById("gbEnd");
     // Fin de tour toujours cliquable pendant le tour joueur (même si inputLocked orphelin)
-    if(end){ end.disabled = !myTurn; end.style.pointerEvents = myTurn ? "auto" : "none"; }
+    if(end){ end.disabled = false; end.style.pointerEvents = myTurn ? "auto" : "none"; end.style.opacity = myTurn ? "1" : ".45"; }
   },
 
-  showConfirm(taps, pm){
+  showConfirmMove(pm, runExtra){
     const el = document.getElementById("gbConfirm");
     if(!el) return;
     el.classList.add("show");
-    if(taps <= 1) el.textContent = "Preview · retape pour 1 PM";
-    else el.textContent = taps+"× → "+pm+" PM"+(pm>=2?" · COURSE":"");
+    el.textContent = pm+" PM preview"+(runExtra||"")+" · tape ici ou OK";
   },
+  showConfirm(taps, pm){ this.showConfirmMove(pm, pm>=2?" · COURSE":""); },
   flashConfirm(msg){
     const el = document.getElementById("gbConfirm");
     if(!el) return;
