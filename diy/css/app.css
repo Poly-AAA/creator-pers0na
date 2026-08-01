@@ -2,14 +2,14 @@
   --ground:#12100f; --ground-2:#1a1715; --ground-3:#26211e; --line:#3a322e;
   --paper:#ece5da; --dim:#948a82; --safelight:#ffb02e; --ok:#7dcea0; --ink:#1a1207;
   --pad:14px; --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
-  --font-display:"Archivo Black",system-ui,sans-serif;
-  --font-mono:"IBM Plex Mono",ui-monospace,monospace;
-  --font-sans:"IBM Plex Sans",system-ui,sans-serif;
+  --font-display:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;overflow-x:hidden}
 body{
-  min-height:100dvh;
+  min-height:100svh;
   background:
     radial-gradient(110% 70% at 50% -8%, #2a221c 0%, transparent 55%),
     var(--ground);
@@ -23,7 +23,7 @@ a{color:var(--safelight)}
 .wrap{max-width:760px;margin:0 auto;padding:0 var(--pad)}
 .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
 .brand{
-  font-family:var(--font-display);font-size:clamp(26px,8vw,40px);
+  font-family:var(--font-display);font-weight:800;font-size:clamp(26px,8vw,40px);
   line-height:.9;letter-spacing:-.02em;text-transform:uppercase;margin:0;
 }
 .brand span{color:var(--safelight)}

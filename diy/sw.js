@@ -1,20 +1,24 @@
-/* Service worker minimal — coquille offline pour l’app DIY */
-var CACHE = "atelier-diy-v2";
+/* Service worker minimal — coquille offline pour l’app DIY (non-bloquant) */
+var CACHE = "atelier-diy-v3";
 var ASSETS = [
   "./",
   "./index.html",
   "./cyanotype.html",
   "./css/app.css",
-  "./js/app.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];
 
 self.addEventListener("install", function (e) {
+  // add() unitaire : un asset manquant ne bloque plus toute l'install
   e.waitUntil(
     caches.open(CACHE).then(function (c) {
-      return c.addAll(ASSETS);
+      return Promise.all(
+        ASSETS.map(function (url) {
+          return c.add(url).catch(function () {});
+        })
+      );
     }).then(function () {
       return self.skipWaiting();
     })
@@ -40,16 +44,21 @@ self.addEventListener("activate", function (e) {
 self.addEventListener("fetch", function (e) {
   var req = e.request;
   if (req.method !== "GET") return;
+  var url = new URL(req.url);
+  // Ne jamais intercepter hors scope DIY (atelier.html à la racine)
+  if (url.origin !== self.location.origin) return;
+
   e.respondWith(
     caches.match(req).then(function (hit) {
-      return (
-        hit ||
-        fetch(req).then(function (res) {
-          return res;
-        }).catch(function () {
+      if (hit) return hit;
+      return fetch(req).then(function (res) {
+        return res;
+      }).catch(function () {
+        if (req.mode === "navigate") {
           return caches.match("./index.html");
-        })
-      );
+        }
+        return new Response("", { status: 504, statusText: "Offline" });
+      });
     })
   );
 });

@@ -7,9 +7,6 @@
 <meta name="description" content="Typons sérigraphie DIY — mockup tee/sweat, trame, cadres, films PNG imprimables.">
 <title>ATELIER DIY — Typons</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
@@ -52,7 +49,12 @@
 </div>
 <script>
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(function () {});
+  // Enregistrement différé : ne bloque jamais le 1er paint
+  window.addEventListener("load", function () {
+    setTimeout(function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    }, 800);
+  });
 }
 </script>
 </body>
