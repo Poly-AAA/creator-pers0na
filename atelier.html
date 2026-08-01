@@ -983,6 +983,43 @@ function prepare(it){
 function clamp255(v){ return v < 0 ? 0 : v > 255 ? 255 : v | 0; }
 
 /* ---------- items UI ---------- */
+function defaultImagePose(G, index){
+  // Décale chaque nouvelle image pour qu'elle ne se cache pas sous la précédente
+  var n = index | 0;
+  var col = n % 3;
+  var row = (n / 3) | 0;
+  var cx = G.printX + G.printW * (0.35 + col * 0.15);
+  var cy = G.printY + G.printH * (0.28 + row * 0.16);
+  cx = Math.max(G.printW * 0.2, Math.min(G.printW * 0.8, cx));
+  cy = Math.max(G.printH * 0.18, Math.min(G.printH * 0.75, cy));
+  return { cx:cx, cy:cy };
+}
+
+function redrawStage(){
+  photoCache.key = "";
+  if(viewMode === "photo") drawPhoto();
+  else drawMock();
+}
+
+function selectItem(i, opts){
+  opts = opts || {};
+  if(i < 0 || i >= items.length){
+    sel = -1;
+  } else {
+    sel = i;
+  }
+  // Placer / sélectionner : le mode Plat est le bon outil
+  if(opts.preferFlat && viewMode === "photo" && sel >= 0){
+    drawItems();
+    setViewMode("flat");
+    say("Plat — tu peux déplacer l'image " + pad(sel + 1) + ".");
+    return;
+  }
+  drawItems();
+  redrawStage();
+  refresh();
+}
+
 function addImage(file){
   if(!file) return;
   var ext = ((file.name || "").split(".").pop() || "").toLowerCase();
@@ -995,18 +1032,25 @@ function addImage(file){
     im.onload = function(){
       var G = garment();
       var w = Math.min(G.printW * 0.7, 18);
+      var pose = defaultImagePose(G, items.length);
       items.push({
         img:im, name:file.name || "image", src:fr.result,
         w:w, h:w * im.naturalHeight / im.naturalWidth,
-        cx:G.printX + G.printW / 2, cy:G.printY + G.printH * 0.35,
+        cx:pose.cx, cy:pose.cy,
         rot:0, bright:0, contrast:0, sat:100, thr:0, prepared:null
       });
       var it = items[items.length - 1];
       prepare(it);
       sel = items.length - 1;
       photoCache.key = "";
-      drawItems(); drawMock(); refresh();
-      if(viewMode === "photo") drawPhoto();
+      // Ajout depuis Photo → bascule Plat pour voir / placer la nouvelle image
+      if(viewMode === "photo"){
+        setViewMode("flat");
+        say("Image " + pad(sel + 1) + " ajoutée — place-la en Plat, puis repasse en Photo.");
+      } else {
+        drawItems(); drawMock(); refresh();
+        say("Image " + pad(sel + 1) + " · " + items.length + " au total.");
+      }
     };
     im.onerror = function(){ say("Image illisible. Réexporte en PNG ou JPG."); };
     im.src = fr.result;
@@ -1016,22 +1060,43 @@ function addImage(file){
 
 function drawItems(){ drawStrip(); drawCtrl(); }
 
+function bindTap(node, fn){
+  if(!node) return;
+  var locked = false;
+  node.addEventListener("click", function(e){
+    if(locked) return;
+    fn(e);
+  });
+  node.addEventListener("touchend", function(e){
+    e.preventDefault();
+    locked = true;
+    fn(e);
+    setTimeout(function(){ locked = false; }, 350);
+  }, { passive:false });
+}
+
 function drawStrip(){
   el.strip.innerHTML = "";
   el.itemcount.textContent = items.length + " image" + (items.length > 1 ? "s" : "");
   items.forEach(function(it, i){
     var t = document.createElement("button");
+    t.type = "button";
     t.className = "thumb" + (i === sel ? " sel" : "");
     t.setAttribute("aria-label", "Régler l'image " + (i + 1));
     t.innerHTML = '<i>' + pad(i + 1) + '</i><img src="' + it.src + '" alt="">';
-    t.addEventListener("click", function(){ sel = (sel === i ? -1 : i); drawItems(); drawMock(); refresh(); });
+    bindTap(t, function(){
+      // Re-touche la vignette sélectionnée = désélection ; sinon sélectionne
+      if(sel === i) selectItem(-1);
+      else selectItem(i, { preferFlat: viewMode === "photo" });
+    });
     el.strip.appendChild(t);
   });
   var plus = document.createElement("button");
+  plus.type = "button";
   plus.className = "thumb add";
   plus.textContent = "+";
   plus.setAttribute("aria-label", "Ajouter une image");
-  plus.addEventListener("click", function(){ el.file.click(); });
+  bindTap(plus, function(){ el.file.click(); });
   el.strip.appendChild(plus);
 }
 
@@ -1058,13 +1123,13 @@ function drawCtrl(){
   it._dims = dims; it._dimTxt = dimTxt;
 
   el.ctrl.appendChild(slider("Largeur", 2, 70, 0.5, it.w, function(v){
-    it.h = it.h * v / it.w; it.w = v; prepare(it); drawMock(); dims.textContent = dimTxt(); refresh();
+    it.h = it.h * v / it.w; it.w = v; prepare(it); redrawStage(); dims.textContent = dimTxt(); refresh();
   }, function(v){ return v.toFixed(1).replace(".", ",") + " cm"; }));
-  el.ctrl.appendChild(slider("Rotation", -180, 180, 1, it.rot, function(v){ it.rot = v; drawMock(); }, function(v){ return v + "°"; }));
-  el.ctrl.appendChild(slider("Luminosité", -50, 50, 1, it.bright, function(v){ it.bright = v; prepare(it); drawMock(); }, function(v){ return v + " %"; }));
-  el.ctrl.appendChild(slider("Contraste", -50, 100, 1, it.contrast, function(v){ it.contrast = v; prepare(it); drawMock(); }, function(v){ return v + " %"; }));
-  el.ctrl.appendChild(slider("Saturation", 0, 200, 5, it.sat, function(v){ it.sat = v; prepare(it); drawMock(); }, function(v){ return v + " %"; }));
-  el.ctrl.appendChild(slider("Seuil noir/blanc", 0, 90, 1, it.thr, function(v){ it.thr = v; prepare(it); drawMock(); }, function(v){ return v === 0 ? "désactivé" : v + " %"; }));
+  el.ctrl.appendChild(slider("Rotation", -180, 180, 1, it.rot, function(v){ it.rot = v; redrawStage(); }, function(v){ return v + "°"; }));
+  el.ctrl.appendChild(slider("Luminosité", -50, 50, 1, it.bright, function(v){ it.bright = v; prepare(it); redrawStage(); }, function(v){ return v + " %"; }));
+  el.ctrl.appendChild(slider("Contraste", -50, 100, 1, it.contrast, function(v){ it.contrast = v; prepare(it); redrawStage(); }, function(v){ return v + " %"; }));
+  el.ctrl.appendChild(slider("Saturation", 0, 200, 5, it.sat, function(v){ it.sat = v; prepare(it); redrawStage(); }, function(v){ return v + " %"; }));
+  el.ctrl.appendChild(slider("Seuil noir/blanc", 0, 90, 1, it.thr, function(v){ it.thr = v; prepare(it); redrawStage(); }, function(v){ return v === 0 ? "désactivé" : v + " %"; }));
 
   var row = document.createElement("div");
   row.className = "grid";
@@ -1073,13 +1138,13 @@ function drawCtrl(){
   ctr.className = "btn";
   ctr.textContent = "Centrer";
   ctr.addEventListener("click", function(){
-    var G = garment(); it.cx = G.w / 2; drawMock(); dims.textContent = dimTxt(); refresh();
+    var G = garment(); it.cx = G.w / 2; redrawStage(); dims.textContent = dimTxt(); refresh();
   });
   var del = document.createElement("button");
   del.className = "btn danger";
   del.textContent = "Retirer";
   del.addEventListener("click", function(){
-    items.splice(sel, 1); sel = -1; drawItems(); drawMock(); refresh();
+    items.splice(sel, 1); sel = -1; drawItems(); redrawStage(); refresh();
   });
   row.appendChild(ctr); row.appendChild(del);
   el.ctrl.appendChild(row);
@@ -1275,7 +1340,9 @@ function refresh(){
   el.run.disabled = !items.length;
   if(viewMode === "photo"){
     el["stage-tip"].textContent = customMockup || mockupImgs[el.gtype.value]
-      ? "Photo réelle — repasse en Plat pour placer / mesurer."
+      ? (items.length > 1
+        ? "Photo — " + items.length + " images. Touche une vignette (ou Plat) pour en placer une."
+        : "Photo réelle — repasse en Plat pour placer / mesurer.")
       : "Chargement photo… tu peux aussi charger ta propre JPG.";
   } else {
     el["stage-tip"].textContent = items.length
@@ -1739,10 +1806,11 @@ function applyDiyHandoff(){
       im.onload = function(){
         var G = garment();
         var w = Math.min(G.printW * 0.7, 18);
+        var pose = defaultImagePose(G, items.length);
         items.push({
           img:im, name:hand.file.name || "import", src:hand.file.dataUrl,
           w:w, h:w * im.naturalHeight / im.naturalWidth,
-          cx:G.printX + G.printW / 2, cy:G.printY + G.printH * 0.35,
+          cx:pose.cx, cy:pose.cy,
           rot:0, bright:0, contrast:0, sat:100, thr:0, prepared:null
         });
         prepare(items[items.length - 1]);
@@ -1793,16 +1861,17 @@ window.AtelierDebug = {
           im.onload = function(){
             var G = garment();
             var w = Math.min(G.printW * 0.7, 18);
+            var pose = defaultImagePose(G, items.length);
             items.push({
               img:im, name:name || "design.png", src:fr.result,
               w:w, h:w * im.naturalHeight / im.naturalWidth,
-              cx:G.printX + G.printW / 2, cy:G.printY + G.printH * 0.35,
+              cx:pose.cx, cy:pose.cy,
               rot:0, bright:0, contrast:0, sat:100, thr:0, prepared:null
             });
             prepare(items[items.length - 1]);
             sel = items.length - 1;
             photoCache.key = "";
-            drawItems(); drawMock(); refresh();
+            drawItems(); redrawStage(); refresh();
             resolve(items.length);
           };
           im.onerror = reject;
