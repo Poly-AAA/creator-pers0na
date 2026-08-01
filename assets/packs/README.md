@@ -35,6 +35,18 @@ Grille probable :
 - **8×8** cases de **64×64**  
   ou **8×4** de **64×128** (à confirmer)
 
+## 3) `knight-2d/` — 2D Character Knight (Shadowless)
+
+| | |
+|--|--|
+| Source zip | `2D-Character-Knight.zip` |
+| Planches | 29 PNG Shadowless, chacune **960×512** |
+| Grille | **8×8** cellules **120×64** |
+| Mapping jeu | Idle / Walk / Run / **Melee** (mêlée) / **CastSpell** (distance) / TakeDamage / Die |
+
+Dossier prêt : `assets/packs/knight-2d/`.  
+Calibrage : `planche-orientations.html?pack=knight`.
+
 ## Fichier source (orientations validées)
 
 Le fichier modifié avec le mapping verrouillé est versionné à la racine :
