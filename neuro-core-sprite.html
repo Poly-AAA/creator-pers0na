@@ -5604,6 +5604,9 @@ const Combat = {
       if(performance.now() - (Combat._animStart||0) < 1200) return;
       Combat._animating = false;
     }
+    // Débloque un inputLocked orphelin (ex. move pad sans unlock)
+    inputLocked = false;
+    if(typeof PadMove !== "undefined") PadMove.clearPending();
     if(Combat._advancing) return;     // anti double-clic
     Combat._advancing = true;
     inputLocked = true;
@@ -10249,11 +10252,15 @@ const PadMove = {
     p._packMovePM = path.length - 1;
     this.lastKey = dc+","+dr;
     Combat.moveAlong(p, path, ()=>{
+      // Critique : comme le move tactile — sinon inputLocked reste true et tout est mort
+      inputLocked = false;
+      Combat._animating = false;
       this.lastKey = null;
-      // vider la file d’enchaînement
-      if(this.queue.length && PadMove.canControl()){
-        const q = this.queue.splice(0, this.queue.length);
-        // regrouper pas dans la même direction
+      const q = this.queue.splice(0, this.queue.length);
+      UI.refreshAll();
+      if(typeof GBHud !== "undefined") GBHud.updateSpells();
+      // Enchaînement demandé pendant l’anim
+      if(q.length && PadMove.canControl() && p.pm > 0){
         let dc0 = q[0].dc, dr0 = q[0].dr, n = 0;
         for(const s of q){
           if(s.dc===dc0 && s.dr===dr0) n++;
@@ -10261,7 +10268,6 @@ const PadMove = {
         }
         if(n > 0) PadMove.commit(dc0, dr0, n);
       }
-      UI.refreshAll();
     });
   },
 
@@ -10416,7 +10422,8 @@ const GBHud = {
     const box = document.getElementById("gbSpells");
     if(!box || !State || !State.player) return;
     const p = State.player;
-    const myTurn = !!(Combat.current && Combat.current() && Combat.current().isPlayer && !inputLocked && !State.over);
+    const myTurn = !!(Combat.current && Combat.current() && Combat.current().isPlayer && !State.over);
+    const canAct = myTurn && !inputLocked;
     for(const b of box.children){
       const def = Spells.def(b.dataset.id); if(!def) continue;
       const cost = Spells.cost(p, def);
@@ -10424,10 +10431,11 @@ const GBHud = {
       b.querySelector(".n").textContent = def.name;
       b.querySelector(".m").textContent = cost+" PA · Pt"+range;
       b.classList.toggle("armed", armedSkill === def.id);
-      b.classList.toggle("disabled", !myTurn || p.pa < cost);
+      b.classList.toggle("disabled", !canAct || p.pa < cost);
     }
     const end = document.getElementById("gbEnd");
-    if(end) end.disabled = !myTurn;
+    // Fin de tour toujours cliquable pendant le tour joueur (même si inputLocked orphelin)
+    if(end){ end.disabled = !myTurn; end.style.pointerEvents = myTurn ? "auto" : "none"; }
   },
 
   showConfirm(taps, pm){
