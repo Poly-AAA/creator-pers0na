@@ -4,6 +4,17 @@ Prototype HTML/CSS/JS pur pour un tactical RPG (style Dofus) : grille isométriq
 
 Ouvre `index.html` dans un navigateur pour tester.
 
+---
+
+## Atelier DIY (vêtements)
+
+Suite **gratuite** mobile/web pour DIY textile :
+
+- `diy/` — parcours Pièce → Matériel → Studio vectoriel → Technique → Visu (PWA)
+- `atelier.html` — module **typons sérigraphie** (trame, séparation, rendu photo)
+
+Ouvre `diy/index.html` (ou `/diy/` via un serveur local).
+
 ## Phase 0 — Fondations ✅
 
 - Grille isométrique 2:1 cliquable

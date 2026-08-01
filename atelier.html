@@ -369,6 +369,7 @@ details.step .step-body{padding-top:12px}
 <footer>
   Tout tourne dans le navigateur. DIY : toute la surface du vêtement est imprimable.
   Plat = concevoir et mesurer. Photo = rendu réaliste (displacement + multiply), comme un mockup PSD.
+  <br><a href="diy/" style="color:var(--safelight)">← Suite Atelier DIY</a> (studio vectoriel, broderie, cyanotype…)
 </footer>
 </div>
 
@@ -1613,6 +1614,24 @@ drawItems();
 setViewMode("flat");
 drawMock();
 refresh();
+
+/* Handoff depuis diy/ (pièce + contexte) */
+(function applyDiyHandoff(){
+  try{
+    var q = new URLSearchParams(location.search);
+    var g = q.get("garment");
+    var hand = null;
+    try{ hand = JSON.parse(sessionStorage.getItem("atelier-diy-handoff") || "null"); }catch(e){}
+    if(hand && hand.garment) g = g || hand.garment;
+    if(g && el.gtype && GARMENTS[g]){
+      el.gtype.value = g === "tote" || g === "pants" || g === "patch" ? "tee" : g;
+      drawMock(); refresh();
+    }
+    if(hand && hand.svg){
+      say("Design reçu depuis Atelier DIY — place-le ou régénère les typons.");
+    }
+  }catch(e){}
+})();
 
 // Aide test / intégration : charger un visuel depuis une URL
 window.AtelierDebug = {
