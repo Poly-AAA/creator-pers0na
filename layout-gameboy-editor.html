@@ -96,26 +96,38 @@
     background:rgba(8,20,32,.9); font-size:11px; color:var(--dim);
   }
 
-  /* D-pad iso */
-  #w-dpad .chrome{background:rgba(6,14,22,.75); display:grid; place-items:center}
+  /* D-pad iso — croix tournée 45° (bras = arêtes du losange map) */
+  #w-dpad .chrome{
+    background:rgba(6,14,22,.55); display:grid; place-items:center;
+    overflow:visible;
+  }
+  .dpad-wrap{
+    position:relative; width:72%; aspect-ratio:1;
+    display:grid; place-items:center;
+  }
   .dpad{
-    position:relative; width:min(100%,140px); aspect-ratio:1;
+    position:relative; width:100%; aspect-ratio:1;
+    transform:rotate(45deg);
+    transform-origin:center center;
   }
   .dpad button{
-    position:absolute; width:36%; height:36%; border:0; border-radius:10px;
-    background:#1a3044; color:var(--cyan); font-size:16px; font-weight:900;
-    box-shadow:inset 0 0 0 1px var(--line);
+    position:absolute; width:34%; height:34%; border:0; border-radius:10px;
+    background:#1a3044; color:var(--cyan); font-size:15px; font-weight:900;
+    box-shadow:inset 0 0 0 1px var(--line), 0 2px 0 rgba(0,0,0,.35);
   }
-  .dpad .u{left:32%; top:2%}
-  .dpad .d{left:32%; bottom:2%}
-  .dpad .l{left:2%; top:32%}
-  .dpad .r{right:2%; top:32%}
+  /* flèches pointent le long des axes iso (suivent la rotation 45°) */
+  .dpad .u{left:33%; top:2%}
+  .dpad .d{left:33%; bottom:2%}
+  .dpad .l{left:2%; top:33%}
+  .dpad .r{right:2%; top:33%}
   .dpad .c{
-    left:32%; top:32%; width:36%; height:36%; border-radius:50%;
-    background:#0d2233; color:var(--dim); font-size:9px;
+    left:33%; top:33%; width:34%; height:34%; border-radius:50%;
+    background:#0d2233; color:var(--dim); font-size:8px;
+    /* texte lisible à l’endroit */
+    transform:rotate(-45deg);
   }
   .dpad-cap{
-    position:absolute; left:50%; bottom:4px; transform:translateX(-50%);
+    position:absolute; left:50%; bottom:-2px; transform:translateX(-50%);
     font-size:8px; color:var(--dim); white-space:nowrap; pointer-events:none;
   }
 
@@ -230,36 +242,38 @@
 
 <script>
 (function(){
-  const STORE = "neuro.layout.gb.v1";
+  const STORE = "neuro.layout.gb.v2";
   const SNAP = 8;
   let snapOn = true;
   let selected = null;
 
-  /** Positions en % de #stage (indépendant de la taille écran) */
+  /** Layout joueur (inspiré export) + léger recentrage · croix à 45° en CSS */
   const DEFAULTS = {
-    map:     { x:2,  y:14, w:96, h:48, z:1,  lock:false, on:true },
-    header:  { x:2,  y:1,  w:96, h:11, z:5,  lock:false, on:true },
-    hint:    { x:2,  y:63, w:96, h:5,  z:5,  lock:false, on:true },
-    dpad:    { x:3,  y:70, w:42, h:26, z:10, lock:false, on:true },
-    spells:  { x:48, y:70, w:49, h:18, z:10, lock:false, on:true },
-    end:     { x:48, y:89, w:28, h:8,  z:11, lock:false, on:true },
-    zoom:    { x:78, y:89, w:19, h:8,  z:11, lock:false, on:true },
-    confirm: { x:10, y:58, w:80, h:5,  z:12, lock:false, on:true },
+    map:     { x:0,  y:8,  w:100, h:92, z:1,  lock:false, on:true },
+    header:  { x:2,  y:1,  w:96,  h:10, z:5,  lock:false, on:true },
+    hint:    { x:2,  y:56, w:96,  h:5,  z:5,  lock:false, on:true },
+    dpad:    { x:1,  y:62, w:44,  h:34, z:10, lock:false, on:true },
+    spells:  { x:50, y:64, w:48,  h:22, z:10, lock:false, on:true },
+    end:     { x:50, y:88, w:28,  h:9,  z:11, lock:false, on:true },
+    zoom:    { x:79, y:14, w:19,  h:8,  z:11, lock:false, on:true },
+    confirm: { x:2,  y:48, w:44,  h:7,  z:12, lock:false, on:true },
   };
 
   const META = {
     map:     { title:"Map (arène)", html:`<div class="mock-char" title="ECHO"></div>` },
     header:  { title:"Header stats", html:`<div class="row"><b>NEURO CORE</b> · COMBAT 1 · ENNEMIS 1</div><div class="row">PA <b>6</b> · PM <b>3</b> · PV <b>105</b></div>` },
     hint:    { title:"Hint / feedback", html:`Re-tape la flèche pour confirmer le déplacement · 2 = 1 PM` },
-    dpad:    { title:"Croix iso", html:`
-      <div class="dpad">
-        <button class="u" type="button">▲</button>
-        <button class="l" type="button">◀</button>
-        <button class="c" type="button">ISO</button>
-        <button class="r" type="button">▶</button>
-        <button class="d" type="button">▼</button>
+    dpad:    { title:"Croix iso 45°", html:`
+      <div class="dpad-wrap">
+        <div class="dpad">
+          <button class="u" type="button">▲</button>
+          <button class="l" type="button">◀</button>
+          <button class="c" type="button">ISO</button>
+          <button class="r" type="button">▶</button>
+          <button class="d" type="button">▼</button>
+        </div>
       </div>
-      <div class="dpad-cap">orientée grille (pas écran)</div>` },
+      <div class="dpad-cap">+45° · axes du losange</div>` },
     spells:  { title:"4 sorts", html:`
       <button class="spell" type="button"><span class="n">Coup de poing</span><span class="m">2 PA · Pt1</span></button>
       <button class="spell" type="button"><span class="n">Arc Électrique</span><span class="m">3 PA · Pt4</span></button>
