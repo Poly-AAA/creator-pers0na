@@ -67,6 +67,7 @@ DIR_ROW = [3, 2, 1, 0, 7, 6, 5, 4]   // ligne = (3 - index) mod 8
 
 ## Outils
 
+- **`planche-orientations.html`** — outil simple Marche + Tir : choisir une direction, ajuster la ligne (−/+), sauver dans `localStorage` (`neuro.dirRow`). Le jeu recharge via ⚙ SPRITE → Reload DIR_ROW.
 - `controle-croise-animations.html` — les 6 anims côte à côte, même `DIR_ROW` (référence validée)
 - `mappeur-vues.html` — annoter rangée ↔ vue si un nouveau pack diverge
 - `calibrage-vues.html` — calibrage par case grille (Δcol/Δrow)

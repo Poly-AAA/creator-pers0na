@@ -5684,6 +5684,10 @@ const Combat = {
         }
       }
     }
+    // Oriente dès le 1er pas (évite un walk de face pendant un slide latéral)
+    if(typeof Sprite !== "undefined" && path.length >= 2){
+      Sprite.faceToward(entity, path[1].c - path[0].c, path[1].r - path[0].r);
+    }
     inputLocked = true;
     Combat._animating = true;   // V0.91.1 — déplacement en cours
     Combat._animStart = performance.now();   // M-fix — horodatage pour détecter un flag bloqué
@@ -6062,6 +6066,10 @@ const Combat = {
     if(caster && caster.isPlayer && typeof GBHud !== "undefined" && arg && arg.id){
       if(def.type === "damage" && typeof isFoe === "function" && isFoe(arg)) GBHud.rememberTarget(arg);
       else if((def.type === "heal" || def.type === "shield") && arg.alive) GBHud.rememberTarget(arg);
+    }
+    // Oriente le sprite vers la cible (sinon le tir garde l'ancienne face)
+    if(caster && arg && typeof arg.c === "number" && typeof Sprite !== "undefined"){
+      Sprite.faceToward(caster, arg.c - caster.c, arg.r - caster.r);
     }
     let cost = Spells.cost(caster, def);
     // V0.92 — TÉLÉPORTATION GRATUITE (légendaire) : 1ʳᵉ téléportation du combat sans coût
@@ -6791,9 +6799,11 @@ const Sprite = {
        4 = dos (Δrow -1)           5 = 3/4 dos-gauche
        6 = profil gauche (Δcol -1) 7 = 3/4 face-gauche
      DIR_ROW[index logique] = numéro de ligne dans la feuille.
-     Le fichier viewer_directions.html sert à corriger ce tableau.
+     Calibrage facile : assets/packs/planche-orientations.html (sauve dans localStorage).
      ------------------------------------------------------------------ */
-  DIR_ROW: [3, 2, 1, 0, 7, 6, 5, 4],   // validé au pas-à-pas sur la marche : ligne = (3 - index) mod 8
+  DIR_ROW: [3, 2, 1, 0, 7, 6, 5, 4],   // défaut = (3 - index) mod 8 — recalibrable via la planche
+  /** Overrides optionnels par feuille (walk / shoot / …). Vide = DIR_ROW commun. */
+  DIR_ROW_SHEET: {},
 
   ANIM: {
     idle:  { sheet:"idle",  fps:12, loop:true  },   // Idle.png — respiration sur place
@@ -6851,24 +6861,65 @@ const Sprite = {
     Sprite._need = sheets.length;
     Sprite._n = 0;
     for(const [key, file, b64] of sheets) Sprite._loadSheet(key, file, b64);
+    Sprite.loadDirOverrides();
   },
 
   use(e){
     return Sprite.ON && Sprite.ready && (!Sprite.PLAYER_ONLY || e.isPlayer);
   },
 
-  /* Orientation : identique au vectoriel — yaw = atan2(Δcol, Δrow),
-     snappé sur 45°, puis converti en index logique 0..7.               */
+  /* Orientation : yaw = atan2(Δcol, Δrow) snappé 45° → index 0..7. */
+  indexFromDelta(dc, dr){
+    if(!(Math.abs(dc) + Math.abs(dr))) return 0;
+    let i = Math.round(Math.atan2(dc, dr) * 180/Math.PI / 45) % 8;
+    if(i < 0) i += 8;
+    return i;
+  },
+
+  /** Oriente explicitement (tir vers cible, départ de marche, planche). */
+  faceToward(e, dc, dr){
+    if(!e) return;
+    if(Math.abs(dc) + Math.abs(dr) < 1e-6) return;
+    e._dir = Sprite.indexFromDelta(dc, dr);
+  },
+
   dirIndex(e){
     const dc = e.c - (e._rc === undefined ? e.c : e._rc);
     const dr = e.r - (e._rr === undefined ? e.r : e._rr);
     if(Math.abs(dc) + Math.abs(dr) > 0.06){
-      let i = Math.round(Math.atan2(dc, dr) * 180/Math.PI / 45) % 8;
-      if(i < 0) i += 8;
-      e._dir = i;
+      e._dir = Sprite.indexFromDelta(dc, dr);
     }
     if(e._dir === undefined) e._dir = 0;
     return e._dir;
+  },
+
+  /** Ligne sheet pour une anim (Walk ≠ Shoot si calibrés séparément). */
+  rowFor(sheetKey, dirIdx){
+    const map = Sprite.DIR_ROW_SHEET[sheetKey];
+    const table = (map && map.length === 8) ? map : Sprite.DIR_ROW;
+    return table[dirIdx] || 0;
+  },
+
+  /** Charge un calibrage sauvé par planche-orientations.html (localStorage). */
+  loadDirOverrides(){
+    try{
+      const raw = localStorage.getItem("neuro.dirRow");
+      if(raw){
+        const arr = JSON.parse(raw);
+        if(Array.isArray(arr) && arr.length === 8) Sprite.DIR_ROW = arr.map(n=>n|0);
+      }
+      const sheets = localStorage.getItem("neuro.dirRow.sheets");
+      if(sheets){
+        const obj = JSON.parse(sheets);
+        if(obj && typeof obj === "object"){
+          Sprite.DIR_ROW_SHEET = {};
+          for(const k of Object.keys(obj)){
+            if(Array.isArray(obj[k]) && obj[k].length === 8)
+              Sprite.DIR_ROW_SHEET[k] = obj[k].map(n=>n|0);
+          }
+        }
+      }
+    }catch(_e){}
   },
 
   // déclenchement manuel d'une animation (boutons de test)
@@ -6914,7 +6965,7 @@ const Sprite = {
     const img = Sprite.imgs[A.sheet] || (name === "run" ? Sprite.imgs.walk : null)
              || (name === "melee" ? Sprite.imgs.shoot : null);
     if(!img || !img.complete) return false;
-    const row = Sprite.DIR_ROW[Sprite.dirIndex(e)] || 0;
+    const row = Sprite.rowFor(A.sheet, Sprite.dirIndex(e));
     const col = Sprite.frameIndex(e, name);
     const F = Sprite.FRAME, S = Sprite.SCALE;
     const dw = F*S, dh = F*S;
@@ -6976,6 +7027,10 @@ const Sprite = {
     mk("MÊLÉE (Attack2)",  () => { const p = State && State.player; if(p) Sprite.play(p, "melee"); });
     mk("DISTANCE (Attack1)", () => { const p = State && State.player; if(p) Sprite.play(p, "shoot"); });
     mk("COURSE (Run)", () => { const p = State && State.player; if(p){ p._packMovePM = 2; Sprite.play(p, "run"); } });
+    mk("📐 PLANCHE orient.", () => {
+      window.open("assets/packs/planche-orientations.html", "_blank");
+    });
+    mk("↺ Reload DIR_ROW", () => { Sprite.loadDirOverrides(); });
     const tog = mk("SPRITE: ON", () => {
       Sprite.ON = !Sprite.ON;
       tog.textContent = "SPRITE: " + (Sprite.ON ? "ON" : "OFF");
