@@ -831,7 +831,6 @@ aside.side{
   border-radius:999px; color:#ffb07a; font-weight:800; font-size:11px; padding:4px 8px;
 }
 #gbConfirm.show{ display:flex; pointer-events:auto; cursor:pointer; }
-#gbEndWrap{ z-index:40 !important; }
 #gbDpad{
   width:100%; height:100%; display:grid; place-items:center;
 }
@@ -878,8 +877,19 @@ aside.side{
 #gbSpells button .m{font-size:8px;color:rgba(200,220,235,.9);margin-top:2px}
 #gbSpells button.armed{ box-shadow:inset 0 0 0 2px #ffd23c, 0 0 12px rgba(255,210,60,.45); transform:scale(1.04); }
 #gbSpells button.disabled{ opacity:.55; filter:grayscale(.3); }
+#gbActWrap{
+  display:flex; align-items:stretch; gap:6px; width:100%; height:100%;
+  z-index:40 !important;
+}
+#gbA{
+  flex:0 0 34%; border:0; border-radius:50%;
+  background:rgba(40,140,80,.92); color:#fff; font-weight:900; font-size:18px;
+  box-shadow:inset 0 0 0 2px rgba(180,255,200,.55), 0 3px 8px rgba(0,0,0,.35);
+  touch-action:manipulation;
+}
+#gbA:active{ background:rgba(60,200,110,.95); transform:scale(.96); }
 #gbEnd{
-  width:100%; height:100%; border:0; border-radius:999px;
+  flex:1; height:100%; border:0; border-radius:999px;
   background:rgba(168,74,20,.88); color:#fff; font-weight:900; font-size:11px;
   backdrop-filter:blur(3px);
   box-shadow:inset 0 0 0 1.5px rgba(255,200,150,.55), 0 3px 8px rgba(0,0,0,.35);
@@ -996,7 +1006,10 @@ aside.side{
           </div>
         </div>
         <div class="gb-w" id="gbSpellsWrap"><div id="gbSpells"></div></div>
-        <div class="gb-w" id="gbEndWrap"><button type="button" id="gbEnd">FIN DE TOUR</button></div>
+        <div class="gb-w" id="gbActWrap">
+          <button type="button" id="gbA" title="Valider déplacement / sort">A</button>
+          <button type="button" id="gbEnd">FIN DE TOUR</button>
+        </div>
         <div class="gb-w" id="gbZoomWrap">
           <div id="gbZoom">
             <button type="button" id="gbZoomOut">−</button>
@@ -7326,6 +7339,14 @@ const Render = {
       }
     }
 
+    // Cible GB sélectionnée
+    if(e._gbAim){
+      ctx.save();
+      ctx.strokeStyle = "#ffd23c"; ctx.lineWidth = 2.5;
+      ctx.globalAlpha = 0.75 + Math.sin(t*6)*0.2;
+      ctx.beginPath(); ctx.ellipse(cx, cy-12, 24, 30, 0, 0, Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
     // corps — SPRITE 16-bit si disponible (test), sinon silhouette d'origine
     const spriteDrawn = Sprite.use(e) && Sprite.draw(e, cx, s.y + 2 + bob*0.4, flash);
     const bodyCol = flash ? "#ffffff" : main;
@@ -8296,7 +8317,11 @@ const UI = {
 
     // sélection (clavier ou clic) : arme/désarme un sort
     select(id){
-      if(inputLocked || State.over) return;
+      if(State.over) return;
+      if(inputLocked){
+        if(Combat._animating) return;
+        inputLocked = false; // orphelin — sinon les sorts GB ne s'arment jamais
+      }
       const cur = Combat.current();
       if(!cur || !cur.isPlayer) return;
       const def = Spells.def(id);
@@ -10199,7 +10224,7 @@ const GB_LAYOUT = {
   hint:    { x:2,  y:52, w:46, h:5,  z:5  },
   dpad:    { x:0,  y:58, w:48, h:40, z:10 },
   spells:  { x:52, y:62, w:46, h:24, z:10 },
-  end:     { x:58, y:88, w:18, h:8,  z:40 },
+  end:     { x:50, y:87, w:48, h:10, z:40 },
   zoom:    { x:80, y:0,  w:18, h:8,  z:11 },
   confirm: { x:2,  y:46, w:46, h:6,  z:12 },
 };
@@ -10384,7 +10409,7 @@ const GBHud = {
     this.applyBox(document.getElementById("gbConfirmWrap"), L.confirm);
     this.applyBox(document.getElementById("gbDpadWrap"), L.dpad);
     this.applyBox(document.getElementById("gbSpellsWrap"), L.spells);
-    this.applyBox(document.getElementById("gbEndWrap"), L.end);
+    this.applyBox(document.getElementById("gbActWrap"), L.end);
     this.applyBox(document.getElementById("gbZoomWrap"), L.zoom);
     const hint = document.getElementById("hint");
     if(hint){
@@ -10396,7 +10421,7 @@ const GBHud = {
     if(root && !root.dataset.bound){
       root.dataset.bound = "1";
       root.querySelectorAll("button[data-dir]").forEach(b=>{
-        b.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); PadMove.onDir(b.dataset.dir); });
+        b.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); if(b.dataset.dir==="c") GBHud.pressA(); else PadMove.onDir(b.dataset.dir); });
       });
     }
     const conf = document.getElementById("gbConfirm");
@@ -10404,21 +10429,22 @@ const GBHud = {
       conf.dataset.bound = "1";
       conf.style.cursor = "pointer";
       conf.style.pointerEvents = "auto";
-      const acc = (e)=>{ e.preventDefault(); e.stopPropagation(); PadMove.onConfirm(); };
-      conf.addEventListener("click", acc);
-      conf.addEventListener("pointerup", acc);
+      conf.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); GBHud.pressA(); });
+    }
+    const btnA = document.getElementById("gbA");
+    if(btnA && !btnA.dataset.bound){
+      btnA.dataset.bound = "1";
+      btnA.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); GBHud.pressA(); });
     }
     const end = document.getElementById("gbEnd");
     if(end && !end.dataset.bound){
       end.dataset.bound = "1";
-      const go = (e)=>{
+      end.addEventListener("click", (e)=>{
         e.preventDefault(); e.stopPropagation();
         inputLocked = false;
         Combat._animating = false;
         Combat.endPlayerTurn();
-      };
-      end.addEventListener("click", go);
-      end.addEventListener("pointerup", go);
+      });
     }
     const zi = document.getElementById("gbZoomIn");
     const zo = document.getElementById("gbZoomOut");
@@ -10454,11 +10480,62 @@ const GBHud = {
         b.dataset.id = def.id;
         b.style.setProperty("--sc", (typeof SCHOOL_COLOR!=="undefined" && SCHOOL_COLOR[def.school]) || "#27e0ff");
         b.innerHTML = '<span class="n"></span><span class="m"></span>';
-        b.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); UI.spells.select(def.id); GBHud.refreshTargets(); });
+        b.addEventListener("click", (e)=>{
+          e.preventDefault(); e.stopPropagation();
+          GBHud.armSpell(def.id);
+        });
         box.appendChild(b);
       });
     }
     this.updateSpells();
+  },
+
+  /** Arme un sort (annule le preview move). A = lancer sur la cible. */
+  armSpell(id){
+    if(!State || State.over) return;
+    if(inputLocked && !Combat._animating) inputLocked = false;
+    if(Combat._animating) return;
+    const cur = Combat.current && Combat.current();
+    if(!cur || !cur.isPlayer) return;
+    const def = Spells.def(id); if(!def) return;
+    const p = State.player;
+    if(p.pa < Spells.cost(p, def)){
+      UI.setHint("PA insuffisants pour <b>"+def.name+"</b>.");
+      return;
+    }
+    // Annule le preview de déplacement pour ne pas confondre avec la cible
+    if(typeof PadMove !== "undefined") PadMove.clear();
+    if(armedSkill === id){
+      // 2ᵉ appui sur le même sort : lance si cible, sinon désarme
+      if(this.selected){ this.castOnSelected(); return; }
+      armedSkill = null;
+      this.targets = []; this.selected = null;
+      UI.setHint("Sort désélectionné.");
+      UI.spells.update(); this.updateSpells();
+      return;
+    }
+    armedSkill = id;
+    clearPendingTap();
+    this.refreshTargets();
+    const n = this.targets.length;
+    UI.setHint("<b>"+def.name+"</b> — "+(n? (n+" cible(s), croix pour changer, <b>A</b> pour lancer") : "aucune cible à portée"));
+    UI.spells.update();
+    this.updateSpells();
+  },
+
+  /** Bouton A : valider déplacement OU lancer le sort sur la cible. */
+  pressA(){
+    if(inputLocked && !Combat._animating) inputLocked = false;
+    if(armedSkill){
+      if(this.selected) this.castOnSelected();
+      else {
+        this.refreshTargets();
+        if(this.selected) this.castOnSelected();
+        else UI.setHint("Pas de cible — croix pour choisir, ou retape le sort.");
+      }
+      return;
+    }
+    if(typeof PadMove !== "undefined") PadMove.onConfirm();
   },
 
   updateSpells(){
@@ -10477,8 +10554,16 @@ const GBHud = {
       b.classList.toggle("disabled", !canAct || p.pa < cost);
     }
     const end = document.getElementById("gbEnd");
-    // Fin de tour toujours cliquable pendant le tour joueur (même si inputLocked orphelin)
     if(end){ end.disabled = false; end.style.pointerEvents = myTurn ? "auto" : "none"; end.style.opacity = myTurn ? "1" : ".45"; }
+    const a = document.getElementById("gbA");
+    if(a){
+      a.style.pointerEvents = myTurn ? "auto" : "none";
+      a.style.opacity = myTurn ? "1" : ".45";
+      const ready = !!(PadMove.preview && PadMove.preview.steps >= 1) || !!(armedSkill && GBHud.selected);
+      a.style.boxShadow = ready
+        ? "inset 0 0 0 2px #ffd23c, 0 0 14px rgba(255,210,60,.45)"
+        : "inset 0 0 0 2px rgba(180,255,200,.55), 0 3px 8px rgba(0,0,0,.35)";
+    }
   },
 
   showConfirmMove(pm, runExtra){
@@ -10502,6 +10587,7 @@ const GBHud = {
   refreshTargets(){
     this.targets = [];
     this.selected = null;
+    this.targetIdx = 0;
     if(!armedSkill || !State) return;
     const def = Spells.def(armedSkill); if(!def) return;
     const p = State.player;
@@ -10509,9 +10595,15 @@ const GBHud = {
     for(const e of State.entities){
       if(!e.alive) continue;
       if(Grid.manhattan(p, e) > range) continue;
+      if(range > 1 && def.type === "damage" && !Grid.hasLOS(p, e)) continue;
       if(def.type === "damage" && isFoe(e)) this.targets.push(e);
       else if((def.type === "heal" || def.type === "shield") && isAlly(e)) this.targets.push(e);
+      else if(def.type === "buff" && e === p) this.targets.push(e);
       else if(def.type === "swap") this.targets.push(e);
+    }
+    // Cible soi pour heal/shield/buff si dans la liste absente
+    if((def.type === "heal" || def.type === "shield" || def.type === "buff") && !this.targets.includes(p)){
+      if(Grid.manhattan(p, p) <= range) this.targets.unshift(p);
     }
     if(this.targets.length){
       this.targetIdx = 0;
@@ -10521,12 +10613,14 @@ const GBHud = {
 
   selectTarget(e){
     this.selected = e;
+    // Marqueur de ciblage (pas un preview de move)
     if(e){
-      hoverTile = { c:e.c, r:e.r };
       hoverEnemy = isFoe(e) ? e : null;
-      // flash visuel
-      e.hitFlash = Math.max(e.hitFlash||0, 0.35);
-      UI.setHint("Cible · <b>"+e.name+"</b> — OK / croix pour valider");
+      hoverTile = null; // évite le tracé de chemin PM vers l'ennemi
+      e._gbAim = true;
+      for(const x of State.entities){ if(x !== e) x._gbAim = false; }
+      UI.setHint("Cible · <b>"+(e.isPlayer?"ECHO":e.name)+"</b> — <b>A</b> pour lancer");
+      if(typeof GBHud !== "undefined") GBHud.flashConfirm("A · lancer "+(Spells.def(armedSkill)||{}).name);
     }
   },
 
@@ -10538,15 +10632,24 @@ const GBHud = {
   },
 
   castOnSelected(){
-    if(!armedSkill || !this.selected) { UI.setHint("Choisis une cible avec la croix."); return; }
+    if(!armedSkill || !this.selected) { UI.setHint("Choisis une cible — puis appuie sur <b>A</b>."); return; }
+    if(inputLocked && !Combat._animating) inputLocked = false;
     const def = Spells.def(armedSkill);
     const t = this.selected;
-    if(def.type === "damage" || def.type === "heal" || def.type === "shield" || def.type === "swap"){
-      Combat.castSpell(State.player, def, t);
-      armedSkill = null;
-      this.targets = []; this.selected = null;
-      UI.spells.update(); UI.refreshAll();
+    const okTypes = ["damage","heal","shield","swap","buff"];
+    if(okTypes.indexOf(def.type) < 0){
+      UI.setHint("Utilise le tactile pour ce type de sort.");
+      return;
     }
+    const castArg = (def.type === "buff") ? State.player : t;
+    Combat.castSpell(State.player, def, castArg);
+    armedSkill = null;
+    this.targets = []; this.selected = null;
+    for(const x of State.entities){ x._gbAim = false; }
+    this.hideConfirm();
+    UI.setHint("Sort lancé.");
+    UI.spells.update(); UI.refreshAll();
+    this.updateSpells();
   }
 };
 
