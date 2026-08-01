@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ATELIER — du t-shirt au typon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#141110; --ground-2:#1d1917; --ground-3:#272220; --line:#3a322e;
+  --paper:#ece5da; --dim:#948a82; --safelight:#ffb02e;
+  --stage-h:min(72dvh, 920px);
+  --pad:14px;
+  --safe-b:env(safe-area-inset-bottom, 0px);
+  --safe-t:env(safe-area-inset-top, 0px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(120% 80% at 50% -10%, #2a221c 0%, transparent 55%),
+    var(--ground);
+  color:var(--paper);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%;
+  padding:0 0 calc(108px + var(--safe-b));
+}
+.wrap{max-width:760px;margin:0 auto;padding:0 var(--pad)}
+
+/* barre compacte — le mockup garde la place hero */
+.topbar{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
+  padding:calc(10px + var(--safe-t)) 0 10px;
+}
+.topbar h1{
+  font-family:"Archivo Black",system-ui,sans-serif;
+  font-size:clamp(22px,7vw,34px);line-height:.9;letter-spacing:-.02em;margin:0;
+  text-transform:uppercase;
+}
+.topbar p{color:var(--dim);margin:0;font-size:12px;text-align:right;max-width:18ch;line-height:1.35}
+
+.garment-bar{
+  display:grid;grid-template-columns:1.2fr .8fr 52px;gap:8px;
+  padding:0 0 10px;
+}
+.garment-bar .field{gap:4px}
+.garment-bar label{font-size:10px}
+.garment-bar select, .garment-bar input[type=color]{
+  min-height:44px;padding:8px 10px;font-size:14px;
+}
+.garment-bar input[type=color]{padding:4px}
+.print-badge{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--safelight);margin:0 0 8px;
+}
+
+/* stage plein écran large — t-shirt entier et maxi */
+#stage-shell{
+  margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);
+  width:100vw;position:relative;
+  background:linear-gradient(180deg, #191513 0%, var(--ground-2) 40%, #171311 100%);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+#stage{
+  position:relative;touch-action:none;overflow:hidden;
+  height:var(--stage-h);
+  display:flex;align-items:center;justify-content:center;
+}
+#stage canvas{
+  display:block;touch-action:none;-webkit-user-select:none;user-select:none;
+  max-width:100%;max-height:100%;width:auto;height:auto;
+}
+#mock.on, #view3d.on{display:block}
+#mock, #view3d{display:none}
+#stage-tip{
+  position:absolute;left:0;right:0;bottom:0;
+  font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--dim);
+  padding:10px 14px calc(10px + var(--safe-b));
+  background:linear-gradient(to top,rgba(20,17,16,.94),transparent);
+  pointer-events:none;
+}
+.view-toggle{
+  position:absolute;top:10px;right:10px;z-index:2;
+  display:flex;gap:0;border:1px solid var(--line);background:rgba(20,17,16,.72);
+  backdrop-filter:blur(6px);
+}
+.view-toggle button{
+  border:0;background:transparent;color:var(--dim);
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;padding:10px 12px;min-height:44px;cursor:pointer;
+}
+.view-toggle button.active{color:#1a1207;background:var(--safelight)}
+
+.step{border-bottom:1px solid var(--line);padding:18px 0}
+.step > h2{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--safelight);margin:0 0 12px;
+}
+.step > h2 span{color:var(--dim);float:right;letter-spacing:.06em}
+.hint{color:var(--dim);font-size:13px;margin:9px 0 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field > label{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;
+  color:var(--dim);text-transform:uppercase;
+}
+input[type=number],input[type=text],select{
+  width:100%;background:var(--ground-2);color:var(--paper);border:1px solid var(--line);
+  border-radius:0;padding:12px 11px;font-family:"IBM Plex Mono",monospace;font-size:16px;
+}
+input:focus,select:focus{outline:2px solid var(--safelight);outline-offset:1px}
+input[type=range]{width:100%;accent-color:var(--safelight);height:36px}
+input[type=color]{width:100%;height:44px;padding:3px;background:var(--ground-2);border:1px solid var(--line)}
+.rowval{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rowval b{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600}
+.check{display:flex;align-items:center;gap:10px;padding:10px 0;font-size:14px;cursor:pointer;min-height:44px}
+.check input{width:20px;height:20px;accent-color:var(--safelight);flex:none}
+button{font-family:inherit}
+.btn{
+  background:var(--ground-3);color:var(--paper);border:1px solid var(--line);
+  padding:12px 14px;min-height:44px;font-family:"IBM Plex Mono",monospace;font-size:13px;cursor:pointer;
+}
+.btn:hover{border-color:var(--safelight);color:var(--safelight)}
+.btn:disabled{opacity:.3;cursor:default}
+.btn.wide{width:100%}
+.btn.danger:hover{border-color:#e5484d;color:#e5484d}
+
+#strip{
+  display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+}
+#strip::-webkit-scrollbar{display:none}
+.thumb{
+  flex:none;width:68px;height:68px;background:#fff;border:2px solid var(--line);
+  padding:2px;cursor:pointer;position:relative;
+}
+.thumb.sel{border-color:var(--safelight)}
+.thumb img{width:100%;height:100%;object-fit:contain;display:block}
+.thumb i{
+  position:absolute;top:-1px;left:-1px;background:var(--safelight);color:#1a1207;
+  font-family:"IBM Plex Mono",monospace;font-style:normal;font-size:10px;
+  padding:1px 4px;font-weight:600;
+}
+.thumb.add{
+  background:var(--ground-2);color:var(--dim);display:flex;align-items:center;
+  justify-content:center;font-size:28px;line-height:1;border-style:dashed;
+}
+
+#ctrl{border:1px solid var(--line);background:var(--ground-2);padding:12px 13px 14px;margin-top:12px;display:none}
+#ctrl.on{display:block}
+#ctrl h3{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--safelight);margin:0 0 4px;
+}
+#ctrl .dims{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--dim);margin:0 0 6px}
+
+.frame{display:grid;grid-template-columns:1fr 64px 64px 44px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.frame:first-child{border-top:none}
+.frame .u{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--dim)}
+
+.act{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:linear-gradient(to top,var(--ground) 70%,transparent);
+  padding:14px var(--pad) calc(14px + var(--safe-b));
+}
+.act-inner{max-width:760px;margin:0 auto}
+button.go{
+  width:100%;background:var(--safelight);color:#1a1207;border:none;
+  font-family:"Archivo Black",sans-serif;text-transform:uppercase;letter-spacing:.04em;
+  font-size:17px;padding:16px;min-height:52px;cursor:pointer;
+}
+button.go:disabled{background:var(--ground-3);color:var(--dim);cursor:not-allowed}
+#bar{height:2px;background:var(--ground-3);margin-bottom:10px;display:none}
+#bar i{display:block;height:100%;width:0;background:var(--safelight);transition:width .2s}
+#status{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--dim);text-align:center;margin:8px 0 0;min-height:16px}
+
+#out{display:none;padding-top:24px}
+#plan{border-left:2px solid var(--safelight);padding:12px 0 12px 14px;margin-bottom:18px;font-size:14px}
+#plan h3{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--safelight);margin:0 0 8px}
+#plan ol{margin:0;padding-left:18px}
+#plan li{margin-bottom:5px}
+#plan .flag{color:var(--safelight)}
+.plate{border:1px solid var(--line);background:var(--ground-2);margin-bottom:14px}
+.plate-h{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid var(--line)}
+.plate-h .sw{width:22px;height:22px;border:1px solid var(--line);flex:none}
+.plate-h b{font-size:14px}
+.plate-h code{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--dim)}
+.plate img{display:block;width:100%;background:#fff}
+.cap{
+  margin:0;padding:7px 13px;border-bottom:1px solid var(--line);
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--dim);
+}
+.plate-f{padding:11px 13px}
+.plate-f a{
+  display:block;text-align:center;padding:12px;background:var(--ground-3);color:var(--paper);
+  text-decoration:none;font-family:"IBM Plex Mono",monospace;font-size:13px;border:1px solid var(--line);
+  min-height:44px;
+}
+.plate-f a:hover{border-color:var(--safelight);color:var(--safelight)}
+footer{color:var(--dim);font-size:12px;padding:26px 0 0;line-height:1.6}
+details.step > summary{
+  list-style:none;cursor:pointer;
+  font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--safelight);
+  padding:4px 0 2px;min-height:44px;display:flex;align-items:center;justify-content:space-between;
+}
+details.step > summary::-webkit-details-marker{display:none}
+details.step > summary::after{content:"+";color:var(--dim);font-size:16px}
+details.step[open] > summary::after{content:"–"}
+details.step .step-body{padding-top:12px}
+@media (min-width:760px){
+  :root{ --stage-h:min(78vh, 860px); }
+  .garment-bar{grid-template-columns:1fr 1fr 72px; max-width:420px}
+}
+@media (max-width:520px){ .grid{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="topbar">
+  <h1>Atelier</h1>
+  <p>DIY — imprime où tu veux sur tout le vêtement.</p>
+</header>
+
+<p class="print-badge" id="ghint">Zone d'impression = vêtement entier</p>
+<div class="garment-bar">
+  <div class="field">
+    <label for="gtype">Pièce</label>
+    <select id="gtype">
+      <option value="tee" selected>T-shirt</option>
+      <option value="sweat">Sweat</option>
+      <option value="hoodie">Hoodie</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="gsize">Taille</label>
+    <select id="gsize">
+      <option value="S">S</option>
+      <option value="M">M</option>
+      <option value="L">L</option>
+      <option value="XL" selected>XL</option>
+      <option value="XXL">XXL</option>
+      <option value="XXXL">XXXL</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="gcol">Couleur</label>
+    <input type="color" id="gcol" value="#f2f0eb">
+  </div>
+</div>
+
+<section class="step" style="border:0;padding:0 0 8px">
+  <h2 style="margin-bottom:8px">Visuel<span id="itemcount">0 image</span></h2>
+  <div id="stage-shell">
+    <div id="stage">
+      <div class="view-toggle" role="group" aria-label="Mode d'affichage">
+        <button type="button" id="view-flat" class="active">Plat</button>
+        <button type="button" id="view-3d">3D</button>
+      </div>
+      <canvas id="mock" class="on" width="900" height="1100"></canvas>
+      <canvas id="view3d" width="900" height="1100"></canvas>
+      <p id="stage-tip">Touche + pour ajouter une image, puis place-la partout sur le t-shirt.</p>
+    </div>
+  </div>
+  <div id="strip"></div>
+  <div id="ctrl"></div>
+  <button class="btn wide" id="add" style="display:none">+ Ajouter une image</button>
+  <input type="file" id="file" accept="image/*" hidden>
+  <div id="items" hidden></div>
+</section>
+
+<details class="step" open>
+  <summary>Trame</summary>
+  <div class="step-body">
+    <div class="field">
+      <label for="preset">Effet voulu</label>
+      <select id="preset">
+        <option value="photo">Photo fine — dégradés doux</option>
+        <option value="std" selected>Textile standard — polyvalent</option>
+        <option value="gros">Gros points — trame visible, bootleg</option>
+        <option value="poster">Très gros points — effet affiche</option>
+        <option value="puff">Puff / encre épaisse</option>
+        <option value="trait">Aucun tramage — aplats purs</option>
+      </select>
+    </div>
+    <p class="hint" id="phint">—</p>
+    <div class="field" style="margin-top:12px">
+      <div class="rowval"><label for="lpi">Finesse</label><b id="lpi-v">35 lpi</b></div>
+      <input type="range" id="lpi" min="10" max="65" step="1" value="35">
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <div class="field">
+        <div class="rowval"><label for="gain">Gain textile</label><b id="gain-v">15 %</b></div>
+        <input type="range" id="gain" min="0" max="45" step="1" value="15">
+      </div>
+      <div class="field">
+        <label for="shape">Point</label>
+        <select id="shape"><option value="dot" selected>Rond</option><option value="square">Carré</option></select>
+      </div>
+    </div>
+  </div>
+</details>
+
+<details class="step">
+  <summary>Couleurs</summary>
+  <div class="step-body">
+    <div class="grid">
+      <div class="field">
+        <label for="mode">Séparation</label>
+        <select id="mode">
+          <option value="mono" selected>1 couleur</option>
+          <option value="index">Aplats — N couleurs</option>
+          <option value="cmyk">Quadri CMJN</option>
+        </select>
+      </div>
+      <div class="field" id="ncolwrap" style="display:none">
+        <div class="rowval"><label for="ncol">Nombre d'encres</label><b id="ncol-v">3</b></div>
+        <input type="range" id="ncol" min="2" max="6" step="1" value="3">
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" id="base"> Base blanche sous les couleurs</label>
+    <label class="check"><input type="checkbox" id="dropbg" checked> Laisser le textile faire une des couleurs</label>
+    <p class="hint" id="chint">—</p>
+  </div>
+</details>
+
+<details class="step">
+  <summary>Cadres disponibles</summary>
+  <div class="step-body">
+    <div id="frames"></div>
+    <button class="btn wide" id="addframe" style="margin-top:10px">+ Ajouter un cadre</button>
+    <p class="hint" id="fhint">—</p>
+  </div>
+</details>
+
+<div class="act">
+  <div class="act-inner">
+    <div id="bar"><i></i></div>
+    <button class="go" id="run">Faire les typons</button>
+    <p id="status"></p>
+  </div>
+</div>
+
+<section id="out">
+  <div id="plan"></div>
+  <div id="plates"></div>
+</section>
+
+<footer>
+  Tout tourne dans le navigateur. DIY : toute la surface du vêtement est imprimable.
+  Envoie tes mockups PSD — on les convertit en PNG et on les branche ici ; la vue 3D utilise déjà un volume simple, et peut prendre un vrai modèle GLB plus tard.
+</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+var TAU = Math.PI * 2;
+var MAXPX = 8e6;
+var DPI = 300;
+
+/* ---------- donnees vetements (cm, mesures a plat) ---------- */
+var GARMENTS = {
+  tee:    { n:"T-shirt", sleeve:0.30, hem:0 },
+  sweat:  { n:"Sweat",   sleeve:0.62, hem:6 },
+  hoodie: { n:"Hoodie",  sleeve:0.62, hem:6 }
+};
+var SIZES = {
+  S:{ w:46, h:70 }, M:{ w:51, h:72 }, L:{ w:56, h:74 },
+  XL:{ w:61, h:76 }, XXL:{ w:66, h:78 }, XXXL:{ w:71, h:80 }
+};
+var PRESETS = {
+  photo:  { lpi:48, t:"Maille fine 43T/110 minimum, cadre très tendu. Les dégradés passent, mais la moindre sous-exposition bouche les points." },
+  std:    { lpi:35, t:"Maille 34T/90. Le meilleur compromis sur coton : les points tiennent à l'insolation et l'encre passe bien." },
+  gros:   { lpi:22, t:"Maille 24T/62 ou plus grosse. Les points se voient à l'œil nu — c'est l'effet recherché." },
+  poster: { lpi:14, t:"Trame franchement visible, très tolérante au repérage approximatif. Pardonne beaucoup en DIY." },
+  puff:   { lpi:18, t:"L'encre puff gonfle à la chaleur et avale les détails. Gros points obligatoires, maille grosse, un seul passage épais." },
+  trait:  { lpi:0,  t:"Pas de trame du tout : uniquement des aplats pleins. Le plus simple à insoler et à racler, aucun dégradé possible." }
+};
+
+/* ---------- etat ---------- */
+var items = [];
+var sel = -1;
+var frames = [{ w:42, h:59.4 }];
+var urls = [];
+var viewMode = "flat"; // flat | 3d
+var yaw3d = 18;        // degres — rotation apercu 3D
+var MOCKUP_PNG = {
+  // Branche ici les PNG exportes depuis tes PSD, ex. "mockups/tee-front.png"
+  tee: null, sweat: null, hoodie: null
+};
+var mockupImgs = {};
+var el = {};
+["gtype","gsize","gcol","ghint","mock","view3d","stage","stage-tip","add","file","items","itemcount",
+ "preset","phint","lpi","lpi-v","gain","gain-v","shape","mode","ncol","ncol-v","ncolwrap",
+ "base","dropbg","chint","frames","addframe","fhint","run","status","bar","out","plan","plates",
+ "strip","ctrl","view-flat","view-3d"
+].forEach(function(id){ el[id] = document.getElementById(id); });
+
+var mock = el.mock, mx = mock.getContext("2d");
+var view3d = el.view3d, vx = view3d.getContext("2d");
+
+function garment(){
+  var g = GARMENTS[el.gtype.value], s = SIZES[el.gsize.value];
+  // DIY : toute la surface du vetement est imprimable, manches et bas compris
+  return {
+    n:g.n, w:s.w, h:s.h, sleeve:g.sleeve, hem:g.hem,
+    printW:s.w, printH:s.h, printX:0, printY:0
+  };
+}
+
+function loadMockups(){
+  Object.keys(MOCKUP_PNG).forEach(function(k){
+    var src = MOCKUP_PNG[k];
+    if(!src) return;
+    var im = new Image();
+    im.onload = function(){ mockupImgs[k] = im; drawMock(); if(viewMode === "3d") draw3D(); };
+    im.src = src;
+  });
+}
+
+/* ---------- dessin du vetement a plat ---------- */
+function drawGarment(cx, G, S){
+  var w = G.w, h = G.h;
+  var neck = w * 0.20, shoulder = w * 0.06, arm = h * G.sleeve;
+  var body = w * 0.86;
+  var bx = (w - body) / 2;
+
+  cx.fillStyle = el.gcol.value;
+  cx.strokeStyle = "rgba(0,0,0,.28)";
+  cx.lineWidth = Math.max(1, 0.12 * S);
+  cx.beginPath();
+  cx.moveTo((w - neck) / 2 * S, 0);
+  cx.quadraticCurveTo(w / 2 * S, h * 0.055 * S, (w + neck) / 2 * S, 0);
+  cx.lineTo((w - shoulder) * S, h * 0.02 * S);
+  cx.lineTo(w * S, arm * 0.42 * S);
+  cx.lineTo((w - bx * 0.55) * S, arm * S);
+  cx.lineTo((w - bx) * S, arm * 0.62 * S);
+  cx.lineTo((w - bx) * S, (h - G.hem) * S);
+  cx.lineTo((w - bx) * S, h * S);
+  cx.lineTo(bx * S, h * S);
+  cx.lineTo(bx * S, arm * 0.62 * S);
+  cx.lineTo(bx * 0.55 * S, arm * S);
+  cx.lineTo(0, arm * 0.42 * S);
+  cx.lineTo(shoulder * S, h * 0.02 * S);
+  cx.closePath();
+  cx.fill();
+  cx.stroke();
+
+  if(G.hem){
+    cx.beginPath();
+    cx.moveTo(bx * S, (h - G.hem) * S);
+    cx.lineTo((w - bx) * S, (h - G.hem) * S);
+    cx.stroke();
+  }
+}
+
+function fitStageCanvas(cv, G){
+  // Resolution interne haute pour netteté téléphone, affichage CSS géré par #stage
+  var stage = el.stage;
+  var cssW = stage.clientWidth || window.innerWidth || 390;
+  var cssH = stage.clientHeight || Math.round(cssW * 1.25);
+  var aspect = G.w / G.h;
+  var pad = 0.02; // très petit — le vêtement remplit presque tout
+  var usableW = cssW * (1 - pad * 2);
+  var usableH = cssH * (1 - pad * 2);
+  var dispW, dispH;
+  if(usableW / usableH > aspect){
+    dispH = usableH; dispW = dispH * aspect;
+  } else {
+    dispW = usableW; dispH = dispW / aspect;
+  }
+  var dpr = Math.min(2.5, window.devicePixelRatio || 1);
+  var tw = Math.max(2, Math.round(dispW * dpr));
+  var th = Math.max(2, Math.round(dispH * dpr));
+  if(cv.width !== tw) cv.width = tw;
+  if(cv.height !== th) cv.height = th;
+  cv.style.width = Math.round(dispW) + "px";
+  cv.style.height = Math.round(dispH) + "px";
+  return { S: cv.width / G.w, dpr:dpr, dispW:dispW, dispH:dispH };
+}
+
+function drawMock(){
+  var G = garment();
+  var fit = fitStageCanvas(mock, G);
+  var S = fit.S;
+  mx.setTransform(1, 0, 0, 1, 0, 0);
+  mx.clearRect(0, 0, mock.width, mock.height);
+  mx.fillStyle = "#171311";
+  mx.fillRect(0, 0, mock.width, mock.height);
+
+  var photo = mockupImgs[el.gtype.value];
+  if(photo){
+    // Mockup photo (PNG issu du PSD) : fond photo + design en overlay plein cadre
+    mx.drawImage(photo, 0, 0, mock.width, mock.height);
+    mx.save();
+    mx.globalCompositeOperation = "source-atop";
+  } else {
+    drawGarment(mx, G, S);
+  }
+
+  // Zone d'impression DIY = silhouette entière (contour discret)
+  mx.save();
+  mx.strokeStyle = "rgba(255,176,46,.35)";
+  mx.lineWidth = Math.max(1, 0.08 * S);
+  mx.setLineDash([Math.max(4, 0.35 * S), Math.max(3, 0.25 * S)]);
+  // Reprend le path vêtement pour indiquer "tout est imprimable"
+  var neck = G.w * 0.20, shoulder = G.w * 0.06, arm = G.h * G.sleeve;
+  var body = G.w * 0.86, bx = (G.w - body) / 2, w = G.w, h = G.h;
+  mx.beginPath();
+  mx.moveTo((w - neck) / 2 * S, 0);
+  mx.quadraticCurveTo(w / 2 * S, h * 0.055 * S, (w + neck) / 2 * S, 0);
+  mx.lineTo((w - shoulder) * S, h * 0.02 * S);
+  mx.lineTo(w * S, arm * 0.42 * S);
+  mx.lineTo((w - bx * 0.55) * S, arm * S);
+  mx.lineTo((w - bx) * S, arm * 0.62 * S);
+  mx.lineTo((w - bx) * S, (h - G.hem) * S);
+  mx.lineTo((w - bx) * S, h * S);
+  mx.lineTo(bx * S, h * S);
+  mx.lineTo(bx * S, arm * 0.62 * S);
+  mx.lineTo(bx * 0.55 * S, arm * S);
+  mx.lineTo(0, arm * 0.42 * S);
+  mx.lineTo(shoulder * S, h * 0.02 * S);
+  mx.closePath();
+  if(!photo) mx.stroke();
+  mx.restore();
+
+  items.forEach(function(it, i){
+    if(!it.prepared) return;
+    mx.save();
+    mx.translate(it.cx * S, it.cy * S);
+    mx.rotate(it.rot * Math.PI / 180);
+    mx.drawImage(it.prepared, -it.w / 2 * S, -it.h / 2 * S, it.w * S, it.h * S);
+    mx.restore();
+    if(i === sel && viewMode === "flat"){
+      mx.save();
+      mx.strokeStyle = "#ffb02e";
+      mx.lineWidth = Math.max(2, 0.12 * S);
+      mx.setLineDash([Math.max(4, 0.3 * S), Math.max(3, 0.22 * S)]);
+      mx.translate(it.cx * S, it.cy * S);
+      mx.rotate(it.rot * Math.PI / 180);
+      mx.strokeRect(-it.w / 2 * S, -it.h / 2 * S, it.w * S, it.h * S);
+      mx.restore();
+    }
+  });
+
+  if(photo) mx.restore();
+  if(viewMode === "3d") draw3D();
+}
+
+/* Aperçu 3D léger : volume torse + mapping du rendu plat (sans lib externe) */
+function draw3D(){
+  var G = garment();
+  var fit = fitStageCanvas(view3d, G);
+  var W = view3d.width, H = view3d.height;
+  vx.setTransform(1, 0, 0, 1, 0, 0);
+  vx.clearRect(0, 0, W, H);
+  vx.fillStyle = "#171311";
+  vx.fillRect(0, 0, W, H);
+
+  var yaw = yaw3d * Math.PI / 180;
+  var cols = 16, rows = 22;
+  var src = mock;
+  if(src.width < 2 || src.height < 2) return;
+
+  for(var j = 0; j < rows; j++){
+    var v0 = j / rows, v1 = (j + 1) / rows;
+    for(var i = 0; i < cols; i++){
+      var u0 = i / cols, u1 = (i + 1) / cols;
+      var p00 = projectCloth(u0, v0, W, H, yaw);
+      var p10 = projectCloth(u1, v0, W, H, yaw);
+      var p11 = projectCloth(u1, v1, W, H, yaw);
+      var p01 = projectCloth(u0, v1, W, H, yaw);
+      var shade = 0.72 + 0.28 * Math.cos((u0 - 0.5) * Math.PI) * Math.cos(yaw * 0.65);
+      vx.save();
+      vx.globalAlpha = Math.max(0.55, Math.min(1, shade));
+      vx.beginPath();
+      vx.moveTo(p00.x, p00.y);
+      vx.lineTo(p10.x, p10.y);
+      vx.lineTo(p11.x, p11.y);
+      vx.lineTo(p01.x, p01.y);
+      vx.closePath();
+      vx.clip();
+      var sx = u0 * src.width, sy = v0 * src.height;
+      var sw = Math.max(1, (u1 - u0) * src.width), sh = Math.max(1, (v1 - v0) * src.height);
+      var dx = p10.x - p00.x, dy = p10.y - p00.y;
+      var ex = p01.x - p00.x, ey = p01.y - p00.y;
+      vx.imageSmoothingEnabled = true;
+      vx.setTransform(dx / sw, dy / sw, ex / sh, ey / sh, p00.x, p00.y);
+      vx.drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);
+      vx.restore();
+    }
+  }
+}
+
+function projectCloth(u, v, W, H, yaw){
+  // Coords locales vêtement [-1..1]
+  var x = (u - 0.5) * 2;
+  var y = (v - 0.05) * 2.05 - 1;
+  // Courbure torse + manches élargies en haut
+  var sleeve = Math.max(0, 1 - Math.abs(y + 0.55) * 2.2);
+  var bulge = 0.18 * Math.cos(x * Math.PI * 0.5) * (1 - Math.abs(y) * 0.35);
+  var z = bulge + sleeve * 0.08;
+  // Rotation yaw
+  var xr = x * Math.cos(yaw) - z * Math.sin(yaw);
+  var zr = x * Math.sin(yaw) + z * Math.cos(yaw);
+  var persp = 1.15 / (1.55 - zr * 0.55);
+  var scale = Math.min(W, H) * 0.46 * persp;
+  return {
+    x: W * 0.5 + xr * scale * 0.92,
+    y: H * 0.48 + y * scale * 1.05
+  };
+}
+
+function setViewMode(mode){
+  viewMode = mode;
+  el["view-flat"].classList.toggle("active", mode === "flat");
+  el["view-3d"].classList.toggle("active", mode === "3d");
+  mock.classList.toggle("on", mode === "flat");
+  view3d.classList.toggle("on", mode === "3d");
+  if(mode === "3d"){
+    drawMock(); // assure texture à jour
+    draw3D();
+    el["stage-tip"].textContent = "Glisse horizontalement pour tourner le vêtement.";
+  } else {
+    drawMock();
+    refresh();
+  }
+}
+
+/* ---------- reglages image ---------- */
+function prepare(it){
+  var px = Math.max(2, Math.round(it.w / 2.54 * DPI));
+  var py = Math.max(2, Math.round(px * it.h / it.w));
+  if(px * py > 6e6){ var k = Math.sqrt(6e6 / (px * py)); px = Math.round(px * k); py = Math.round(py * k); }
+  var cv = document.createElement("canvas");
+  cv.width = px; cv.height = py;
+  var c = cv.getContext("2d", { willReadFrequently:true });
+  c.drawImage(it.img, 0, 0, px, py);
+
+  var d = c.getImageData(0, 0, px, py);
+  var a = d.data;
+  var br = it.bright / 100, ct = (it.contrast + 100) / 100, sa = it.sat / 100;
+  for(var i = 0; i < a.length; i += 4){
+    if(!a[i+3]) continue;
+    var r = a[i] / 255, g = a[i+1] / 255, b = a[i+2] / 255;
+    r += br; g += br; b += br;
+    r = (r - .5) * ct + .5; g = (g - .5) * ct + .5; b = (b - .5) * ct + .5;
+    var lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    r = lum + (r - lum) * sa; g = lum + (g - lum) * sa; b = lum + (b - lum) * sa;
+    if(it.thr > 0){
+      var L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      var v = L < it.thr / 100 ? 0 : 1;
+      r = g = b = v;
+    }
+    a[i] = clamp255(r * 255); a[i+1] = clamp255(g * 255); a[i+2] = clamp255(b * 255);
+  }
+  c.putImageData(d, 0, 0);
+  it.prepared = cv;
+}
+function clamp255(v){ return v < 0 ? 0 : v > 255 ? 255 : v | 0; }
+
+/* ---------- items UI ---------- */
+function addImage(file){
+  if(!file) return;
+  var ext = ((file.name || "").split(".").pop() || "").toLowerCase();
+  if(/heic|heif/.test(ext) || /heic|heif/.test(file.type || "")){
+    say("Photo iPhone en HEIC : illisible par le navigateur. Réglages › Appareil photo › Formats › « Le plus compatible »."); return;
+  }
+  var fr = new FileReader();
+  fr.onload = function(){
+    var im = new Image();
+    im.onload = function(){
+      var G = garment();
+      var w = Math.min(G.printW * 0.7, 18);
+      items.push({
+        img:im, name:file.name || "image", src:fr.result,
+        w:w, h:w * im.naturalHeight / im.naturalWidth,
+        cx:G.printX + G.printW / 2, cy:G.printY + G.printH * 0.35,
+        rot:0, bright:0, contrast:0, sat:100, thr:0, prepared:null
+      });
+      var it = items[items.length - 1];
+      prepare(it);
+      sel = items.length - 1;
+      drawItems(); drawMock(); refresh();
+    };
+    im.onerror = function(){ say("Image illisible. Réexporte en PNG ou JPG."); };
+    im.src = fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+
+function drawItems(){ drawStrip(); drawCtrl(); }
+
+function drawStrip(){
+  el.strip.innerHTML = "";
+  el.itemcount.textContent = items.length + " image" + (items.length > 1 ? "s" : "");
+  items.forEach(function(it, i){
+    var t = document.createElement("button");
+    t.className = "thumb" + (i === sel ? " sel" : "");
+    t.setAttribute("aria-label", "Régler l'image " + (i + 1));
+    t.innerHTML = '<i>' + pad(i + 1) + '</i><img src="' + it.src + '" alt="">';
+    t.addEventListener("click", function(){ sel = (sel === i ? -1 : i); drawItems(); drawMock(); refresh(); });
+    el.strip.appendChild(t);
+  });
+  var plus = document.createElement("button");
+  plus.className = "thumb add";
+  plus.textContent = "+";
+  plus.setAttribute("aria-label", "Ajouter une image");
+  plus.addEventListener("click", function(){ el.file.click(); });
+  el.strip.appendChild(plus);
+}
+
+function drawCtrl(){
+  el.ctrl.innerHTML = "";
+  if(sel < 0 || !items[sel]){ el.ctrl.className = ""; return; }
+  el.ctrl.className = "on";
+  var it = items[sel];
+
+  var h = document.createElement("h3");
+  h.textContent = "Image " + pad(sel + 1);
+  el.ctrl.appendChild(h);
+  var dims = document.createElement("p");
+  dims.className = "dims";
+  function dimTxt(){
+    return it.w.toFixed(1).replace(".", ",") + " × " + it.h.toFixed(1).replace(".", ",") +
+      " cm · à " + Math.max(0, it.cy - it.h / 2).toFixed(1).replace(".", ",") + " cm du haut";
+  }
+  dims.textContent = dimTxt();
+  el.ctrl.appendChild(dims);
+  it._dims = dims; it._dimTxt = dimTxt;
+
+  el.ctrl.appendChild(slider("Largeur", 2, 70, 0.5, it.w, function(v){
+    it.h = it.h * v / it.w; it.w = v; prepare(it); drawMock(); dims.textContent = dimTxt(); refresh();
+  }, function(v){ return v.toFixed(1).replace(".", ",") + " cm"; }));
+  el.ctrl.appendChild(slider("Rotation", -180, 180, 1, it.rot, function(v){ it.rot = v; drawMock(); }, function(v){ return v + "°"; }));
+  el.ctrl.appendChild(slider("Luminosité", -50, 50, 1, it.bright, function(v){ it.bright = v; prepare(it); drawMock(); }, function(v){ return v + " %"; }));
+  el.ctrl.appendChild(slider("Contraste", -50, 100, 1, it.contrast, function(v){ it.contrast = v; prepare(it); drawMock(); }, function(v){ return v + " %"; }));
+  el.ctrl.appendChild(slider("Saturation", 0, 200, 5, it.sat, function(v){ it.sat = v; prepare(it); drawMock(); }, function(v){ return v + " %"; }));
+  el.ctrl.appendChild(slider("Seuil noir/blanc", 0, 90, 1, it.thr, function(v){ it.thr = v; prepare(it); drawMock(); }, function(v){ return v === 0 ? "désactivé" : v + " %"; }));
+
+  var row = document.createElement("div");
+  row.className = "grid";
+  row.style.marginTop = "12px";
+  var ctr = document.createElement("button");
+  ctr.className = "btn";
+  ctr.textContent = "Centrer";
+  ctr.addEventListener("click", function(){
+    var G = garment(); it.cx = G.w / 2; drawMock(); dims.textContent = dimTxt(); refresh();
+  });
+  var del = document.createElement("button");
+  del.className = "btn danger";
+  del.textContent = "Retirer";
+  del.addEventListener("click", function(){
+    items.splice(sel, 1); sel = -1; drawItems(); drawMock(); refresh();
+  });
+  row.appendChild(ctr); row.appendChild(del);
+  el.ctrl.appendChild(row);
+}
+
+function slider(label, min, max, step, val, on, fmt){
+  var f = document.createElement("div");
+  f.className = "field";
+  f.style.marginTop = "10px";
+  var row = document.createElement("div");
+  row.className = "rowval";
+  var lb = document.createElement("label"); lb.textContent = label;
+  var bv = document.createElement("b"); bv.textContent = fmt(val);
+  row.appendChild(lb); row.appendChild(bv);
+  var r = document.createElement("input");
+  r.type = "range"; r.min = min; r.max = max; r.step = step; r.value = val;
+  r.setAttribute("aria-label", label);
+  r.addEventListener("input", function(){
+    var v = parseFloat(r.value);
+    bv.textContent = fmt(v);
+    on(v);
+  });
+  f.appendChild(row); f.appendChild(r);
+  return f;
+}
+function esc(s){ return String(s).replace(/[<>&"]/g, function(c){ return { "<":"&lt;", ">":"&gt;", "&":"&amp;", '"':"&quot;" }[c]; }); }
+
+/* ---------- glisser sur le vetement / orbit 3D ---------- */
+var drag = null;
+var orbit = null;
+function stagePoint(e){
+  var r = mock.getBoundingClientRect();
+  var G = garment();
+  var S = r.width / G.w;
+  return { x:(e.clientX - r.left) / S, y:(e.clientY - r.top) / S };
+}
+function onStageDown(e){
+  if(viewMode === "3d"){
+    orbit = { x:e.clientX, yaw:yaw3d };
+    (e.target === view3d ? view3d : el.stage).setPointerCapture && view3d.setPointerCapture(e.pointerId);
+    return;
+  }
+  var p = stagePoint(e);
+  for(var i = items.length - 1; i >= 0; i--){
+    var it = items[i];
+    var dx = p.x - it.cx, dy = p.y - it.cy;
+    var a = -it.rot * Math.PI / 180;
+    var rx = dx * Math.cos(a) - dy * Math.sin(a), ry = dx * Math.sin(a) + dy * Math.cos(a);
+    if(Math.abs(rx) <= it.w / 2 && Math.abs(ry) <= it.h / 2){
+      sel = i; drag = { i:i, ox:dx, oy:dy };
+      mock.setPointerCapture(e.pointerId);
+      drawItems(); drawMock();
+      return;
+    }
+  }
+  sel = -1; drawItems(); drawMock();
+}
+function onStageMove(e){
+  if(viewMode === "3d" && orbit){
+    e.preventDefault();
+    yaw3d = orbit.yaw + (e.clientX - orbit.x) * 0.35;
+    draw3D();
+    return;
+  }
+  if(!drag) return;
+  e.preventDefault();
+  var p = stagePoint(e);
+  var it = items[drag.i];
+  it.cx = p.x - drag.ox; it.cy = p.y - drag.oy;
+  var G = garment();
+  // DIY : on peut déborder légèrement — toute la pièce reste la zone utile
+  it.cx = Math.max(-it.w / 3, Math.min(G.w + it.w / 3, it.cx));
+  it.cy = Math.max(-it.h / 3, Math.min(G.h + it.h / 3, it.cy));
+  if(it._dims) it._dims.textContent = it._dimTxt();
+  drawMock();
+}
+function onStageUp(){
+  if(orbit){ orbit = null; return; }
+  if(drag){ drag = null; refresh(); }
+}
+[mock, view3d, el.stage].forEach(function(node){
+  node.addEventListener("pointerdown", onStageDown);
+  node.addEventListener("pointermove", onStageMove);
+  node.addEventListener("pointerup", onStageUp);
+  node.addEventListener("pointercancel", onStageUp);
+});
+
+/* ---------- cadres ---------- */
+var BORDER = 5;  // cm de bord minimum a l'interieur du cadre
+function usable(f){ return { w:Math.max(0, f.w - 2 * BORDER), h:Math.max(0, f.h - 2 * BORDER) }; }
+
+function drawFrames(){
+  el.frames.innerHTML = "";
+  frames.forEach(function(f, i){
+    var row = document.createElement("div");
+    row.className = "frame";
+    var u = usable(f);
+    var lab = document.createElement("span");
+    lab.innerHTML = "Cadre " + (i + 1) + '<br><span class="u">zone utile ' +
+      u.w.toFixed(0) + " × " + u.h.toFixed(0) + " cm</span>";
+    row.appendChild(lab);
+    [["w", f.w], ["h", f.h]].forEach(function(d){
+      var inp = document.createElement("input");
+      inp.type = "number"; inp.step = "0.5"; inp.min = "10"; inp.value = d[1];
+      inp.setAttribute("aria-label", (d[0] === "w" ? "Largeur" : "Hauteur") + " du cadre " + (i + 1));
+      inp.addEventListener("change", function(){
+        var v = parseFloat(inp.value);
+        if(isFinite(v) && v >= 10){ f[d[0]] = v; drawFrames(); refresh(); }
+      });
+      row.appendChild(inp);
+    });
+    var rm = document.createElement("button");
+    rm.className = "btn danger";
+    rm.textContent = "×";
+    rm.setAttribute("aria-label", "Retirer le cadre " + (i + 1));
+    rm.disabled = frames.length < 2;
+    rm.addEventListener("click", function(){ frames.splice(i, 1); drawFrames(); refresh(); });
+    row.appendChild(rm);
+    el.frames.appendChild(row);
+  });
+}
+
+/* ---------- bilan ---------- */
+function designBox(){
+  if(!items.length) return null;
+  var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  items.forEach(function(it){
+    var a = it.rot * Math.PI / 180;
+    var hw = it.w / 2, hh = it.h / 2;
+    [[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]].forEach(function(p){
+      var x = it.cx + p[0] * Math.cos(a) - p[1] * Math.sin(a);
+      var y = it.cy + p[0] * Math.sin(a) + p[1] * Math.cos(a);
+      if(x < x0) x0 = x; if(x > x1) x1 = x;
+      if(y < y0) y0 = y; if(y > y1) y1 = y;
+    });
+  });
+  return { x:x0, y:y0, w:x1 - x0, h:y1 - y0 };
+}
+
+function inkCount(){
+  var m = el.mode.value;
+  var n = m === "cmyk" ? 4 : m === "index" ? parseInt(el.ncol.value, 10) - (el.dropbg.checked ? 1 : 0) : 1;
+  return Math.max(1, n) + (el.base.checked ? 1 : 0);
+}
+
+function refresh(){
+  var G = garment();
+  el.ghint.textContent = G.n + " " + el.gsize.value + " · " + G.w + " × " + G.h +
+    " cm · zone d'impression = vêtement entier (DIY)";
+
+  var P = PRESETS[el.preset.value];
+  if(el.lpi.dataset.sync !== "off"){ el.lpi.value = P.lpi || 35; }
+  el.lpi.disabled = P.lpi === 0;
+  var lpi = P.lpi === 0 ? 0 : parseFloat(el.lpi.value);
+  el["lpi-v"].textContent = lpi ? lpi + " lpi" : "aplats";
+  el["gain-v"].textContent = el.gain.value + " %";
+  el["ncol-v"].textContent = el.ncol.value;
+  el.ncolwrap.style.display = el.mode.value === "index" ? "flex" : "none";
+  el.phint.textContent = P.t + (lpi ? "  Point de " + (25.4 / lpi).toFixed(2).replace(".", ",") + " mm." : "");
+
+  var inks = inkCount();
+  el.chint.textContent = inks + " encre" + (inks > 1 ? "s" : "") + " = " + inks + " écran" +
+    (inks > 1 ? "s" : "") + " à insoler." +
+    (el.mode.value === "index" && el.dropbg.checked ? " La couleur la plus proche du textile n'est pas imprimée." : "");
+
+  var box = designBox();
+  var msgs = [];
+  frames.forEach(function(f, i){
+    var u = usable(f);
+    if(box && (box.w > u.w || box.h > u.h)){
+      msgs.push("Cadre " + (i + 1) + " trop petit pour un visuel de " +
+        box.w.toFixed(1).replace(".", ",") + " × " + box.h.toFixed(1).replace(".", ",") + " cm.");
+    }
+  });
+  var cap = frames.filter(function(f){
+    var u = usable(f);
+    return box && box.w <= u.w && box.h <= u.h;
+  }).length;
+  if(box){
+    if(!cap) msgs.push("Aucun cadre ne peut recevoir ce visuel — réduis-le ou prends un cadre plus grand.");
+    else if(cap < inks) msgs.push(inks + " encres pour " + cap + " cadre" + (cap > 1 ? "s" : "") +
+      " utilisable" + (cap > 1 ? "s" : "") + " : il faudra dégraver et réinsoler entre les passes.");
+  }
+  el.fhint.textContent = msgs.length ? msgs.join(" ") :
+    (box ? "Visuel de " + box.w.toFixed(1).replace(".", ",") + " × " + box.h.toFixed(1).replace(".", ",") +
+           " cm — ça rentre sur " + cap + " cadre" + (cap > 1 ? "s" : "") + "."
+         : "Bord de 5 cm réservé à l'intérieur de chaque cadre pour la réserve d'encre et la racle.");
+
+  el.run.disabled = !items.length;
+  if(viewMode === "3d"){
+    el["stage-tip"].textContent = "Glisse horizontalement pour tourner le vêtement. Repasse en Plat pour placer les images.";
+  } else {
+    el["stage-tip"].textContent = items.length
+      ? (sel >= 0 ? "Glisse l'image n'importe où — manches et bas inclus." : "Touche une vignette pour régler une image.")
+      : "Touche + pour ajouter une image, puis place-la partout sur le vêtement.";
+  }
+}
+
+/* ---------- ecouteurs ---------- */
+el.add.addEventListener("click", function(){ el.file.click(); });
+el.file.addEventListener("change", function(e){ addImage(e.target.files[0]); e.target.value = ""; });
+el.addframe.addEventListener("click", function(){
+  frames.push({ w:42, h:59.4 }); drawFrames(); refresh();
+});
+["gtype","gsize","gcol"].forEach(function(id){
+  el[id].addEventListener("change", function(){ drawMock(); refresh(); });
+});
+el.preset.addEventListener("change", function(){ el.lpi.dataset.sync = "on"; refresh(); });
+el.lpi.addEventListener("input", function(){ el.lpi.dataset.sync = "off"; refresh(); });
+["gain","shape","mode","ncol","base","dropbg"].forEach(function(id){
+  el[id].addEventListener("input", refresh);
+  el[id].addEventListener("change", refresh);
+});
+el["view-flat"].addEventListener("click", function(){ setViewMode("flat"); });
+el["view-3d"].addEventListener("click", function(){ setViewMode("3d"); });
+var resizeTimer = 0;
+window.addEventListener("resize", function(){
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function(){ drawMock(); refresh(); }, 80);
+});
+
+function say(t){ el.status.textContent = t; }
+function progress(p){
+  el.bar.style.display = p === null ? "none" : "block";
+  if(p !== null) el.bar.firstElementChild.style.width = Math.round(p * 100) + "%";
+}
+function wait(){ return new Promise(function(r){ setTimeout(r, 16); }); }
+function pad(n){ return n < 10 ? "0" + n : "" + n; }
+function slug(s){
+  return s.toLowerCase().replace(/[àâä]/g,"a").replace(/[éèêë]/g,"e").replace(/[îï]/g,"i")
+    .replace(/[ôö]/g,"o").replace(/[ùûü]/g,"u").replace(/ç/g,"c").replace(/[^a-z0-9]+/g,"-");
+}
+
+/* ---------- composition a la resolution d'impression ---------- */
+function buildDesign(box){
+  var w = Math.round(box.w / 2.54 * DPI), h = Math.round(box.h / 2.54 * DPI);
+  if(w * h > MAXPX){
+    var k = Math.sqrt(MAXPX / (w * h));
+    w = Math.round(w * k); h = Math.round(h * k);
+  }
+  var S = w / box.w;
+  var cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  var c = cv.getContext("2d", { willReadFrequently:true });
+  items.forEach(function(it){
+    c.save();
+    c.translate((it.cx - box.x) * S, (it.cy - box.y) * S);
+    c.rotate(it.rot * Math.PI / 180);
+    c.drawImage(it.prepared, -it.w / 2 * S, -it.h / 2 * S, it.w * S, it.h * S);
+    c.restore();
+  });
+  return { cv:cv, w:w, h:h, dpi:S * 2.54 };
+}
+
+/* ---------- separation ---------- */
+function toneMaps(design, cell, mode, n){
+  var step = Math.max(1, Math.floor(cell / 2) || 1);
+  var tw = Math.max(2, Math.round(design.w / step)), th = Math.max(2, Math.round(design.h / step));
+  var cv = document.createElement("canvas");
+  cv.width = tw; cv.height = th;
+  var c = cv.getContext("2d", { willReadFrequently:true });
+  c.imageSmoothingQuality = "high";
+  c.drawImage(design.cv, 0, 0, tw, th);
+  var d = c.getImageData(0, 0, tw, th).data;
+  var N = tw * th;
+
+  var px = [];
+  for(var i = 0; i < N; i++){
+    var a = d[i*4+3] / 255;
+    px.push([ (d[i*4]/255)*a + (1-a), (d[i*4+1]/255)*a + (1-a), (d[i*4+2]/255)*a + (1-a), a ]);
+  }
+
+  var plates = [];
+  if(mode === "mono"){
+    var m = new Float32Array(N);
+    for(i = 0; i < N; i++) m[i] = 1 - (0.2126*px[i][0] + 0.7152*px[i][1] + 0.0722*px[i][2]);
+    plates.push({ id:"mono", name:"Encre", ink:"#1a1a1a", map:m, halftone:true });
+  } else if(mode === "cmyk"){
+    var ids = [["y","Jaune","#ffe800"],["m","Magenta","#e6007e"],["c","Cyan","#009fe3"],["k","Noir","#1a1a1a"]];
+    var maps = { c:new Float32Array(N), m:new Float32Array(N), y:new Float32Array(N), k:new Float32Array(N) };
+    for(i = 0; i < N; i++){
+      var r = px[i][0], g = px[i][1], b = px[i][2];
+      var k = 1 - Math.max(r, g, b), den = 1 - k;
+      maps.k[i] = k;
+      if(den > 1e-4){
+        maps.c[i] = (1 - r - k) / den; maps.m[i] = (1 - g - k) / den; maps.y[i] = (1 - b - k) / den;
+      }
+    }
+    ids.forEach(function(t){ plates.push({ id:t[0], name:t[1], ink:t[2], map:maps[t[0]], halftone:true }); });
+  } else {
+    plates = indexSeparate(px, N, n);
+  }
+  return { plates:plates, tw:tw, th:th };
+}
+
+// quantification median-cut puis un aplat par couleur
+function indexSeparate(px, N, n){
+  var sample = [];
+  var stride = Math.max(1, Math.floor(N / 20000));
+  for(var i = 0; i < N; i += stride) if(px[i][3] > 0.5) sample.push(px[i]);
+  if(!sample.length) return [];
+
+  var boxes = [sample];
+  while(boxes.length < n){
+    var bi = 0, best = -1;
+    boxes.forEach(function(b, j){
+      if(b.length < 2) return;
+      var r = spread(b);
+      if(r.range > best){ best = r.range; bi = j; }
+    });
+    if(best < 0) break;
+    var b = boxes[bi], ax = spread(b).axis;
+    b.sort(function(p, q){ return p[ax] - q[ax]; });
+    var mid = b.length >> 1;
+    boxes.splice(bi, 1, b.slice(0, mid), b.slice(mid));
+  }
+
+  var pal = boxes.map(function(b){
+    var s = [0, 0, 0];
+    b.forEach(function(p){ s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; });
+    return [s[0] / b.length, s[1] / b.length, s[2] / b.length];
+  });
+
+  // la couleur la plus claire est celle que le textile peut remplacer
+  var skip = -1;
+  if(el.dropbg.checked){
+    var bright = -1;
+    pal.forEach(function(p, j){
+      var L = 0.2126*p[0] + 0.7152*p[1] + 0.0722*p[2];
+      if(L > bright){ bright = L; skip = j; }
+    });
+  }
+
+  var maps = pal.map(function(){ return new Float32Array(N); });
+  for(i = 0; i < N; i++){
+    if(px[i][3] < 0.5) continue;
+    var bestD = Infinity, bj = 0;
+    for(var j = 0; j < pal.length; j++){
+      var dr = px[i][0]-pal[j][0], dg = px[i][1]-pal[j][1], db = px[i][2]-pal[j][2];
+      var dd = dr*dr + dg*dg + db*db;
+      if(dd < bestD){ bestD = dd; bj = j; }
+    }
+    maps[bj][i] = 1;
+  }
+
+  var out = [];
+  pal.forEach(function(p, j){
+    if(j === skip) return;
+    out.push({
+      id:"i" + j, name:"Encre " + (out.length + 1),
+      ink:"rgb(" + Math.round(p[0]*255) + "," + Math.round(p[1]*255) + "," + Math.round(p[2]*255) + ")",
+      map:maps[j], halftone:false
+    });
+  });
+  return out;
+}
+function spread(b){
+  var lo = [1,1,1], hi = [0,0,0];
+  b.forEach(function(p){
+    for(var k = 0; k < 3; k++){ if(p[k] < lo[k]) lo[k] = p[k]; if(p[k] > hi[k]) hi[k] = p[k]; }
+  });
+  var axis = 0, range = -1;
+  for(var k = 0; k < 3; k++){ if(hi[k] - lo[k] > range){ range = hi[k] - lo[k]; axis = k; } }
+  return { axis:axis, range:range };
+}
+
+/* ---------- rendu d'un film ---------- */
+function renderFilm(ctx, w, h, plate, tone, cell, angle){
+  var map = plate.map, tw = tone.tw, th = tone.th;
+  var kx = tw / w, ky = th / h;
+  ctx.fillStyle = "#000";
+
+  if(!plate.halftone || !cell){
+    // aplat plein : un pixel de sortie par valeur
+    var id = ctx.createImageData(w, h);
+    for(var y = 0; y < h; y++){
+      var sy = Math.min(th - 1, y * ky | 0);
+      for(var x = 0; x < w; x++){
+        var sx = Math.min(tw - 1, x * kx | 0);
+        var on = map[sy * tw + sx] > 0.5;
+        var o = (y * w + x) * 4;
+        id.data[o] = id.data[o+1] = id.data[o+2] = on ? 0 : 255;
+        id.data[o+3] = 255;
+      }
+    }
+    ctx.putImageData(id, 0, 0);
+    return;
+  }
+
+  var gamma = 1 + parseFloat(el.gain.value) / 100;
+  var square = el.shape.value === "square";
+  var t = angle * Math.PI / 180, cos = Math.cos(t), sin = Math.sin(t);
+  var maxR = cell * 0.72, cx0 = w / 2, cy0 = h / 2;
+  var reach = Math.ceil((Math.hypot(w, h) / 2) / cell) + 2;
+  ctx.beginPath();
+  for(var j = -reach; j <= reach; j++){
+    for(var i = -reach; i <= reach; i++){
+      var pxx = cx0 + cell * (i*cos - j*sin), pyy = cy0 + cell * (i*sin + j*cos);
+      if(pxx < -cell || pxx > w + cell || pyy < -cell || pyy > h + cell) continue;
+      var sx2 = Math.min(tw - 1, Math.max(0, pxx * kx | 0));
+      var sy2 = Math.min(th - 1, Math.max(0, pyy * ky | 0));
+      var v = map[sy2 * tw + sx2];
+      if(v <= 0) continue;
+      if(v > 1) v = 1;
+      v = Math.pow(v, gamma);
+      if(v <= 0.05) continue;
+      if(v >= 0.95) v = 1;
+      if(square){
+        var s = cell * Math.sqrt(v) * 0.5;
+        var ax = cos*s, ay = sin*s, bx = -sin*s, by = cos*s;
+        ctx.moveTo(pxx-ax-bx, pyy-ay-by); ctx.lineTo(pxx+ax-bx, pyy+ay-by);
+        ctx.lineTo(pxx+ax+bx, pyy+ay+by); ctx.lineTo(pxx-ax+bx, pyy-ay+by);
+        ctx.closePath();
+      } else {
+        var r2 = maxR * Math.sqrt(v);
+        ctx.moveTo(pxx + r2, pyy); ctx.arc(pxx, pyy, r2, 0, TAU);
+      }
+    }
+  }
+  ctx.fill();
+}
+
+function marks(ctx, w, h, dpi){
+  var mm = dpi / 25.4, off = 6*mm, arm = 3*mm;
+  ctx.save();
+  ctx.strokeStyle = "#000"; ctx.lineWidth = Math.max(1, 0.3*mm);
+  [[off,off],[w-off,off],[off,h-off],[w-off,h-off]].forEach(function(p){
+    ctx.beginPath();
+    ctx.moveTo(p[0]-arm, p[1]); ctx.lineTo(p[0]+arm, p[1]);
+    ctx.moveTo(p[0], p[1]-arm); ctx.lineTo(p[0], p[1]+arm);
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(p[0], p[1], 1.6*mm, 0, TAU); ctx.stroke();
+  });
+  ctx.restore();
+}
+
+/* ---------- affichage ---------- */
+function shot(parent, canvas, alt, caption){
+  var im = new Image();
+  im.alt = alt;
+  im.src = canvas.toDataURL("image/png");
+  parent.appendChild(im);
+  var c = document.createElement("p");
+  c.className = "cap"; c.textContent = caption;
+  parent.appendChild(c);
+}
+function shrink(cv, pw){
+  var w = Math.min(pw, cv.width);
+  var o = document.createElement("canvas");
+  o.width = w; o.height = Math.max(1, Math.round(cv.height * w / cv.width));
+  var c = o.getContext("2d");
+  c.fillStyle = "#fff"; c.fillRect(0, 0, o.width, o.height);
+  c.drawImage(cv, 0, 0, o.width, o.height);
+  return o;
+}
+function detail(cv){
+  var dw = Math.min(cv.width, 700), dh = Math.min(cv.height, 320);
+  var o = document.createElement("canvas");
+  o.width = dw; o.height = dh;
+  var c = o.getContext("2d");
+  c.fillStyle = "#fff"; c.fillRect(0, 0, dw, dh);
+  c.drawImage(cv, (cv.width-dw)/2|0, (cv.height-dh)/2|0, dw, dh, 0, 0, dw, dh);
+  return o;
+}
+function card(name, ink, code, cv, file, showDetail){
+  var d = document.createElement("div");
+  d.className = "plate";
+  var h = document.createElement("div");
+  h.className = "plate-h";
+  h.innerHTML = '<span class="sw" style="background:' + ink + '"></span><b>' + esc(name) +
+    '</b><code>' + esc(code) + '</code>';
+  d.appendChild(h);
+  shot(d, shrink(cv, 700), "Film " + name, "Aperçu");
+  if(showDetail) shot(d, detail(cv), "Détail " + name, "Détail à 100 % — taille réelle des points");
+  var f = document.createElement("div");
+  f.className = "plate-f";
+  var a = document.createElement("a");
+  a.textContent = "Télécharger " + file;
+  a.download = file; a.href = "#";
+  f.appendChild(a);
+  d.appendChild(f);
+  el.plates.appendChild(d);
+  cv.toBlob(function(b){ var u = URL.createObjectURL(b); urls.push(u); a.href = u; }, "image/png");
+}
+
+/* ---------- plan de production ---------- */
+function buildPlan(plates, box, lpi){
+  var G = garment();
+  var caps = frames.map(function(f, i){
+    var u = usable(f);
+    return { i:i, ok:box.w <= u.w && box.h <= u.h, u:u };
+  });
+  var ok = caps.filter(function(c){ return c.ok; });
+  var sessions = ok.length ? Math.ceil(plates.length / ok.length) : 0;
+
+  var html = "<h3>Plan de tirage</h3><ol>";
+  html += "<li>" + G.n + " " + el.gsize.value + " — visuel de " +
+    box.w.toFixed(1).replace(".", ",") + " × " + box.h.toFixed(1).replace(".", ",") +
+    " cm, posé à " + (box.y).toFixed(1).replace(".", ",") + " cm du haut du vêtement.</li>";
+  html += "<li>" + plates.length + " écran" + (plates.length > 1 ? "s" : "") + " à insoler" +
+    (lpi ? ", trame " + lpi + " lpi (point de " + (25.4/lpi).toFixed(2).replace(".", ",") + " mm)" : ", aplats sans trame") + ".</li>";
+
+  if(!ok.length){
+    html += '<li class="flag">Aucun cadre assez grand : il faut ' +
+      (box.w + 2*BORDER).toFixed(0) + " × " + (box.h + 2*BORDER).toFixed(0) +
+      " cm minimum, bords compris.</li>";
+  } else if(sessions > 1){
+    html += '<li class="flag">' + plates.length + " écrans pour " + ok.length + " cadre" +
+      (ok.length > 1 ? "s" : "") + " : " + sessions +
+      " sessions, avec dégravage et réinsolation entre chaque.</li>";
+  } else {
+    html += "<li>Un cadre par couleur, tout se tire d'affilée.</li>";
+  }
+
+  html += "<li>Ordre des passes : " + plates.map(function(p, i){
+    return pad(i + 1) + " " + p.name.toLowerCase();
+  }).join(" → ") + ".</li>";
+  html += "<li>Cale sur les mires : elles sont au même endroit sur tous les films.</li>";
+  html += "</ol>";
+  el.plan.innerHTML = html;
+}
+
+/* ---------- run ---------- */
+async function run(){
+  if(!items.length) return;
+  var box = designBox();
+  el.run.disabled = true;
+  urls.forEach(URL.revokeObjectURL); urls = [];
+  el.plates.innerHTML = ""; el.plan.innerHTML = "";
+  el.out.style.display = "block";
+  progress(0);
+
+  say("Composition…");
+  await wait();
+  var design = buildDesign(box);
+  var lpi = PRESETS[el.preset.value].lpi === 0 ? 0 : parseFloat(el.lpi.value);
+  var cell = lpi ? design.dpi / lpi : 0;
+
+  say("Séparation…");
+  await wait();
+  var tone = toneMaps(design, cell || 4, el.mode.value, parseInt(el.ncol.value, 10));
+  var plates = tone.plates;
+
+  if(el.base.checked){
+    var bm = new Float32Array(tone.tw * tone.th);
+    plates.forEach(function(p){
+      for(var i = 0; i < bm.length; i++) if(p.map[i] > 0.02) bm[i] = 1;
+    });
+    plates.unshift({ id:"base", name:"Base blanche", ink:"#ffffff", map:bm, halftone:false });
+  }
+
+  buildPlan(plates, box, lpi);
+
+  var angles = [0, 75, 15, 45, 30, 60, 22];
+  for(var i = 0; i < plates.length; i++){
+    var p = plates[i];
+    say("Film " + (i + 1) + "/" + plates.length + "…");
+    await wait();
+    var cv = document.createElement("canvas");
+    cv.width = design.w; cv.height = design.h;
+    var c = cv.getContext("2d");
+    c.fillStyle = "#fff"; c.fillRect(0, 0, cv.width, cv.height);
+    renderFilm(c, design.w, design.h, p, tone, cell, angles[i % angles.length]);
+    marks(c, design.w, design.h, design.dpi);
+    card(p.name, p.ink,
+      pad(i + 1) + " · " + box.w.toFixed(1).replace(".", ",") + " cm" + (p.halftone && lpi ? " · " + lpi + " lpi" : " · aplat"),
+      cv, pad(i + 1) + "-" + slug(p.name) + ".png", p.halftone && !!lpi);
+    progress((i + 1) / plates.length);
+    await wait();
+  }
+
+  progress(null);
+  say(plates.length + " film" + (plates.length > 1 ? "s" : "") + " · " + design.w + " × " + design.h + " px");
+  el.run.disabled = false;
+  el.out.scrollIntoView({ behavior:"smooth", block:"start" });
+}
+el.run.addEventListener("click", function(){
+  run().catch(function(e){
+    progress(null); el.run.disabled = false;
+    say("Interrompu : " + e.message + ". Réduis la taille du visuel.");
+  });
+});
+
+loadMockups();
+drawFrames();
+drawItems();
+setViewMode("flat");
+drawMock();
+refresh();
+})();
+</script>
+</body>
+</html>
