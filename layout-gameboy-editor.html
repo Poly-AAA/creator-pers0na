@@ -96,13 +96,13 @@
     background:rgba(8,20,32,.9); font-size:11px; color:var(--dim);
   }
 
-  /* D-pad iso — croix tournée 45° (bras = arêtes du losange map) */
+  /* D-pad iso — croix longue 45°, pastilles rondes translucides */
   #w-dpad .chrome{
-    background:rgba(6,14,22,.55); display:grid; place-items:center;
-    overflow:visible;
+    background:transparent; border-color:rgba(39,224,255,.22);
+    display:grid; place-items:center; overflow:visible;
   }
   .dpad-wrap{
-    position:relative; width:72%; aspect-ratio:1;
+    position:relative; width:94%; aspect-ratio:1;
     display:grid; place-items:center;
   }
   .dpad{
@@ -110,65 +110,106 @@
     transform:rotate(45deg);
     transform-origin:center center;
   }
-  .dpad button{
-    position:absolute; width:34%; height:34%; border:0; border-radius:10px;
-    background:#1a3044; color:var(--cyan); font-size:15px; font-weight:900;
-    box-shadow:inset 0 0 0 1px var(--line), 0 2px 0 rgba(0,0,0,.35);
+  /* bras longs, très discrets */
+  .dpad::before, .dpad::after{
+    content:""; position:absolute; left:50%; top:50%;
+    background:rgba(180,210,230,.12);
+    border-radius:999px;
+    pointer-events:none;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
   }
-  /* flèches pointent le long des axes iso (suivent la rotation 45°) */
-  .dpad .u{left:33%; top:2%}
-  .dpad .d{left:33%; bottom:2%}
-  .dpad .l{left:2%; top:33%}
-  .dpad .r{right:2%; top:33%}
+  .dpad::before{ width:92%; height:16%; transform:translate(-50%,-50%); }
+  .dpad::after{ width:16%; height:92%; transform:translate(-50%,-50%); }
+  .dpad button{
+    position:absolute; width:26%; height:26%; border:0; border-radius:50%;
+    background:rgba(20,40,58,.26);
+    color:rgba(180,230,255,.88);
+    font-size:12px; font-weight:900;
+    backdrop-filter:blur(2px);
+    -webkit-backdrop-filter:blur(2px);
+    box-shadow:
+      inset 0 0 0 1.5px rgba(255,255,255,.30),
+      inset 0 -3px 6px rgba(0,0,0,.22),
+      0 2px 8px rgba(0,0,0,.18);
+  }
+  .dpad button:active{ background:rgba(39,224,255,.30); color:#fff; }
+  /* pastilles aux extrémités — croix plus longue / ergonomique */
+  .dpad .u{left:37%; top:-4%}
+  .dpad .d{left:37%; bottom:-4%}
+  .dpad .l{left:-4%; top:37%}
+  .dpad .r{right:-4%; top:37%}
   .dpad .c{
-    left:33%; top:33%; width:34%; height:34%; border-radius:50%;
-    background:#0d2233; color:var(--dim); font-size:8px;
-    /* texte lisible à l’endroit */
+    left:37%; top:37%; width:26%; height:26%; border-radius:50%;
+    background:rgba(8,18,28,.18);
+    color:rgba(160,190,210,.65); font-size:7px; letter-spacing:.3px;
     transform:rotate(-45deg);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);
   }
   .dpad-cap{
-    position:absolute; left:50%; bottom:-2px; transform:translateX(-50%);
-    font-size:8px; color:var(--dim); white-space:nowrap; pointer-events:none;
+    position:absolute; left:50%; bottom:1px; transform:translateX(-50%);
+    font-size:8px; color:rgba(122,147,168,.65); white-space:nowrap; pointer-events:none;
   }
 
-  /* 4 sorts */
+  /* 4 sorts — pastilles rondes translucides */
   #w-spells .chrome{
-    display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:8px;
-    background:rgba(6,14,22,.8);
+    display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px;
+    background:transparent; border-color:rgba(39,224,255,.22);
+    align-items:center; justify-items:center;
   }
   .spell{
-    border:0; border-radius:10px; padding:8px 6px; text-align:left;
-    background:#13283a; color:var(--txt); box-shadow:inset 0 0 0 1px var(--line);
-    min-height:44px;
+    width:72px; height:72px; max-width:100%;
+    border:0; border-radius:50%; padding:8px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+    background:rgba(18,40,58,.30);
+    color:var(--txt);
+    backdrop-filter:blur(2px);
+    -webkit-backdrop-filter:blur(2px);
+    box-shadow:
+      inset 0 0 0 1.5px rgba(39,224,255,.35),
+      inset 0 -4px 8px rgba(0,0,0,.25),
+      0 3px 10px rgba(0,0,0,.18);
+    min-height:0;
   }
-  .spell .n{display:block; font-size:11px; font-weight:800; color:var(--cyan)}
-  .spell .m{display:block; font-size:9px; color:var(--dim); margin-top:2px}
-  .spell:nth-child(1){box-shadow:inset 0 0 0 1px rgba(255,138,60,.55)}
+  .spell .n{display:block; font-size:9px; font-weight:800; color:var(--cyan); line-height:1.15;
+    max-width:64px; overflow:hidden; text-overflow:ellipsis}
+  .spell .m{display:block; font-size:8px; color:rgba(180,200,220,.75); margin-top:3px}
+  .spell:nth-child(1){
+    box-shadow:inset 0 0 0 1.5px rgba(255,138,60,.55), inset 0 -4px 8px rgba(0,0,0,.25);
+  }
   .spell:nth-child(1) .n{color:var(--orange)}
+  .spell:nth-child(2){ box-shadow:inset 0 0 0 1.5px rgba(60,224,138,.45), inset 0 -4px 8px rgba(0,0,0,.25); }
+  .spell:nth-child(3){ box-shadow:inset 0 0 0 1.5px rgba(190,150,255,.45), inset 0 -4px 8px rgba(0,0,0,.25); }
+  .spell:nth-child(4){ box-shadow:inset 0 0 0 1.5px rgba(255,210,60,.4), inset 0 -4px 8px rgba(0,0,0,.25); }
 
-  #w-end .chrome{padding:0; background:transparent; border:0; box-shadow:none}
+  #w-end .chrome{padding:0; background:transparent; border-color:rgba(255,138,60,.35); box-shadow:none}
   #w-end button{
-    width:100%; height:100%; border:0; border-radius:12px;
-    background:linear-gradient(180deg,#c45a1a,#8a3a10); color:#fff;
-    font-weight:900; letter-spacing:.5px; font-size:13px;
-    box-shadow:0 4px 0 #5a2408, inset 0 0 0 1px rgba(255,255,255,.2);
+    width:100%; height:100%; border:0; border-radius:999px;
+    background:rgba(168,74,20,.42); color:#fff;
+    font-weight:900; letter-spacing:.5px; font-size:12px;
+    backdrop-filter:blur(2px);
+    box-shadow:inset 0 0 0 1.5px rgba(255,200,150,.45), 0 3px 8px rgba(0,0,0,.22);
   }
 
   #w-zoom .chrome{
     display:flex; align-items:center; justify-content:center; gap:6px;
-    padding:4px; background:rgba(8,20,32,.9);
+    padding:4px; background:rgba(8,20,32,.32); border-color:rgba(39,224,255,.28);
   }
   #w-zoom button{
-    width:32px; height:32px; border-radius:8px; border:1px solid var(--line);
-    background:#122536; color:var(--cyan); font-size:16px; font-weight:900;
+    width:32px; height:32px; border-radius:50%; border:1px solid rgba(39,224,255,.4);
+    background:rgba(18,40,58,.38); color:var(--cyan); font-size:16px; font-weight:900;
   }
   #w-zoom span{min-width:40px; text-align:center; font-size:11px; color:var(--dim)}
 
   #w-confirm .chrome{
     display:flex; align-items:center; justify-content:center;
-    background:rgba(255,138,60,.18); border-color:rgba(255,138,60,.6);
+    background:rgba(255,138,60,.12); border-color:rgba(255,138,60,.4);
     font-size:11px; font-weight:700; color:var(--orange); text-align:center;
-    padding:6px;
+    padding:6px; border-radius:999px;
+  }
+
+  #w-hint .chrome, #w-header .chrome{
+    background:rgba(8,20,32,.52);
   }
 
   /* panneau règles / liste */
@@ -226,7 +267,8 @@
 <aside id="drawer">
   <h2>Widgets & règles</h2>
   <div class="rules">
-    <b>Déplacement (croix iso)</b><br/>
+    <b>Déplacement (croix iso à 45°)</b><br/>
+    • Croix tournée <b>+45°</b> : les bras suivent les arêtes du losange de la map.<br/>
     • Même direction enchaînée <b>avant la fin</b> du move → 1 appui = +1 PM (continue / court).<br/>
     • Sinon → <b>prévisualisation</b> puis confirmation (2ᵉ appui = 1 PM, 3 = 2 PM…).<br/>
     • ≥ 2 PM → anim <b>Run</b> ; changement de direction possible en course.<br/><br/>
@@ -242,7 +284,7 @@
 
 <script>
 (function(){
-  const STORE = "neuro.layout.gb.v2";
+  const STORE = "neuro.layout.gb.v3";
   const SNAP = 8;
   let snapOn = true;
   let selected = null;
@@ -252,8 +294,8 @@
     map:     { x:0,  y:8,  w:100, h:92, z:1,  lock:false, on:true },
     header:  { x:2,  y:1,  w:96,  h:10, z:5,  lock:false, on:true },
     hint:    { x:2,  y:56, w:96,  h:5,  z:5,  lock:false, on:true },
-    dpad:    { x:1,  y:62, w:44,  h:34, z:10, lock:false, on:true },
-    spells:  { x:50, y:64, w:48,  h:22, z:10, lock:false, on:true },
+    dpad:    { x:0,  y:58, w:52,  h:40, z:10, lock:false, on:true },
+    spells:  { x:50, y:62, w:48,  h:26, z:10, lock:false, on:true },
     end:     { x:50, y:88, w:28,  h:9,  z:11, lock:false, on:true },
     zoom:    { x:79, y:14, w:19,  h:8,  z:11, lock:false, on:true },
     confirm: { x:2,  y:48, w:44,  h:7,  z:12, lock:false, on:true },
@@ -273,7 +315,7 @@
           <button class="d" type="button">▼</button>
         </div>
       </div>
-      <div class="dpad-cap">+45° · axes du losange</div>` },
+      <div class="dpad-cap">croix longue · pastilles</div>` },
     spells:  { title:"4 sorts", html:`
       <button class="spell" type="button"><span class="n">Coup de poing</span><span class="m">2 PA · Pt1</span></button>
       <button class="spell" type="button"><span class="n">Arc Électrique</span><span class="m">3 PA · Pt4</span></button>
@@ -445,11 +487,12 @@
     }
   };
   document.getElementById("btnReset").onclick = ()=>{
-    if(!confirm("Revenir au layout par défaut ?")) return;
+    if(!confirm("Revenir au layout par défaut (croix 45°) ?")) return;
     layout = JSON.parse(JSON.stringify(DEFAULTS));
     localStorage.removeItem(STORE);
+    try{ localStorage.removeItem("neuro.layout.gb.v1"); localStorage.removeItem("neuro.layout.gb.v2"); }catch(_e){}
     build();
-    showToast("Reset");
+    showToast("Reset v2");
   };
   document.getElementById("btnSnap").onclick = (e)=>{
     snapOn = !snapOn;

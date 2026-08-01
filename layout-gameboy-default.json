@@ -1,19 +1,83 @@
 {
-  "version": 2,
+  "version": 3,
   "notes": {
     "move": "chain before move-end = 1 tap adds 1 PM; else preview then confirm (2 taps=1PM, 3=2PM…); run if >=2PM",
     "spells": "4 buttons max; AoE on arm; glow valid targets; dpad cycles; confirm casts",
     "touch": "keep map touch + zoom; remove old spell chip bar in game later",
-    "dpad": "rotated 45deg to match isometric diamond axes"
+    "dpad": "rotated 45deg, longer arms, round translucent console buttons"
   },
   "layout": {
-    "map":     { "x": 0,  "y": 8,  "w": 100, "h": 92, "z": 1,  "lock": false, "on": true },
-    "header":  { "x": 2,  "y": 1,  "w": 96,  "h": 10, "z": 5,  "lock": false, "on": true },
-    "hint":    { "x": 2,  "y": 56, "w": 96,  "h": 5,  "z": 5,  "lock": false, "on": true },
-    "dpad":    { "x": 1,  "y": 62, "w": 44,  "h": 34, "z": 10, "lock": false, "on": true },
-    "spells":  { "x": 50, "y": 64, "w": 48,  "h": 22, "z": 10, "lock": false, "on": true },
-    "end":     { "x": 50, "y": 88, "w": 28,  "h": 9,  "z": 11, "lock": false, "on": true },
-    "zoom":    { "x": 79, "y": 14, "w": 19,  "h": 8,  "z": 11, "lock": false, "on": true },
-    "confirm": { "x": 2,  "y": 48, "w": 44,  "h": 7,  "z": 12, "lock": false, "on": true }
+    "map": {
+      "x": 0,
+      "y": 8,
+      "w": 100,
+      "h": 92,
+      "z": 1,
+      "lock": false,
+      "on": true
+    },
+    "header": {
+      "x": 2,
+      "y": 1,
+      "w": 96,
+      "h": 10,
+      "z": 5,
+      "lock": false,
+      "on": true
+    },
+    "hint": {
+      "x": 2,
+      "y": 56,
+      "w": 96,
+      "h": 5,
+      "z": 5,
+      "lock": false,
+      "on": true
+    },
+    "dpad": {
+      "x": 0,
+      "y": 58,
+      "w": 52,
+      "h": 40,
+      "z": 10,
+      "lock": false,
+      "on": true
+    },
+    "spells": {
+      "x": 50,
+      "y": 62,
+      "w": 48,
+      "h": 26,
+      "z": 10,
+      "lock": false,
+      "on": true
+    },
+    "end": {
+      "x": 50,
+      "y": 88,
+      "w": 28,
+      "h": 9,
+      "z": 11,
+      "lock": false,
+      "on": true
+    },
+    "zoom": {
+      "x": 79,
+      "y": 14,
+      "w": 19,
+      "h": 8,
+      "z": 11,
+      "lock": false,
+      "on": true
+    },
+    "confirm": {
+      "x": 2,
+      "y": 48,
+      "w": 44,
+      "h": 7,
+      "z": 12,
+      "lock": false,
+      "on": true
+    }
   }
 }
