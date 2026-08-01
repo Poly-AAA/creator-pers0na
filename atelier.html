@@ -17,7 +17,7 @@
   --safe-t:env(safe-area-inset-top, 0px);
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0}
+html,body{margin:0;padding:0;overflow-x:hidden}
 body{
   background:
     radial-gradient(120% 80% at 50% -10%, #2a221c 0%, transparent 55%),
@@ -66,14 +66,14 @@ body{
 #stage{
   position:relative;touch-action:none;overflow:hidden;
   height:var(--stage-h);
-  display:flex;align-items:center;justify-content:center;
 }
 #stage canvas{
-  display:block;touch-action:none;-webkit-user-select:none;user-select:none;
-  max-width:100%;max-height:100%;width:auto;height:auto;
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  touch-action:none;-webkit-user-select:none;user-select:none;
+  max-width:100%;max-height:100%;
 }
-#mock.on, #view3d.on{display:block}
-#mock, #view3d{display:none}
+#mock, #view3d{display:none !important}
+#mock.on, #view3d.on{display:block !important}
 #stage-tip{
   position:absolute;left:0;right:0;bottom:0;
   font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--dim);
@@ -467,7 +467,7 @@ function fitStageCanvas(cv, G){
   var cssW = stage.clientWidth || window.innerWidth || 390;
   var cssH = stage.clientHeight || Math.round(cssW * 1.25);
   var aspect = G.w / G.h;
-  var pad = 0.02; // très petit — le vêtement remplit presque tout
+  var pad = 0.01; // le vêtement remplit presque tout le stage
   var usableW = cssW * (1 - pad * 2);
   var usableH = cssH * (1 - pad * 2);
   var dispW, dispH;
@@ -798,7 +798,7 @@ function stagePoint(e){
 function onStageDown(e){
   if(viewMode === "3d"){
     orbit = { x:e.clientX, yaw:yaw3d };
-    (e.target === view3d ? view3d : el.stage).setPointerCapture && view3d.setPointerCapture(e.pointerId);
+    try{ view3d.setPointerCapture(e.pointerId); }catch(err){}
     return;
   }
   var p = stagePoint(e);
