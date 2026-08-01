@@ -6,14 +6,19 @@ Ouvre `index.html` dans un navigateur pour tester.
 
 ---
 
-## Atelier DIY (vêtements)
+## Atelier DIY (hub + outils autonomes)
 
-Suite **gratuite** mobile/web pour DIY textile :
+**Pas un éditeur Figma textile.** Import SVG/PNG depuis les outils existants.
+Le produit = **routage technique** + outils qui marchent chacun seul.
 
-- `diy/` — parcours Pièce → Matériel → Studio vectoriel → Technique → Visu (PWA)
-- `atelier.html` — module **typons sérigraphie** (trame, séparation, rendu photo)
+| Outil | Chemin | Statut |
+|-------|--------|--------|
+| Hub (pièce → matériel → sortie) | `diy/` | ✅ |
+| Typons sérigraphie | `atelier.html` | ✅ |
+| Cyanotype (négatif 1 canal) | `diy/cyanotype.html` | ✅ |
+| Mockup vêtement / tracé auto / patch / broderie Ink/Stitch | — | plus tard |
 
-Ouvre `diy/index.html` (ou `/diy/` via un serveur local).
+PWA, tout local, hébergeable Cloudflare Pages. Ouvre `diy/`.
 
 ## Phase 0 — Fondations ✅
 

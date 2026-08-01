@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12100f">
+<title>CYANOTYPE — négatif DIY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#12100f; --ground-2:#1a1715; --ground-3:#26211e; --line:#3a322e;
+  --paper:#ece5da; --dim:#948a82; --safelight:#ffb02e; --cyano:#3d6fb8; --ink:#1a1207;
+  --pad:14px; --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;overflow-x:hidden}
+body{
+  background:radial-gradient(110% 70% at 50% -8%, #1a2438 0%, transparent 50%), var(--ground);
+  color:var(--paper);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.45;
+  padding:calc(12px + var(--safe-t)) 0 calc(100px + var(--safe-b));
+}
+.wrap{max-width:760px;margin:0 auto;padding:0 var(--pad)}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:8px}
+h1{font-family:"Archivo Black",sans-serif;font-size:clamp(26px,8vw,42px);margin:0;line-height:.9;text-transform:uppercase}
+.top a{color:var(--dim);font-family:"IBM Plex Mono",monospace;font-size:12px;text-decoration:none}
+.lead{color:var(--dim);font-size:13px;margin:0 0 16px;max-width:48ch}
+.badge{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--cyano);margin:0 0 8px}
+.stage{
+  margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);width:100vw;
+  background:#0c0b0a;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  min-height:min(56dvh,560px);display:flex;align-items:center;justify-content:center;position:relative;
+}
+.stage canvas{max-width:100%;max-height:min(56dvh,560px);display:block}
+.stage .empty{color:var(--dim);font-family:"IBM Plex Mono",monospace;font-size:12px;padding:24px;text-align:center}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+@media (max-width:520px){.grid{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.rowval{display:flex;justify-content:space-between;align-items:baseline}
+.rowval b{font-family:"IBM Plex Mono",monospace;font-size:13px}
+input[type=range]{width:100%;accent-color:var(--cyano);height:36px}
+select,input[type=number]{
+  width:100%;background:var(--ground-2);color:var(--paper);border:1px solid var(--line);
+  padding:12px 11px;font-family:"IBM Plex Mono",monospace;font-size:16px;
+}
+.check{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;font-size:14px}
+.check input{width:20px;height:20px;accent-color:var(--cyano)}
+.hint{color:var(--dim);font-size:13px;margin:10px 0 0}
+.btn{
+  background:var(--ground-3);color:var(--paper);border:1px solid var(--line);
+  padding:12px 14px;min-height:44px;font-family:"IBM Plex Mono",monospace;font-size:13px;cursor:pointer;
+}
+.btn:hover{border-color:var(--cyano);color:#9ec0ff}
+.btn.wide{width:100%}
+.dock{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:linear-gradient(to top,var(--ground) 70%,transparent);
+  padding:12px var(--pad) calc(12px + var(--safe-b));
+}
+.dock-inner{max-width:760px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn.go{
+  background:var(--cyano);color:#e8f0ff;border:none;
+  font-family:"Archivo Black",sans-serif;text-transform:uppercase;font-size:15px;
+}
+.btn.go:disabled{background:var(--ground-3);color:var(--dim)}
+#status{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--dim);text-align:center;margin-top:8px;min-height:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Cyanotype</h1>
+    <a href="./">← Hub DIY</a>
+  </div>
+  <p class="badge">Outil autonome · négatif 1 canal</p>
+  <p class="lead">Pour insolation UV DIY : niveaux de gris, inversion, densité haute. Imprime en noir dense sur transparent / papier calque.</p>
+
+  <button type="button" class="btn wide" id="load">Charger une image…</button>
+  <input type="file" id="file" accept="image/*" hidden>
+
+  <div class="stage" id="stage">
+    <p class="empty" id="empty">Charge un visuel — le négatif s’affiche ici.</p>
+    <canvas id="out" hidden></canvas>
+  </div>
+
+  <div class="grid">
+    <div class="field">
+      <div class="rowval"><label for="contrast">Contraste</label><b id="contrast-v">120 %</b></div>
+      <input type="range" id="contrast" min="50" max="220" step="1" value="120">
+    </div>
+    <div class="field">
+      <div class="rowval"><label for="gamma">Densité (gamma)</label><b id="gamma-v">1,40</b></div>
+      <input type="range" id="gamma" min="60" max="260" step="1" value="140">
+    </div>
+    <div class="field">
+      <div class="rowval"><label for="black">Noir plancher</label><b id="black-v">8 %</b></div>
+      <input type="range" id="black" min="0" max="40" step="1" value="8">
+    </div>
+    <div class="field">
+      <label for="dpi">Export</label>
+      <select id="dpi">
+        <option value="150">150 dpi — brouillon</option>
+        <option value="300" selected>300 dpi — insolation</option>
+        <option value="600">600 dpi — haute densité</option>
+      </select>
+    </div>
+  </div>
+  <label class="check"><input type="checkbox" id="invert" checked> Inverser (négatif)</label>
+  <label class="check"><input type="checkbox" id="mirror"> Miroir horizontal (si besoin de retournement)</label>
+  <p class="hint" id="hint">Cyanotype : les zones noires du film bloquent les UV → restent claires sur le tissu. Le motif à « imprimer » en bleu doit être blanc/clair sur ce négatif.</p>
+</div>
+
+<div class="dock">
+  <div class="dock-inner">
+    <button type="button" class="btn" id="load2">Image…</button>
+    <button type="button" class="btn go" id="dl" disabled>Télécharger négatif</button>
+  </div>
+  <p id="status"></p>
+</div>
+
+<script>
+(function(){
+"use strict";
+var srcImg = null;
+var srcName = "visuel";
+var el = {};
+["load","load2","file","out","empty","contrast","contrast-v","gamma","gamma-v","black","black-v",
+ "dpi","invert","mirror","dl","status","hint"].forEach(function(id){ el[id] = document.getElementById(id); });
+var cv = el.out, cx = cv.getContext("2d", { willReadFrequently:true });
+
+function say(t){ el.status.textContent = t || ""; }
+function fmt(n, d){ return (Math.round(n * Math.pow(10,d)) / Math.pow(10,d)).toFixed(d).replace(".", ","); }
+
+function loadFile(file){
+  if(!file) return;
+  var fr = new FileReader();
+  fr.onload = function(){
+    var im = new Image();
+    im.onload = function(){
+      srcImg = im;
+      srcName = (file.name || "visuel").replace(/\.[^.]+$/, "");
+      render();
+      say(im.naturalWidth + " × " + im.naturalHeight + " px");
+    };
+    im.onerror = function(){ say("Image illisible."); };
+    im.src = fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+
+function render(){
+  if(!srcImg) return;
+  var maxEdge = 1600;
+  var sw = srcImg.naturalWidth, sh = srcImg.naturalHeight;
+  var scale = Math.min(1, maxEdge / Math.max(sw, sh));
+  var w = Math.max(2, Math.round(sw * scale));
+  var h = Math.max(2, Math.round(sh * scale));
+  cv.width = w; cv.height = h;
+  cv.hidden = false;
+  el.empty.hidden = true;
+  el.dl.disabled = false;
+
+  cx.save();
+  if(el.mirror.checked){
+    cx.translate(w, 0); cx.scale(-1, 1);
+  }
+  cx.drawImage(srcImg, 0, 0, w, h);
+  cx.restore();
+
+  var img = cx.getImageData(0, 0, w, h);
+  var d = img.data;
+  var contrast = parseFloat(el.contrast.value) / 100;
+  var gamma = parseFloat(el.gamma.value) / 100;
+  var floor = parseFloat(el.black.value) / 100;
+  var invert = el.invert.checked;
+
+  for(var i = 0; i < d.length; i += 4){
+    var r = d[i] / 255, g = d[i+1] / 255, b = d[i+2] / 255;
+    var L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    L = (L - 0.5) * contrast + 0.5;
+    if(L < 0) L = 0; if(L > 1) L = 1;
+    L = Math.pow(L, gamma);
+    if(invert) L = 1 - L;
+    // plancher de noir pour densifier le film
+    L = floor + L * (1 - floor);
+    var v = Math.round(L * 255);
+    d[i] = d[i+1] = d[i+2] = v;
+    d[i+3] = 255;
+  }
+  cx.putImageData(img, 0, 0);
+
+  el["contrast-v"].textContent = el.contrast.value + " %";
+  el["gamma-v"].textContent = fmt(gamma, 2);
+  el["black-v"].textContent = el.black.value + " %";
+}
+
+function download(){
+  if(!srcImg) return;
+  // Ré-export à résolution cible approx (selon dpi choisi, on scale si besoin)
+  var dpi = parseInt(el.dpi.value, 10);
+  var targetMax = dpi >= 600 ? 3200 : dpi >= 300 ? 2400 : 1400;
+  var sw = srcImg.naturalWidth, sh = srcImg.naturalHeight;
+  var scale = Math.min(1, targetMax / Math.max(sw, sh));
+  // si image petite, on upscale un peu pour densité d'impression
+  if(Math.max(sw, sh) < targetMax * 0.6) scale = targetMax / Math.max(sw, sh);
+
+  var w = Math.max(2, Math.round(sw * scale));
+  var h = Math.max(2, Math.round(sh * scale));
+  var o = document.createElement("canvas");
+  o.width = w; o.height = h;
+  var c = o.getContext("2d");
+  if(el.mirror.checked){ c.translate(w, 0); c.scale(-1, 1); }
+  c.drawImage(srcImg, 0, 0, w, h);
+  // réapplique pipeline
+  var img = c.getImageData(0, 0, w, h);
+  var d = img.data;
+  var contrast = parseFloat(el.contrast.value) / 100;
+  var gamma = parseFloat(el.gamma.value) / 100;
+  var floor = parseFloat(el.black.value) / 100;
+  var invert = el.invert.checked;
+  for(var i = 0; i < d.length; i += 4){
+    var L = 0.2126 * d[i]/255 + 0.7152 * d[i+1]/255 + 0.0722 * d[i+2]/255;
+    L = (L - 0.5) * contrast + 0.5;
+    if(L < 0) L = 0; if(L > 1) L = 1;
+    L = Math.pow(L, gamma);
+    if(invert) L = 1 - L;
+    L = floor + L * (1 - floor);
+    var v = L * 255 | 0;
+    d[i] = d[i+1] = d[i+2] = v; d[i+3] = 255;
+  }
+  c.putImageData(img, 0, 0);
+  o.toBlob(function(blob){
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = srcName + "-cyanotype-negatif-" + dpi + "dpi.png";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    say("Négatif " + w + " × " + h + " px · " + dpi + " dpi");
+  }, "image/png");
+}
+
+el.load.addEventListener("click", function(){ el.file.click(); });
+el.load2.addEventListener("click", function(){ el.file.click(); });
+el.file.addEventListener("change", function(e){ loadFile(e.target.files[0]); e.target.value = ""; });
+["contrast","gamma","black","invert","mirror"].forEach(function(id){
+  el[id].addEventListener("input", render);
+  el[id].addEventListener("change", render);
+});
+el.dl.addEventListener("click", download);
+
+// Handoff hub DIY
+try{
+  var hand = JSON.parse(sessionStorage.getItem("atelier-diy-handoff") || "null");
+  if(hand && hand.file && hand.file.dataUrl){
+    var im = new Image();
+    im.onload = function(){
+      srcImg = im;
+      srcName = (hand.file.name || "import").replace(/\.[^.]+$/, "");
+      render();
+      say("Import reçu depuis le hub DIY");
+    };
+    im.src = hand.file.dataUrl;
+  }
+}catch(e){}
+})();
+</script>
+</body>
+</html>

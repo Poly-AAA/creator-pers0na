@@ -1,84 +1,91 @@
 /**
- * ATELIER DIY — état & parcours
- * Flux : Vêtement → Matériel/technique → Studio vectoriel → Pipeline technique → Visu
+ * ATELIER DIY — hub de routage technique
+ * Pas d'éditeur vectoriel complet : import + orientation vers outils autonomes.
  */
 (function () {
   "use strict";
 
   var GARMENTS = [
-    { id: "tee", n: "T-shirt", hint: "Coton / jersey, face & dos" },
-    { id: "sweat", n: "Sweat", hint: "Molleton, face large" },
+    { id: "tee", n: "T-shirt", hint: "Coton / jersey" },
+    { id: "sweat", n: "Sweat", hint: "Molleton" },
     { id: "hoodie", n: "Hoodie", hint: "Capuche + poche" },
-    { id: "tote", n: "Tote bag", hint: "Canvas, recto" },
-    { id: "pants", n: "Pantalon", hint: "Cuisse / poche / ourlet" },
-    { id: "patch", n: "Patch", hint: "Écusson à coudre / coller" }
+    { id: "tote", n: "Tote bag", hint: "Canvas" },
+    { id: "pants", n: "Pantalon", hint: "Cuisse / poche" },
+    { id: "patch", n: "Patch", hint: "Écusson" }
   ];
 
   var MATERIALS = [
-    { id: "frames", n: "Cadres sérigraphie", hint: "Écrans + racle + encre textile", tech: ["serigraphie"] },
-    { id: "printer", n: "Imprimante laser / jet", hint: "Films / transferts / cyanotype", tech: ["serigraphie", "cyanotype", "transfert"] },
-    { id: "emb-machine", n: "Machine à broder", hint: "Fichier machine + fil", tech: ["broderie"] },
-    { id: "emb-hand", n: "Broderie main", hint: "Canevas, points guidés", tech: ["broderie"] },
-    { id: "outsource-emb", n: "Faire broder ailleurs", hint: "Export patch / digitizing", tech: ["broderie"] },
-    { id: "cyanotype", n: "Chimie cyanotype", hint: "Sensible UV, tissus naturels", tech: ["cyanotype"] },
-    { id: "iron", n: "Fer / presse chaleur", hint: "Transfert, puff, finishing", tech: ["transfert", "serigraphie"] },
-    { id: "nothing", n: "Presque rien", hint: "On te guide avec le minimum DIY", tech: ["serigraphie", "broderie", "cyanotype"] }
+    { id: "frames", n: "Cadres sérigraphie", hint: "Écrans + racle + encre", tech: ["serigraphie"] },
+    { id: "printer", n: "Imprimante", hint: "Films / cyanotype / transfert", tech: ["serigraphie", "cyanotype", "transfert"] },
+    { id: "cyanotype", n: "Chimie cyanotype", hint: "UV + tissus naturels", tech: ["cyanotype"] },
+    { id: "iron", n: "Fer / presse", hint: "Transfert, finishing", tech: ["transfert", "serigraphie"] },
+    { id: "cutter", n: "Découpe / ciseaux", hint: "Patch, appliqué", tech: ["patch"] },
+    { id: "emb-machine", n: "Machine à broder", hint: "Plus tard → Ink/Stitch", tech: ["broderie"] },
+    { id: "emb-hand", n: "Broderie main", hint: "Plus tard → guide de points", tech: ["broderie"] },
+    { id: "nothing", n: "Presque rien", hint: "On montre quand même les sorties utiles", tech: ["serigraphie", "cyanotype", "patch"] }
   ];
 
   var TECHS = [
     {
       id: "serigraphie",
-      n: "Sérigraphie / typons",
-      hint: "Séparation, trame, films d’insolation — Atelier typons",
+      n: "Typons sérigraphie",
+      hint: "Trame, séparation, films — outil autonome",
       href: "../atelier.html",
       ready: true
     },
     {
-      id: "broderie",
-      n: "Broderie",
-      hint: "Sens des points, patch, machine ou main (bientôt)",
+      id: "cyanotype",
+      n: "Cyanotype",
+      hint: "Négatif haute densité, 1 canal + inversion",
+      href: "cyanotype.html",
+      ready: true
+    },
+    {
+      id: "patch",
+      n: "Patch / découpe",
+      hint: "Contour + marge merrow (bientôt)",
       href: "#",
       ready: false
     },
     {
-      id: "cyanotype",
-      n: "Cyanotype",
-      hint: "Négatif UV, temps d’expo, tissus (bientôt)",
+      id: "broderie",
+      n: "Broderie",
+      hint: "SVG Ink/Stitch — en dernier",
       href: "#",
       ready: false
     },
     {
       id: "transfert",
-      n: "Transfert / pressage",
-      hint: "Miroir, couches, presse (bientôt)",
+      n: "Transfert",
+      hint: "Miroir + densité (bientôt)",
       href: "#",
       ready: false
     }
   ];
 
-  var STEPS = ["garment", "kit", "studio", "tech", "visu"];
+  var STEPS = ["garment", "kit", "import", "tech"];
 
   var state = {
     step: "garment",
     garment: "tee",
     materials: {},
-    design: { layers: [], sel: -1 },
-    tech: null
+    tech: "serigraphie",
+    file: null // { name, type, dataUrl, w, h }
   };
 
   try {
-    var saved = JSON.parse(localStorage.getItem("atelier-diy-v1") || "null");
-    if (saved && typeof saved === "object") {
+    var saved = JSON.parse(localStorage.getItem("atelier-diy-hub-v2") || "null");
+    if (saved) {
       state.garment = saved.garment || state.garment;
       state.materials = saved.materials || {};
-      state.tech = saved.tech || null;
+      state.tech = saved.tech || state.tech;
     }
   } catch (e) {}
 
   function save() {
     try {
       localStorage.setItem(
-        "atelier-diy-v1",
+        "atelier-diy-hub-v2",
         JSON.stringify({
           garment: state.garment,
           materials: state.materials,
@@ -100,35 +107,19 @@
       if (panel) panel.classList.toggle("on", s === step);
       if (pill) {
         pill.classList.toggle("on", s === step);
-        var idx = STEPS.indexOf(s);
-        var cur = STEPS.indexOf(step);
-        pill.classList.toggle("done", idx < cur);
+        pill.classList.toggle("done", STEPS.indexOf(s) < STEPS.indexOf(step));
       }
     });
-    var back = $("btn-back");
-    var next = $("btn-next");
-    if (back) back.disabled = step === "garment";
-    if (next) {
-      next.textContent =
-        step === "tech" ? "Ouvrir la technique" : step === "visu" ? "Revenir au studio" : "Continuer";
-    }
-    if (step === "studio") Studio.render();
+    $("btn-back").disabled = step === "garment";
+    $("btn-next").textContent = step === "tech" ? "Ouvrir l’outil" : "Continuer";
     if (step === "tech") renderTech();
-    if (step === "visu") renderVisu();
     save();
     window.scrollTo(0, 0);
   }
 
   function nextStep() {
+    if (state.step === "tech") return openTech();
     var i = STEPS.indexOf(state.step);
-    if (state.step === "tech") {
-      openTech();
-      return;
-    }
-    if (state.step === "visu") {
-      go("studio");
-      return;
-    }
     if (i < STEPS.length - 1) go(STEPS[i + 1]);
   }
 
@@ -139,7 +130,6 @@
 
   function renderGarments() {
     var box = $("garment-grid");
-    if (!box) return;
     box.innerHTML = "";
     GARMENTS.forEach(function (g) {
       var b = document.createElement("button");
@@ -157,7 +147,6 @@
 
   function renderKit() {
     var box = $("kit-list");
-    if (!box) return;
     box.innerHTML = "";
     MATERIALS.forEach(function (m) {
       var lab = document.createElement("label");
@@ -174,42 +163,45 @@
       inp.addEventListener("change", function () {
         if (inp.checked) state.materials[m.id] = true;
         else delete state.materials[m.id];
-        save();
         lab.classList.toggle("on", inp.checked);
-        renderTech();
+        save();
       });
       box.appendChild(lab);
     });
   }
 
-  function suggestedTechs() {
+  function suggested() {
     var ids = {};
     var keys = Object.keys(state.materials);
     if (!keys.length) {
-      TECHS.forEach(function (t) {
-        ids[t.id] = true;
-      });
+      // défaut utile sans kit : typons + cyanotype
+      ids.serigraphie = true;
+      ids.cyanotype = true;
+      if (state.garment === "patch") ids.patch = true;
       return ids;
     }
     keys.forEach(function (mid) {
       var m = MATERIALS.filter(function (x) {
         return x.id === mid;
       })[0];
-      if (!m) return;
-      m.tech.forEach(function (t) {
+      if (m) m.tech.forEach(function (t) {
         ids[t] = true;
       });
     });
+    if (state.garment === "patch") ids.patch = true;
     return ids;
   }
 
   function renderTech() {
     var box = $("tech-grid");
-    if (!box) return;
-    var sug = suggestedTechs();
+    var sug = suggested();
     box.innerHTML = "";
     TECHS.forEach(function (t) {
-      if (!sug[t.id]) return;
+      if (!sug[t.id] && t.ready) {
+        // toujours montrer les outils prêts, même hors suggestion
+      } else if (!sug[t.id] && !t.ready) {
+        return;
+      }
       var b = document.createElement("button");
       b.type = "button";
       b.className = "card" + (state.tech === t.id ? " on" : "");
@@ -220,8 +212,8 @@
         t.hint +
         "</small>" +
         (t.ready
-          ? '<small style="color:var(--ok);margin-top:8px">Disponible</small>'
-          : '<small style="margin-top:8px">Bientôt</small>');
+          ? '<small class="ok">Outil autonome</small>'
+          : '<small>Plus tard</small>');
       b.addEventListener("click", function () {
         state.tech = t.id;
         save();
@@ -229,9 +221,17 @@
       });
       box.appendChild(b);
     });
-    if (!box.children.length) {
-      box.innerHTML = '<p class="hint">Coche du matériel pour voir les techniques adaptées.</p>';
-    }
+  }
+
+  function handoffPayload() {
+    return {
+      garment: state.garment,
+      materials: state.materials,
+      tech: state.tech,
+      file: state.file
+        ? { name: state.file.name, type: state.file.type, dataUrl: state.file.dataUrl }
+        : null
+    };
   }
 
   function openTech() {
@@ -239,301 +239,62 @@
       return x.id === state.tech;
     })[0];
     if (!t) {
-      alert("Choisis une technique.");
+      alert("Choisis une sortie.");
       return;
     }
     if (!t.ready) {
-      alert(t.n + " arrive bientôt. Pour l’instant ouvre Sérigraphie / typons.");
+      alert(t.n + " n’est pas encore un outil autonome. Ouvre Typons ou Cyanotype.");
       return;
     }
-    // Passe le contexte au module typons
     try {
-      sessionStorage.setItem(
-        "atelier-diy-handoff",
-        JSON.stringify({
-          garment: state.garment,
-          materials: state.materials,
-          tech: state.tech,
-          svg: Studio.exportSVG()
-        })
-      );
+      sessionStorage.setItem("atelier-diy-handoff", JSON.stringify(handoffPayload()));
     } catch (e) {}
     location.href = t.href + "?from=diy&garment=" + encodeURIComponent(state.garment);
   }
 
-  function renderVisu() {
-    var g = GARMENTS.filter(function (x) {
-      return x.id === state.garment;
-    })[0];
-    var el = $("visu-summary");
-    if (!el) return;
-    el.innerHTML =
-      "<p class=\"badge\">Prévisualisation</p>" +
-      "<p>Pièce : <b>" +
-      (g ? g.n : state.garment) +
-      "</b></p>" +
-      "<p class=\"muted\">Les templates photo réalistes (t-shirt, sweat, pantalon…) se branchent ici — même pipeline que le rendu Photo de l’Atelier typons (displace + multiply).</p>" +
-      "<p class=\"muted\">En attendant, exporte ton SVG du studio et ouvre la technique choisie.</p>";
+  function setImport(file, dataUrl, w, h) {
+    state.file = { name: file.name, type: file.type || "image/*", dataUrl: dataUrl, w: w, h: h };
+    $("import-preview").hidden = false;
+    $("import-img").src = dataUrl;
+    $("import-meta").textContent =
+      file.name + " · " + (w && h ? w + "×" + h + " px · " : "") + Math.round((dataUrl.length * 3) / 4 / 1024) + " Ko";
   }
 
-  /* ---------- Studio SVG MVP ---------- */
-  var Studio = {
-    ns: "http://www.w3.org/2000/svg",
-    svg: null,
-    idseq: 1,
+  function clearImport() {
+    state.file = null;
+    $("import-preview").hidden = true;
+    $("import-img").removeAttribute("src");
+    $("import-meta").textContent = "—";
+  }
 
-    init: function () {
-      this.svg = document.createElementNS(this.ns, "svg");
-      this.svg.setAttribute("viewBox", "0 0 1000 1200");
-      this.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
-      var board = $("board");
-      board.innerHTML = "";
-      board.appendChild(this.svg);
-      this.drawGarmentGuide();
-      if (!state.design.layers.length) {
-        this.addText("ATELIER DIY", 500, 420, 72);
-      } else {
-        this.rebuild();
-      }
-      this.bindBoard();
-      this.renderLayers();
-    },
-
-    drawGarmentGuide: function () {
-      var g = document.createElementNS(this.ns, "g");
-      g.setAttribute("data-guide", "1");
-      g.setAttribute("pointer-events", "none");
-      var path = document.createElementNS(this.ns, "path");
-      // Silhouette guide simple (tee)
-      path.setAttribute(
-        "d",
-        "M400 40 C500 90 600 40 600 40 L720 70 L980 280 L860 420 L780 360 L780 1120 L220 1120 L220 360 L140 420 L20 280 L280 70 Z"
-      );
-      path.setAttribute("fill", "#2a2420");
-      path.setAttribute("stroke", "#ffb02e");
-      path.setAttribute("stroke-width", "2");
-      path.setAttribute("stroke-dasharray", "8 8");
-      path.setAttribute("opacity", "0.85");
-      g.appendChild(path);
-      this.svg.appendChild(g);
-    },
-
-    uid: function () {
-      return "l" + this.idseq++;
-    },
-
-    addText: function (str, x, y, size) {
-      var id = this.uid();
-      var t = document.createElementNS(this.ns, "text");
-      t.setAttribute("id", id);
-      t.setAttribute("x", x);
-      t.setAttribute("y", y);
-      t.setAttribute("text-anchor", "middle");
-      t.setAttribute("font-family", "Archivo Black, sans-serif");
-      t.setAttribute("font-size", size || 64);
-      t.setAttribute("fill", "#ece5da");
-      t.textContent = str;
-      this.svg.appendChild(t);
-      state.design.layers.push({ id: id, type: "text", name: str.slice(0, 24) });
-      state.design.sel = state.design.layers.length - 1;
-      this.renderLayers();
-      this.highlight();
-    },
-
-    addRect: function () {
-      var id = this.uid();
-      var r = document.createElementNS(this.ns, "rect");
-      r.setAttribute("id", id);
-      r.setAttribute("x", 350);
-      r.setAttribute("y", 480);
-      r.setAttribute("width", 300);
-      r.setAttribute("height", 180);
-      r.setAttribute("fill", "none");
-      r.setAttribute("stroke", "#ffb02e");
-      r.setAttribute("stroke-width", "10");
-      this.svg.appendChild(r);
-      state.design.layers.push({ id: id, type: "shape", name: "Rectangle" });
-      state.design.sel = state.design.layers.length - 1;
-      this.renderLayers();
-      this.highlight();
-    },
-
-    addCircle: function () {
-      var id = this.uid();
-      var c = document.createElementNS(this.ns, "circle");
-      c.setAttribute("id", id);
-      c.setAttribute("cx", 500);
-      c.setAttribute("cy", 560);
-      c.setAttribute("r", 120);
-      c.setAttribute("fill", "none");
-      c.setAttribute("stroke", "#ece5da");
-      c.setAttribute("stroke-width", "12");
-      this.svg.appendChild(c);
-      state.design.layers.push({ id: id, type: "shape", name: "Cercle" });
-      state.design.sel = state.design.layers.length - 1;
-      this.renderLayers();
-      this.highlight();
-    },
-
-    addImageFile: function (file) {
-      if (!file) return;
-      var self = this;
-      var fr = new FileReader();
-      fr.onload = function () {
-        var id = self.uid();
-        var img = document.createElementNS(self.ns, "image");
-        img.setAttribute("id", id);
-        img.setAttribute("href", fr.result);
-        img.setAttributeNS("http://www.w3.org/1999/xlink", "href", fr.result);
-        img.setAttribute("x", 300);
-        img.setAttribute("y", 400);
-        img.setAttribute("width", 400);
-        img.setAttribute("height", 400);
-        img.setAttribute("preserveAspectRatio", "xMidYMid meet");
-        self.svg.appendChild(img);
-        state.design.layers.push({ id: id, type: "image", name: file.name || "Image" });
-        state.design.sel = state.design.layers.length - 1;
-        self.renderLayers();
-        self.highlight();
-      };
-      fr.readAsDataURL(file);
-    },
-
-    rebuild: function () {
-      /* layers already in DOM after refresh — for persistence later */
-    },
-
-    render: function () {
-      if (!this.svg) this.init();
-      this.renderLayers();
-      this.highlight();
-    },
-
-    renderLayers: function () {
-      var box = $("layer-list");
-      if (!box) return;
-      box.innerHTML = "";
-      state.design.layers.forEach(function (L, i) {
-        var row = document.createElement("div");
-        row.className = "layer" + (i === state.design.sel ? " on" : "");
-        row.innerHTML = "<span>" + L.name + '</span><code>' + L.type + "</code>";
-        row.addEventListener("click", function () {
-          state.design.sel = i;
-          Studio.renderLayers();
-          Studio.highlight();
-        });
-        box.appendChild(row);
-      });
-      if (!state.design.layers.length) {
-        box.innerHTML = '<p class="hint">Aucun calque — ajoute du texte, une forme ou une image.</p>';
-      }
-    },
-
-    highlight: function () {
-      if (!this.svg) return;
-      Array.prototype.forEach.call(this.svg.querySelectorAll("[id]"), function (n) {
-        n.classList.remove("sel");
-      });
-      var L = state.design.layers[state.design.sel];
-      if (!L) return;
-      var node = this.svg.getElementById(L.id);
-      if (node) node.classList.add("sel");
-    },
-
-    deleteSel: function () {
-      var L = state.design.layers[state.design.sel];
-      if (!L) return;
-      var node = this.svg.getElementById(L.id);
-      if (node) node.parentNode.removeChild(node);
-      state.design.layers.splice(state.design.sel, 1);
-      state.design.sel = Math.min(state.design.sel, state.design.layers.length - 1);
-      this.renderLayers();
-      this.highlight();
-    },
-
-    editText: function () {
-      var L = state.design.layers[state.design.sel];
-      if (!L || L.type !== "text") {
-        var txt = prompt("Texte à ajouter", "DIY");
-        if (txt) this.addText(txt, 500, 500, 64);
+  function loadFile(file) {
+    if (!file) return;
+    var fr = new FileReader();
+    fr.onload = function () {
+      var dataUrl = fr.result;
+      if (/svg/i.test(file.type) || /\.svg$/i.test(file.name)) {
+        // Prévisualisation SVG via blob image
+        var img = new Image();
+        img.onload = function () {
+          setImport(file, dataUrl, img.naturalWidth || 0, img.naturalHeight || 0);
+        };
+        img.onerror = function () {
+          setImport(file, dataUrl, 0, 0);
+        };
+        img.src = dataUrl;
         return;
       }
-      var node = this.svg.getElementById(L.id);
-      var next = prompt("Modifier le texte", node.textContent);
-      if (next == null) return;
-      node.textContent = next;
-      L.name = next.slice(0, 24);
-      this.renderLayers();
-    },
-
-    bindBoard: function () {
-      var self = this;
-      var drag = null;
-      this.svg.addEventListener("pointerdown", function (e) {
-        var t = e.target;
-        if (!t || !t.id || t.getAttribute("data-guide")) return;
-        var idx = -1;
-        state.design.layers.forEach(function (L, i) {
-          if (L.id === t.id) idx = i;
-        });
-        if (idx < 0) return;
-        state.design.sel = idx;
-        self.renderLayers();
-        self.highlight();
-        var pt = self.clientToSvg(e.clientX, e.clientY);
-        drag = { id: t.id, ox: pt.x, oy: pt.y, node: t };
-        self.svg.setPointerCapture(e.pointerId);
-      });
-      this.svg.addEventListener("pointermove", function (e) {
-        if (!drag) return;
-        var pt = self.clientToSvg(e.clientX, e.clientY);
-        var dx = pt.x - drag.ox;
-        var dy = pt.y - drag.oy;
-        drag.ox = pt.x;
-        drag.oy = pt.y;
-        var n = drag.node;
-        if (n.tagName === "text" || n.tagName === "image" || n.tagName === "rect") {
-          n.setAttribute("x", parseFloat(n.getAttribute("x") || 0) + dx);
-          n.setAttribute("y", parseFloat(n.getAttribute("y") || 0) + dy);
-        } else if (n.tagName === "circle") {
-          n.setAttribute("cx", parseFloat(n.getAttribute("cx") || 0) + dx);
-          n.setAttribute("cy", parseFloat(n.getAttribute("cy") || 0) + dy);
-        }
-      });
-      ["pointerup", "pointercancel"].forEach(function (ev) {
-        self.svg.addEventListener(ev, function () {
-          drag = null;
-        });
-      });
-    },
-
-    clientToSvg: function (cx, cy) {
-      var pt = this.svg.createSVGPoint();
-      pt.x = cx;
-      pt.y = cy;
-      var m = this.svg.getScreenCTM().inverse();
-      var p = pt.matrixTransform(m);
-      return { x: p.x, y: p.y };
-    },
-
-    exportSVG: function () {
-      if (!this.svg) return "";
-      var clone = this.svg.cloneNode(true);
-      var guide = clone.querySelector("[data-guide]");
-      if (guide) guide.parentNode.removeChild(guide);
-      return new XMLSerializer().serializeToString(clone);
-    },
-
-    downloadSVG: function () {
-      var data = this.exportSVG();
-      var blob = new Blob([data], { type: "image/svg+xml" });
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "atelier-diy.svg";
-      a.click();
-      URL.revokeObjectURL(a.href);
-    }
-  };
+      var img = new Image();
+      img.onload = function () {
+        setImport(file, dataUrl, img.naturalWidth, img.naturalHeight);
+      };
+      img.onerror = function () {
+        alert("Fichier illisible.");
+      };
+      img.src = dataUrl;
+    };
+    fr.readAsDataURL(file);
+  }
 
   function bind() {
     renderGarments();
@@ -543,64 +304,23 @@
     $("btn-back").addEventListener("click", prevStep);
     $("btn-next").addEventListener("click", nextStep);
     STEPS.forEach(function (s) {
-      var pill = $("pill-" + s);
-      if (pill)
-        pill.addEventListener("click", function () {
-          go(s);
-        });
+      $("pill-" + s).addEventListener("click", function () {
+        go(s);
+      });
     });
 
-    $("tool-text").addEventListener("click", function () {
-      Studio.editText();
+    $("btn-import").addEventListener("click", function () {
+      $("file-import").click();
     });
-    $("tool-rect").addEventListener("click", function () {
-      Studio.addRect();
-    });
-    $("tool-circle").addEventListener("click", function () {
-      Studio.addCircle();
-    });
-    $("tool-image").addEventListener("click", function () {
-      $("file-image").click();
-    });
-    $("file-image").addEventListener("change", function (e) {
-      Studio.addImageFile(e.target.files[0]);
+    $("file-import").addEventListener("change", function (e) {
+      loadFile(e.target.files[0]);
       e.target.value = "";
     });
-    $("tool-del").addEventListener("click", function () {
-      Studio.deleteSel();
-    });
-    $("tool-svg").addEventListener("click", function () {
-      Studio.downloadSVG();
-    });
-    $("font-file").addEventListener("change", function (e) {
-      var f = e.target.files[0];
-      e.target.value = "";
-      if (!f) return;
-      var fr = new FileReader();
-      fr.onload = function () {
-        var name = "UserFont" + Date.now();
-        var face = new FontFace(name, fr.result);
-        face.load().then(function (loaded) {
-          document.fonts.add(loaded);
-          var L = state.design.layers[state.design.sel];
-          if (L && L.type === "text") {
-            var node = Studio.svg.getElementById(L.id);
-            if (node) node.setAttribute("font-family", name);
-          }
-          alert("Police ajoutée : " + f.name + ". Sélectionne un texte pour l’appliquer.");
-        }).catch(function () {
-          alert("Police illisible. Essaie un .ttf / .otf / .woff.");
-        });
-      };
-      fr.readAsArrayBuffer(f);
-    });
-    $("tool-font").addEventListener("click", function () {
-      $("font-file").click();
-    });
+    $("btn-clear-import").addEventListener("click", clearImport);
 
-    go(state.step === "studio" ? "studio" : "garment");
+    go("garment");
   }
 
-  window.AtelierDIY = { state: state, go: go, Studio: Studio, TECHS: TECHS };
+  window.AtelierDIY = { state: state, go: go, TECHS: TECHS };
   document.addEventListener("DOMContentLoaded", bind);
 })();

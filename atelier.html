@@ -1615,7 +1615,7 @@ setViewMode("flat");
 drawMock();
 refresh();
 
-/* Handoff depuis diy/ (pièce + contexte) */
+/* Handoff depuis diy/ (pièce + fichier importé) */
 (function applyDiyHandoff(){
   try{
     var q = new URLSearchParams(location.search);
@@ -1623,12 +1623,28 @@ refresh();
     var hand = null;
     try{ hand = JSON.parse(sessionStorage.getItem("atelier-diy-handoff") || "null"); }catch(e){}
     if(hand && hand.garment) g = g || hand.garment;
-    if(g && el.gtype && GARMENTS[g]){
-      el.gtype.value = g === "tote" || g === "pants" || g === "patch" ? "tee" : g;
+    if(g && el.gtype){
+      el.gtype.value = (g === "sweat" || g === "hoodie") ? g : "tee";
       drawMock(); refresh();
     }
-    if(hand && hand.svg){
-      say("Design reçu depuis Atelier DIY — place-le ou régénère les typons.");
+    if(hand && hand.file && hand.file.dataUrl){
+      var im = new Image();
+      im.onload = function(){
+        var G = garment();
+        var w = Math.min(G.printW * 0.7, 18);
+        items.push({
+          img:im, name:hand.file.name || "import", src:hand.file.dataUrl,
+          w:w, h:w * im.naturalHeight / im.naturalWidth,
+          cx:G.printX + G.printW / 2, cy:G.printY + G.printH * 0.35,
+          rot:0, bright:0, contrast:0, sat:100, thr:0, prepared:null
+        });
+        prepare(items[items.length - 1]);
+        sel = items.length - 1;
+        photoCache.key = "";
+        drawItems(); drawMock(); refresh();
+        say("Visuel importé depuis le hub DIY.");
+      };
+      im.src = hand.file.dataUrl;
     }
   }catch(e){}
 })();

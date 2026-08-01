@@ -1,7 +1,7 @@
 {
   "name": "Atelier DIY",
   "short_name": "Atelier DIY",
-  "description": "Concevoir et produire des vêtements DIY : studio vectoriel, typons, broderie, cyanotype.",
+  "description": "Hub DIY textile : route vers typons, cyanotype et autres outils autonomes. Pas un éditeur.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#12100f",

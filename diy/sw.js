@@ -1,8 +1,9 @@
 /* Service worker minimal — coquille offline pour l’app DIY */
-var CACHE = "atelier-diy-v1";
+var CACHE = "atelier-diy-v2";
 var ASSETS = [
   "./",
   "./index.html",
+  "./cyanotype.html",
   "./css/app.css",
   "./js/app.js",
   "./manifest.webmanifest",
