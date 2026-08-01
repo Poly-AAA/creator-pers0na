@@ -164,9 +164,9 @@ const PACKS = {
     id:"knight", label:"Knight 2D",
     local:"./knight-2d/",
     cdn:"https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/knight-2d/",
-    // 960×512 → 15×8 cellules 64×64 ; attaque = Melee2
+    // 960×512 → 15×8 cellules 64×64 ; marche = Run (test) ; attaque = Melee2
     frameW:64, frameH:64, cols:15, foot:43, scale:3.6,
-    walk:"Walk.png", shoot:"Melee2.png"
+    walk:"Run.png", shoot:"Melee2.png"
   }
 };
 const packId = (new URLSearchParams(location.search).get("pack") || "knight");
