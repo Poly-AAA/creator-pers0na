@@ -827,8 +827,8 @@ aside.side{
 #gbHud .gb-w.ghost{ pointer-events:none; }
 #gbConfirm{
   display:none; align-items:center; justify-content:center; text-align:center;
-  background:rgba(255,138,60,.16); border:1.5px solid rgba(255,138,60,.5);
-  border-radius:999px; color:#ff8a3c; font-weight:800; font-size:11px; padding:4px 8px;
+  background:rgba(40,22,12,.88); border:1.5px solid rgba(255,138,60,.7);
+  border-radius:999px; color:#ffb07a; font-weight:800; font-size:11px; padding:4px 8px;
 }
 #gbConfirm.show{ display:flex; }
 #gbDpad{
@@ -846,17 +846,18 @@ aside.side{
 #gbDpad .dpad::after{ width:16%; height:92%; transform:translate(-50%,-50%); }
 #gbDpad button{
   position:absolute; width:26%; height:26%; border:0; border-radius:50%;
-  background:rgba(20,40,58,.55); color:rgba(200,240,255,.95); font-size:12px; font-weight:900;
-  backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
-  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.3), inset 0 -3px 6px rgba(0,0,0,.22);
+  background:rgba(14,32,48,.88); color:#e8f7ff; font-size:12px; font-weight:900;
+  backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.4), inset 0 -3px 6px rgba(0,0,0,.3),
+    0 2px 8px rgba(0,0,0,.35);
   touch-action:manipulation;
 }
-#gbDpad button:active{ background:rgba(39,224,255,.35); color:#fff; }
+#gbDpad button:active{ background:rgba(39,224,255,.55); color:#fff; }
 #gbDpad .u{left:37%; top:-4%} #gbDpad .d{left:37%; bottom:-4%}
 #gbDpad .l{left:-4%; top:37%} #gbDpad .r{right:-4%; top:37%}
 #gbDpad .c{
   left:37%; top:37%; width:26%; height:26%; border-radius:50%;
-  background:rgba(8,18,28,.2); color:rgba(160,190,210,.7); font-size:7px;
+  background:rgba(8,18,28,.82); color:rgba(200,220,235,.9); font-size:7px;
   transform:rotate(-45deg);
 }
 #gbSpells{
@@ -865,39 +866,40 @@ aside.side{
 }
 #gbSpells button{
   width:min(72px,42%); aspect-ratio:1; border:0; border-radius:50%;
-  background:rgba(18,40,58,.58); color:#d8e6f2; padding:6px;
+  background:rgba(14,32,48,.88); color:#e8f7ff; padding:6px;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
-  box-shadow:inset 0 0 0 1.5px rgba(39,224,255,.4), inset 0 -4px 8px rgba(0,0,0,.25);
+  backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+  box-shadow:inset 0 0 0 1.5px rgba(39,224,255,.55), inset 0 -4px 8px rgba(0,0,0,.3),
+    0 3px 10px rgba(0,0,0,.35);
   touch-action:manipulation;
 }
 #gbSpells button .n{font-size:9px;font-weight:800;color:var(--sc,#27e0ff);text-align:center;line-height:1.1;max-width:64px;overflow:hidden}
-#gbSpells button .m{font-size:8px;color:rgba(180,200,220,.75);margin-top:2px}
-#gbSpells button.armed{ box-shadow:inset 0 0 0 2px #ffd23c, 0 0 12px rgba(255,210,60,.35); transform:scale(1.04); }
-#gbSpells button.disabled{ opacity:.4; filter:grayscale(.4); }
+#gbSpells button .m{font-size:8px;color:rgba(200,220,235,.9);margin-top:2px}
+#gbSpells button.armed{ box-shadow:inset 0 0 0 2px #ffd23c, 0 0 12px rgba(255,210,60,.45); transform:scale(1.04); }
+#gbSpells button.disabled{ opacity:.55; filter:grayscale(.3); }
 #gbEnd{
   width:100%; height:100%; border:0; border-radius:999px;
-  background:rgba(168,74,20,.45); color:#fff; font-weight:900; font-size:11px;
-  backdrop-filter:blur(2px);
-  box-shadow:inset 0 0 0 1.5px rgba(255,200,150,.45);
+  background:rgba(168,74,20,.88); color:#fff; font-weight:900; font-size:11px;
+  backdrop-filter:blur(3px);
+  box-shadow:inset 0 0 0 1.5px rgba(255,200,150,.55), 0 3px 8px rgba(0,0,0,.35);
   touch-action:manipulation;
 }
 #gbZoom{
   width:100%; height:100%; display:flex; align-items:center; justify-content:center; gap:4px;
-  background:rgba(8,20,32,.35); border-radius:999px; border:1px solid rgba(39,224,255,.3);
+  background:rgba(8,20,32,.82); border-radius:999px; border:1px solid rgba(39,224,255,.45);
   padding:2px 4px;
 }
 #gbZoom button{
-  width:28px; height:28px; border-radius:50%; border:1px solid rgba(39,224,255,.45);
-  background:rgba(18,40,58,.4); color:#27e0ff; font-weight:900; font-size:14px;
+  width:28px; height:28px; border-radius:50%; border:1px solid rgba(39,224,255,.55);
+  background:rgba(18,40,58,.88); color:#27e0ff; font-weight:900; font-size:14px;
   touch-action:manipulation;
 }
-#gbZoom span{ min-width:36px; text-align:center; color:#7a93a8; font-size:10px; }
+#gbZoom span{ min-width:36px; text-align:center; color:#c5d8e8; font-size:10px; }
 /* hint repositionné par GBHud */
 #hint.gb-placed{
   position:absolute !important; left:auto; right:auto; bottom:auto !important;
   margin:0; max-width:none; pointer-events:none;
-  background:rgba(8,20,32,.55); border-radius:8px;
+  background:rgba(8,20,32,.82); border-radius:8px;
 }
 
 /* ====== RESPONSIVE ====== */
