@@ -1,7 +1,7 @@
 # Packs d’assets externes (référence)
 
-Packs téléchargés via tes liens Dropbox (2026-07-31).  
-**Pas encore branchés dans le combat** — stockés ici pour analyse / integration future.
+Packs téléchargés via tes liens Dropbox.  
+Le jeu (`neuro-core-sprite.html`) peut basculer **Thug** / **Knight** via ⚙ SPRITE → PACK.
 
 ## 1) `survivor-hd-bike/` — Character HD Survivor + moto
 

@@ -86,9 +86,13 @@
 <body>
   <h1>Planche — Marche & Tir</h1>
   <p class="sub">
-    Choisis une direction (flèche orange). Si le sprite ne regarde <b>pas</b> dans ce sens,
+    Pack : <b id="packLab">—</b>. Choisis une direction (flèche orange). Si le sprite ne regarde <b>pas</b> dans ce sens,
     ajuste la <b>ligne</b> avec − / +. Sauve → le jeu lit ça au prochain chargement.
   </p>
+  <div class="bar" style="margin-bottom:10px">
+    <button type="button" id="btnPackThug">Thug</button>
+    <button type="button" id="btnPackKnight" class="primary">Knight</button>
+  </div>
 
   <div class="card">
     <div class="lab">1 · Direction logique (grille du jeu)</div>
@@ -148,12 +152,31 @@ const NAMES=[
   {i:7, short:"¾ Face G",  tip:"Δcol−1 Δrow+1"},
 ];
 const DEFAULT = [3,2,1,0,7,6,5,4];
-const FILES = {
-  walk:  { file:"Walk.png",    fps:12 },
-  shoot: { file:"Attack1.png", fps:14 },
+const PACKS = {
+  thug: {
+    id:"thug", label:"Thug 16-bit",
+    local:"./thug-16bit-outlined/",
+    cdn:"https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/thug-16bit-outlined/",
+    frameW:64, frameH:64, foot:45, scale:3.2,
+    walk:"Walk.png", shoot:"Attack1.png"
+  },
+  knight: {
+    id:"knight", label:"Knight 2D",
+    local:"./knight-2d/",
+    cdn:"https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/knight-2d/",
+    frameW:120, frameH:64, foot:58, scale:2.0,
+    walk:"Walk.png", shoot:"CastSpell.png"
+  }
 };
-const LOCAL = "./thug-16bit-outlined/";
-const CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/thug-16bit-outlined/";
+const packId = (new URLSearchParams(location.search).get("pack") || "knight");
+const PACK = PACKS[packId] || PACKS.knight;
+const FILES = {
+  walk:  { file:PACK.walk,  fps:12 },
+  shoot: { file:PACK.shoot, fps:14 },
+};
+const LOCAL = PACK.local;
+const CDN = PACK.cdn;
+let F=PACK.frameW, FH=PACK.frameH;
 
 let dir = 0;
 let split = false;
@@ -229,11 +252,11 @@ function drawOne(cv, key){
   if(!im||!im.complete) return;
   const fps=FILES[key].fps;
   const col=Math.floor(performance.now()/1000*fps)%COLS;
-  const g=iso(0,0), S=3.2;
+  const g=iso(0,0), S=PACK.scale;
   cx.fillStyle="rgba(0,0,0,.35)";
   cx.beginPath(); cx.ellipse(g.x, g.y+4, 16, 7, 0, 0, Math.PI*2); cx.fill();
   cx.imageSmoothingEnabled=false;
-  cx.drawImage(im, col*F, row*F, F, F, g.x-F*S/2, g.y-45*S, F*S, F*S);
+  cx.drawImage(im, col*F, row*FH, F, FH, g.x-F*S/2, g.y-PACK.foot*S, F*S, FH*S);
 }
 
 function syncUI(){
@@ -356,6 +379,14 @@ addEventListener("keydown", ev=>{
   if(ev.key>="0"&&ev.key<="7"){ dir=+ev.key; syncUI(); }
 });
 
+document.getElementById("packLab").textContent = PACK.label + " · "+PACK.frameW+"×"+PACK.frameH;
+document.getElementById("btnPackThug").onclick=()=>{ location.search="?pack=thug"; };
+document.getElementById("btnPackKnight").onclick=()=>{ location.search="?pack=knight"; };
+if(PACK.id==="thug"){
+  document.getElementById("btnPackThug").classList.add("primary");
+  document.getElementById("btnPackKnight").classList.remove("primary");
+}
+
 (async()=>{
   loadSaved();
   for(const k of Object.keys(FILES)){
@@ -369,7 +400,7 @@ addEventListener("keydown", ev=>{
     drawOne(document.getElementById("cvShoot"), "shoot");
   };
   loop();
-  if(ready<2) toast("Images manquantes — vérifie le dossier thug-16bit-outlined");
+  if(ready<2) toast("Images manquantes — pack "+PACK.id);
 })();
 </script>
 </body>
