@@ -6,19 +6,14 @@ Ouvre `index.html` dans un navigateur pour tester.
 
 ---
 
-## Atelier DIY (hub + outils autonomes)
+## Typons (sérigraphie DIY)
 
-**Pas un éditeur Figma textile.** Import SVG/PNG depuis les outils existants.
-Le produit = **routage technique** + outils qui marchent chacun seul.
+Outil autonome : **mockup tee/sweat → images → trame → cadres → PNG imprimables**.
 
-| Outil | Chemin | Statut |
-|-------|--------|--------|
-| Hub (pièce → matériel → sortie) | `diy/` | ✅ |
-| Typons sérigraphie | `atelier.html` | ✅ |
-| Cyanotype (négatif 1 canal) | `diy/cyanotype.html` | ✅ |
-| Mockup vêtement / tracé auto / patch / broderie Ink/Stitch | — | plus tard |
+- `atelier.html` — produit principal (pas de SVG)
+- `diy/` — hub léger + `cyanotype.html` à part
 
-PWA, tout local, hébergeable Cloudflare Pages. Ouvre `diy/`.
+Flux : poser l’image sur le vêtement pour juger la taille (cm), choisir la trame, indiquer les cadres dispo, générer les films.
 
 ## Phase 0 — Fondations ✅
 

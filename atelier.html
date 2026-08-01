@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ATELIER — du t-shirt au typon</title>
+<title>TYPONS — sérigraphie DIY</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -53,8 +53,13 @@ body{
 .garment-bar input[type=color]{padding:4px}
 .print-badge{
   font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--safelight);margin:0 0 8px;
+  text-transform:uppercase;color:var(--safelight);margin:0 0 6px;
 }
+.sizebar{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--dim);
+  margin:0 0 12px;line-height:1.45;
+}
+.sizebar b{color:var(--paper);font-weight:600}
 
 /* stage plein écran large — t-shirt entier et maxi */
 #stage-shell{
@@ -234,18 +239,18 @@ details.step .step-body{padding-top:12px}
 <div class="wrap">
 
 <header class="topbar">
-  <h1>Atelier</h1>
-  <p>DIY — imprime où tu veux sur tout le vêtement.</p>
+  <h1>Typons</h1>
+  <p>Sérigraphie DIY — mockup → trame → cadres → films imprimables</p>
 </header>
 
-<p class="print-badge" id="ghint">Zone d'impression = vêtement entier</p>
+<p class="print-badge" id="ghint">Choisis la pièce, pose tes images, règle la trame, indique tes cadres.</p>
+<p class="sizebar" id="sizebar">—</p>
 <div class="garment-bar">
   <div class="field">
     <label for="gtype">Pièce</label>
     <select id="gtype">
       <option value="tee" selected>T-shirt</option>
       <option value="sweat">Sweat</option>
-      <option value="hoodie">Hoodie</option>
     </select>
   </div>
   <div class="field">
@@ -344,9 +349,10 @@ details.step .step-body{padding-top:12px}
   </div>
 </details>
 
-<details class="step">
-  <summary>Cadres disponibles</summary>
+<details class="step" open>
+  <summary>Cadres que tu as</summary>
   <div class="step-body">
+    <p class="hint" style="margin-top:0">Indique combien de cadres et leurs tailles (cm). L’app calcule si ça rentre et combien de sessions d’insolation.</p>
     <div id="frames"></div>
     <button class="btn wide" id="addframe" style="margin-top:10px">+ Ajouter un cadre</button>
     <p class="hint" id="fhint">—</p>
@@ -356,7 +362,7 @@ details.step .step-body{padding-top:12px}
 <div class="act">
   <div class="act-inner">
     <div id="bar"><i></i></div>
-    <button class="go" id="run">Faire les typons</button>
+    <button class="go" id="run">Faire les typons PNG</button>
     <p id="status"></p>
   </div>
 </div>
@@ -367,9 +373,9 @@ details.step .step-body{padding-top:12px}
 </section>
 
 <footer>
-  Tout tourne dans le navigateur. DIY : toute la surface du vêtement est imprimable.
-  Plat = concevoir et mesurer. Photo = rendu réaliste (displacement + multiply), comme un mockup PSD.
-  <br><a href="diy/" style="color:var(--safelight)">← Suite Atelier DIY</a> (studio vectoriel, broderie, cyanotype…)
+  Export PNG imprimable (pas de SVG). Pose les images sur le tee/sweat pour juger la taille,
+  choisis la trame selon l’effet, indique tes cadres — l’app sort les films.
+  <br><a href="diy/" style="color:var(--safelight)">Hub DIY</a> · outils autonomes
 </footer>
 </div>
 
@@ -383,8 +389,7 @@ var DPI = 300;
 /* ---------- donnees vetements (cm, mesures a plat) ---------- */
 var GARMENTS = {
   tee:    { n:"T-shirt", sleeve:0.30, hem:0 },
-  sweat:  { n:"Sweat",   sleeve:0.62, hem:6 },
-  hoodie: { n:"Hoodie",  sleeve:0.62, hem:6 }
+  sweat:  { n:"Sweat",   sleeve:0.62, hem:6 }
 };
 var SIZES = {
   S:{ w:46, h:70 }, M:{ w:51, h:72 }, L:{ w:56, h:74 },
@@ -416,7 +421,7 @@ var MOCKUP_PNG = {
 var mockupImgs = {};
 var photoCache = { key:"", cv:null }; // cache rendu photo
 var el = {};
-["gtype","gsize","gcol","ghint","mock","viewphoto","stage","stage-tip","add","file","mockfile",
+["gtype","gsize","gcol","ghint","sizebar","mock","viewphoto","stage","stage-tip","add","file","mockfile",
  "items","itemcount","photo-tools","loadmock",
  "preset","phint","lpi","lpi-v","gain","gain-v","shape","mode","ncol","ncol-v","ncolwrap",
  "base","dropbg","chint","frames","addframe","fhint","run","status","bar","out","plan","plates",
@@ -974,8 +979,11 @@ function drawCtrl(){
   var dims = document.createElement("p");
   dims.className = "dims";
   function dimTxt(){
+    var G = garment();
+    var pct = Math.round((it.w / G.w) * 100);
     return it.w.toFixed(1).replace(".", ",") + " × " + it.h.toFixed(1).replace(".", ",") +
-      " cm · à " + Math.max(0, it.cy - it.h / 2).toFixed(1).replace(".", ",") + " cm du haut";
+      " cm · " + pct + " % de la largeur · à " +
+      Math.max(0, it.cy - it.h / 2).toFixed(1).replace(".", ",") + " cm du haut";
   }
   dims.textContent = dimTxt();
   el.ctrl.appendChild(dims);
@@ -1140,8 +1148,23 @@ function inkCount(){
 
 function refresh(){
   var G = garment();
-  el.ghint.textContent = G.n + " " + el.gsize.value + " · " + G.w + " × " + G.h +
-    " cm · zone d'impression = vêtement entier (DIY)";
+  el.ghint.textContent = G.n + " " + el.gsize.value + " · zone imprimable = pièce entière";
+
+  var box = designBox();
+  if(el.sizebar){
+    if(box){
+      var pctW = Math.round((box.w / G.w) * 100);
+      var pctH = Math.round((box.h / G.h) * 100);
+      el.sizebar.innerHTML =
+        "Vêtement <b>" + G.w + " × " + G.h + " cm</b> · motif <b>" +
+        box.w.toFixed(1).replace(".", ",") + " × " + box.h.toFixed(1).replace(".", ",") +
+        " cm</b> (" + pctW + " % largeur · " + pctH + " % hauteur) · " +
+        items.length + " image" + (items.length > 1 ? "s" : "");
+    } else {
+      el.sizebar.innerHTML =
+        "Vêtement <b>" + G.w + " × " + G.h + " cm</b> à plat — ajoute une image pour comparer la taille d’impression.";
+    }
+  }
 
   var P = PRESETS[el.preset.value];
   if(el.lpi.dataset.sync !== "off"){ el.lpi.value = P.lpi || 35; }
@@ -1158,7 +1181,6 @@ function refresh(){
     (inks > 1 ? "s" : "") + " à insoler." +
     (el.mode.value === "index" && el.dropbg.checked ? " La couleur la plus proche du textile n'est pas imprimée." : "");
 
-  var box = designBox();
   var msgs = [];
   frames.forEach(function(f, i){
     var u = usable(f);
@@ -1178,18 +1200,19 @@ function refresh(){
   }
   el.fhint.textContent = msgs.length ? msgs.join(" ") :
     (box ? "Visuel de " + box.w.toFixed(1).replace(".", ",") + " × " + box.h.toFixed(1).replace(".", ",") +
-           " cm — ça rentre sur " + cap + " cadre" + (cap > 1 ? "s" : "") + "."
-         : "Bord de 5 cm réservé à l'intérieur de chaque cadre pour la réserve d'encre et la racle.");
+           " cm — ça rentre sur " + cap + " cadre" + (cap > 1 ? "s" : "") + " sur " + frames.length + "."
+         : "Tu as " + frames.length + " cadre" + (frames.length > 1 ? "s" : "") +
+           ". Bord de 5 cm réservé à l'intérieur pour l'encre et la racle.");
 
   el.run.disabled = !items.length;
   if(viewMode === "photo"){
     el["stage-tip"].textContent = customMockup || mockupImgs[el.gtype.value]
-      ? "Rendu photo — plis via luminance, mélange multiply. Repasse en Plat pour placer."
-      : "Rendu photo (t-shirt généré). Charge ta propre JPG via « Photo t-shirt… ».";
+      ? "Rendu photo — pour voir le rendu. Repasse en Plat pour placer / mesurer."
+      : "Rendu photo. En Plat tu mesures en cm ; ici tu visualises.";
   } else {
     el["stage-tip"].textContent = items.length
-      ? (sel >= 0 ? "Glisse l'image n'importe où — manches et bas inclus." : "Touche une vignette pour régler une image.")
-      : "Touche + pour ajouter une image, puis place-la partout sur le vêtement.";
+      ? (sel >= 0 ? "Glisse / redimensionne — la barre compare au vêtement en cm." : "Touche une vignette pour régler · + pour ajouter une image.")
+      : "Touche + pour ajouter une image (plusieurs possibles), puis place-la sur le tee/sweat.";
   }
 }
 
@@ -1624,7 +1647,7 @@ refresh();
     try{ hand = JSON.parse(sessionStorage.getItem("atelier-diy-handoff") || "null"); }catch(e){}
     if(hand && hand.garment) g = g || hand.garment;
     if(g && el.gtype){
-      el.gtype.value = (g === "sweat" || g === "hoodie") ? g : "tee";
+      el.gtype.value = (g === "sweat") ? "sweat" : "tee";
       drawMock(); refresh();
     }
     if(hand && hand.file && hand.file.dataUrl){
