@@ -72,24 +72,34 @@ body{
   touch-action:none;-webkit-user-select:none;user-select:none;
   max-width:100%;max-height:100%;
 }
-#mock, #view3d{display:none !important}
-#mock.on, #view3d.on{display:block !important}
+#mock, #viewphoto{display:none !important}
+#mock.on, #viewphoto.on{display:block !important}
+.photo-tools{
+  position:absolute;top:10px;left:10px;z-index:6;
+  display:none;gap:6px;pointer-events:auto;
+}
+.photo-tools.on{display:flex}
+.photo-tools .btn{
+  min-height:40px;padding:8px 12px;font-size:11px;
+  background:rgba(20,17,16,.88);color:var(--paper);
+  border:1px solid var(--line);backdrop-filter:blur(6px);
+}
+.photo-tools .btn:hover{border-color:var(--safelight);color:var(--safelight)}
 #stage-tip{
-  position:absolute;left:0;right:0;bottom:0;
+  position:absolute;left:0;right:0;bottom:0;z-index:5;
   font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--dim);
   padding:10px 14px calc(10px + var(--safe-b));
   background:linear-gradient(to top,rgba(20,17,16,.94),transparent);
   pointer-events:none;
 }
 .view-toggle{
-  position:absolute;top:10px;right:10px;z-index:2;
-  display:flex;gap:0;border:1px solid var(--line);background:rgba(20,17,16,.72);
-  backdrop-filter:blur(6px);
+  display:flex;gap:0;border:1px solid var(--line);background:var(--ground-2);
+  margin:0 0 10px;width:fit-content;max-width:100%;position:relative;z-index:3;
 }
 .view-toggle button{
   border:0;background:transparent;color:var(--dim);
-  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;
-  text-transform:uppercase;padding:10px 12px;min-height:44px;cursor:pointer;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.06em;
+  text-transform:uppercase;padding:12px 18px;min-height:44px;cursor:pointer;
 }
 .view-toggle button.active{color:#1a1207;background:var(--safelight)}
 
@@ -257,14 +267,17 @@ details.step .step-body{padding-top:12px}
 
 <section class="step" style="border:0;padding:0 0 8px">
   <h2 style="margin-bottom:8px">Visuel<span id="itemcount">0 image</span></h2>
+  <div class="view-toggle" role="group" aria-label="Mode d'affichage" id="view-toggle">
+    <button type="button" id="view-flat" class="active">Plat</button>
+    <button type="button" id="view-photo">Photo</button>
+  </div>
   <div id="stage-shell">
     <div id="stage">
-      <div class="view-toggle" role="group" aria-label="Mode d'affichage">
-        <button type="button" id="view-flat" class="active">Plat</button>
-        <button type="button" id="view-3d">3D</button>
+      <div class="photo-tools" id="photo-tools">
+        <button type="button" class="btn" id="loadmock">Charger une photo…</button>
       </div>
       <canvas id="mock" class="on" width="900" height="1100"></canvas>
-      <canvas id="view3d" width="900" height="1100"></canvas>
+      <canvas id="viewphoto" width="900" height="1100"></canvas>
       <p id="stage-tip">Touche + pour ajouter une image, puis place-la partout sur le t-shirt.</p>
     </div>
   </div>
@@ -272,6 +285,7 @@ details.step .step-body{padding-top:12px}
   <div id="ctrl"></div>
   <button class="btn wide" id="add" style="display:none">+ Ajouter une image</button>
   <input type="file" id="file" accept="image/*" hidden>
+  <input type="file" id="mockfile" accept="image/jpeg,image/png,image/webp,image/*" hidden>
   <div id="items" hidden></div>
 </section>
 
@@ -354,7 +368,7 @@ details.step .step-body{padding-top:12px}
 
 <footer>
   Tout tourne dans le navigateur. DIY : toute la surface du vêtement est imprimable.
-  Envoie tes mockups PSD — on les convertit en PNG et on les branche ici ; la vue 3D utilise déjà un volume simple, et peut prendre un vrai modèle GLB plus tard.
+  Plat = concevoir et mesurer. Photo = rendu réaliste (displacement + multiply), comme un mockup PSD.
 </footer>
 </div>
 
@@ -389,22 +403,32 @@ var items = [];
 var sel = -1;
 var frames = [{ w:42, h:59.4 }];
 var urls = [];
-var viewMode = "flat"; // flat | 3d
-var yaw3d = 18;        // degres — rotation apercu 3D
+var viewMode = "flat"; // flat | photo
+var customMockup = null; // Image chargee par l'utilisateur (JPG photo t-shirt)
+var customMockupId = 0;
 var MOCKUP_PNG = {
-  // Branche ici les PNG exportes depuis tes PSD, ex. "mockups/tee-front.png"
-  tee: null, sweat: null, hoodie: null
+  // Photos precharges (luminance = carte de déplacement)
+  tee: "mockups/tee-front.jpg",
+  sweat: null,
+  hoodie: null
 };
 var mockupImgs = {};
+var photoCache = { key:"", cv:null }; // cache rendu photo
 var el = {};
-["gtype","gsize","gcol","ghint","mock","view3d","stage","stage-tip","add","file","items","itemcount",
+["gtype","gsize","gcol","ghint","mock","viewphoto","stage","stage-tip","add","file","mockfile",
+ "items","itemcount","photo-tools","loadmock",
  "preset","phint","lpi","lpi-v","gain","gain-v","shape","mode","ncol","ncol-v","ncolwrap",
  "base","dropbg","chint","frames","addframe","fhint","run","status","bar","out","plan","plates",
- "strip","ctrl","view-flat","view-3d"
+ "strip","ctrl","view-flat","view-photo"
 ].forEach(function(id){ el[id] = document.getElementById(id); });
 
 var mock = el.mock, mx = mock.getContext("2d");
-var view3d = el.view3d, vx = view3d.getContext("2d");
+var viewphoto = el.viewphoto;
+var photoCtx = viewphoto ? viewphoto.getContext("2d", { willReadFrequently:true }) : null;
+
+if(!mock || !viewphoto || !photoCtx){
+  console.error("Atelier: canvas manquant", { mock:!!mock, viewphoto:!!viewphoto });
+}
 
 function garment(){
   var g = GARMENTS[el.gtype.value], s = SIZES[el.gsize.value];
@@ -420,9 +444,18 @@ function loadMockups(){
     var src = MOCKUP_PNG[k];
     if(!src) return;
     var im = new Image();
-    im.onload = function(){ mockupImgs[k] = im; drawMock(); if(viewMode === "3d") draw3D(); };
+    im.onload = function(){
+      mockupImgs[k] = im; photoCache.key = "";
+      if(viewMode === "photo") drawPhoto();
+    };
     im.src = src;
   });
+}
+
+function hexRgb(hex){
+  var h = (hex || "#cccccc").replace("#","");
+  if(h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
 }
 
 /* ---------- dessin du vetement a plat ---------- */
@@ -486,6 +519,27 @@ function fitStageCanvas(cv, G){
   return { S: cv.width / G.w, dpr:dpr, dispW:dispW, dispH:dispH };
 }
 
+function garmentPath(cx, G, S){
+  var w = G.w, h = G.h;
+  var neck = w * 0.20, shoulder = w * 0.06, arm = h * G.sleeve;
+  var body = w * 0.86, bx = (w - body) / 2;
+  cx.beginPath();
+  cx.moveTo((w - neck) / 2 * S, 0);
+  cx.quadraticCurveTo(w / 2 * S, h * 0.055 * S, (w + neck) / 2 * S, 0);
+  cx.lineTo((w - shoulder) * S, h * 0.02 * S);
+  cx.lineTo(w * S, arm * 0.42 * S);
+  cx.lineTo((w - bx * 0.55) * S, arm * S);
+  cx.lineTo((w - bx) * S, arm * 0.62 * S);
+  cx.lineTo((w - bx) * S, (h - G.hem) * S);
+  cx.lineTo((w - bx) * S, h * S);
+  cx.lineTo(bx * S, h * S);
+  cx.lineTo(bx * S, arm * 0.62 * S);
+  cx.lineTo(bx * 0.55 * S, arm * S);
+  cx.lineTo(0, arm * 0.42 * S);
+  cx.lineTo(shoulder * S, h * 0.02 * S);
+  cx.closePath();
+}
+
 function drawMock(){
   var G = garment();
   var fit = fitStageCanvas(mock, G);
@@ -495,40 +549,15 @@ function drawMock(){
   mx.fillStyle = "#171311";
   mx.fillRect(0, 0, mock.width, mock.height);
 
-  var photo = mockupImgs[el.gtype.value];
-  if(photo){
-    // Mockup photo (PNG issu du PSD) : fond photo + design en overlay plein cadre
-    mx.drawImage(photo, 0, 0, mock.width, mock.height);
-    mx.save();
-    mx.globalCompositeOperation = "source-atop";
-  } else {
-    drawGarment(mx, G, S);
-  }
+  // Plat = dessin technique pour concevoir / mesurer (pas de photo)
+  drawGarment(mx, G, S);
 
-  // Zone d'impression DIY = silhouette entière (contour discret)
   mx.save();
   mx.strokeStyle = "rgba(255,176,46,.35)";
   mx.lineWidth = Math.max(1, 0.08 * S);
   mx.setLineDash([Math.max(4, 0.35 * S), Math.max(3, 0.25 * S)]);
-  // Reprend le path vêtement pour indiquer "tout est imprimable"
-  var neck = G.w * 0.20, shoulder = G.w * 0.06, arm = G.h * G.sleeve;
-  var body = G.w * 0.86, bx = (G.w - body) / 2, w = G.w, h = G.h;
-  mx.beginPath();
-  mx.moveTo((w - neck) / 2 * S, 0);
-  mx.quadraticCurveTo(w / 2 * S, h * 0.055 * S, (w + neck) / 2 * S, 0);
-  mx.lineTo((w - shoulder) * S, h * 0.02 * S);
-  mx.lineTo(w * S, arm * 0.42 * S);
-  mx.lineTo((w - bx * 0.55) * S, arm * S);
-  mx.lineTo((w - bx) * S, arm * 0.62 * S);
-  mx.lineTo((w - bx) * S, (h - G.hem) * S);
-  mx.lineTo((w - bx) * S, h * S);
-  mx.lineTo(bx * S, h * S);
-  mx.lineTo(bx * S, arm * 0.62 * S);
-  mx.lineTo(bx * 0.55 * S, arm * S);
-  mx.lineTo(0, arm * 0.42 * S);
-  mx.lineTo(shoulder * S, h * 0.02 * S);
-  mx.closePath();
-  if(!photo) mx.stroke();
+  garmentPath(mx, G, S);
+  mx.stroke();
   mx.restore();
 
   items.forEach(function(it, i){
@@ -550,101 +579,314 @@ function drawMock(){
     }
   });
 
-  if(photo) mx.restore();
-  if(viewMode === "3d") draw3D();
+  if(viewMode === "photo") drawPhoto();
 }
 
-/* Aperçu 3D léger : volume torse + mapping du rendu plat (sans lib externe) */
-function draw3D(){
-  var G = garment();
-  var fit = fitStageCanvas(view3d, G);
-  var W = view3d.width, H = view3d.height;
-  vx.setTransform(1, 0, 0, 1, 0, 0);
-  vx.clearRect(0, 0, W, H);
-  vx.fillStyle = "#171311";
-  vx.fillRect(0, 0, W, H);
+/* ---------- Rendu photo (style PSD) : photo + displace luminance + multiply ---------- */
+function buildDesignLayer(W, H, G){
+  var cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  var c = cv.getContext("2d");
+  var S = W / G.w;
+  items.forEach(function(it){
+    if(!it.prepared) return;
+    c.save();
+    c.translate(it.cx * S, it.cy * S);
+    c.rotate(it.rot * Math.PI / 180);
+    c.drawImage(it.prepared, -it.w / 2 * S, -it.h / 2 * S, it.w * S, it.h * S);
+    c.restore();
+  });
+  return cv;
+}
 
-  var yaw = yaw3d * Math.PI / 180;
-  var cols = 16, rows = 22;
-  var src = mock;
-  if(src.width < 2 || src.height < 2) return;
+function makeProceduralShirt(W, H, G){
+  var cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  var c = cv.getContext("2d");
+  var S = W / G.w;
+  var rgb = hexRgb(el.gcol.value);
+  c.fillStyle = "#171311";
+  c.fillRect(0, 0, W, H);
+  garmentPath(c, G, S);
+  c.fillStyle = "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
+  c.fill();
 
-  for(var j = 0; j < rows; j++){
-    var v0 = j / rows, v1 = (j + 1) / rows;
-    for(var i = 0; i < cols; i++){
-      var u0 = i / cols, u1 = (i + 1) / cols;
-      var p00 = projectCloth(u0, v0, W, H, yaw);
-      var p10 = projectCloth(u1, v0, W, H, yaw);
-      var p11 = projectCloth(u1, v1, W, H, yaw);
-      var p01 = projectCloth(u0, v1, W, H, yaw);
-      var shade = 0.72 + 0.28 * Math.cos((u0 - 0.5) * Math.PI) * Math.cos(yaw * 0.65);
-      vx.save();
-      vx.globalAlpha = Math.max(0.55, Math.min(1, shade));
-      vx.beginPath();
-      vx.moveTo(p00.x, p00.y);
-      vx.lineTo(p10.x, p10.y);
-      vx.lineTo(p11.x, p11.y);
-      vx.lineTo(p01.x, p01.y);
-      vx.closePath();
-      vx.clip();
-      var sx = u0 * src.width, sy = v0 * src.height;
-      var sw = Math.max(1, (u1 - u0) * src.width), sh = Math.max(1, (v1 - v0) * src.height);
-      var dx = p10.x - p00.x, dy = p10.y - p00.y;
-      var ex = p01.x - p00.x, ey = p01.y - p00.y;
-      vx.imageSmoothingEnabled = true;
-      vx.setTransform(dx / sw, dy / sw, ex / sh, ey / sh, p00.x, p00.y);
-      vx.drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);
-      vx.restore();
+  // Ombrage global + plis (la luminance servira de carte de déplacement)
+  c.save();
+  garmentPath(c, G, S);
+  c.clip();
+  var grd = c.createLinearGradient(0, 0, W, H);
+  grd.addColorStop(0, "rgba(255,255,255,.16)");
+  grd.addColorStop(0.35, "rgba(0,0,0,0)");
+  grd.addColorStop(0.55, "rgba(0,0,0,.10)");
+  grd.addColorStop(1, "rgba(0,0,0,.22)");
+  c.fillStyle = grd;
+  c.fillRect(0, 0, W, H);
+
+  // Bandes de plis douces
+  for(var k = 0; k < 7; k++){
+    var y0 = H * (0.18 + k * 0.1);
+    var g2 = c.createLinearGradient(0, y0 - H * 0.04, 0, y0 + H * 0.04);
+    var dark = k % 2 ? 0.10 : 0.06;
+    g2.addColorStop(0, "rgba(0,0,0,0)");
+    g2.addColorStop(0.5, "rgba(0,0,0," + dark + ")");
+    g2.addColorStop(1, "rgba(255,255,255,0)");
+    c.fillStyle = g2;
+    c.fillRect(0, y0 - H * 0.05, W, H * 0.1);
+  }
+  // Creux manches / côtés
+  var side = c.createLinearGradient(0, 0, W * 0.2, 0);
+  side.addColorStop(0, "rgba(0,0,0,.18)");
+  side.addColorStop(1, "rgba(0,0,0,0)");
+  c.fillStyle = side; c.fillRect(0, 0, W * 0.22, H);
+  var side2 = c.createLinearGradient(W, 0, W * 0.8, 0);
+  side2.addColorStop(0, "rgba(0,0,0,.18)");
+  side2.addColorStop(1, "rgba(0,0,0,0)");
+  c.fillStyle = side2; c.fillRect(W * 0.78, 0, W * 0.22, H);
+
+  // Grain textile léger (petit tile, pas un putImageData full-frame)
+  var tile = document.createElement("canvas");
+  tile.width = tile.height = 64;
+  var tc = tile.getContext("2d");
+  var nd = tc.createImageData(64, 64);
+  for(var i = 0; i < nd.data.length; i += 4){
+    var n = (Math.random() * 30) | 0;
+    nd.data[i] = nd.data[i+1] = nd.data[i+2] = n;
+    nd.data[i+3] = 22;
+  }
+  tc.putImageData(nd, 0, 0);
+  var pat = c.createPattern(tile, "repeat");
+  c.fillStyle = pat;
+  c.globalAlpha = 0.55;
+  c.fillRect(0, 0, W, H);
+  c.globalAlpha = 1;
+  c.restore();
+
+  c.strokeStyle = "rgba(0,0,0,.28)";
+  c.lineWidth = Math.max(1, 0.1 * S);
+  garmentPath(c, G, S);
+  c.stroke();
+  return cv;
+}
+
+function shirtPhotoCanvas(W, H, G){
+  var src = customMockup || mockupImgs[el.gtype.value];
+  var cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  var c = cv.getContext("2d");
+  c.fillStyle = "#141110";
+  c.fillRect(0, 0, W, H);
+  if(src && src.complete && (src.naturalWidth || src.width) > 0){
+    // Mockups atelier : stretch exact sur l'UV vêtement (même cadrage que le plat)
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = "high";
+    c.drawImage(src, 0, 0, W, H);
+  } else {
+    c.drawImage(makeProceduralShirt(W, H, G), 0, 0);
+  }
+  return cv;
+}
+
+function blurLuma(map, w, h, radius){
+  if(radius < 1) return map;
+  var tmp = new Float32Array(map.length);
+  var r = radius | 0, out = new Float32Array(map.length);
+  var x, y, i, s, c, k;
+  for(y = 0; y < h; y++){
+    for(x = 0; x < w; x++){
+      s = 0; c = 0;
+      for(k = -r; k <= r; k++){
+        i = x + k;
+        if(i < 0 || i >= w) continue;
+        s += map[y * w + i]; c++;
+      }
+      tmp[y * w + x] = s / c;
     }
   }
+  for(x = 0; x < w; x++){
+    for(y = 0; y < h; y++){
+      s = 0; c = 0;
+      for(k = -r; k <= r; k++){
+        i = y + k;
+        if(i < 0 || i >= h) continue;
+        s += tmp[i * w + x]; c++;
+      }
+      out[y * w + x] = s / c;
+    }
+  }
+  return out;
 }
 
-function projectCloth(u, v, W, H, yaw){
-  // Coords locales vêtement [-1..1]
-  var x = (u - 0.5) * 2;
-  var y = (v - 0.05) * 2.05 - 1;
-  // Courbure torse + manches élargies en haut
-  var sleeve = Math.max(0, 1 - Math.abs(y + 0.55) * 2.2);
-  var bulge = 0.18 * Math.cos(x * Math.PI * 0.5) * (1 - Math.abs(y) * 0.35);
-  var z = bulge + sleeve * 0.08;
-  // Rotation yaw
-  var xr = x * Math.cos(yaw) - z * Math.sin(yaw);
-  var zr = x * Math.sin(yaw) + z * Math.cos(yaw);
-  var persp = 1.15 / (1.55 - zr * 0.55);
-  var scale = Math.min(W, H) * 0.46 * persp;
-  return {
-    x: W * 0.5 + xr * scale * 0.92,
-    y: H * 0.48 + y * scale * 1.05
-  };
+/* Warp du design seul via luminance photo (comme Displace Photoshop) */
+function displaceDesign(designCv, photoCv, strength){
+  var w = photoCv.width, h = photoCv.height;
+  var pctx = photoCv.getContext("2d", { willReadFrequently:true });
+  var dctx = designCv.getContext("2d", { willReadFrequently:true });
+  var photo = pctx.getImageData(0, 0, w, h);
+  var design = dctx.getImageData(0, 0, w, h);
+  var pd = photo.data, dd = design.data;
+  var luma = new Float32Array(w * h);
+  var i, x, y;
+  for(i = 0; i < w * h; i++){
+    var o = i * 4;
+    luma[i] = (0.2126 * pd[o] + 0.7152 * pd[o+1] + 0.0722 * pd[o+2]) / 255;
+  }
+  var map = blurLuma(luma, w, h, Math.max(1, Math.round(Math.min(w, h) * 0.006)));
+  var amp = strength * Math.min(w, h);
+  var out = dctx.createImageData(w, h);
+  var od = out.data;
+  for(y = 0; y < h; y++){
+    for(x = 0; x < w; x++){
+      var idx = y * w + x;
+      var L = map[idx];
+      var sx = Math.round(x + (L - 0.5) * amp);
+      var sy = Math.round(y + (L - 0.5) * amp * 0.85);
+      var o = idx * 4;
+      if(sx >= 0 && sx < w && sy >= 0 && sy < h){
+        var so = (sy * w + sx) * 4;
+        od[o] = dd[so]; od[o+1] = dd[so+1]; od[o+2] = dd[so+2]; od[o+3] = dd[so+3];
+      }
+    }
+  }
+  var result = document.createElement("canvas");
+  result.width = w; result.height = h;
+  result.getContext("2d").putImageData(out, 0, 0);
+  return result;
+}
+
+function photoCacheKey(W, H){
+  return [
+    el.gtype.value, el.gsize.value, el.gcol.value, W, H,
+    customMockup ? ("custom:" + customMockupId) : (MOCKUP_PNG[el.gtype.value] || "proc"),
+    items.map(function(it){
+      return [it.name, it.cx.toFixed(2), it.cy.toFixed(2), it.w.toFixed(2), it.h.toFixed(2),
+        it.rot, it.bright, it.contrast, it.sat, it.thr].join(":");
+    }).join("|")
+  ].join("/");
+}
+
+function drawPhoto(){
+  if(!photoCtx || !viewphoto) return;
+  try{
+    var G = garment();
+    fitStageCanvas(viewphoto, G);
+    var W = viewphoto.width, H = viewphoto.height;
+    var S = W / G.w;
+    photoCtx.setTransform(1, 0, 0, 1, 0, 0);
+    photoCtx.clearRect(0, 0, W, H);
+    photoCtx.fillStyle = "#171311";
+    photoCtx.fillRect(0, 0, W, H);
+
+    var key = photoCacheKey(W, H);
+    if(photoCache.key === key && photoCache.cv){
+      photoCtx.drawImage(photoCache.cv, 0, 0, W, H);
+      return;
+    }
+
+    var maxEdge = 900;
+    var scale = Math.min(1, maxEdge / Math.max(W, H));
+    var rw = Math.max(2, Math.round(W * scale));
+    var rh = Math.max(2, Math.round(H * scale));
+    var rS = rw / G.w;
+
+    var shirt = shirtPhotoCanvas(rw, rh, G);
+    var design = buildDesignLayer(rw, rh, G);
+    var strength = (customMockup || mockupImgs[el.gtype.value]) ? 0.028 : 0.022;
+    var warped = items.length ? displaceDesign(design, shirt, strength) : null;
+
+    // Compose : photo → clip silhouette → multiply design (recette PSD)
+    var composed = document.createElement("canvas");
+    composed.width = rw; composed.height = rh;
+    var cx = composed.getContext("2d");
+    cx.drawImage(shirt, 0, 0);
+    if(warped){
+      cx.save();
+      garmentPath(cx, G, rS);
+      cx.clip();
+      cx.globalCompositeOperation = "multiply";
+      cx.drawImage(warped, 0, 0);
+      cx.restore();
+    }
+
+    photoCache.key = key;
+    photoCache.cv = composed;
+    photoCtx.imageSmoothingEnabled = true;
+    photoCtx.imageSmoothingQuality = "high";
+    photoCtx.drawImage(composed, 0, 0, W, H);
+    say("");
+  } catch(err){
+    console.error(err);
+    say("Rendu photo interrompu : " + (err && err.message ? err.message : err));
+  }
 }
 
 function setViewMode(mode){
-  viewMode = mode;
-  el["view-flat"].classList.toggle("active", mode === "flat");
-  el["view-3d"].classList.toggle("active", mode === "3d");
-  mock.classList.toggle("on", mode === "flat");
-  view3d.classList.toggle("on", mode === "3d");
-  if(mode === "3d"){
-    drawMock(); // assure texture à jour
-    draw3D();
-    el["stage-tip"].textContent = "Glisse horizontalement pour tourner le vêtement.";
+  viewMode = mode === "photo" ? "photo" : "flat";
+
+  // Re-query au cas où (évite références périmées)
+  var btnFlat = document.getElementById("view-flat");
+  var btnPhoto = document.getElementById("view-photo");
+  var tools = document.getElementById("photo-tools");
+  var cFlat = document.getElementById("mock");
+  var cPhoto = document.getElementById("viewphoto");
+
+  if(btnFlat){
+    btnFlat.classList.toggle("active", viewMode === "flat");
+    btnFlat.setAttribute("aria-pressed", viewMode === "flat" ? "true" : "false");
+  }
+  if(btnPhoto){
+    btnPhoto.classList.toggle("active", viewMode === "photo");
+    btnPhoto.setAttribute("aria-pressed", viewMode === "photo" ? "true" : "false");
+  }
+  if(tools) tools.classList.toggle("on", viewMode === "photo");
+
+  if(cFlat){
+    cFlat.classList.toggle("on", viewMode === "flat");
+    cFlat.style.setProperty("display", viewMode === "flat" ? "block" : "none", "important");
+  }
+  if(cPhoto){
+    cPhoto.classList.toggle("on", viewMode === "photo");
+    cPhoto.style.setProperty("display", viewMode === "photo" ? "block" : "none", "important");
+  }
+
+  // sync refs
+  mock = cFlat || mock;
+  viewphoto = cPhoto || viewphoto;
+  if(viewphoto) photoCtx = viewphoto.getContext("2d", { willReadFrequently:true });
+
+  if(viewMode === "photo"){
+    if(el["stage-tip"]) el["stage-tip"].textContent = "Rendu photo…";
+    say("Mode photo");
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        if(viewMode !== "photo") return;
+        drawPhoto();
+        if(el["stage-tip"]){
+          el["stage-tip"].textContent = (customMockup || mockupImgs[el.gtype.value])
+            ? "Rendu photo — plis (luminance) + multiply. Repasse en Plat pour placer."
+            : "Rendu photo. Charge ta JPG via « Photo t-shirt… » pour un vrai mockup.";
+        }
+      });
+    });
   } else {
+    say("");
     drawMock();
     refresh();
   }
+  return viewMode;
 }
 
 /* ---------- reglages image ---------- */
 function prepare(it){
-  var px = Math.max(2, Math.round(it.w / 2.54 * DPI));
-  var py = Math.max(2, Math.round(px * it.h / it.w));
-  if(px * py > 6e6){ var k = Math.sqrt(6e6 / (px * py)); px = Math.round(px * k); py = Math.round(py * k); }
+  var pw = Math.max(2, Math.round(it.w / 2.54 * DPI));
+  var ph = Math.max(2, Math.round(pw * it.h / it.w));
+  if(pw * ph > 6e6){ var k = Math.sqrt(6e6 / (pw * ph)); pw = Math.round(pw * k); ph = Math.round(ph * k); }
   var cv = document.createElement("canvas");
-  cv.width = px; cv.height = py;
+  cv.width = pw; cv.height = ph;
   var c = cv.getContext("2d", { willReadFrequently:true });
-  c.drawImage(it.img, 0, 0, px, py);
+  c.drawImage(it.img, 0, 0, pw, ph);
 
-  var d = c.getImageData(0, 0, px, py);
+  var d = c.getImageData(0, 0, pw, ph);
   var a = d.data;
   var br = it.bright / 100, ct = (it.contrast + 100) / 100, sa = it.sat / 100;
   for(var i = 0; i < a.length; i += 4){
@@ -688,7 +930,9 @@ function addImage(file){
       var it = items[items.length - 1];
       prepare(it);
       sel = items.length - 1;
+      photoCache.key = "";
       drawItems(); drawMock(); refresh();
+      if(viewMode === "photo") drawPhoto();
     };
     im.onerror = function(){ say("Image illisible. Réexporte en PNG ou JPG."); };
     im.src = fr.result;
@@ -786,9 +1030,8 @@ function slider(label, min, max, step, val, on, fmt){
 }
 function esc(s){ return String(s).replace(/[<>&"]/g, function(c){ return { "<":"&lt;", ">":"&gt;", "&":"&amp;", '"':"&quot;" }[c]; }); }
 
-/* ---------- glisser sur le vetement / orbit 3D ---------- */
+/* ---------- glisser sur le vetement (mode Plat uniquement) ---------- */
 var drag = null;
-var orbit = null;
 function stagePoint(e){
   var r = mock.getBoundingClientRect();
   var G = garment();
@@ -796,11 +1039,7 @@ function stagePoint(e){
   return { x:(e.clientX - r.left) / S, y:(e.clientY - r.top) / S };
 }
 function onStageDown(e){
-  if(viewMode === "3d"){
-    orbit = { x:e.clientX, yaw:yaw3d };
-    try{ view3d.setPointerCapture(e.pointerId); }catch(err){}
-    return;
-  }
+  if(viewMode !== "flat") return;
   var p = stagePoint(e);
   for(var i = items.length - 1; i >= 0; i--){
     var it = items[i];
@@ -817,13 +1056,7 @@ function onStageDown(e){
   sel = -1; drawItems(); drawMock();
 }
 function onStageMove(e){
-  if(viewMode === "3d" && orbit){
-    e.preventDefault();
-    yaw3d = orbit.yaw + (e.clientX - orbit.x) * 0.35;
-    draw3D();
-    return;
-  }
-  if(!drag) return;
+  if(!drag || viewMode !== "flat") return;
   e.preventDefault();
   var p = stagePoint(e);
   var it = items[drag.i];
@@ -833,13 +1066,13 @@ function onStageMove(e){
   it.cx = Math.max(-it.w / 3, Math.min(G.w + it.w / 3, it.cx));
   it.cy = Math.max(-it.h / 3, Math.min(G.h + it.h / 3, it.cy));
   if(it._dims) it._dims.textContent = it._dimTxt();
+  photoCache.key = "";
   drawMock();
 }
 function onStageUp(){
-  if(orbit){ orbit = null; return; }
-  if(drag){ drag = null; refresh(); }
+  if(drag){ drag = null; photoCache.key = ""; refresh(); }
 }
-[mock, view3d, el.stage].forEach(function(node){
+[mock, el.stage].forEach(function(node){
   node.addEventListener("pointerdown", onStageDown);
   node.addEventListener("pointermove", onStageMove);
   node.addEventListener("pointerup", onStageUp);
@@ -948,8 +1181,10 @@ function refresh(){
          : "Bord de 5 cm réservé à l'intérieur de chaque cadre pour la réserve d'encre et la racle.");
 
   el.run.disabled = !items.length;
-  if(viewMode === "3d"){
-    el["stage-tip"].textContent = "Glisse horizontalement pour tourner le vêtement. Repasse en Plat pour placer les images.";
+  if(viewMode === "photo"){
+    el["stage-tip"].textContent = customMockup || mockupImgs[el.gtype.value]
+      ? "Rendu photo — plis via luminance, mélange multiply. Repasse en Plat pour placer."
+      : "Rendu photo (t-shirt généré). Charge ta propre JPG via « Photo t-shirt… ».";
   } else {
     el["stage-tip"].textContent = items.length
       ? (sel >= 0 ? "Glisse l'image n'importe où — manches et bas inclus." : "Touche une vignette pour régler une image.")
@@ -964,7 +1199,11 @@ el.addframe.addEventListener("click", function(){
   frames.push({ w:42, h:59.4 }); drawFrames(); refresh();
 });
 ["gtype","gsize","gcol"].forEach(function(id){
-  el[id].addEventListener("change", function(){ drawMock(); refresh(); });
+  el[id].addEventListener("change", function(){
+    photoCache.key = "";
+    if(viewMode === "photo") drawPhoto(); else drawMock();
+    refresh();
+  });
 });
 el.preset.addEventListener("change", function(){ el.lpi.dataset.sync = "on"; refresh(); });
 el.lpi.addEventListener("input", function(){ el.lpi.dataset.sync = "off"; refresh(); });
@@ -973,11 +1212,37 @@ el.lpi.addEventListener("input", function(){ el.lpi.dataset.sync = "off"; refres
   el[id].addEventListener("change", refresh);
 });
 el["view-flat"].addEventListener("click", function(){ setViewMode("flat"); });
-el["view-3d"].addEventListener("click", function(){ setViewMode("3d"); });
+el["view-photo"].addEventListener("click", function(){ setViewMode("photo"); });
+el.loadmock.addEventListener("click", function(){ el.mockfile.click(); });
+el.mockfile.addEventListener("change", function(e){
+  var f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if(!f) return;
+  var fr = new FileReader();
+  fr.onload = function(){
+    var im = new Image();
+    im.onload = function(){
+      customMockup = im;
+      customMockupId++;
+      photoCache.key = "";
+      if(viewMode !== "photo") setViewMode("photo");
+      else drawPhoto();
+      refresh();
+      say("Photo t-shirt chargée — rendu displace + multiply.");
+    };
+    im.onerror = function(){ say("Photo illisible. Réessaie en JPG ou PNG."); };
+    im.src = fr.result;
+  };
+  fr.readAsDataURL(f);
+});
 var resizeTimer = 0;
 window.addEventListener("resize", function(){
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(function(){ drawMock(); refresh(); }, 80);
+  resizeTimer = setTimeout(function(){
+    photoCache.key = "";
+    if(viewMode === "photo") drawPhoto(); else drawMock();
+    refresh();
+  }, 80);
 });
 
 function say(t){ el.status.textContent = t; }
@@ -1348,6 +1613,44 @@ drawItems();
 setViewMode("flat");
 drawMock();
 refresh();
+
+// Aide test / intégration : charger un visuel depuis une URL
+window.AtelierDebug = {
+  loadDesignFromUrl: function(url, name){
+    return fetch(url).then(function(r){
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      return r.blob();
+    }).then(function(b){
+      return new Promise(function(resolve, reject){
+        var fr = new FileReader();
+        fr.onload = function(){
+          var im = new Image();
+          im.onload = function(){
+            var G = garment();
+            var w = Math.min(G.printW * 0.7, 18);
+            items.push({
+              img:im, name:name || "design.png", src:fr.result,
+              w:w, h:w * im.naturalHeight / im.naturalWidth,
+              cx:G.printX + G.printW / 2, cy:G.printY + G.printH * 0.35,
+              rot:0, bright:0, contrast:0, sat:100, thr:0, prepared:null
+            });
+            prepare(items[items.length - 1]);
+            sel = items.length - 1;
+            photoCache.key = "";
+            drawItems(); drawMock(); refresh();
+            resolve(items.length);
+          };
+          im.onerror = reject;
+          im.src = fr.result;
+        };
+        fr.onerror = reject;
+        fr.readAsDataURL(b);
+      });
+    });
+  },
+  view: function(mode){ setViewMode(mode); return viewMode; },
+  clear: function(){ items = []; sel = -1; photoCache.key = ""; drawItems(); drawMock(); refresh(); }
+};
 })();
 </script>
 </body>
