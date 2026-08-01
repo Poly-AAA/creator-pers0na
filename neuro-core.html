@@ -7358,7 +7358,7 @@ const PackSprites = {
   /** @deprecated même table que ROW_BY_ORIENT (V3.4 unifié) — conservé pour rétrocompat */
   get ROW_BY_ORIENT_ATTACK(){ return this.ROW_BY_ORIENT; },
   ANIMS: {
-    idle:    { file:"Idle.png",        fps:8 },
+    idle:    { file:"Idle.png",        fps:12 },  // respiration sur place
     walk:    { file:"Walk.png",        fps:10 },
     run:     { file:"Run.png",         fps:12 },
     attack:  { file:"Attack1.png",     fps:12 },  // distance / sorts dégâts
@@ -7403,6 +7403,7 @@ const PackSprites = {
       || (typeof Combat !== "undefined" && Combat._animating && Combat.current && Combat.current() === e);
     // ≥ 2 PM sur ce trajet → course ; 1 PM → marche
     if(moving) return ((e._packMovePM || 0) >= 2) ? "run" : "walk";
+    e._packMovePM = 0;
     return "idle";
   },
   _loadOne(file){
