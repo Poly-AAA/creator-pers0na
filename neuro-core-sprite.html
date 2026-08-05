@@ -1706,18 +1706,6 @@ const MAP_TEMPLATES = [
       out.push({c:m-3,r:m-3,type:"crate"},{c:m+3,r:m-3,type:"crate"},{c:m-3,r:m+3,type:"crate"},{c:m+3,r:m+3,type:"crate"});
       return out;
   }},
-  { name:"Donjon (hand-drawn)", build:(G)=>{
-      const out=[]; const m=Math.floor(G/2);
-      for(let c=0;c<G;c++){
-        if(c%5!==2){ out.push({c,r:0,type:"wall"}); out.push({c,r:G-1,type:"wall"}); }
-      }
-      for(let r=1;r<G-1;r++){
-        if(r%4!==2){ out.push({c:0,r,type:"wall"}); out.push({c:G-1,r,type:"wall"}); }
-      }
-      out.push({c:m,r:m,type:"pillar"},{c:m-2,r:m+2,type:"pillar"});
-      out.push({c:m+2,r:m-1,type:"crate"},{c:m-3,r:m-2,type:"crate"},{c:m+1,r:m+3,type:"barrier"});
-      return out;
-  }},
 ];
 
 // schémas de placement : renvoie { player:{c,r}, foeZone:(c,r)->bool } selon la grille
@@ -7396,11 +7384,6 @@ const Sprite = {
       Sprite.setPack(ids[i]);
       packBtn.textContent = "PACK: "+(Sprite.PACKS[Sprite.packId]||{}).label;
     });
-    const mapBtn = mk("MAP ART: "+(typeof MapArt!=="undefined" && MapArt.ON ? "ON" : "OFF"), () => {
-      if(typeof MapArt === "undefined") return;
-      MapArt.setOn(!MapArt.ON);
-      mapBtn.textContent = "MAP ART: "+(MapArt.ON ? "ON" : "OFF");
-    });
     const tog = mk("SPRITE: ON", () => {
       Sprite.ON = !Sprite.ON;
       tog.textContent = "SPRITE: " + (Sprite.ON ? "ON" : "OFF");
@@ -7410,157 +7393,6 @@ const Sprite = {
     document.body.appendChild(wrap);
   }
 };
-
-/* MapArt défini juste après — Sprite.init / debugPanel plus bas */
-
-/* =====================================================================
-   MAP ART — Hand-Drawn Isometric Dungeon (Mark Gosbell, CC0)
-   https://markgosbell.itch.io/hand-drawn-isometric-dungeon-assets
-   ===================================================================== */
-const MapArt = {
-  ON: true,
-  ready: false,
-  localBase: "assets/tiles/hand-drawn/",
-  cdnBase: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/tiles/hand-drawn/",
-  FLOORS: ["floor_a", "floor_b", "floor_c", "floor_d"],
-  OBS: {
-    wall:   ["wall_a", "wall_b", "wall_c", "wall_d"],
-    pillar: ["pillar_a", "pillar_b", "pillar_sq"],
-    crate:  ["crate", "barrel", "chest", "cube"],
-    // barrier reste procédural (glow)
-  },
-  // métadonnées crop (ancre = centre losange ; footY = bas opaque)
-  META: {
-    floor_a:{w:381,h:278,ax:190,ay:138.5,fy:275},
-    floor_b:{w:381,h:278,ax:190,ay:138.5,fy:275},
-    floor_c:{w:491,h:303,ax:245,ay:151,fy:300},
-    floor_d:{w:491,h:303,ax:245,ay:151,fy:300},
-    wall_a:{w:369,h:456,ax:184,ay:228,fy:453},
-    wall_b:{w:369,h:456,ax:184,ay:228,fy:453},
-    wall_c:{w:375,h:499,ax:187,ay:249,fy:496},
-    wall_d:{w:375,h:499,ax:187,ay:249,fy:496},
-    pillar_a:{w:215,h:397,ax:107,ay:198,fy:394},
-    pillar_b:{w:212,h:489,ax:106,ay:244,fy:486},
-    pillar_sq:{w:118,h:311,ax:58,ay:155,fy:308},
-    crate:{w:440,h:500,ax:220,ay:250,fy:498},
-    barrel:{w:369,h:500,ax:184,ay:250,fy:498},
-    chest:{w:485,h:437,ax:242,ay:218,fy:434},
-    cube:{w:401,h:463,ax:200,ay:231,fy:460},
-  },
-  imgs: {},
-  _n: 0,
-  _need: 0,
-
-  keysNeeded(){
-    const s = new Set(MapArt.FLOORS);
-    for(const k of Object.keys(MapArt.OBS)) for(const id of MapArt.OBS[k]) s.add(id);
-    return [...s];
-  },
-  init(){
-    try{
-      const saved = localStorage.getItem("neuro.mapArt");
-      if(saved === "0") MapArt.ON = false;
-      if(saved === "1") MapArt.ON = true;
-    }catch(_e){}
-    const keys = MapArt.keysNeeded();
-    MapArt._need = keys.length;
-    MapArt._n = 0;
-    MapArt.ready = false;
-    for(const id of keys) MapArt._load(id);
-  },
-  _load(id){
-    const im = new Image();
-    MapArt.imgs[id] = im;
-    const file = id + ".png";
-    const urls = [MapArt.localBase + file, MapArt.cdnBase + file];
-    let i = 0;
-    const done = ()=>{ if(++MapArt._n >= MapArt._need) MapArt.ready = true; };
-    const next = ()=>{
-      if(i >= urls.length){ done(); return; }
-      im.onload = ()=> done();
-      im.onerror = ()=>{ i++; next(); };
-      try{ im.crossOrigin = "anonymous"; }catch(_e){}
-      im.src = urls[i];
-    };
-    next();
-  },
-  setOn(v){
-    MapArt.ON = !!v;
-    try{ localStorage.setItem("neuro.mapArt", MapArt.ON ? "1" : "0"); }catch(_e){}
-  },
-  floorKey(c, r){
-    return MapArt.FLOORS[(c * 3 + r * 7) & 3];
-  },
-  obsKey(type, c, r){
-    const list = MapArt.OBS[type];
-    if(!list || !list.length) return null;
-    return list[(c * 5 + r * 11) % list.length];
-  },
-  /** Sol : tuile brick iso calée sur le centre de case. */
-  drawFloor(c, r, tint, stroke){
-    const id = MapArt.floorKey(c, r);
-    const im = MapArt.imgs[id];
-    const m = MapArt.META[id];
-    const s = Iso.toScreen(c, r);
-    if(im && im.complete && im.naturalWidth && m){
-      const sc = CONFIG.TILE_W / m.w;
-      const sm = ctx.imageSmoothingEnabled;
-      ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(im, s.x - m.ax * sc, s.y - m.ay * sc, m.w * sc, m.h * sc);
-      ctx.imageSmoothingEnabled = sm;
-    } else {
-      // fallback losange tant que les PNG ne sont pas prêts
-      return false;
-    }
-    // teinte gameplay (move / range / AoE…) par-dessus
-    if(tint && String(tint).indexOf("rgba") === 0){
-      const hw = CONFIG.TILE_W/2, hh = CONFIG.TILE_H/2;
-      ctx.beginPath();
-      ctx.moveTo(s.x, s.y-hh); ctx.lineTo(s.x+hw, s.y);
-      ctx.lineTo(s.x, s.y+hh); ctx.lineTo(s.x-hw, s.y);
-      ctx.closePath();
-      ctx.fillStyle = tint; ctx.fill();
-    }
-    if(stroke){
-      const hw = CONFIG.TILE_W/2, hh = CONFIG.TILE_H/2;
-      ctx.beginPath();
-      ctx.moveTo(s.x, s.y-hh); ctx.lineTo(s.x+hw, s.y);
-      ctx.lineTo(s.x, s.y+hh); ctx.lineTo(s.x-hw, s.y);
-      ctx.closePath();
-      ctx.lineWidth = 1.4; ctx.strokeStyle = stroke; ctx.stroke();
-    }
-    return true;
-  },
-  /** Obstacle prop ; pied ancré au centre de case. */
-  drawObstacle(c, r, obs){
-    const id = MapArt.obsKey(obs.type, c, r);
-    if(!id) return false;
-    const im = MapArt.imgs[id];
-    const m = MapArt.META[id];
-    if(!im || !im.complete || !im.naturalWidth || !m) return false;
-    const s = Iso.toScreen(c, r);
-    // largeur ≈ 1 case ; piliers un peu plus fins
-    const targetW = (obs.type === "pillar") ? CONFIG.TILE_W * 0.72 : CONFIG.TILE_W * 1.05;
-    const sc = targetW / m.w;
-    const A = Render.obstacleHidesUnit(c, r) ? 0.4 : 1;
-    const sm = ctx.imageSmoothingEnabled;
-    ctx.imageSmoothingEnabled = true;
-    ctx.globalAlpha = A;
-    ctx.drawImage(im, s.x - m.ax * sc, s.y - m.fy * sc + 2, m.w * sc, m.h * sc);
-    ctx.globalAlpha = 1;
-    ctx.imageSmoothingEnabled = sm;
-    const def = OBSTACLES[obs.type];
-    if(def && def.destructible && obs.pvMax > 0){
-      const topY = s.y - m.fy * sc + 8;
-      const w = 34, x = s.x - w/2, y = topY - 10;
-      ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(x-1, y-1, w+2, 6);
-      ctx.fillStyle = (obs.type==="barrier") ? "#7fe9ff" : "#ffb14d";
-      ctx.fillRect(x, y, w * clamp(obs.pv/obs.pvMax,0,1), 4);
-    }
-    return true;
-  }
-};
-MapArt.init();
 
 Sprite.init();
 if(document.readyState === "loading")
@@ -7596,9 +7428,6 @@ const Render = {
 
   // dessine une case losange (top face) avec relief
   tileDiamond(c, r, fill, stroke, elev){
-    if(typeof MapArt !== "undefined" && MapArt.ON && MapArt.ready){
-      if(MapArt.drawFloor(c, r, fill, stroke)) return Iso.toScreen(c, r);
-    }
     const s = Iso.toScreen(c, r);
     const hw = CONFIG.TILE_W/2, hh = CONFIG.TILE_H/2;
     const e = elev || 0;
@@ -7664,9 +7493,6 @@ const Render = {
   },
   drawObstacle(c, r, obs){
     const def = OBSTACLES[obs.type]; if(!def) return;
-    if(typeof MapArt !== "undefined" && MapArt.ON && MapArt.ready){
-      if(MapArt.drawObstacle(c, r, obs)) return;
-    }
     const s = Iso.toScreen(c, r);
     const hw = CONFIG.TILE_W/2, hh = CONFIG.TILE_H/2;
     const H = (obs.type === "pillar") ? 46 : (obs.type === "barrier") ? 30 : 34; // hauteur du bloc
@@ -8138,15 +7964,7 @@ const Render = {
         let stroke = "rgba(90,122,156,.45)";
         // CASE TACTIQUE : teinte de fond identifiable (sous les surbrillances)
         const special = specialAt(c,r);
-        if(special){
-          const col = TACTICAL[special].color;
-          // MapArt : wash rgba pour ne pas masquer la brique
-          if(typeof MapArt !== "undefined" && MapArt.ON){
-            const n = parseInt(col.slice(1),16);
-            base = "rgba("+(n>>16)+","+((n>>8)&255)+","+(n&255)+",.38)";
-          } else base = col;
-          stroke = "rgba(255,255,255,.5)";
-        }
+        if(special){ base = TACTICAL[special].color; stroke = "rgba(255,255,255,.5)"; }
         // V2.2 (F2) — ZONE D'EXTRACTION (objectif de scène)
         if(State.extractTile && State.extractTile.c===c && State.extractTile.r===r){
           const pulse = 0.45 + 0.25*Math.sin((performance.now()/300));
