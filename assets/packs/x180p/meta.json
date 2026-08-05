@@ -1,0 +1,44 @@
+{
+  "idle": {
+    "file": "Idle.png",
+    "cols": 16,
+    "w": 2880,
+    "h": 1440
+  },
+  "walk": {
+    "file": "Walk.png",
+    "cols": 24,
+    "w": 4320,
+    "h": 1440
+  },
+  "run": {
+    "file": "Run.png",
+    "cols": 20,
+    "w": 3600,
+    "h": 1440
+  },
+  "melee": {
+    "file": "Melee.png",
+    "cols": 24,
+    "w": 4320,
+    "h": 1440
+  },
+  "shoot": {
+    "file": "CastSpell.png",
+    "cols": 24,
+    "w": 4320,
+    "h": 1440
+  },
+  "hurt": {
+    "file": "TakeDamage.png",
+    "cols": 16,
+    "w": 2880,
+    "h": 1440
+  },
+  "die": {
+    "file": "Die.png",
+    "cols": 30,
+    "w": 5400,
+    "h": 1440
+  }
+}

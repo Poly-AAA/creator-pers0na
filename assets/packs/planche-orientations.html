@@ -91,7 +91,8 @@
   </p>
   <div class="bar" style="margin-bottom:10px">
     <button type="button" id="btnPackThug">Thug</button>
-    <button type="button" id="btnPackKnight" class="primary">Knight</button>
+    <button type="button" id="btnPackKnight">Knight</button>
+    <button type="button" id="btnPackX180" class="primary">x180</button>
   </div>
 
   <div class="card">
@@ -167,10 +168,19 @@ const PACKS = {
     // 960×512 → 15×8 cellules 64×64 ; marche = Run (test) ; attaque = Melee2
     frameW:64, frameH:64, cols:15, foot:43, scale:3.6,
     walk:"Run.png", shoot:"Melee2.png"
+  },
+  x180: {
+    id:"x180", label:"x180 Fantasy",
+    local:"./x180p/",
+    cdn:"https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/x180p/",
+    // Sheets stitchées : 180×180, N frames × 8 dirs (ligne = index jeu 0..7)
+    frameW:180, frameH:180, cols:24, foot:145, scale:1.1,
+    walk:"Walk.png", shoot:"Melee.png",
+    dirRow:[0,1,2,3,4,5,6,7]
   }
 };
-const packId = (new URLSearchParams(location.search).get("pack") || "knight");
-const PACK = PACKS[packId] || PACKS.knight;
+const packId = (new URLSearchParams(location.search).get("pack") || "x180");
+const PACK = PACKS[packId] || PACKS.x180;
 const FILES = {
   walk:  { file:PACK.walk,  fps:12 },
   shoot: { file:PACK.shoot, fps:14 },
@@ -182,7 +192,7 @@ let F=PACK.frameW, FH=PACK.frameH, COLS=PACK.cols||8;
 let dir = 0;
 let split = false;
 let editTarget = "common"; // common | walk | shoot
-let DIR = DEFAULT.slice();
+let DIR = (PACK.dirRow || DEFAULT).slice();
 let SHEET = { walk: null, shoot: null }; // null = use DIR
 const imgs = {};
 let ready = 0;
@@ -252,11 +262,12 @@ function drawOne(cv, key){
   const im=imgs[key];
   if(!im||!im.complete) return;
   const fps=FILES[key].fps;
-  const col=Math.floor(performance.now()/1000*fps)%COLS;
+  const cols = Math.max(1, Math.floor(im.naturalWidth / F));
+  const col=Math.floor(performance.now()/1000*fps)%cols;
   const g=iso(0,0), S=PACK.scale;
   cx.fillStyle="rgba(0,0,0,.35)";
   cx.beginPath(); cx.ellipse(g.x, g.y+4, 16, 7, 0, 0, Math.PI*2); cx.fill();
-  cx.imageSmoothingEnabled=false;
+  cx.imageSmoothingEnabled = F > 64;
   cx.drawImage(im, col*F, row*FH, F, FH, g.x-F*S/2, g.y-PACK.foot*S, F*S, FH*S);
 }
 
@@ -320,6 +331,8 @@ function save(){
 }
 
 function loadSaved(){
+  // Packs stitchés avec dirRow identité : ne pas écraser avec le calibrage Thug/Knight
+  if(PACK.dirRow && PACK.id === "x180") return;
   try{
     const raw=localStorage.getItem("neuro.dirRow");
     if(raw){
@@ -340,7 +353,7 @@ function loadSaved(){
 }
 
 function reset(){
-  DIR=DEFAULT.slice();
+  DIR=(PACK.dirRow || DEFAULT).slice();
   SHEET={walk:null,shoot:null};
   localStorage.removeItem("neuro.dirRow");
   localStorage.removeItem("neuro.dirRow.sheets");
@@ -383,10 +396,10 @@ addEventListener("keydown", ev=>{
 document.getElementById("packLab").textContent = PACK.label + " · "+PACK.frameW+"×"+PACK.frameH;
 document.getElementById("btnPackThug").onclick=()=>{ location.search="?pack=thug"; };
 document.getElementById("btnPackKnight").onclick=()=>{ location.search="?pack=knight"; };
-if(PACK.id==="thug"){
-  document.getElementById("btnPackThug").classList.add("primary");
-  document.getElementById("btnPackKnight").classList.remove("primary");
-}
+document.getElementById("btnPackX180").onclick=()=>{ location.search="?pack=x180"; };
+["btnPackThug","btnPackKnight","btnPackX180"].forEach(id=>document.getElementById(id).classList.remove("primary"));
+const packBtn = PACK.id==="thug" ? "btnPackThug" : PACK.id==="knight" ? "btnPackKnight" : "btnPackX180";
+document.getElementById(packBtn).classList.add("primary");
 
 (async()=>{
   loadSaved();

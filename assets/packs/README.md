@@ -1,7 +1,7 @@
 # Packs d’assets externes (référence)
 
 Packs téléchargés via tes liens Dropbox.  
-Le jeu (`neuro-core-sprite.html`) peut basculer **Thug** / **Knight** via ⚙ SPRITE → PACK.
+Le jeu (`neuro-core-sprite.html`) peut basculer **Thug** / **Knight** / **x180 Fantasy** via ⚙ SPRITE → PACK.
 
 ## 1) `survivor-hd-bike/` — Character HD Survivor + moto
 
@@ -46,6 +46,19 @@ Grille probable :
 
 Dossier prêt : `assets/packs/knight-2d/`.  
 Calibrage : `planche-orientations.html?pack=knight`.
+
+## 4) `x180p/` — UPDATE x180p Spritesheets (Fantasy baked)
+
+| | |
+|--|--|
+| Source zip | `UPDATE_x180p_Spritesheets.zip` (Dropbox) |
+| Format source | Dossiers anim×arme → **16 fichiers** `Body_000`…`Body_337` (pas atlas CraftPix) |
+| Planches jeu | Sheets **stitchées** 8 dirs × N frames, cellules **180×180** |
+| Anims | Idle(16) / Walk(24) / Run(20) / Melee(24) / CastSpell(24) / TakeDamage(16) / Die(30) |
+| Mapping | `DIR_ROW = [0,1,2,3,4,5,6,7]` (ligne = index jeu, verrouillé) |
+
+Dossier prêt : `assets/packs/x180p/` (pack jeu **`x180`**, défaut).  
+Calibrage : `planche-orientations.html?pack=x180`.
 
 ## Fichier source (orientations validées)
 

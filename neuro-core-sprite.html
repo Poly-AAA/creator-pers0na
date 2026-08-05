@@ -6900,10 +6900,10 @@ const CharCreator = {
     if(CharCreator._img && CharCreator._img.complete && CharCreator._img.naturalWidth){ cb(); return; }
     const im = new Image();
     CharCreator._img = im;
-    const urls = [
-      "assets/packs/knight-2d/Idle.png",
-      "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/knight-2d/Idle.png"
-    ];
+    const pack = (typeof Sprite!=="undefined" && Sprite.PACKS[Sprite.packId]) || (Sprite && Sprite.PACKS.x180) || null;
+    const local = pack ? (pack.localBase + "Idle.png") : "assets/packs/x180p/Idle.png";
+    const cdn = pack ? (pack.cdnBase + "Idle.png") : "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/x180p/Idle.png";
+    const urls = [local, cdn];
     let i = 0;
     const next = ()=>{
       if(i >= urls.length){ cb(); return; }
@@ -6977,14 +6977,18 @@ const CharCreator = {
       cx.fillStyle="#8fa3b8"; cx.font="12px sans-serif"; cx.fillText("Chargement…", W/2-36, H/2);
       return;
     }
-    const FW=64, FH=64, cols=15;
-    const row = (typeof Sprite!=="undefined" && Sprite.DIR_ROW) ? (Sprite.DIR_ROW[CharCreator._dir|0]|0) : 3;
+    const pack = (typeof Sprite!=="undefined" && Sprite.PACKS[Sprite.packId]) || {};
+    const FW = pack.frameW || Sprite.FRAME_W || 180;
+    const FH = pack.frameH || Sprite.FRAME_H || 180;
+    const cols = (pack.sheetCols && pack.sheetCols.idle) || Sprite.colsFor?.("idle") || Math.max(1, Math.floor(im.naturalWidth/FW));
+    const row = (typeof Sprite!=="undefined" && Sprite.DIR_ROW) ? (Sprite.DIR_ROW[CharCreator._dir|0]|0) : 0;
     const col = Math.floor(performance.now()/1000*10) % cols;
-    const S = 2.4;
+    const S = FW >= 128 ? 0.85 : 2.4;
+    const foot = pack.foot || Sprite.FOOT || 145;
     const dw=FW*S, dh=FH*S;
-    const dx=ox-dw/2, dy=oy+4-43*S;
+    const dx=ox-dw/2, dy=oy+4-foot*S;
     cx.save();
-    cx.imageSmoothingEnabled = false;
+    cx.imageSmoothingEnabled = FW >= 128;
     cx.filter = CharCreator.cssFilter();
     cx.drawImage(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh);
     cx.restore();
@@ -7006,7 +7010,7 @@ const CharCreator = {
     const c = UI.el("charClose"); if(c) c.onclick = ()=> CharCreator.close();
     const s = UI.el("charSave"); if(s) s.onclick = ()=>{
       CharCreator.save();
-      if(typeof Sprite!=="undefined") Sprite.setPack(Sprite.packId||"knight");
+      if(typeof Sprite!=="undefined"){ CharCreator._img = null; Sprite.setPack(Sprite.packId||"x180"); }
       UI.setHint && UI.setHint("Apparence test sauvée — visible en combat (teinte).");
       CharCreator.close();
     };
@@ -7029,7 +7033,7 @@ const Sprite = {
   COLS: 8,
   SCALE: 4,
   FOOT: 45,
-  packId: "thug",
+  packId: "x180",
 
   PACKS: {
     thug: {
@@ -7064,6 +7068,27 @@ const Sprite = {
         ["run",   "Run.png",        null],
         ["melee", "Melee2.png",     null], // 2e anim d'attaque (à la place de Melee/CastSpell)
         ["shoot", "Melee2.png",     null],
+        ["hurt",  "TakeDamage.png", null],
+        ["die",   "Die.png",        null],
+      ]
+    },
+    x180: {
+      id: "x180",
+      label: "x180 Fantasy",
+      localBase: "assets/packs/x180p/",
+      cdnBase: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/x180p/",
+      // Planches stitchées : 180×180, N frames × 8 dirs (ligne = index jeu)
+      frameW: 180, frameH: 180, cols: 16, scale: 1.15, foot: 145, gy: 4,
+      dirRow: [0,1,2,3,4,5,6,7],
+      dirRowLocked: true,
+      sheetCols: { idle:16, walk:24, run:20, melee:24, shoot:24, hurt:16, die:30 },
+      useB64: false,
+      sheets: [
+        ["idle",  "Idle.png",       null],
+        ["walk",  "Walk.png",       null],
+        ["run",   "Run.png",        null],
+        ["melee", "Melee.png",      null],
+        ["shoot", "CastSpell.png",  null],
         ["hurt",  "TakeDamage.png", null],
         ["die",   "Die.png",        null],
       ]
@@ -7127,6 +7152,21 @@ const Sprite = {
     Sprite.SCALE = pack.scale;
     Sprite.FOOT = pack.foot;
     Sprite.GY = pack.gy || 0; // décalage sol (plante le sprite sur le damier)
+    Sprite.SHEET_COLS = pack.sheetCols || {};
+    if(pack.dirRow && pack.dirRow.length === 8) Sprite.DIR_ROW = pack.dirRow.slice();
+    else Sprite.DIR_ROW = [3, 2, 1, 0, 7, 6, 5, 4];
+  },
+
+  /** Nb de frames pour une anim (variable selon pack / feuille). */
+  colsFor(name){
+    const A = Sprite.ANIM[name];
+    const sheet = A ? A.sheet : name;
+    const fromPack = Sprite.SHEET_COLS && Sprite.SHEET_COLS[name];
+    if(fromPack) return fromPack;
+    const img = Sprite.imgs[sheet] || Sprite.imgs[name];
+    const FW = Sprite.FRAME_W || Sprite.FRAME || 64;
+    if(img && img.naturalWidth) return Math.max(1, Math.floor(img.naturalWidth / FW));
+    return Sprite.COLS || 8;
   },
 
   setPack(id){
@@ -7139,12 +7179,17 @@ const Sprite = {
     Sprite._need = pack.sheets.length;
     Sprite._n = 0;
     for(const [key, file, b64] of pack.sheets) Sprite._loadSheet(key, file, b64);
-    Sprite.loadDirOverrides();
+    if(!pack.dirRowLocked) Sprite.loadDirOverrides();
   },
 
   init(){
-    let id = "knight"; // pack Dropbox reçu
+    let id = "x180"; // pack UPDATE_x180p (Dropbox)
     try{
+      // Une fois : bascule vers le pack x180 (ancien localStorage pouvait forcer knight)
+      if(localStorage.getItem("neuro.packMig") !== "x180-1"){
+        localStorage.setItem("neuro.spritePack", "x180");
+        localStorage.setItem("neuro.packMig", "x180-1");
+      }
       const saved = localStorage.getItem("neuro.spritePack");
       if(saved && Sprite.PACKS[saved]) id = saved;
     }catch(_e){}
@@ -7226,7 +7271,8 @@ const Sprite = {
     const cur = e._sp;
     if(cur){
       const A = Sprite.ANIM[cur.name];
-      const done = (performance.now() - cur.t0) / 1000 * A.fps >= Sprite.COLS;
+      const cols = Sprite.colsFor(cur.name);
+      const done = (performance.now() - cur.t0) / 1000 * A.fps >= cols;
       if(!done) return cur.name;
       if(A.hold) return cur.name;
       e._sp = null;
@@ -7242,13 +7288,14 @@ const Sprite = {
 
   frameIndex(e, name){
     const A = Sprite.ANIM[name];
+    const cols = Sprite.colsFor(name);
     if(A.loop){
       // Horloge continue : Idle / Walk / Run bouclent toujours (respiration visible)
-      return Math.floor(performance.now() / 1000 * A.fps) % Sprite.COLS;
+      return Math.floor(performance.now() / 1000 * A.fps) % cols;
     }
     const t0 = (e._sp && e._sp.name === name) ? e._sp.t0 : performance.now();
     const el = (performance.now() - t0) / 1000;
-    return Math.min(Math.floor(el * A.fps), Sprite.COLS - 1);
+    return Math.min(Math.floor(el * A.fps), cols - 1);
   },
 
   /* cx = centre de la case, gy = ligne de sol (pivot au pied) */
@@ -7267,7 +7314,8 @@ const Sprite = {
     const dy = gy - Sprite.FOOT*S;
 
     const sm = ctx.imageSmoothingEnabled;
-    ctx.imageSmoothingEnabled = false;
+    // Pixel art (≤64) : nearest ; HD (x180…) : lissage léger
+    ctx.imageSmoothingEnabled = FW > 64;
     const useTint = e.isPlayer && typeof CharCreator !== "undefined" && CharCreator.look;
     if(useTint){ ctx.save(); ctx.filter = CharCreator.cssFilter(); }
     ctx.drawImage(img, col*FW, row*FH, FW, FH, dx, dy, dw, dh);
