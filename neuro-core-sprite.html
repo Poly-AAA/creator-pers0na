@@ -1155,25 +1155,32 @@ aside.side{
   </div>
 </div>
 
-<!-- ====== CRÉATEUR DE PERSONNAGE (TEST) ====== -->
+<!-- ====== CRÉATEUR DE PERSONNAGE — Fantasy V1.3 modular ====== -->
 <div class="overlay" id="charCreateOverlay">
   <div class="char-wrap">
     <div class="char-head">
       <div>
-        <h2>CRÉATEUR — PERSONNAGE TEST</h2>
-        <p class="sub">Slots Fantasy (placeholders). Base visuelle : Knight 2D. Sauve → teinte en combat.</p>
+        <h2>CRÉATEUR — FANTASY V1.3</h2>
+        <p class="sub">Couches modulaires SmallScaleInt (128×128). Idle / Walk / Attack1. Page dédiée : character-creator-fantasy.html</p>
       </div>
       <button class="btn ghost" type="button" id="charClose">✕</button>
     </div>
     <div class="char-body">
       <div class="char-preview">
-        <canvas id="charPreview" width="180" height="180"></canvas>
-        <div id="charSummary" style="font-size:10px;color:var(--acier-clair);text-align:center;line-height:1.4"></div>
+        <canvas id="charPreview" width="220" height="220"></canvas>
+        <div class="char-opts" id="charAnimBar" style="justify-content:center;margin-top:6px">
+          <button type="button" data-anim="Idle" class="on">Idle</button>
+          <button type="button" data-anim="Walk">Walk</button>
+          <button type="button" data-anim="Attack1">Atk1</button>
+          <button type="button" id="charDirPrev">◀</button>
+          <button type="button" id="charDirNext">▶</button>
+        </div>
+        <div id="charSummary" style="font-size:10px;color:var(--acier-clair);text-align:center;line-height:1.4;margin-top:6px"></div>
       </div>
       <div class="char-slots" id="charSlots"></div>
     </div>
     <div class="char-foot">
-      <button class="btn ghost" type="button" id="charRandom">🎲 Aléatoire</button>
+      <button class="btn ghost" type="button" id="charRandom">Aléatoire</button>
       <button class="btn ghost" type="button" id="charReset">Réinitialiser</button>
       <button class="btn" type="button" id="charSave">✓ Sauver l’apparence</button>
     </div>
@@ -6820,100 +6827,207 @@ const FX = {
 };
 
 /* =====================================================================
-   CRÉATEUR DE PERSONNAGE (TEST) — slots type Character Creator Fantasy
-   Sans pack modulaire : base Knight + teintes / options nommées.
+   CRÉATEUR DE PERSONNAGE — Fantasy V1.3 (couches modulaires 128×128)
+   Pack : assets/packs/fantasy-cc/  (Idle + Walk + Attack1)
    ===================================================================== */
 const CharCreator = {
   KEY: "neuro.charLook",
+  KEY_FANTASY: "neuro.fantasyLook",
+  PACK_LOCAL: "assets/packs/fantasy-cc/",
+  PACK_CDN: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/strict-regen-idle-66c0/assets/packs/fantasy-cc/",
+  FW: 128, FH: 128, COLS: 15,
+  DIR_ROW: [0,1,2,3,4,5,6,7],
+  weaponAfterShieldRows: [true,true,true,false,false,false,false,true],
+  backpackInFrontRows: [true,false,false,false,false,true,true,true],
   look: null,
-  _img: null,
+  skin: "#d4a574",
+  catalog: null,
+  _cache: new Map(),
   _dir: 0,
+  _anim: "Idle",
+  _frame: 0,
+  _lastT: 0,
   _raf: 0,
+  _ready: false,
 
-  SLOTS: [
-    { id:"body",     lab:"Body type",  opts:["Human","Undead","Spirit"] },
-    { id:"head",     lab:"Head",       opts:["Helm A","Helm B","Hood","Mask","Crown","Skull","Hair short","Hair long","Monster","Bandana","Visor","Circlet","Topknot","Wolf","None"] },
-    { id:"chest",    lab:"Chest",      opts:["Plate","Chain","Leather","Robe","Vest","Jacket","Bone","Spirit veil","Scale","Tabard","Cuirass","Rags"] },
-    { id:"belt",     lab:"Belt",       opts:["Cloth","Armored","Sash"] },
-    { id:"gloves",   lab:"Gloves",     opts:["Gauntlets","Leather","Bare","Claws"] },
-    { id:"legs",     lab:"Legs",       opts:["Plate","Pants","Shorts","Robe skirt","Wraps","Greaves"] },
-    { id:"shoes",    lab:"Shoes",      opts:["Boots","Armored","Sandals","Bare"] },
-    { id:"backpack", lab:"Backpack",   opts:["None","Satchel","Quiver","Wings","Cape","Bedroll"] },
-    { id:"offhand",  lab:"Off-hand",   opts:["None","Wood shield","Knight shield","Dagger","Tome","Torch"] },
-    { id:"weapon",   lab:"Weapon",     opts:["Sword","Longsword","Axe","Mace","Spear","Staff","Bow","Dagger","Hammer","Scythe"] },
-    { id:"effect",   lab:"Effect",     opts:["None","Fire","Frost","Necro","Holy","Shadow"] },
-    { id:"slash",    lab:"Slash FX",   opts:["Classic","Detailed","None"] },
-    { id:"mount",    lab:"Mount",      opts:["None","Horse","Ram","Bear","Wolf","Spider"] },
-  ],
+  SLOTS: [], // rempli depuis catalog.json
 
   defaultLook(){
     const o = {};
-    for(const s of CharCreator.SLOTS) o[s.id] = 0;
+    for(const s of CharCreator.SLOTS){
+      o[s.id] = s.required ? (s.folders[0] || "NakedBody") : "None";
+    }
+    o.body = "NakedBody";
+    o.chest = "Chest1";
+    o.legs = "Legs1";
+    o.shoes = "Shoes1";
+    o.head = "Head1";
+    o.weapon = "Melee1";
+    o.offhand = "Shield1";
     return o;
   },
+  folder(slotId){
+    const v = CharCreator.look && CharCreator.look[slotId];
+    return (!v || v === "None") ? null : v;
+  },
+  label(slotId){
+    return CharCreator.folder(slotId) || "None";
+  },
+  /** Teinte combat (fallback pack jeu) — effet équipé. */
+  cssFilter(){
+    const fx = CharCreator.label("effect");
+    let hue = 0, sat = 1, bri = 1, contrast = 1;
+    if(fx === "Effect1") hue += 20;
+    else if(fx === "Effect2") hue += 160;
+    else if(fx === "Effect3"){ hue += 100; sat *= 0.7; }
+    else if(fx === "Effect4"){ hue += 40; bri *= 1.1; }
+    else if(fx === "Effect5"){ bri *= 0.75; sat *= 0.6; }
+    return `hue-rotate(${hue}deg) saturate(${sat}) brightness(${bri}) contrast(${contrast})`;
+  },
+
+  async ensureCatalog(){
+    if(CharCreator.catalog) return CharCreator.catalog;
+    for(const u of [CharCreator.PACK_LOCAL+"catalog.json", CharCreator.PACK_CDN+"catalog.json"]){
+      try{
+        const r = await fetch(u, {cache:"no-store"});
+        if(!r.ok) continue;
+        const cat = await r.json();
+        CharCreator.catalog = cat;
+        CharCreator.SLOTS = (cat.slots||[]).map(s=>({
+          id: s.id, lab: s.lab, folders: s.folders||[], required: !!s.required, opts: s.folders||[]
+        }));
+        if(cat.weaponAfterShieldRows) CharCreator.weaponAfterShieldRows = cat.weaponAfterShieldRows;
+        if(cat.backpackInFrontRows) CharCreator.backpackInFrontRows = cat.backpackInFrontRows;
+        return cat;
+      }catch(_e){}
+    }
+    // fallback minimal si catalogue inaccessible
+    CharCreator.SLOTS = [
+      { id:"body", lab:"Body", folders:["NakedBody","NakedBody2","NakedBody3"], required:true, opts:["NakedBody","NakedBody2","NakedBody3"] },
+      { id:"head", lab:"Head", folders:["None","Head1","Head2","Head3"], required:false, opts:["None","Head1","Head2","Head3"] },
+      { id:"chest", lab:"Chest", folders:["None","Chest1","Chest2"], required:false, opts:["None","Chest1","Chest2"] },
+      { id:"legs", lab:"Legs", folders:["None","Legs1"], required:false, opts:["None","Legs1"] },
+      { id:"shoes", lab:"Shoes", folders:["None","Shoes1"], required:false, opts:["None","Shoes1"] },
+      { id:"weapon", lab:"Weapon", folders:["None","Melee1"], required:false, opts:["None","Melee1"] },
+      { id:"offhand", lab:"Shield", folders:["None","Shield1"], required:false, opts:["None","Shield1"] },
+      { id:"effect", lab:"Effect", folders:["None","Effect1"], required:false, opts:["None","Effect1"] },
+    ];
+    CharCreator.catalog = { shadowFolder:"Shadow", slots: CharCreator.SLOTS };
+    return CharCreator.catalog;
+  },
+
   load(){
     try{
+      const rawF = localStorage.getItem(CharCreator.KEY_FANTASY);
+      if(rawF){
+        const o = JSON.parse(rawF);
+        if(o && o.look){
+          CharCreator.look = Object.assign(CharCreator.defaultLook(), o.look);
+          if(o.skin) CharCreator.skin = o.skin;
+          return;
+        }
+      }
       const raw = localStorage.getItem(CharCreator.KEY);
       if(raw){
         const o = JSON.parse(raw);
-        if(o && typeof o === "object"){ CharCreator.look = Object.assign(CharCreator.defaultLook(), o); return; }
+        // migrate old index-based look → ignore, use defaults
+        if(o && typeof o === "object" && typeof o.body === "string"){
+          CharCreator.look = Object.assign(CharCreator.defaultLook(), o);
+          return;
+        }
       }
     }catch(_e){}
     CharCreator.look = CharCreator.defaultLook();
   },
   save(){
-    try{ localStorage.setItem(CharCreator.KEY, JSON.stringify(CharCreator.look||CharCreator.defaultLook())); }catch(_e){}
+    const payload = { pack:"fantasy-cc", look: CharCreator.look||CharCreator.defaultLook(), skin: CharCreator.skin };
+    try{ localStorage.setItem(CharCreator.KEY_FANTASY, JSON.stringify(payload)); }catch(_e){}
+    try{ localStorage.setItem(CharCreator.KEY, JSON.stringify(payload.look)); }catch(_e){}
   },
-  label(slotId){
-    const s = CharCreator.SLOTS.find(x=>x.id===slotId);
-    const i = (CharCreator.look && CharCreator.look[slotId])|0;
-    return s ? (s.opts[i] || s.opts[0]) : "?";
+
+  loadImg(folder, anim){
+    const key = folder + "/" + anim;
+    if(CharCreator._cache.has(key)) return CharCreator._cache.get(key);
+    const p = new Promise((resolve)=>{
+      const rel = `spritesheets/${folder}/${anim}.png`;
+      const urls = [CharCreator.PACK_LOCAL+rel, CharCreator.PACK_CDN+rel];
+      const im = new Image();
+      try{ im.crossOrigin = "anonymous"; }catch(_e){}
+      let i = 0;
+      const next = ()=>{
+        if(i >= urls.length){ resolve(null); return; }
+        const src = urls[i++];
+        im.onload = ()=> resolve(im);
+        im.onerror = ()=> next();
+        im.src = src;
+      };
+      next();
+    });
+    CharCreator._cache.set(key, p);
+    return p;
   },
-  /** Filtre canvas pour le joueur (body type + effet). */
-  cssFilter(){
-    const body = CharCreator.label("body");
-    const fx = CharCreator.label("effect");
-    let hue = 0, sat = 1, bri = 1, contrast = 1;
-    if(body === "Undead"){ hue = 80; sat = 0.55; bri = 0.92; }
-    else if(body === "Spirit"){ hue = 190; sat = 1.15; bri = 1.12; contrast = 1.05; }
-    if(fx === "Fire") hue += 20;
-    else if(fx === "Frost") hue += 160;
-    else if(fx === "Necro"){ hue += 100; sat *= 0.7; }
-    else if(fx === "Holy"){ hue += 40; bri *= 1.1; }
-    else if(fx === "Shadow"){ bri *= 0.75; sat *= 0.6; }
-    return `hue-rotate(${hue}deg) saturate(${sat}) brightness(${bri}) contrast(${contrast})`;
+
+  layersForRow(row){
+    const L = [];
+    const shadow = (CharCreator.catalog && CharCreator.catalog.shadowFolder) || "Shadow";
+    L.push({ folder: shadow, tint: null });
+    const body = CharCreator.folder("body");
+    if(body) L.push({ folder: body, tint: CharCreator.skin });
+    for(const id of ["shoes","legs","chest","belt","gloves"]){
+      const f = CharCreator.folder(id); if(f) L.push({ folder:f, tint:null });
+    }
+    const shield = CharCreator.folder("offhand");
+    const weapon = CharCreator.folder("weapon");
+    const bag = CharCreator.folder("backpack");
+    const wAfter = !!CharCreator.weaponAfterShieldRows[row|0];
+    const bagFront = !!CharCreator.backpackInFrontRows[row|0];
+    const mid = [];
+    if(wAfter){ if(shield) mid.push({folder:shield,tint:null}); if(weapon) mid.push({folder:weapon,tint:null}); }
+    else { if(weapon) mid.push({folder:weapon,tint:null}); if(shield) mid.push({folder:shield,tint:null}); }
+    if(bag){ if(bagFront) mid.push({folder:bag,tint:null}); else mid.unshift({folder:bag,tint:null}); }
+    L.push(...mid);
+    for(const id of ["head","slash","effect"]){
+      const f = CharCreator.folder(id); if(f) L.push({ folder:f, tint:null });
+    }
+    const mount = CharCreator.folder("mount");
+    if(mount) L.unshift({ folder:mount, tint:null });
+    return L;
+  },
+
+  tintDraw(cx, img, sx,sy,sw,sh, dx,dy,dw,dh, tintHex){
+    if(!tintHex){ cx.drawImage(img, sx,sy,sw,sh, dx,dy,dw,dh); return; }
+    const tmp = document.createElement("canvas");
+    tmp.width = dw; tmp.height = dh;
+    const t = tmp.getContext("2d");
+    t.imageSmoothingEnabled = false;
+    t.drawImage(img, sx,sy,sw,sh, 0,0,dw,dh);
+    t.globalCompositeOperation = "source-atop";
+    t.fillStyle = tintHex;
+    t.globalAlpha = 0.35;
+    t.fillRect(0,0,dw,dh);
+    t.globalAlpha = 1;
+    cx.drawImage(tmp, dx, dy);
   },
 
   open(){
-    CharCreator.load();
     UI.hide("hubOverlay");
     UI.show("charCreateOverlay");
-    CharCreator.renderUI();
-    CharCreator.ensureImg(()=> CharCreator.startPreview());
+    CharCreator.ensureCatalog().then(()=>{
+      CharCreator.load();
+      CharCreator.renderUI();
+      CharCreator._ready = true;
+      CharCreator.startPreview();
+      // warm body sheet
+      const b = CharCreator.folder("body") || "NakedBody";
+      CharCreator.loadImg(b, CharCreator._anim);
+    });
   },
   close(){
     if(CharCreator._raf){ cancelAnimationFrame(CharCreator._raf); CharCreator._raf = 0; }
     UI.hide("charCreateOverlay");
     if(UI.hub) UI.hub.open();
   },
-  ensureImg(cb){
-    if(CharCreator._img && CharCreator._img.complete && CharCreator._img.naturalWidth){ cb(); return; }
-    const im = new Image();
-    CharCreator._img = im;
-    const pack = (typeof Sprite!=="undefined" && Sprite.PACKS[Sprite.packId]) || (Sprite && Sprite.PACKS.x180) || null;
-    const local = pack ? (pack.localBase + "Idle.png") : "assets/packs/x180p/Idle.png";
-    const cdn = pack ? (pack.cdnBase + "Idle.png") : "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/x180p/Idle.png";
-    const urls = [local, cdn];
-    let i = 0;
-    const next = ()=>{
-      if(i >= urls.length){ cb(); return; }
-      im.onload = ()=> cb();
-      im.onerror = ()=>{ i++; next(); };
-      try{ im.crossOrigin = "anonymous"; }catch(_e){}
-      im.src = urls[i];
-    };
-    next();
-  },
+
   renderUI(){
     const root = UI.el("charSlots"); if(!root) return;
     root.innerHTML = "";
@@ -6922,17 +7036,17 @@ const CharCreator = {
       box.className = "char-slot";
       const lab = document.createElement("div");
       lab.className = "lab";
-      lab.textContent = s.lab;
+      lab.textContent = s.lab + (s.required ? " *" : "");
       const opts = document.createElement("div");
       opts.className = "char-opts";
-      const cur = (CharCreator.look[s.id]|0);
-      s.opts.forEach((name, idx)=>{
+      const cur = CharCreator.look[s.id];
+      (s.folders || s.opts || []).forEach((name)=>{
         const b = document.createElement("button");
         b.type = "button";
-        b.textContent = name;
-        if(idx === cur) b.classList.add("on");
+        b.textContent = name === "None" ? "— None" : name;
+        if(name === cur) b.classList.add("on");
         b.onclick = ()=>{
-          CharCreator.look[s.id] = idx;
+          CharCreator.look[s.id] = name;
           CharCreator.renderUI();
         };
         opts.appendChild(b);
@@ -6947,7 +7061,7 @@ const CharCreator = {
     el.innerHTML = [
       CharCreator.label("body"), CharCreator.label("head"), CharCreator.label("chest"),
       CharCreator.label("weapon"), CharCreator.label("effect")
-    ].join(" · ");
+    ].join(" · ") + `<br>dir ${CharCreator._dir} · ${CharCreator._anim}`;
   },
   startPreview(){
     if(CharCreator._raf) cancelAnimationFrame(CharCreator._raf);
@@ -6957,65 +7071,76 @@ const CharCreator = {
     };
     tick();
   },
-  drawPreview(){
+  async drawPreview(){
     const cv = UI.el("charPreview"); if(!cv) return;
     const cx = cv.getContext("2d");
     const W = cv.width, H = cv.height;
     cx.clearRect(0,0,W,H);
-    // damier iso miniature
     cx.fillStyle = "#0a1420"; cx.fillRect(0,0,W,H);
-    const tw=36, th=18, ox=W/2, oy=H/2+28;
+    const tw=36, th=18, ox=W/2, oy=H/2+32;
     for(let c=-1;c<=1;c++) for(let r=-1;r<=1;r++){
       const x = ox+(c-r)*tw/2, y = oy+(c+r)*th/2;
       cx.beginPath();
       cx.moveTo(x,y-th/2); cx.lineTo(x+tw/2,y); cx.lineTo(x,y+th/2); cx.lineTo(x-tw/2,y); cx.closePath();
-      cx.fillStyle = ((c+r)&1) ? "rgba(39,224,255,.10)" : "rgba(39,224,255,.18)";
-      cx.fill(); cx.strokeStyle="#1a3a4a"; cx.stroke();
+      cx.fillStyle = ((c+r)&1) ? "rgba(232,89,12,.10)" : "rgba(232,89,12,.18)";
+      cx.fill();
     }
-    const im = CharCreator._img;
-    if(!im || !im.complete || !im.naturalWidth){
+    if(!CharCreator._ready || !CharCreator.look){
       cx.fillStyle="#8fa3b8"; cx.font="12px sans-serif"; cx.fillText("Chargement…", W/2-36, H/2);
       return;
     }
-    const pack = (typeof Sprite!=="undefined" && Sprite.PACKS[Sprite.packId]) || {};
-    const FW = pack.frameW || Sprite.FRAME_W || 180;
-    const FH = pack.frameH || Sprite.FRAME_H || 180;
-    const cols = (pack.sheetCols && pack.sheetCols.idle) || Sprite.colsFor?.("idle") || Math.max(1, Math.floor(im.naturalWidth/FW));
-    const row = (typeof Sprite!=="undefined" && Sprite.DIR_ROW) ? (Sprite.DIR_ROW[CharCreator._dir|0]|0) : 0;
-    const col = Math.floor(performance.now()/1000*10) % cols;
-    const S = FW >= 128 ? 0.85 : 2.4;
-    const foot = pack.foot || Sprite.FOOT || 145;
-    const dw=FW*S, dh=FH*S;
-    const dx=ox-dw/2, dy=oy+4-foot*S;
-    cx.save();
-    cx.imageSmoothingEnabled = FW >= 128;
-    cx.filter = CharCreator.cssFilter();
-    cx.drawImage(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh);
-    cx.restore();
-    // pastille effet
-    const fx = CharCreator.label("effect");
-    if(fx && fx !== "None"){
-      cx.fillStyle = fx==="Fire"?"rgba(255,120,40,.35)":fx==="Frost"?"rgba(120,200,255,.35)":fx==="Necro"?"rgba(160,255,120,.3)":"rgba(255,230,120,.3)";
-      cx.beginPath(); cx.ellipse(ox, oy+6, 22, 9, 0, 0, Math.PI*2); cx.fill();
+    const now = performance.now();
+    if(now - CharCreator._lastT > 100){
+      CharCreator._frame = (CharCreator._frame + 1) % CharCreator.COLS;
+      CharCreator._lastT = now;
+    }
+    const row = CharCreator.DIR_ROW[CharCreator._dir|0]|0;
+    const col = CharCreator._frame;
+    const layers = CharCreator.layersForRow(row);
+    const imgs = await Promise.all(layers.map(L=> CharCreator.loadImg(L.folder, CharCreator._anim)));
+    const S = 1.35;
+    const foot = 108;
+    const dw = CharCreator.FW*S, dh = CharCreator.FH*S;
+    const dx = ox - dw/2, dy = oy + 4 - foot*S;
+    cx.imageSmoothingEnabled = false;
+    for(let i=0;i<layers.length;i++){
+      const im = imgs[i];
+      if(!im || !im.naturalWidth) continue;
+      CharCreator.tintDraw(cx, im, col*CharCreator.FW, row*CharCreator.FH, CharCreator.FW, CharCreator.FH, dx, dy, dw, dh, layers[i].tint);
     }
   },
   randomize(){
     CharCreator.look = CharCreator.defaultLook();
     for(const s of CharCreator.SLOTS){
-      CharCreator.look[s.id] = Math.floor(Math.random()*s.opts.length);
+      const opts = s.folders || s.opts || [];
+      if(!opts.length) continue;
+      CharCreator.look[s.id] = opts[Math.floor(Math.random()*opts.length)];
     }
+    if(!CharCreator.folder("body")) CharCreator.look.body = "NakedBody";
     CharCreator.renderUI();
   },
   bind(){
     const c = UI.el("charClose"); if(c) c.onclick = ()=> CharCreator.close();
     const s = UI.el("charSave"); if(s) s.onclick = ()=>{
       CharCreator.save();
-      if(typeof Sprite!=="undefined"){ CharCreator._img = null; Sprite.setPack(Sprite.packId||"x180"); }
-      UI.setHint && UI.setHint("Apparence test sauvée — visible en combat (teinte).");
+      UI.setHint && UI.setHint("Apparence Fantasy sauvée (couches). Combat : teinte effet tant que bake non branché.");
       CharCreator.close();
     };
     const r = UI.el("charRandom"); if(r) r.onclick = ()=> CharCreator.randomize();
     const z = UI.el("charReset"); if(z) z.onclick = ()=>{ CharCreator.look = CharCreator.defaultLook(); CharCreator.renderUI(); };
+    const bar = UI.el("charAnimBar");
+    if(bar){
+      bar.querySelectorAll("[data-anim]").forEach(btn=>{
+        btn.onclick = ()=>{
+          CharCreator._anim = btn.getAttribute("data-anim");
+          CharCreator._frame = 0;
+          bar.querySelectorAll("[data-anim]").forEach(x=> x.classList.toggle("on", x===btn));
+          CharCreator.syncSummary();
+        };
+      });
+    }
+    const dp = UI.el("charDirPrev"); if(dp) dp.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+7)%8; CharCreator.syncSummary(); };
+    const dn = UI.el("charDirNext"); if(dn) dn.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+1)%8; CharCreator.syncSummary(); };
   }
 };
 
@@ -10482,7 +10607,7 @@ const UI = {
       {id:"navigation",  name:"NAVIGATION",    ico:"🧭", zone:"cmd",      desc:"Carte stellaire & voyage", act:()=>{ UI.neuro.openFromHub("navigation"); }},
       {id:"factions",    name:"FACTIONS",      ico:"🎖", zone:"cmd",      desc:"Réputation & soutien", act:()=>{ UI.neuro.openFromHub("factions"); }},
       {id:"simulateur",  name:"SIMULATEUR DE COMBAT", ico:"🎯", zone:"cmd", desc:"Banc d'essai — entraînement & homologation", act:()=>{ _pendingSimulator = true; UI.neuro.openFromHub("prep"); }},
-      {id:"apparence",   name:"CRÉATEUR PERSO", ico:"🎭", zone:"char", desc:"Apparence test — body / gear / armes", act:()=>{ if(typeof CharCreator!=="undefined") CharCreator.open(); }},
+      {id:"apparence",   name:"CRÉATEUR PERSO", ico:"🎭", zone:"char", desc:"Fantasy V1.3 — couches 128×128 (Idle/Walk/Atk1)", act:()=>{ if(typeof CharCreator!=="undefined") CharCreator.open(); }},
       {id:"arsenal",     name:"ARSENAL",       ico:"📖", zone:"arsenal",  desc:"Sorts connus & évolutions", tab:"arsenal"},
       {id:"echo",        name:"ECHO",          ico:"🧬", zone:"cmd",      desc:"Profil immortel & historique", tab:"echo"},
       {id:"hangar",      name:"HANGAR",        ico:"🦾", zone:"hangar",   desc:"Enveloppes · synchro · usure", tab:"hangar"},
@@ -11603,7 +11728,9 @@ function init(){
   // redimensionnement
   window.addEventListener("resize", ()=>{ if(State) Render.layout(); });
 
-  if(typeof CharCreator !== "undefined"){ CharCreator.load(); CharCreator.bind(); }
+  if(typeof CharCreator !== "undefined"){
+    CharCreator.ensureCatalog().then(()=>{ CharCreator.load(); CharCreator.bind(); });
+  }
 
   // affichage intro
   UI.show("introOverlay");

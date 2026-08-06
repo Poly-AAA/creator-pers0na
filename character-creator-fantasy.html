@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Character Creator Fantasy V1.3 — NEURO-CORE</title>
+<style>
+  :root{
+    --bg0:#0b1218; --bg1:#13202c; --line:#2a3d4f; --text:#e8eef4; --muted:#8fa3b8;
+    --accent:#c45c26; --accent2:#e8a05a; --panel:rgba(12,22,32,.92);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(196,92,38,.18), transparent 55%),
+    radial-gradient(900px 500px at 90% 10%, rgba(60,120,160,.12), transparent 50%),
+    linear-gradient(165deg, #0a1016 0%, #121c26 45%, #0d1520 100%);
+    color:var(--text); font:14px/1.4 "Segoe UI", system-ui, sans-serif}
+  header{padding:18px 22px 8px; display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; justify-content:space-between}
+  header h1{margin:0; font-size:clamp(22px,3.2vw,34px); letter-spacing:.04em; font-weight:700; color:var(--accent2)}
+  header p{margin:4px 0 0; color:var(--muted); font-size:13px; max-width:52ch}
+  .wrap{display:grid; grid-template-columns:minmax(280px,360px) 1fr; gap:16px; padding:10px 18px 28px; max-width:1200px; margin:0 auto}
+  @media(max-width:860px){.wrap{grid-template-columns:1fr}}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px; backdrop-filter:blur(8px)}
+  .preview-box{display:flex; flex-direction:column; align-items:center; gap:10px}
+  canvas#stage{width:min(100%,320px); aspect-ratio:1; background:#070b10; border-radius:12px; border:1px solid var(--line); image-rendering:pixelated}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; width:100%}
+  .toolbar button, .toolbar select, .slot button, .foot button{
+    border:1px solid var(--line); background:#1a2834; color:var(--text); border-radius:8px;
+    padding:7px 10px; cursor:pointer; font-size:12px}
+  .toolbar button.on, .slot button.on{border-color:var(--accent); color:var(--accent2); background:#2a1a12}
+  .toolbar button:hover, .slot button:hover, .foot button:hover{border-color:var(--accent2)}
+  .slots{display:flex; flex-direction:column; gap:10px; max-height:min(72vh,760px); overflow:auto; padding-right:4px}
+  .slot{border:1px solid var(--line); border-radius:10px; padding:8px 9px; background:rgba(10,20,30,.55)}
+  .slot .lab{font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
+  .opts{display:flex; flex-wrap:wrap; gap:5px}
+  .opts button{font-size:11px; padding:5px 8px}
+  .foot{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+  .status{font-size:12px; color:var(--muted); text-align:center; min-height:1.2em}
+  .hint{font-size:11px; color:var(--muted); margin-top:8px}
+  a{color:var(--accent2)}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Fantasy Character Creator</h1>
+    <p>Pack SmallScaleInt V1.3 — couches modulaires 128×128 (Idle / Walk / Attack1). Pas de mannequin PixelLab.</p>
+  </div>
+  <div class="hint">Assets : <code>assets/packs/fantasy-cc/</code></div>
+</header>
+<div class="wrap">
+  <aside class="panel preview-box">
+    <canvas id="stage" width="256" height="256"></canvas>
+    <div class="toolbar">
+      <button type="button" data-anim="Idle" class="on">Idle</button>
+      <button type="button" data-anim="Walk">Walk</button>
+      <button type="button" data-anim="Attack1">Attack1</button>
+      <button type="button" id="dirPrev">◀ Dir</button>
+      <button type="button" id="dirNext">Dir ▶</button>
+      <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px">
+        Skin
+        <input type="color" id="skin" value="#d4a574" style="width:36px;height:28px;border:0;background:transparent;cursor:pointer"/>
+      </label>
+    </div>
+    <div class="status" id="status">Chargement catalogue…</div>
+    <div class="foot">
+      <button type="button" id="btnRandom">Aléatoire</button>
+      <button type="button" id="btnReset">Réinitialiser</button>
+      <button type="button" id="btnExport">Exporter look JSON</button>
+    </div>
+  </aside>
+  <main class="panel">
+    <div class="slots" id="slots"></div>
+  </main>
+</div>
+
+<script>
+(function(){
+  const BASE_LOCAL = "assets/packs/fantasy-cc/";
+  // CDN pinned after push — updated by commit hash when available
+  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/strict-regen-idle-66c0/assets/packs/fantasy-cc/";
+
+  const FW = 128, FH = 128, COLS = 15, ROWS = 8;
+  // Identity map: game dir 0..7 → sheet row (calibrate if needed)
+  const DIR_ROW = [0,1,2,3,4,5,6,7];
+
+  // Unity combine order + per-row weapon/shield / backpack policies
+  const LAYER_KEYS = ["shadow","body","shoes","legs","chest","belt","gloves","offhand","weapon","backpack","head","slash","effect","mount"];
+  let weaponAfterShieldRows = [true,true,true,false,false,false,false,true];
+  let backpackInFrontRows = [true,false,false,false,false,true,true,true];
+
+  const state = {
+    catalog: null,
+    look: {},
+    anim: "Idle",
+    dir: 0,
+    skin: "#d4a574",
+    cache: new Map(),
+    raf: 0,
+    frame: 0,
+    lastT: 0,
+  };
+
+  const el = (id)=> document.getElementById(id);
+  const stage = el("stage");
+  const cx = stage.getContext("2d");
+
+  function urlFor(folder, anim){
+    const rel = `spritesheets/${folder}/${anim}.png`;
+    return { local: BASE_LOCAL + rel, cdn: BASE_CDN + rel };
+  }
+
+  function loadImg(folder, anim){
+    const key = folder + "/" + anim;
+    if(state.cache.has(key)) return state.cache.get(key);
+    const p = new Promise((resolve)=>{
+      const urls = urlFor(folder, anim);
+      const im = new Image();
+      try{ im.crossOrigin = "anonymous"; }catch(_e){}
+      let i = 0;
+      const tryNext = ()=>{
+        if(i >= 2){ resolve(null); return; }
+        const src = i===0 ? urls.local : urls.cdn;
+        i++;
+        im.onload = ()=> resolve(im);
+        im.onerror = ()=> tryNext();
+        im.src = src;
+      };
+      tryNext();
+    });
+    state.cache.set(key, p);
+    return p;
+  }
+
+  function defaultLook(cat){
+    const look = {};
+    for(const s of cat.slots){
+      look[s.id] = s.required ? (s.folders[0]||"NakedBody") : "None";
+    }
+    // sensible starter
+    look.body = "NakedBody";
+    look.chest = "Chest1";
+    look.legs = "Legs1";
+    look.shoes = "Shoes1";
+    look.head = "Head1";
+    look.weapon = "Melee1";
+    look.offhand = "Shield1";
+    return look;
+  }
+
+  function folderFor(slotId){
+    const v = state.look[slotId];
+    return (!v || v === "None") ? null : v;
+  }
+
+  /** Build draw list for a sheet row (0..7), respecting Unity policies. */
+  function layersForRow(row){
+    const L = [];
+    L.push({ key:"shadow", folder: state.catalog.shadowFolder || "Shadow", tint:null });
+    L.push({ key:"body", folder: folderFor("body"), tint: state.skin });
+    L.push({ key:"shoes", folder: folderFor("shoes"), tint:null });
+    L.push({ key:"legs", folder: folderFor("legs"), tint:null });
+    L.push({ key:"chest", folder: folderFor("chest"), tint:null });
+    L.push({ key:"belt", folder: folderFor("belt"), tint:null });
+    L.push({ key:"gloves", folder: folderFor("gloves"), tint:null });
+
+    const shield = folderFor("offhand");
+    const weapon = folderFor("weapon");
+    const bag = folderFor("backpack");
+    const wAfter = !!weaponAfterShieldRows[row|0];
+    const bagFront = !!backpackInFrontRows[row|0];
+
+    const mid = [];
+    if(wAfter){
+      if(shield) mid.push({ key:"offhand", folder:shield, tint:null });
+      if(weapon) mid.push({ key:"weapon", folder:weapon, tint:null });
+    } else {
+      if(weapon) mid.push({ key:"weapon", folder:weapon, tint:null });
+      if(shield) mid.push({ key:"offhand", folder:shield, tint:null });
+    }
+    if(bag){
+      if(bagFront) mid.push({ key:"backpack", folder:bag, tint:null });
+      else mid.unshift({ key:"backpack", folder:bag, tint:null });
+    }
+    L.push(...mid);
+
+    L.push({ key:"head", folder: folderFor("head"), tint:null });
+    L.push({ key:"slash", folder: folderFor("slash"), tint:null });
+    L.push({ key:"effect", folder: folderFor("effect"), tint:null });
+    // Mount drawn behind body would be better; keep last as optional overlay for now
+    const mount = folderFor("mount");
+    if(mount) L.unshift({ key:"mount", folder:mount, tint:null });
+    return L.filter(x=> x.folder);
+  }
+
+  function tintDraw(img, sx,sy,sw,sh, dx,dy,dw,dh, tintHex){
+    if(!tintHex){
+      cx.drawImage(img, sx,sy,sw,sh, dx,dy,dw,dh);
+      return;
+    }
+    const tmp = document.createElement("canvas");
+    tmp.width = dw; tmp.height = dh;
+    const t = tmp.getContext("2d");
+    t.imageSmoothingEnabled = false;
+    t.drawImage(img, sx,sy,sw,sh, 0,0,dw,dh);
+    t.globalCompositeOperation = "source-atop";
+    t.fillStyle = tintHex;
+    t.globalAlpha = 0.35;
+    t.fillRect(0,0,dw,dh);
+    t.globalAlpha = 1;
+    t.globalCompositeOperation = "source-over";
+    cx.drawImage(tmp, dx, dy);
+  }
+
+  async function draw(){
+    const cat = state.catalog;
+    if(!cat) return;
+    const row = DIR_ROW[state.dir|0]|0;
+    const cols = COLS;
+    const anim = state.anim;
+    // frame advance ~10 fps
+    const now = performance.now();
+    if(now - state.lastT > 100){
+      state.frame = (state.frame + 1) % cols;
+      state.lastT = now;
+    }
+    const col = state.frame;
+    const W = stage.width, H = stage.height;
+    cx.clearRect(0,0,W,H);
+    cx.fillStyle = "#0a1420";
+    cx.fillRect(0,0,W,H);
+    // iso tiles
+    const tw=40, th=20, ox=W/2, oy=H/2+36;
+    for(let c=-1;c<=1;c++) for(let r=-1;r<=1;r++){
+      const x = ox+(c-r)*tw/2, y = oy+(c+r)*th/2;
+      cx.beginPath();
+      cx.moveTo(x,y-th/2); cx.lineTo(x+tw/2,y); cx.lineTo(x,y+th/2); cx.lineTo(x-tw/2,y); cx.closePath();
+      cx.fillStyle = ((c+r)&1) ? "rgba(196,92,38,.10)" : "rgba(196,92,38,.18)";
+      cx.fill();
+    }
+
+    const layers = layersForRow(row);
+    const imgs = await Promise.all(layers.map(L=> loadImg(L.folder, anim)));
+    const scale = 1.55;
+    const dw = FW*scale, dh = FH*scale;
+    const foot = 110;
+    const dx = ox - dw/2, dy = oy + 4 - foot*scale;
+    cx.imageSmoothingEnabled = false;
+    let missing = 0;
+    for(let i=0;i<layers.length;i++){
+      const im = imgs[i];
+      if(!im || !im.complete || !im.naturalWidth){ missing++; continue; }
+      tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, layers[i].tint);
+    }
+    el("status").textContent = `${anim} · dir ${state.dir} (row ${row}) · frame ${col+1}/${cols}` +
+      (missing ? ` · ${missing} couche(s) manquante(s)` : "");
+  }
+
+  function loop(){
+    draw().catch(()=>{});
+    state.raf = requestAnimationFrame(loop);
+  }
+
+  function renderSlots(){
+    const root = el("slots");
+    root.innerHTML = "";
+    for(const s of state.catalog.slots){
+      const box = document.createElement("div");
+      box.className = "slot";
+      const lab = document.createElement("div");
+      lab.className = "lab";
+      lab.textContent = s.lab + (s.required ? " *" : "");
+      const opts = document.createElement("div");
+      opts.className = "opts";
+      const cur = state.look[s.id];
+      for(const name of s.folders){
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = name === "None" ? "— None" : name;
+        if(name === cur) b.classList.add("on");
+        b.onclick = ()=>{
+          state.look[s.id] = name;
+          renderSlots();
+        };
+        opts.appendChild(b);
+      }
+      box.appendChild(lab); box.appendChild(opts);
+      root.appendChild(box);
+    }
+  }
+
+  function bindToolbar(){
+    document.querySelectorAll(".toolbar [data-anim]").forEach(btn=>{
+      btn.onclick = ()=>{
+        state.anim = btn.getAttribute("data-anim");
+        state.frame = 0;
+        document.querySelectorAll(".toolbar [data-anim]").forEach(x=> x.classList.toggle("on", x===btn));
+      };
+    });
+    el("dirPrev").onclick = ()=> { state.dir = (state.dir + 7) % 8; };
+    el("dirNext").onclick = ()=> { state.dir = (state.dir + 1) % 8; };
+    el("skin").oninput = (e)=> { state.skin = e.target.value; };
+    el("btnRandom").onclick = ()=>{
+      for(const s of state.catalog.slots){
+        const opts = s.folders;
+        state.look[s.id] = opts[Math.floor(Math.random()*opts.length)];
+      }
+      if(!folderFor("body")) state.look.body = "NakedBody";
+      renderSlots();
+    };
+    el("btnReset").onclick = ()=>{
+      state.look = defaultLook(state.catalog);
+      renderSlots();
+    };
+    el("btnExport").onclick = ()=>{
+      const payload = { pack:"fantasy-cc", look: state.look, skin: state.skin, anim: state.anim, dir: state.dir };
+      const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "fantasy-look.json";
+      a.click();
+      try{ localStorage.setItem("neuro.fantasyLook", JSON.stringify(payload)); }catch(_e){}
+      el("status").textContent = "Look exporté (+ localStorage neuro.fantasyLook)";
+    };
+  }
+
+  async function boot(){
+    let cat = null;
+    for(const u of [BASE_LOCAL+"catalog.json", BASE_CDN+"catalog.json"]){
+      try{
+        const r = await fetch(u, {cache:"no-store"});
+        if(r.ok){ cat = await r.json(); break; }
+      }catch(_e){}
+    }
+    if(!cat){
+      el("status").textContent = "Impossible de charger catalog.json";
+      return;
+    }
+    state.catalog = cat;
+    if(cat.weaponAfterShieldRows) weaponAfterShieldRows = cat.weaponAfterShieldRows;
+    if(cat.backpackInFrontRows) backpackInFrontRows = cat.backpackInFrontRows;
+    try{
+      const raw = localStorage.getItem("neuro.fantasyLook");
+      if(raw){
+        const o = JSON.parse(raw);
+        if(o && o.look){ state.look = o.look; if(o.skin) state.skin = o.skin; }
+      }
+    }catch(_e){}
+    if(!state.look.body) state.look = defaultLook(cat);
+    el("skin").value = state.skin;
+    bindToolbar();
+    renderSlots();
+    // preload body idle
+    await loadImg(folderFor("body")||"NakedBody", "Idle");
+    loop();
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

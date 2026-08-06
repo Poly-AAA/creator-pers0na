@@ -49,11 +49,13 @@ Source Dropbox (achat) — 3 fichiers, ~1,24 Go compressé.
 - `CharCreator` dans `neuro-core-sprite.html` : slots **placeholders** (teintes), pas encore branché sur ces sheets modulaires
 - Doc : `docs/analyse-character-creator-modern.md`
 
-## Intégration web recommandée (prochaine étape)
+## Intégration web (état)
 
-1. Extraire `StreamingAssets/Spritesheets/` hors git LFS / dossier local (trop gros pour commit brut ~0,5 Go PNG)
-2. Composer runtime : `NakedBody` + Head/Chest/Legs/Hands/Shoes (+ arme) empilés frame-alignés 128×128
-3. Brancher `CharCreator.SLOTS` sur les vrais IDs de dossiers
-4. Exporter un perso « baked » (comme Knight Demo) pour le combat si perf web trop lourde
+- Pack repo : `assets/packs/fantasy-cc/` — **Idle + Walk + Attack1** pour les 129 dossiers (~53 Mo)
+- Compositeur standalone : `character-creator-fantasy.html`
+- `CharCreator` dans `neuro-core-sprite.html` compose les vraies couches (ordre Unity + policies row)
+- Catalogue : `assets/packs/fantasy-cc/catalog.json`
 
 **Ne pas** versionner le `.unitypackage` ni l’exe Stand-alone dans git.
+
+Combat : le bake sheet runtime n’est pas encore branché — le combat garde le pack jeu + teinte effet.
