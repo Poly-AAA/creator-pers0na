@@ -1,0 +1,52 @@
+STRICT FULL REGEN — ZERO IMPROVISATION — NEW CHARACTER FROM SCRATCH.
+
+Create a brand-new 8-directional character for a tactical isometric game.
+
+TECH (LOCKED):
+- Size: 184x184 per frame (or 128x128 minimum — NEVER below 128)
+- Directions: 8 — South, SE, East, NE, North, NW, West, SW
+- View: low top-down isometric (~30°, tactical iso 2:1)
+- Transparent background
+- Pivot: feet near bottom-center of every frame
+- Character fills most of the frame height (large readable sprite, not a tiny figure)
+- Same scale / footprint in ALL 8 directions
+
+STYLE (LOCKED — match attached Gustavo Viselner pixel-art references if provided):
+- modern cinematic HD pixel art (Viselner / adventure-game still quality)
+- crisp visible pixels, strong silhouette
+- rich shading: 3–5 tone steps, dithering OK, clear light direction
+- high detail density — face, torso, limbs must be readable and crafted
+- NOT crude, NOT chibi, NOT MS Paint blob, NOT blurry AI
+- NOT PS1 low-poly 3D, NOT Metal Gear 3D, NOT anime screencap, NOT photoreal, NOT vector/SVG
+
+CHARACTER (LOCKED):
+- Adult COMPLETELY ANDROGYNOUS humanoid mannequin (not male, not female)
+- Adult proportions (normal head size — NO big chibi head)
+- Neutral slim-athletic build
+- NO pecs, NO breasts, NO six-pack, NO wide male shoulders, NO wide female hips
+- NO genitals, NO nipples detail, NO body hair — doll-safe anatomy
+- BALD — no hair, no beard, no mustache, no bushy eyebrows
+- Soft but detailed face (enough pixels for clear eyes/nose/mouth)
+- Light/medium skin with multi-tone shading
+
+OUTFIT (LOCKED):
+- COMPLETELY NUDE only
+- NO briefs, NO underwear, NO shirt, NO pants, NO shoes, NO socks
+- NO belt, NO armor, NO weapon, NO hat, NO hair, NO accessories
+
+POSE:
+- Idle standing, soft A-pose, arms slightly away from sides, weight on both feet
+- Neutral calm stance
+- Single character only — NO environment, NO props, NO other people
+
+ANIMATION FOR THIS PASS:
+- Idle base rotations only (8 static directional frames / idle)
+- NO walk, NO run, NO jump yet
+
+ACCEPTANCE — FAIL IF ANY:
+- low detail / crude / chibi / tiny in frame
+- any clothing or underwear
+- any hair
+- sexed male or female body
+- wrong camera (side-scroller / pure front orthographic)
+- modern HD 3D or PS1 3D look
