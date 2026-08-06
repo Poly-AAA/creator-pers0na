@@ -539,40 +539,70 @@ aside.side{
 .hub-tile.zone-data{--tc:#3ce08a;--tg:rgba(60,224,138,.3)}
 .hub-tile.zone-char{--tc:#E8590C;--tg:rgba(232,89,12,.35)}
 
-/* ====== CRÉATEUR DE PERSONNAGE — mobile zones + flèches ====== */
-#charCreateOverlay{z-index:62;background:rgba(4,10,16,.94)}
-.char-wrap{width:min(920px,100vw);height:min(94vh,100%);max-height:100dvh;display:flex;flex-direction:column;
-  border:1px solid rgba(232,89,12,.4);border-radius:0;padding:0;background:#0c1218;overflow:hidden}
-@media(min-width:640px){.char-wrap{border-radius:14px;height:min(90vh,760px);width:min(920px,96vw)}}
-.char-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid #2a3548;flex-shrink:0}
-.char-head h2{font-size:15px;color:#E8590C;letter-spacing:1px;margin:0}
+/* ====== CRÉATEUR DE PERSONNAGE — callouts épuré (réf. light) ====== */
+#charCreateOverlay{z-index:62;background:rgba(40,40,38,.45)}
+.char-wrap{width:min(480px,100vw);height:min(100dvh,100%);max-height:100dvh;display:flex;flex-direction:column;
+  border:0;border-radius:0;padding:0;background:linear-gradient(180deg,#f2f2f0 0%,#e8e8e6 55%,#dededc 100%);
+  overflow:hidden;color:#6a6a68;font:13px/1.35 Helvetica,Arial,sans-serif}
+@media(min-width:640px){.char-wrap{border-radius:14px;height:min(92vh,820px);width:min(420px,96vw);border:1px solid #d0d0cc}}
+.char-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid #d0d0cc;flex-shrink:0;background:rgba(247,247,245,.9)}
+.char-head h2{font-size:13px;color:#4a4a48;letter-spacing:.12em;margin:0;text-transform:uppercase;font-weight:600}
 .char-head .sub{display:none}
-.char-body{display:grid;grid-template-columns:42% 1fr;gap:0;min-height:0;flex:1;overflow:hidden}
-@media(max-width:720px){.char-body{grid-template-columns:1fr;grid-template-rows:38% 1fr}}
-.char-preview{background:linear-gradient(165deg,#0a1016,#15202a);border-right:1px solid #2a3548;padding:8px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:0}
-@media(max-width:720px){.char-preview{border-right:0;border-bottom:1px solid #2a3548}}
-.char-preview canvas{width:min(100%,220px);max-height:72%;aspect-ratio:1;image-rendering:pixelated;background:#070b10;border-radius:10px}
-.char-ui{display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:10px}
-.char-screen{display:none;flex:1;flex-direction:column;min-height:0;gap:8px}
-.char-screen.on{display:flex}
-.char-zone-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;overflow:auto;flex:1;align-content:start}
-.char-zone-card{min-height:52px;border:1px solid #2a3548;border-radius:10px;background:#18232e;padding:10px;text-align:left;cursor:pointer;color:#eaf2ff}
-.char-zone-card .zlab{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#8fa3b8}
-.char-zone-card .zval{font-size:13px;font-weight:600;color:#ffc29a;margin-top:3px;word-break:break-word}
-.char-row-arrows{display:flex;align-items:center;gap:8px}
-.char-row-arrows .mid{flex:1;text-align:center;min-width:0}
-.char-row-arrows .lab{font-size:10px;color:#8fa3b8;text-transform:uppercase;letter-spacing:1px}
-.char-row-arrows .val{font-size:18px;font-weight:700;margin-top:4px;word-break:break-word}
-.char-arrow{width:44px;height:44px;flex-shrink:0;border-radius:10px;border:1px solid #2a3548;background:#1a2330;color:#eaf2ff;font-size:22px;cursor:pointer}
-.char-color-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #2a3548;border-radius:10px;background:#18232e}
-.char-color-row span{flex:1;font-size:13px;color:#8fa3b8}
-.char-color-row input[type=color]{width:40px;height:40px;border:0;background:transparent;padding:0}
-.char-foot{display:flex;gap:8px;flex-wrap:wrap;padding:8px 12px 12px;border-top:1px solid #2a3548;flex-shrink:0}
-.char-foot .btn{flex:1;min-width:90px;min-height:44px}
-.char-opts{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
-.char-opts button,.char-opts select{border:1px solid #2a3548;background:#1a2330;color:#eaf2ff;border-radius:8px;font-size:12px;padding:6px 8px;min-height:36px}
-.char-opts button.on{border-color:#E8590C;color:#ffc29a;background:#2a1a12}
+.char-head .btn.ghost{border-color:#c8c8c4;color:#6a6a68;background:transparent}
+.char-body{display:flex;flex-direction:column;min-height:0;flex:1;overflow:hidden;position:relative}
+.char-stage{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
+.char-stage canvas{width:min(72vw,280px);height:auto;aspect-ratio:1;image-rendering:pixelated;background:transparent}
+.char-rot{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border:0;background:transparent;
+  color:#9a9a98;font-size:28px;cursor:pointer;z-index:5;display:flex;align-items:center;justify-content:center}
+.char-rot:active{color:#4a4a48}
+.char-rot.l{left:4px}.char-rot.r{right:4px}
+.char-callouts{position:absolute;inset:0;pointer-events:none;z-index:4}
+.char-callout{position:absolute;pointer-events:auto;border:0;background:transparent;cursor:pointer;padding:4px 2px}
+.char-callout .lab{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6a6a68;white-space:nowrap}
+.char-callout.on .lab{color:#4a4a48;font-weight:600}
+.char-rail{position:absolute;top:6%;bottom:6%;width:70px;z-index:6;display:flex;flex-direction:column;gap:2px;
+  overflow:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.char-rail::-webkit-scrollbar{display:none}
+.char-rail.left{left:2px;align-items:flex-start}
+.char-rail.right{right:2px;align-items:flex-end}
+.char-rail .sec{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#9a9a98;padding:4px 2px}
+.char-chip{border:0;background:transparent;color:#6a6a68;font-size:11px;padding:5px 3px;cursor:pointer;
+  text-align:inherit;max-width:68px;line-height:1.15;letter-spacing:.03em}
+.char-chip.on{color:#4a4a48;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.char-chip.sm{font-size:10px;opacity:.9}
+.char-dock{flex-shrink:0;padding:8px 12px 12px;border-top:1px solid #d0d0cc;background:rgba(247,247,245,.94);
+  display:flex;flex-direction:column;gap:8px;max-height:40%;overflow:auto}
+.char-dock-row{display:flex;align-items:center;gap:8px}
+.char-dock-row .ttl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#9a9a98;min-width:48px}
+.char-swatches{display:flex;flex-wrap:wrap;gap:6px;flex:1}
+.char-sw{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.char-sw.on{border-color:#4a4a48}
+.char-sw.bw{box-shadow:inset 0 0 0 1px #aaa}
+.char-body-stack{display:none;flex-direction:column;gap:6px}
+.char-body-stack.on{display:flex}
+.char-body-row{display:flex;align-items:center;gap:6px;font-size:12px}
+.char-body-row select{flex:1;min-height:34px;border:1px solid #d0d0cc;border-radius:8px;background:#f7f7f5;color:#6a6a68;font-size:12px}
+.char-body-row input[type=range]{flex:1;accent-color:#5a5a58}
+.char-body-row .op{min-width:34px;text-align:right;color:#9a9a98;font-size:11px}
+.char-body-row .rm{width:30px;height:30px;border:0;background:transparent;color:#9a9a98;font-size:18px;cursor:pointer}
+.char-btn{border:1px solid #c8c8c4;background:#f7f7f5;color:#6a6a68;border-radius:8px;min-height:36px;padding:0 10px;font-size:12px;cursor:pointer}
+.char-foot{display:flex;gap:8px;flex-wrap:wrap;padding:0;border:0;background:transparent}
+.char-foot .char-btn,.char-foot .btn{flex:1;min-width:80px;min-height:40px;border:1px solid #c8c8c4;background:#f7f7f5;color:#6a6a68;border-radius:8px}
+.char-foot .btn{box-shadow:none}
+.char-summary{font-size:10px;color:#9a9a98;text-align:center}
+.char-sheet{position:absolute;inset:0;z-index:20;background:rgba(40,40,38,.35);display:none;align-items:flex-end;justify-content:center}
+.char-sheet.on{display:flex}
+.char-sheet-panel{width:100%;background:#f7f7f5;border-radius:16px 16px 0 0;padding:16px;display:flex;flex-direction:column;gap:10px;color:#6a6a68}
+.char-sheet-panel h3{margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.char-sheet-panel label{font-size:11px;color:#9a9a98;display:flex;align-items:center;gap:10px}
+.char-sheet-panel input[type=range]{flex:1;accent-color:#5a5a58}
+.char-adv-sw{width:44px;height:44px;border-radius:50%;border:1px solid #c8c8c4;margin:0 auto}
+.char-sheet-actions{display:flex;gap:8px}
+.char-sheet-actions button{flex:1;min-height:44px;border-radius:10px;border:1px solid #c8c8c4;background:#eee;color:#6a6a68}
+.char-sheet-actions .ok{background:#4a4a48;color:#f5f5f3;border-color:#4a4a48}
+/* legacy unused */
+.char-ui,.char-screen,.char-zone-grid,.char-zone-card,.char-row-arrows,.char-arrow,.char-color-row,.char-preview,.char-opts{display:none!important}
 .hub-tile.soon{opacity:.62}
 .hub-foot{margin-top:14px;display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:11px;color:var(--acier-clair);z-index:2}
 .hub-foot b{color:var(--cyan)}
@@ -1168,63 +1198,57 @@ aside.side{
   </div>
 </div>
 
-<!-- ====== CRÉATEUR DE PERSONNAGE — Fantasy V1.3 (zones + flèches) ====== -->
+<!-- ====== CRÉATEUR DE PERSONNAGE — Fantasy callouts épuré ====== -->
 <div class="overlay" id="charCreateOverlay">
   <div class="char-wrap">
     <div class="char-head">
       <div>
-        <h2>CRÉATEUR — FANTASY</h2>
-        <p class="sub">Zones · flèches · couleurs</p>
+        <h2>Créateur</h2>
+        <p class="sub">Fantasy</p>
       </div>
       <button class="btn ghost" type="button" id="charClose">✕</button>
     </div>
     <div class="char-body">
-      <div class="char-preview">
-        <canvas id="charPreview" width="220" height="220"></canvas>
-        <div class="char-opts" id="charAnimBar">
-          <select id="charAnimSelect"></select>
-          <button type="button" id="charDirPrev">◀</button>
-          <button type="button" id="charDirNext">▶</button>
-        </div>
-        <label style="display:flex;align-items:center;gap:8px;width:100%;max-width:220px;font-size:11px;color:var(--acier-clair)">
-          FPS
-          <input type="range" id="charFps" min="1" max="30" value="14" step="1" style="flex:1;accent-color:#E8590C"/>
-          <span id="charFpsVal" style="min-width:2em;color:#ffc29a">14</span>
-        </label>
-        <div id="charSummary" style="font-size:10px;color:var(--acier-clair);text-align:center;line-height:1.3"></div>
+      <div class="char-stage" id="charStage">
+        <button type="button" class="char-rot l" id="charDirPrev" aria-label="Tourner">‹</button>
+        <canvas id="charPreview" width="256" height="256"></canvas>
+        <button type="button" class="char-rot r" id="charDirNext" aria-label="Tourner">›</button>
+        <div class="char-callouts" id="charCallouts"></div>
+        <aside class="char-rail left" id="charAnimRail"></aside>
+        <aside class="char-rail right" id="charOptRail"></aside>
       </div>
-      <div class="char-ui">
-        <div class="char-screen on" id="charScreenHome">
-          <div style="font-size:12px;color:var(--acier-clair)">Touche une zone</div>
-          <div class="char-zone-grid" id="charSlots"></div>
+      <div class="char-dock">
+        <div class="char-dock-row">
+          <span class="ttl" id="charZoneLab">—</span>
+          <div class="char-swatches" id="charSwatches"></div>
         </div>
-        <div class="char-screen" id="charScreenZone">
-          <div style="display:flex;align-items:center;gap:8px">
-            <button type="button" class="btn ghost" id="charZoneBack">←</button>
-            <strong id="charZoneTitle" style="flex:1;color:#ffc29a">Zone</strong>
+        <div class="char-body-stack" id="charBodyStack">
+          <div class="char-dock-row">
+            <span class="ttl">Corps</span>
+            <button type="button" class="char-btn" id="charAddBody">+ Couche</button>
           </div>
-          <div class="char-row-arrows">
-            <button type="button" class="char-arrow" id="charOptPrev">‹</button>
-            <div class="mid"><div class="lab">Option</div><div class="val" id="charOptVal">—</div></div>
-            <button type="button" class="char-arrow" id="charOptNext">›</button>
-          </div>
-          <div class="char-color-row">
-            <span>Couleur</span>
-            <input type="color" id="charOptColor" value="#888888"/>
-            <button type="button" class="btn ghost" id="charOptColorClear">Orig.</button>
-          </div>
-          <div class="char-row-arrows">
-            <button type="button" class="char-arrow" id="charZonePrev">‹</button>
-            <div class="mid"><div class="lab">Zone</div><div class="val" id="charZoneNav" style="font-size:14px">—</div></div>
-            <button type="button" class="char-arrow" id="charZoneNext">›</button>
-          </div>
+          <div id="charBodyRows"></div>
+        </div>
+        <div class="char-summary" id="charSummary"></div>
+        <div class="char-foot">
+          <button class="char-btn" type="button" id="charRandom">Aléatoire</button>
+          <button class="char-btn" type="button" id="charReset">Reset</button>
+          <button class="char-btn" type="button" id="charSave">✓ Sauver</button>
         </div>
       </div>
-    </div>
-    <div class="char-foot">
-      <button class="btn ghost" type="button" id="charRandom">Aléatoire</button>
-      <button class="btn ghost" type="button" id="charReset">Reset</button>
-      <button class="btn" type="button" id="charSave">✓ Sauver</button>
+      <div class="char-sheet" id="charColorSheet">
+        <div class="char-sheet-panel">
+          <h3>Couleur avancée</h3>
+          <div class="char-adv-sw" id="charAdvPreview"></div>
+          <label>Teinte <input type="range" id="charAdvH" min="0" max="360" value="30"/></label>
+          <label>Saturation <input type="range" id="charAdvS" min="0" max="100" value="40"/></label>
+          <label>Clarté <input type="range" id="charAdvL" min="5" max="95" value="55"/></label>
+          <div class="char-sheet-actions">
+            <button type="button" id="charAdvCancel">Annuler</button>
+            <button type="button" class="ok" id="charAdvOk">OK</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -6869,8 +6893,7 @@ const FX = {
 };
 
 /* =====================================================================
-   CRÉATEUR DE PERSONNAGE — Fantasy V1.3 (couches modulaires 128×128)
-   Pack : assets/packs/fantasy-cc/  (Idle + Walk + Attack1)
+   CRÉATEUR DE PERSONNAGE — Fantasy callouts épuré + corps multi-couches
    ===================================================================== */
 const CharCreator = {
   KEY: "neuro.charLook",
@@ -6886,8 +6909,26 @@ const CharCreator = {
     belt: "#8b6914", gloves: "#6a5a4e", offhand: "#6b8f71", weapon: "#9aa8b8",
     backpack: "#7a5c3a", head: "#e0b878", slash: "#e8590c", effect: "#5ec8ff", mount: "#8a7060",
   },
+  PALETTE: [
+    "#f5c6aa","#d4a574","#a67c52","#f8d9a0","#e0b878","#b8893a",
+    "#f0a090","#c45c26","#7a3010","#f2b8c6","#d4789a","#8a3a58",
+    "#b8d4e8","#5b7c99","#2f4a66","#b8e0c8","#6b8f71","#3a5a42",
+    "#d4c4e8","#8a70b0","#4a3870","#c8c4bc","#8a8580","#4a4642",
+    "#ffffff","#000000",
+  ],
+  CALLOUTS: [
+    {id:"head", lab:"Hat", x:0.72, y:0.18, side:"right"},
+    {id:"chest", lab:"Chest", x:0.70, y:0.38, side:"right"},
+    {id:"legs", lab:"Pants", x:0.28, y:0.58, side:"left"},
+    {id:"shoes", lab:"Shoes", x:0.30, y:0.78, side:"left"},
+    {id:"backpack", lab:"Back", x:0.26, y:0.32, side:"left"},
+    {id:"weapon", lab:"Misc", x:0.74, y:0.52, side:"right"},
+    {id:"body", lab:"Body", x:0.50, y:0.48, side:"left"},
+  ],
+  MISC_SLOTS: ["weapon","offhand","belt","gloves","slash","effect","mount"],
   look: null,
   colors: null,
+  bodies: null,
   fps: 14,
   catalog: null,
   _cache: new Map(),
@@ -6901,29 +6942,34 @@ const CharCreator = {
   _dirty: true,
   _tintCv: null,
   _tintCx: null,
-
+  _zoneId: "head",
+  _miscFocus: "weapon",
+  _advTarget: null,
+  _bound: false,
   SLOTS: [],
+  ANIMS: ["Idle","Walk","Attack1"],
 
   defaultColors(){ return Object.assign({}, CharCreator.DEFAULT_COLORS); },
+  defaultBodies(){ return [{folder:"NakedBody", opacity:1}]; },
   defaultLook(){
     const o = {};
     for(const s of CharCreator.SLOTS){
       o[s.id] = s.required ? (s.folders[0] || "NakedBody") : "None";
     }
-    o.body = "NakedBody";
-    o.chest = "Chest1";
-    o.legs = "Legs1";
-    o.shoes = "Shoes1";
-    o.head = "Head1";
-    o.weapon = "Melee1";
-    o.offhand = "Shield1";
+    o.body = "NakedBody"; o.chest = "Chest1"; o.legs = "Legs1";
+    o.shoes = "Shoes1"; o.head = "Head1"; o.weapon = "Melee1"; o.offhand = "Shield1";
     return o;
   },
   folder(slotId){
+    if(slotId === "body") return null;
     const v = CharCreator.look && CharCreator.look[slotId];
     return (!v || v === "None") ? null : v;
   },
   label(slotId){
+    if(slotId === "body"){
+      const b = CharCreator.bodies && CharCreator.bodies[0];
+      return (b && b.folder) || "NakedBody";
+    }
     return CharCreator.folder(slotId) || "None";
   },
   tintFor(slotId){
@@ -6931,7 +6977,6 @@ const CharCreator = {
     if(!c || c === "#ffffff" || c === "#FFFFFF") return null;
     return c;
   },
-  /** Teinte combat (fallback pack jeu) — effet équipé. */
   cssFilter(){
     const fx = CharCreator.label("effect");
     let hue = 0, sat = 1, bri = 1, contrast = 1;
@@ -6977,6 +7022,7 @@ const CharCreator = {
 
   load(){
     if(!CharCreator.colors) CharCreator.colors = CharCreator.defaultColors();
+    if(!CharCreator.bodies) CharCreator.bodies = CharCreator.defaultBodies();
     try{
       const rawF = localStorage.getItem(CharCreator.KEY_FANTASY);
       if(rawF){
@@ -6985,6 +7031,8 @@ const CharCreator = {
           CharCreator.look = Object.assign(CharCreator.defaultLook(), o.look);
           if(o.colors) CharCreator.colors = Object.assign(CharCreator.defaultColors(), o.colors);
           else if(o.skin) CharCreator.colors.body = o.skin;
+          if(o.bodies && Array.isArray(o.bodies) && o.bodies.length) CharCreator.bodies = o.bodies;
+          else if(o.look.body) CharCreator.bodies = [{folder:o.look.body, opacity:1}];
           if(o.fps) CharCreator.fps = Math.max(1, o.fps|0);
           return;
         }
@@ -6994,18 +7042,22 @@ const CharCreator = {
         const o = JSON.parse(raw);
         if(o && typeof o === "object" && typeof o.body === "string"){
           CharCreator.look = Object.assign(CharCreator.defaultLook(), o);
+          CharCreator.bodies = [{folder:o.body||"NakedBody", opacity:1}];
           return;
         }
       }
     }catch(_e){}
     CharCreator.look = CharCreator.defaultLook();
     CharCreator.colors = CharCreator.defaultColors();
+    CharCreator.bodies = CharCreator.defaultBodies();
   },
   save(){
+    if(CharCreator.bodies && CharCreator.bodies[0]) CharCreator.look.body = CharCreator.bodies[0].folder;
     const payload = {
       pack:"fantasy-cc",
       look: CharCreator.look||CharCreator.defaultLook(),
       colors: CharCreator.colors||CharCreator.defaultColors(),
+      bodies: CharCreator.bodies||CharCreator.defaultBodies(),
       fps: CharCreator.fps
     };
     try{ localStorage.setItem(CharCreator.KEY_FANTASY, JSON.stringify(payload)); }catch(_e){}
@@ -7037,11 +7089,13 @@ const CharCreator = {
   layersForRow(row){
     const L = [];
     const shadow = (CharCreator.catalog && CharCreator.catalog.shadowFolder) || "Shadow";
-    L.push({ folder: shadow, tint: null });
-    const body = CharCreator.folder("body");
-    if(body) L.push({ folder: body, tint: CharCreator.tintFor("body") });
+    L.push({ folder: shadow, tint: null, alpha: 1 });
+    const bodies = CharCreator.bodies && CharCreator.bodies.length ? CharCreator.bodies : [{folder: CharCreator.look && CharCreator.look.body, opacity:1}];
+    for(const b of bodies){
+      if(b && b.folder) L.push({ folder:b.folder, tint: CharCreator.tintFor("body"), alpha: Math.max(0, Math.min(1, +b.opacity||1)) });
+    }
     for(const id of ["shoes","legs","chest","belt","gloves"]){
-      const f = CharCreator.folder(id); if(f) L.push({ folder:f, tint: CharCreator.tintFor(id) });
+      const f = CharCreator.folder(id); if(f) L.push({ folder:f, tint: CharCreator.tintFor(id), alpha:1 });
     }
     const shield = CharCreator.folder("offhand");
     const weapon = CharCreator.folder("weapon");
@@ -7050,27 +7104,30 @@ const CharCreator = {
     const bagFront = !!CharCreator.backpackInFrontRows[row|0];
     const mid = [];
     if(wAfter){
-      if(shield) mid.push({folder:shield, tint: CharCreator.tintFor("offhand")});
-      if(weapon) mid.push({folder:weapon, tint: CharCreator.tintFor("weapon")});
+      if(shield) mid.push({folder:shield, tint: CharCreator.tintFor("offhand"), alpha:1});
+      if(weapon) mid.push({folder:weapon, tint: CharCreator.tintFor("weapon"), alpha:1});
     } else {
-      if(weapon) mid.push({folder:weapon, tint: CharCreator.tintFor("weapon")});
-      if(shield) mid.push({folder:shield, tint: CharCreator.tintFor("offhand")});
+      if(weapon) mid.push({folder:weapon, tint: CharCreator.tintFor("weapon"), alpha:1});
+      if(shield) mid.push({folder:shield, tint: CharCreator.tintFor("offhand"), alpha:1});
     }
     if(bag){
-      const item = {folder:bag, tint: CharCreator.tintFor("backpack")};
+      const item = {folder:bag, tint: CharCreator.tintFor("backpack"), alpha:1};
       if(bagFront) mid.push(item); else mid.unshift(item);
     }
     L.push(...mid);
     for(const id of ["head","slash","effect"]){
-      const f = CharCreator.folder(id); if(f) L.push({ folder:f, tint: CharCreator.tintFor(id) });
+      const f = CharCreator.folder(id); if(f) L.push({ folder:f, tint: CharCreator.tintFor(id), alpha:1 });
     }
     const mount = CharCreator.folder("mount");
-    if(mount) L.unshift({ folder:mount, tint: CharCreator.tintFor("mount") });
+    if(mount) L.unshift({ folder:mount, tint: CharCreator.tintFor("mount"), alpha:1 });
     return L;
   },
 
-  tintDraw(cx, img, sx,sy,sw,sh, dx,dy,dw,dh, tintHex){
-    if(!tintHex){ cx.drawImage(img, sx,sy,sw,sh, dx,dy,dw,dh); return; }
+  tintDraw(cx, img, sx,sy,sw,sh, dx,dy,dw,dh, tintHex, alpha){
+    const a = (alpha==null)?1:alpha;
+    cx.save();
+    cx.globalAlpha = a;
+    if(!tintHex){ cx.drawImage(img, sx,sy,sw,sh, dx,dy,dw,dh); cx.restore(); return; }
     if(!CharCreator._tintCv){
       CharCreator._tintCv = document.createElement("canvas");
       CharCreator._tintCx = CharCreator._tintCv.getContext("2d");
@@ -7094,21 +7151,7 @@ const CharCreator = {
     t.drawImage(img, sx,sy,sw,sh, 0,0,tw,th);
     t.globalCompositeOperation = "source-over";
     cx.drawImage(tmp, dx, dy);
-  },
-
-  ANIMS: ["Idle","Walk","Attack1"],
-
-  fillAnimSelect(){
-    const sel = UI.el("charAnimSelect"); if(!sel) return;
-    const anims = CharCreator.ANIMS || ["Idle"];
-    sel.innerHTML = "";
-    for(const a of anims){
-      const o = document.createElement("option");
-      o.value = a; o.textContent = a;
-      if(a === CharCreator._anim) o.selected = true;
-      sel.appendChild(o);
-    }
-    sel.onchange = ()=>{ CharCreator._anim = sel.value; CharCreator._frame = 0; CharCreator._dirty = true; CharCreator.syncSummary(); };
+    cx.restore();
   },
 
   open(){
@@ -7117,15 +7160,12 @@ const CharCreator = {
     CharCreator.ensureCatalog().then(()=>{
       CharCreator.load();
       if(CharCreator.ANIMS && !CharCreator.ANIMS.includes(CharCreator._anim)) CharCreator._anim = CharCreator.ANIMS[0];
-      CharCreator.fillAnimSelect();
-      const fpsEl = UI.el("charFps");
-      const fpsVal = UI.el("charFpsVal");
-      if(fpsEl){ fpsEl.value = String(CharCreator.fps); if(fpsVal) fpsVal.textContent = String(CharCreator.fps); }
       CharCreator.renderUI();
       CharCreator._ready = true;
       CharCreator.startPreview();
-      const b = CharCreator.folder("body") || "NakedBody";
+      const b = (CharCreator.bodies && CharCreator.bodies[0] && CharCreator.bodies[0].folder) || "NakedBody";
       CharCreator.loadImg(b, CharCreator._anim);
+      requestAnimationFrame(()=> CharCreator.layoutCallouts());
     });
   },
   close(){
@@ -7134,74 +7174,205 @@ const CharCreator = {
     if(UI.hub) UI.hub.open();
   },
 
-  _zoneIdx: 0,
-  _zoneId: null,
+  slotById(id){ return CharCreator.SLOTS.find(s=>s.id===id); },
 
-  showCharScreen(id){
-    document.querySelectorAll("#charCreateOverlay .char-screen").forEach(s=>{
-      s.classList.toggle("on", s.id === id);
-    });
-  },
-  displayOpt(name){
-    return (!name || name === "None") ? "Aucun" : name;
-  },
   renderUI(){
     if(!CharCreator.colors) CharCreator.colors = CharCreator.defaultColors();
-    CharCreator.renderHome();
-    CharCreator.showCharScreen("charScreenHome");
+    if(!CharCreator.bodies) CharCreator.bodies = CharCreator.defaultBodies();
+    CharCreator.renderAnims();
+    CharCreator.selectZone(CharCreator._zoneId || "head");
     CharCreator.syncSummary();
   },
-  renderHome(){
-    const root = UI.el("charSlots"); if(!root) return;
-    root.innerHTML = "";
-    CharCreator.SLOTS.forEach((s, idx)=>{
+  selectZone(id){
+    CharCreator._zoneId = id;
+    const lab = UI.el("charZoneLab");
+    const c = CharCreator.CALLOUTS.find(x=>x.id===id);
+    if(lab) lab.textContent = (c && c.lab) || id;
+    const stack = UI.el("charBodyStack");
+    if(stack) stack.classList.toggle("on", id==="body");
+    CharCreator.renderOpts();
+    CharCreator.renderSwatches();
+    CharCreator.renderBodies();
+    CharCreator.layoutCallouts();
+  },
+  renderAnims(){
+    const rail = UI.el("charAnimRail"); if(!rail) return;
+    rail.innerHTML = "";
+    const sec = document.createElement("div"); sec.className = "sec"; sec.textContent = "Anim";
+    rail.appendChild(sec);
+    (CharCreator.ANIMS||["Idle"]).forEach(a=>{
       const b = document.createElement("button");
-      b.type = "button";
-      b.className = "char-zone-card";
-      b.innerHTML = `<span class="zlab">${s.lab}</span><span class="zval">${CharCreator.displayOpt(CharCreator.look[s.id])}</span>`;
-      b.onclick = ()=> CharCreator.openZone(idx);
-      root.appendChild(b);
+      b.type = "button"; b.className = "char-chip"+(a===CharCreator._anim?" on":"");
+      b.textContent = a;
+      b.onclick = ()=>{ CharCreator._anim = a; CharCreator._frame = 0; CharCreator._dirty = true; CharCreator.renderAnims(); CharCreator.syncSummary(); };
+      rail.appendChild(b);
     });
   },
-  openZone(idx){
-    const list = CharCreator.SLOTS;
-    if(!list.length) return;
-    CharCreator._zoneIdx = ((idx % list.length) + list.length) % list.length;
-    CharCreator._zoneId = list[CharCreator._zoneIdx].id;
-    CharCreator.renderZone();
-    CharCreator.showCharScreen("charScreenZone");
+  shortOpt(name){
+    if(!name || name==="None") return "Aucun";
+    return name.replace(/^(Head|Chest|Legs|Shoes|Belt|Hands|Weapon|Shield|Backpack|Melee|Bow|Staff|Mount|Effect|Slash)_?/i,"") || name;
   },
-  renderZone(){
-    const s = CharCreator.SLOTS[CharCreator._zoneIdx]; if(!s) return;
-    const title = UI.el("charZoneTitle"); if(title) title.textContent = s.lab;
-    const nav = UI.el("charZoneNav"); if(nav) nav.textContent = s.lab;
-    const opts = s.folders || s.opts || [];
-    let cur = CharCreator.look[s.id];
-    let i = opts.indexOf(cur); if(i < 0) i = 0;
-    const optVal = UI.el("charOptVal"); if(optVal) optVal.textContent = CharCreator.displayOpt(opts[i]);
-    const col = UI.el("charOptColor");
-    if(col) col.value = CharCreator.colors[s.id] || CharCreator.DEFAULT_COLORS[s.id] || "#888888";
+  renderOpts(){
+    const rail = UI.el("charOptRail"); if(!rail) return;
+    rail.innerHTML = "";
+    const sec = document.createElement("div"); sec.className = "sec"; sec.textContent = "Choix";
+    rail.appendChild(sec);
+    if(CharCreator._zoneId === "weapon"){
+      CharCreator.MISC_SLOTS.forEach(sid=>{
+        const s = CharCreator.slotById(sid); if(!s) return;
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "char-chip sm"+(CharCreator._miscFocus===sid?" on":"");
+        b.textContent = s.lab.split("/")[0].trim();
+        b.onclick = ()=>{ CharCreator._miscFocus = sid; CharCreator.renderMiscOpts(sid); };
+        rail.appendChild(b);
+      });
+      CharCreator.renderMiscOpts(CharCreator._miscFocus || "weapon");
+      return;
+    }
+    if(CharCreator._zoneId === "body"){
+      const tip = document.createElement("div"); tip.className = "char-chip sm"; tip.style.cursor = "default"; tip.textContent = "Couches ↓";
+      rail.appendChild(tip); return;
+    }
+    const s = CharCreator.slotById(CharCreator._zoneId); if(!s) return;
+    const cur = CharCreator.look[CharCreator._zoneId];
+    (s.folders||[]).forEach(name=>{
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "char-chip"+(name===cur?" on":"");
+      b.textContent = CharCreator.shortOpt(name); b.title = name;
+      b.onclick = ()=>{ CharCreator.look[CharCreator._zoneId] = name; CharCreator._dirty = true; CharCreator.renderOpts(); CharCreator.syncSummary(); };
+      rail.appendChild(b);
+    });
   },
-  cycleOpt(delta){
-    const s = CharCreator.SLOTS[CharCreator._zoneIdx]; if(!s) return;
-    const opts = s.folders || s.opts || []; if(!opts.length) return;
-    let i = opts.indexOf(CharCreator.look[s.id]); if(i < 0) i = 0;
-    i = (i + delta + opts.length) % opts.length;
-    CharCreator.look[s.id] = opts[i];
-    CharCreator._dirty = true;
-    CharCreator.renderZone();
-    CharCreator.renderHome();
-    CharCreator.syncSummary();
+  renderMiscOpts(sid){
+    const rail = UI.el("charOptRail"); if(!rail) return;
+    [...rail.querySelectorAll("[data-misc-opt]")].forEach(n=>n.remove());
+    const s = CharCreator.slotById(sid); if(!s) return;
+    const cur = CharCreator.look[sid];
+    (s.folders||[]).forEach(name=>{
+      const b = document.createElement("button");
+      b.type = "button"; b.dataset.miscOpt = "1";
+      b.className = "char-chip sm"+(name===cur?" on":"");
+      b.textContent = name==="None" ? "∅" : name.slice(0,10);
+      b.onclick = ()=>{ CharCreator.look[sid] = name; CharCreator._dirty = true; CharCreator.renderMiscOpts(sid); CharCreator.syncSummary(); };
+      rail.appendChild(b);
+    });
   },
-  cycleZone(delta){
-    CharCreator.openZone(CharCreator._zoneIdx + delta);
+  renderSwatches(){
+    const host = UI.el("charSwatches"); if(!host) return;
+    host.innerHTML = "";
+    const cur = (CharCreator.colors[CharCreator._zoneId]||"").toLowerCase();
+    CharCreator.PALETTE.forEach(hex=>{
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "char-sw"+(hex==="#ffffff"||hex==="#000000"?" bw":"")+(cur===hex.toLowerCase()?" on":"");
+      b.style.background = hex;
+      let timer = null, long = false;
+      b.addEventListener("pointerdown", ()=>{ long=false; timer=setTimeout(()=>{ long=true; CharCreator.openColorSheet(hex); }, 480); });
+      const end = ()=>{ clearTimeout(timer); if(!long){ CharCreator.colors[CharCreator._zoneId]=hex; CharCreator._dirty=true; CharCreator.renderSwatches(); } };
+      b.addEventListener("pointerup", end);
+      b.addEventListener("pointerleave", ()=> clearTimeout(timer));
+      b.addEventListener("pointercancel", ()=> clearTimeout(timer));
+      host.appendChild(b);
+    });
+  },
+  hslToHex(h,s,l){
+    s/=100; l/=100;
+    const a=s*Math.min(l,1-l);
+    const f=n=>{ const k=(n+h/30)%12; const c=l-a*Math.max(Math.min(k-3,9-k,1),-1); return Math.round(255*c).toString(16).padStart(2,"0"); };
+    return "#"+f(0)+f(8)+f(4);
+  },
+  hexToHsl(hex){
+    let r=parseInt(hex.slice(1,3),16)/255, g=parseInt(hex.slice(3,5),16)/255, b=parseInt(hex.slice(5,7),16)/255;
+    const max=Math.max(r,g,b), min=Math.min(r,g,b);
+    let h=0,s=0,l=(max+min)/2;
+    if(max!==min){
+      const d=max-min; s=l>0.5?d/(2-max-min):d/(max+min);
+      switch(max){ case r: h=((g-b)/d+(g<b?6:0)); break; case g: h=(b-r)/d+2; break; default: h=(r-g)/d+4; }
+      h*=60;
+    }
+    return {h:Math.round(h), s:Math.round(s*100), l:Math.round(l*100)};
+  },
+  syncAdv(){
+    const h=+UI.el("charAdvH").value, s=+UI.el("charAdvS").value, l=+UI.el("charAdvL").value;
+    const hex = CharCreator.hslToHex(h,s,l);
+    const p = UI.el("charAdvPreview"); if(p) p.style.background = hex;
+    CharCreator._advTarget = hex;
+  },
+  openColorSheet(fromHex){
+    const hsl = CharCreator.hexToHsl(fromHex||CharCreator.colors[CharCreator._zoneId]||"#888888");
+    UI.el("charAdvH").value = hsl.h; UI.el("charAdvS").value = hsl.s; UI.el("charAdvL").value = hsl.l;
+    CharCreator.syncAdv();
+    UI.el("charColorSheet").classList.add("on");
+  },
+  closeColorSheet(apply){
+    UI.el("charColorSheet").classList.remove("on");
+    if(apply && CharCreator._advTarget){
+      CharCreator.colors[CharCreator._zoneId] = CharCreator._advTarget;
+      CharCreator._dirty = true;
+      CharCreator.renderSwatches();
+    }
+  },
+  renderBodies(){
+    const host = UI.el("charBodyRows"); if(!host) return;
+    host.innerHTML = "";
+    const s = CharCreator.slotById("body");
+    const folders = ((s&&s.folders)||[]).filter(f=>f!=="None");
+    (CharCreator.bodies||[]).forEach((b, idx)=>{
+      const row = document.createElement("div"); row.className = "char-body-row";
+      const sel = document.createElement("select");
+      folders.forEach(f=>{ const o=document.createElement("option"); o.value=f; o.textContent=f; if(f===b.folder) o.selected=true; sel.appendChild(o); });
+      sel.onchange = ()=>{ CharCreator.bodies[idx].folder = sel.value; CharCreator.look.body = CharCreator.bodies[0].folder; CharCreator._dirty = true; };
+      const range = document.createElement("input"); range.type="range"; range.min="0"; range.max="100"; range.value=String(Math.round((b.opacity||1)*100));
+      const op = document.createElement("span"); op.className="op"; op.textContent=range.value+"%";
+      range.oninput = ()=>{ CharCreator.bodies[idx].opacity=(+range.value)/100; op.textContent=range.value+"%"; CharCreator._dirty=true; };
+      const rm = document.createElement("button"); rm.type="button"; rm.className="rm"; rm.textContent="×";
+      rm.disabled = CharCreator.bodies.length<=1;
+      rm.onclick = ()=>{ if(CharCreator.bodies.length<=1) return; CharCreator.bodies.splice(idx,1); CharCreator.look.body=CharCreator.bodies[0].folder; CharCreator.renderBodies(); CharCreator._dirty=true; };
+      row.appendChild(sel); row.appendChild(range); row.appendChild(op); row.appendChild(rm);
+      host.appendChild(row);
+    });
+  },
+  layoutCallouts(){
+    const wrap = UI.el("charStage"); const cv = UI.el("charPreview"); const host = UI.el("charCallouts");
+    if(!wrap || !cv || !host) return;
+    const box = cv.getBoundingClientRect(); const wr = wrap.getBoundingClientRect();
+    host.innerHTML = "";
+    const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("width", String(wr.width)); svg.setAttribute("height", String(wr.height));
+    svg.style.cssText = "position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none";
+    host.appendChild(svg);
+    CharCreator.CALLOUTS.forEach(c=>{
+      const ax = box.left - wr.left + c.x * box.width;
+      const ay = box.top - wr.top + c.y * box.height;
+      const labLeft = c.side === "left";
+      const labelW = 52;
+      const lx = labLeft ? Math.max(4, ax - 88) : Math.min(wr.width - labelW - 4, ax + 36);
+      const ly = ay;
+      const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+      line.setAttribute("x1", String(labLeft ? lx + labelW : lx));
+      line.setAttribute("y1", String(ly));
+      line.setAttribute("x2", String(ax));
+      line.setAttribute("y2", String(ay));
+      line.setAttribute("stroke", CharCreator._zoneId===c.id ? "#4a4a48" : "#b8b8b4");
+      line.setAttribute("stroke-width", "1");
+      svg.appendChild(line);
+      const pin = document.createElementNS("http://www.w3.org/2000/svg","circle");
+      pin.setAttribute("cx", String(ax)); pin.setAttribute("cy", String(ay)); pin.setAttribute("r","2.5");
+      pin.setAttribute("fill", CharCreator._zoneId===c.id ? "#4a4a48" : "#b8b8b4");
+      svg.appendChild(pin);
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "char-callout"+(CharCreator._zoneId===c.id?" on":"");
+      btn.style.left = lx+"px"; btn.style.top = (ly-11)+"px";
+      const span = document.createElement("span"); span.className="lab"; span.textContent=c.lab;
+      btn.appendChild(span);
+      btn.onclick = ()=> CharCreator.selectZone(c.id);
+      host.appendChild(btn);
+    });
   },
   syncSummary(){
     const el = UI.el("charSummary"); if(!el) return;
-    el.innerHTML = [
-      CharCreator.label("body"), CharCreator.label("head"), CharCreator.label("chest"),
-      CharCreator.label("weapon"), CharCreator.label("effect")
-    ].join(" · ") + `<br>dir ${CharCreator._dir} · ${CharCreator._anim} · ${CharCreator.fps} fps`;
+    el.textContent = [CharCreator.label("body"), CharCreator.label("head"), CharCreator.label("chest"), CharCreator.label("weapon")].join(" · ")
+      + " · dir "+CharCreator._dir+" · "+CharCreator._anim;
   },
   startPreview(){
     if(CharCreator._raf) cancelAnimationFrame(CharCreator._raf);
@@ -7209,9 +7380,7 @@ const CharCreator = {
     const tick = ()=>{
       if(!CharCreator._drawing){
         CharCreator._drawing = true;
-        CharCreator.drawPreview()
-          .catch(()=>{})
-          .finally(()=>{ CharCreator._drawing = false; });
+        CharCreator.drawPreview().catch(()=>{}).finally(()=>{ CharCreator._drawing = false; });
       }
       CharCreator._raf = requestAnimationFrame(tick);
     };
@@ -7223,8 +7392,7 @@ const CharCreator = {
     const W = cv.width, H = cv.height;
     if(!CharCreator._ready || !CharCreator.look){
       cx.clearRect(0,0,W,H);
-      cx.fillStyle = "#0a1420"; cx.fillRect(0,0,W,H);
-      cx.fillStyle="#8fa3b8"; cx.font="12px sans-serif"; cx.fillText("Chargement…", W/2-36, H/2);
+      cx.fillStyle="#9a9a98"; cx.font="12px sans-serif"; cx.fillText("Chargement…", W/2-36, H/2);
       return;
     }
     const fps = Math.max(1, CharCreator.fps|0);
@@ -7240,108 +7408,72 @@ const CharCreator = {
     }
     if(!advanced && !CharCreator._dirty) return;
     CharCreator._dirty = false;
-
     cx.clearRect(0,0,W,H);
-    cx.fillStyle = "#0a1420"; cx.fillRect(0,0,W,H);
-    const tw=36, th=18, ox=W/2, oy=H/2+32;
-    for(let c=-1;c<=1;c++) for(let r=-1;r<=1;r++){
-      const x = ox+(c-r)*tw/2, y = oy+(c+r)*th/2;
-      cx.beginPath();
-      cx.moveTo(x,y-th/2); cx.lineTo(x+tw/2,y); cx.lineTo(x,y+th/2); cx.lineTo(x-tw/2,y); cx.closePath();
-      cx.fillStyle = ((c+r)&1) ? "rgba(232,89,12,.10)" : "rgba(232,89,12,.18)";
-      cx.fill();
-    }
+    const gx=W/2, gy=H*0.78;
+    const grd=cx.createRadialGradient(gx,gy,4,gx,gy,78);
+    grd.addColorStop(0,"rgba(0,0,0,.10)"); grd.addColorStop(1,"rgba(0,0,0,0)");
+    cx.fillStyle=grd; cx.beginPath(); cx.ellipse(gx,gy,72,18,0,0,Math.PI*2); cx.fill();
     const row = CharCreator.DIR_ROW[CharCreator._dir|0]|0;
     const col = CharCreator._frame;
     const anim = CharCreator._anim;
     const layers = CharCreator.layersForRow(row);
     const imgs = await Promise.all(layers.map(L=> CharCreator.loadImg(L.folder, anim)));
     if(CharCreator._anim !== anim){ CharCreator._dirty = true; return; }
-    const S = 1.35;
-    const foot = 108;
+    const S = 1.45, foot = 108, ox=W/2, oy=H/2+28;
     const dw = CharCreator.FW*S, dh = CharCreator.FH*S;
     const dx = ox - dw/2, dy = oy + 4 - foot*S;
     cx.imageSmoothingEnabled = false;
     for(let i=0;i<layers.length;i++){
-      const im = imgs[i];
-      if(!im || !im.naturalWidth) continue;
-      try{
-        CharCreator.tintDraw(cx, im, col*CharCreator.FW, row*CharCreator.FH, CharCreator.FW, CharCreator.FH, dx, dy, dw, dh, layers[i].tint);
-      }catch(_e){
-        try{ cx.drawImage(im, col*CharCreator.FW, row*CharCreator.FH, CharCreator.FW, CharCreator.FH, dx, dy, dw, dh); }catch(__e){}
-      }
+      const im = imgs[i]; if(!im || !im.naturalWidth) continue;
+      try{ CharCreator.tintDraw(cx, im, col*CharCreator.FW, row*CharCreator.FH, CharCreator.FW, CharCreator.FH, dx, dy, dw, dh, layers[i].tint, layers[i].alpha); }
+      catch(_e){ try{ cx.globalAlpha=layers[i].alpha||1; cx.drawImage(im, col*CharCreator.FW, row*CharCreator.FH, CharCreator.FW, CharCreator.FH, dx, dy, dw, dh); cx.globalAlpha=1; }catch(__e){} }
     }
   },
   randomize(){
     CharCreator.look = CharCreator.defaultLook();
     CharCreator.colors = CharCreator.defaultColors();
-    const palette = ["#d4a574","#5b7c99","#6b8f71","#c45c26","#9aa8b8","#8b6914","#a06bff","#e8590c","#3e4f63","#e0b878"];
+    const palette = CharCreator.PALETTE.slice(0,-2);
     for(const s of CharCreator.SLOTS){
-      const opts = s.folders || s.opts || [];
-      if(!opts.length) continue;
+      if(s.id==="body") continue;
+      const opts = s.folders || s.opts || []; if(!opts.length) continue;
       CharCreator.look[s.id] = opts[Math.floor(Math.random()*opts.length)];
       if(Math.random() < 0.7) CharCreator.colors[s.id] = palette[Math.floor(Math.random()*palette.length)];
     }
-    if(!CharCreator.folder("body")) CharCreator.look.body = "NakedBody";
-    CharCreator.renderUI();
-    CharCreator._dirty = true;
+    const bf = ((CharCreator.slotById("body")||{}).folders||[]).filter(f=>f!=="None");
+    CharCreator.bodies = [{folder: bf[Math.floor(Math.random()*bf.length)]||"NakedBody", opacity:1}];
+    if(Math.random()<0.4 && bf.length>1){
+      let f2 = bf[Math.floor(Math.random()*bf.length)];
+      if(f2===CharCreator.bodies[0].folder) f2 = bf[(bf.indexOf(f2)+1)%bf.length];
+      CharCreator.bodies.push({folder:f2, opacity:0.45+Math.random()*0.4});
+    }
+    CharCreator.look.body = CharCreator.bodies[0].folder;
+    CharCreator.renderUI(); CharCreator._dirty = true;
   },
   bind(){
     if(CharCreator._bound) return;
     CharCreator._bound = true;
     const c = UI.el("charClose"); if(c) c.onclick = ()=> CharCreator.close();
-    const s = UI.el("charSave"); if(s) s.onclick = ()=>{
-      CharCreator.save();
-      UI.setHint && UI.setHint("Apparence Fantasy sauvée (couches + couleurs + fps).");
-      CharCreator.close();
-    };
+    const s = UI.el("charSave"); if(s) s.onclick = ()=>{ CharCreator.save(); UI.setHint && UI.setHint("Apparence Fantasy sauvée."); CharCreator.close(); };
     const r = UI.el("charRandom"); if(r) r.onclick = ()=> CharCreator.randomize();
     const z = UI.el("charReset"); if(z) z.onclick = ()=>{
       CharCreator.look = CharCreator.defaultLook();
       CharCreator.colors = CharCreator.defaultColors();
-      CharCreator.renderUI();
-      CharCreator._dirty = true;
+      CharCreator.bodies = CharCreator.defaultBodies();
+      CharCreator.renderUI(); CharCreator._dirty = true;
     };
     const dp = UI.el("charDirPrev"); if(dp) dp.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+7)%8; CharCreator._dirty = true; CharCreator.syncSummary(); };
     const dn = UI.el("charDirNext"); if(dn) dn.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+1)%8; CharCreator._dirty = true; CharCreator.syncSummary(); };
-    const fps = UI.el("charFps");
-    const fpsVal = UI.el("charFpsVal");
-    if(fps){
-      fps.oninput = ()=>{
-        CharCreator.fps = Math.max(1, parseInt(fps.value,10)||14);
-        if(fpsVal) fpsVal.textContent = String(CharCreator.fps);
-        CharCreator._dirty = true;
-        CharCreator.syncSummary();
-      };
-    }
-    const back = UI.el("charZoneBack"); if(back) back.onclick = ()=>{ CharCreator.showCharScreen("charScreenHome"); CharCreator.renderHome(); };
-    const op = UI.el("charOptPrev"); if(op) op.onclick = ()=> CharCreator.cycleOpt(-1);
-    const on = UI.el("charOptNext"); if(on) on.onclick = ()=> CharCreator.cycleOpt(1);
-    const zp = UI.el("charZonePrev"); if(zp) zp.onclick = ()=> CharCreator.cycleZone(-1);
-    const zn = UI.el("charZoneNext"); if(zn) zn.onclick = ()=> CharCreator.cycleZone(1);
-    const col = UI.el("charOptColor");
-    if(col) col.oninput = ()=>{
-      if(!CharCreator._zoneId) return;
-      CharCreator.colors[CharCreator._zoneId] = col.value;
-      CharCreator._dirty = true;
+    ["charAdvH","charAdvS","charAdvL"].forEach(id=>{ const el=UI.el(id); if(el) el.oninput = ()=> CharCreator.syncAdv(); });
+    const cancel = UI.el("charAdvCancel"); if(cancel) cancel.onclick = ()=> CharCreator.closeColorSheet(false);
+    const ok = UI.el("charAdvOk"); if(ok) ok.onclick = ()=> CharCreator.closeColorSheet(true);
+    const sheet = UI.el("charColorSheet"); if(sheet) sheet.addEventListener("click", e=>{ if(e.target.id==="charColorSheet") CharCreator.closeColorSheet(false); });
+    const add = UI.el("charAddBody"); if(add) add.onclick = ()=>{
+      const folders = ((CharCreator.slotById("body")||{}).folders||[]).filter(f=>f!=="None");
+      const next = folders[(CharCreator.bodies.length)%folders.length]||"NakedBody";
+      CharCreator.bodies.push({folder:next, opacity:0.55});
+      CharCreator.renderBodies(); CharCreator._dirty = true;
     };
-    const clear = UI.el("charOptColorClear");
-    if(clear) clear.onclick = ()=>{
-      if(!CharCreator._zoneId) return;
-      CharCreator.colors[CharCreator._zoneId] = "#ffffff";
-      if(col) col.value = "#ffffff";
-      CharCreator._dirty = true;
-    };
-    const zoneScr = UI.el("charScreenZone");
-    if(zoneScr && !zoneScr._swipeBound){
-      zoneScr._swipeBound = true;
-      let sx = 0;
-      zoneScr.addEventListener("touchstart", e=>{ sx = e.changedTouches[0].clientX; }, {passive:true});
-      zoneScr.addEventListener("touchend", e=>{
-        const dx = e.changedTouches[0].clientX - sx;
-        if(Math.abs(dx) > 50) CharCreator.cycleOpt(dx > 0 ? -1 : 1);
-      }, {passive:true});
-    }
+    window.addEventListener("resize", ()=> CharCreator.layoutCallouts());
   }
 };
 
