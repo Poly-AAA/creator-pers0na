@@ -1,11 +1,11 @@
 {
   "id": "mannequin",
-  "label": "Mannequin Idle (STRICT REGEN)",
-  "source_zip": "STRICT_REGEN_ZERO_IMPROV-Idle.zip",
+  "label": "Mannequin Idle (FULL REGEN androgyne nude)",
+  "source_zip": "STRICT_FULL_REGEN_ZERO_I-Idle.zip",
   "template_id": "mannequin",
   "frame": {
-    "w": 92,
-    "h": 92
+    "w": 184,
+    "h": 184
   },
   "dirs_row_order": [
     "south",
@@ -17,14 +17,28 @@
     "west",
     "south-west"
   ],
-  "dirRow": [0, 1, 2, 3, 4, 5, 6, 7],
+  "dirRow": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
   "dirRowValidated": true,
-  "dirRowNote": "Validé au pad flèches (2026-08-06) : Face=south … ¾ Face G=south-west, ligne = index jeu",
+  "dirRowNote": "Same compass\u2192index mapping as prior pad validation; recalibrate if needed",
   "idle": {
     "file": "Idle.png",
     "cols": 1,
-    "w": 92,
-    "h": 736
+    "w": 184,
+    "h": 1472
   },
-  "acceptance": "bald scalp + bare body + tiny dark briefs only"
+  "qa": {
+    "nude": true,
+    "bald": true,
+    "androgynous_mannequin": true,
+    "notes": "184x184; sprite ~90px tall in frame; jointed mannequin look; slightly athletic"
+  }
 }

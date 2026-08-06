@@ -1,19 +1,19 @@
 {
-  "group_id": "58bea605-dae2-4512-82e2-cd709c3faaa2",
+  "group_id": "13f11a53-5dca-48bb-9b45-30f575533e39",
   "states": [
     {
       "character": {
-        "id": "5f33b7ea-a3cc-486b-b3c7-45a76f57ee28",
+        "id": "e64a3c96-adc0-468d-bed6-13e3b25c942c",
         "name": "Idle",
-        "prompt": "STRICT REGEN \u2014 ZERO IMPROVISATION.\n\nAdult NORMAL man, average build, light/medium skin, low top-down isometric, 8 directions, 92x92, transparent background.\n\nHEAD (LOCKED):\n- BALD \u2014 no hair, no beard, no mustache, no eyebrows bushy\n- Clean shaved scalp, simple readable face from low top-down\n\nOUTFIT MUST BE EXACTLY THIS AND NOTHING ELSE:\n- bare chest (skin visible)\n- bare arms\n- bare legs\n- bare feet\n- ONLY a tiny plain dark brief / underwear\n- NO tank top, NO shirt, NO pants, NO belt, NO shoes, NO socks\n- NO armor, NO weapon, NO hat, NO hair\n\nPOSE: neutral standing idle, arms at sides, weight on both feet.\n\nDIRECTIONS: South, SE, East, NE, North, NW, West, SW \u2014 identical bald head + briefs only.\n\nSTYLE: highly detailed pixel art, crisp pixels.\n\nACCEPTANCE: bald scalp + mostly skin body + tiny dark underwear only. Any hair/clothes/shoes = FAIL.",
+        "prompt": "STRICT FULL REGEN \u2014 ZERO IMPROVISATION \u2014 NEW CHARACTER FROM SCRATCH.\n\nTECH: 184x184, 8 dirs South/SE/E/NE/N/NW/W/SW, low top-down iso ~30\u00b0,\ntransparent BG, feet bottom-center, character FILLS most of the frame.\nSame scale all directions.\n\nSTYLE (match attached Gustavo Viselner refs):\nmodern cinematic HD pixel art, crisp pixels, 3\u20135 shade steps, dithering OK,\nclear light direction, HIGH detail density.\nNOT crude, NOT chibi, NOT blurry AI, NOT PS1 3D, NOT anime, NOT photoreal.\n\nCHARACTER:\nAdult COMPLETELY ANDROGYNOUS nude mannequin.\nAdult proportions (normal head \u2014 NO chibi).\nNO pecs/breasts/six-pack/wide male shoulders/wide female hips.\nNO genitals, NO nipples detail, NO body hair \u2014 doll-safe.\nBALD. Soft but detailed readable face. Light/medium multi-tone skin.\n\nOUTFIT: COMPLETELY NUDE ONLY. No briefs, no clothes, no accessories.\n\nPOSE: idle standing, soft A-pose, arms slightly away. Single character. No scene.\nThis pass = Idle 8 directions only.\n\nFAIL IF: crude/chibi/tiny, any clothes/hair, sexed body, wrong style/camera.",
         "size": {
-          "width": 92,
-          "height": 92
+          "width": 184,
+          "height": 184
         },
         "template_id": "mannequin",
         "directions": 8,
         "view": "low top-down",
-        "created_at": "2026-08-06T00:00:03.794240+00:00"
+        "created_at": "2026-08-06T09:55:15.354696+00:00"
       },
       "folder": "Idle",
       "frames": {
@@ -32,5 +32,5 @@
     }
   ],
   "export_version": "3.1",
-  "export_date": "2026-08-06T00:04:20.303977"
+  "export_date": "2026-08-06T10:00:08.499331"
 }

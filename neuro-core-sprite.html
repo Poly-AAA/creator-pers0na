@@ -7098,16 +7098,16 @@ const Sprite = {
       label: "Mannequin Idle",
       localBase: "assets/packs/mannequin-idle/",
       cdnBase: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/strict-regen-idle-66c0/assets/packs/mannequin-idle/",
-      // STRICT REGEN — base male 92×92, 8 dirs × 1 frame
-      // DIR_ROW validé pad flèches (2026-08-06) : Face=south … ¾FaceG=SW
-      frameW: 92, frameH: 92, cols: 1, scale: 2.6, foot: 89, gy: 2,
+      // FULL REGEN — androgyne nude mannequin 184×184, 8 dirs × 1 frame
+      // DIR_ROW [0..7] Face=south … ¾FaceG=SW (recalibrate if needed)
+      frameW: 184, frameH: 184, cols: 1, scale: 1.35, foot: 137, gy: 2,
       dirRow: [0,1,2,3,4,5,6,7],
       dirRowLocked: true,
       sheetCols: { idle:1, walk:1, run:1, melee:1, shoot:1, hurt:1, die:1 },
       useB64: false,
       sheets: [
         ["idle",  "Idle.png", null],
-        ["walk",  "Idle.png", null], // idle only — placeholder until Walk regen
+        ["walk",  "Idle.png", null],
         ["run",   "Idle.png", null],
         ["melee", "Idle.png", null],
         ["shoot", "Idle.png", null],
