@@ -1172,17 +1172,15 @@ aside.side{
     <div class="char-body">
       <div class="char-preview">
         <canvas id="charPreview" width="220" height="220"></canvas>
-        <div class="char-opts" id="charAnimBar" style="justify-content:center;margin-top:6px">
-          <button type="button" data-anim="Idle" class="on">Idle</button>
-          <button type="button" data-anim="Walk">Walk</button>
-          <button type="button" data-anim="Attack1">Atk1</button>
+        <div class="char-opts" id="charAnimBar" style="justify-content:center;margin-top:6px;align-items:center">
+          <select id="charAnimSelect" style="min-width:10em;border:1px solid #2a3548;background:#1a2330;color:#eaf2ff;border-radius:8px;padding:6px 8px;font-size:12px"></select>
           <button type="button" id="charDirPrev">◀</button>
           <button type="button" id="charDirNext">▶</button>
         </div>
         <label style="display:flex;align-items:center;gap:8px;width:100%;margin-top:8px;font-size:11px;color:var(--acier-clair)">
           FPS
-          <input type="range" id="charFps" min="1" max="30" value="10" step="1" style="flex:1;accent-color:#E8590C"/>
-          <span id="charFpsVal" style="min-width:2em;color:#ffc29a">10</span>
+          <input type="range" id="charFps" min="1" max="30" value="14" step="1" style="flex:1;accent-color:#E8590C"/>
+          <span id="charFpsVal" style="min-width:2em;color:#ffc29a">14</span>
         </label>
         <div id="charSummary" style="font-size:10px;color:var(--acier-clair);text-align:center;line-height:1.4;margin-top:6px"></div>
       </div>
@@ -6855,7 +6853,7 @@ const CharCreator = {
   },
   look: null,
   colors: null,
-  fps: 10,
+  fps: 14,
   catalog: null,
   _cache: new Map(),
   _dir: 0,
@@ -6919,6 +6917,8 @@ const CharCreator = {
         }));
         if(cat.weaponAfterShieldRows) CharCreator.weaponAfterShieldRows = cat.weaponAfterShieldRows;
         if(cat.backpackInFrontRows) CharCreator.backpackInFrontRows = cat.backpackInFrontRows;
+        if(cat.defaultFps) CharCreator.fps = cat.defaultFps|0;
+        CharCreator.ANIMS = (cat.anims && cat.anims.length) ? cat.anims.slice() : ["Idle","Walk","Attack1"];
         return cat;
       }catch(_e){}
     }
@@ -7046,11 +7046,28 @@ const CharCreator = {
     cx.drawImage(tmp, dx, dy);
   },
 
+  ANIMS: ["Idle","Walk","Attack1"],
+
+  fillAnimSelect(){
+    const sel = UI.el("charAnimSelect"); if(!sel) return;
+    const anims = CharCreator.ANIMS || ["Idle"];
+    sel.innerHTML = "";
+    for(const a of anims){
+      const o = document.createElement("option");
+      o.value = a; o.textContent = a;
+      if(a === CharCreator._anim) o.selected = true;
+      sel.appendChild(o);
+    }
+    sel.onchange = ()=>{ CharCreator._anim = sel.value; CharCreator._frame = 0; CharCreator.syncSummary(); };
+  },
+
   open(){
     UI.hide("hubOverlay");
     UI.show("charCreateOverlay");
     CharCreator.ensureCatalog().then(()=>{
       CharCreator.load();
+      if(CharCreator.ANIMS && !CharCreator.ANIMS.includes(CharCreator._anim)) CharCreator._anim = CharCreator.ANIMS[0];
+      CharCreator.fillAnimSelect();
       const fpsEl = UI.el("charFps");
       const fpsVal = UI.el("charFpsVal");
       if(fpsEl){ fpsEl.value = String(CharCreator.fps); if(fpsVal) fpsVal.textContent = String(CharCreator.fps); }
@@ -7197,23 +7214,14 @@ const CharCreator = {
       CharCreator.renderUI();
     };
     const bar = UI.el("charAnimBar");
-    if(bar){
-      bar.querySelectorAll("[data-anim]").forEach(btn=>{
-        btn.onclick = ()=>{
-          CharCreator._anim = btn.getAttribute("data-anim");
-          CharCreator._frame = 0;
-          bar.querySelectorAll("[data-anim]").forEach(x=> x.classList.toggle("on", x===btn));
-          CharCreator.syncSummary();
-        };
-      });
-    }
+    // anim select filled in open()/fillAnimSelect
     const dp = UI.el("charDirPrev"); if(dp) dp.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+7)%8; CharCreator.syncSummary(); };
     const dn = UI.el("charDirNext"); if(dn) dn.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+1)%8; CharCreator.syncSummary(); };
     const fps = UI.el("charFps");
     const fpsVal = UI.el("charFpsVal");
     if(fps){
       fps.oninput = ()=>{
-        CharCreator.fps = Math.max(1, parseInt(fps.value,10)||10);
+        CharCreator.fps = Math.max(1, parseInt(fps.value,10)||14);
         if(fpsVal) fpsVal.textContent = String(CharCreator.fps);
         CharCreator.syncSummary();
       };

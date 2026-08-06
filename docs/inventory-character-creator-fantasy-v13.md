@@ -51,9 +51,10 @@ Source Dropbox (achat) — 3 fichiers, ~1,24 Go compressé.
 
 ## Intégration web (état)
 
-- Pack repo : `assets/packs/fantasy-cc/` — **Idle + Walk + Attack1** pour les 129 dossiers (~53 Mo)
+- Pack repo : `assets/packs/fantasy-cc/` — **30 anims × ~132 dossiers** (~519 Mo PNG)
 - Compositeur standalone : `character-creator-fantasy.html`
 - `CharCreator` dans `neuro-core-sprite.html` compose les vraies couches (ordre Unity + policies row)
+- FPS défaut **14** (potard 1–30 conservé) + teinte couleur par slot
 - Catalogue : `assets/packs/fantasy-cc/catalog.json`
 
 **Ne pas** versionner le `.unitypackage` ni l’exe Stand-alone dans git.

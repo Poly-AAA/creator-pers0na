@@ -59,16 +59,14 @@
   <aside class="panel preview-box">
     <canvas id="stage" width="256" height="256"></canvas>
     <div class="toolbar">
-      <button type="button" data-anim="Idle" class="on">Idle</button>
-      <button type="button" data-anim="Walk">Walk</button>
-      <button type="button" data-anim="Attack1">Attack1</button>
+      <select id="animSelect" title="Animation" style="min-width:11em;border:1px solid var(--line);background:#1a2834;color:var(--text);border-radius:8px;padding:7px 10px;font-size:12px"></select>
       <button type="button" id="dirPrev">◀ Dir</button>
       <button type="button" id="dirNext">Dir ▶</button>
     </div>
     <div class="fps-row">
       <label for="fps">FPS</label>
-      <input type="range" id="fps" min="1" max="30" value="10" step="1"/>
-      <span id="fpsVal">10</span>
+      <input type="range" id="fps" min="1" max="30" value="14" step="1"/>
+      <span id="fpsVal">14</span>
     </div>
     <div class="status" id="status">Chargement catalogue…</div>
     <div class="foot">
@@ -116,7 +114,7 @@
     colors: {},
     anim: "Idle",
     dir: 0,
-    fps: 10,
+    fps: 14,
     cache: new Map(),
     raf: 0,
     frame: 0,
@@ -343,20 +341,26 @@
     }
   }
 
+  function fillAnimSelect(anims){
+    const sel = el("animSelect");
+    if(!sel) return;
+    sel.innerHTML = "";
+    for(const a of anims){
+      const o = document.createElement("option");
+      o.value = a; o.textContent = a;
+      if(a === state.anim) o.selected = true;
+      sel.appendChild(o);
+    }
+    sel.onchange = ()=>{ state.anim = sel.value; state.frame = 0; };
+  }
+
   function bindToolbar(){
-    document.querySelectorAll(".toolbar [data-anim]").forEach(btn=>{
-      btn.onclick = ()=>{
-        state.anim = btn.getAttribute("data-anim");
-        state.frame = 0;
-        document.querySelectorAll(".toolbar [data-anim]").forEach(x=> x.classList.toggle("on", x===btn));
-      };
-    });
     el("dirPrev").onclick = ()=> { state.dir = (state.dir + 7) % 8; };
     el("dirNext").onclick = ()=> { state.dir = (state.dir + 1) % 8; };
     const fps = el("fps");
     const fpsVal = el("fpsVal");
     const syncFps = ()=>{
-      state.fps = Math.max(1, parseInt(fps.value,10)||10);
+      state.fps = Math.max(1, parseInt(fps.value,10)||14);
       fpsVal.textContent = String(state.fps);
     };
     fps.oninput = syncFps;
@@ -366,14 +370,7 @@
       for(const s of state.catalog.slots){
         const opts = s.folders;
         state.look[s.id] = opts[Math.floor(Math.random()*opts.length)];
-        const base = DEFAULT_COLORS[s.id] || "#888888";
-        // légère variation aléatoire de teinte
-        const n = parseInt(base.slice(1),16);
-        const j = ()=> Math.max(0, Math.min(255, ((n>>16)&255) + (Math.random()*60-30)|0));
-        // keep structured random from defaults
-        state.colors[s.id] = base;
       }
-      // randomize colors more visibly
       const palette = ["#d4a574","#5b7c99","#6b8f71","#c45c26","#9aa8b8","#8b6914","#a06bff","#e8590c","#3e4f63","#e0b878"];
       for(const s of state.catalog.slots){
         if(Math.random() < 0.7) state.colors[s.id] = palette[Math.floor(Math.random()*palette.length)];
@@ -420,6 +417,8 @@
     state.catalog = cat;
     if(cat.weaponAfterShieldRows) weaponAfterShieldRows = cat.weaponAfterShieldRows;
     if(cat.backpackInFrontRows) backpackInFrontRows = cat.backpackInFrontRows;
+    if(cat.defaultFps) state.fps = cat.defaultFps|0;
+    el("fps").value = String(state.fps);
     state.colors = defaultColors();
     try{
       const raw = localStorage.getItem("neuro.fantasyLook");
@@ -430,10 +429,14 @@
           if(o.colors) state.colors = Object.assign(defaultColors(), o.colors);
           else if(o.skin) state.colors.body = o.skin;
           if(o.fps) { state.fps = o.fps|0; el("fps").value = String(state.fps); }
+          if(o.anim) state.anim = o.anim;
         }
       }
     }catch(_e){}
     if(!state.look.body) state.look = defaultLook(cat);
+    const anims = (cat.anims && cat.anims.length) ? cat.anims : ["Idle","Walk","Attack1"];
+    if(!anims.includes(state.anim)) state.anim = anims[0];
+    fillAnimSelect(anims);
     bindToolbar();
     renderSlots();
     await loadImg(folderFor("body")||"NakedBody", "Idle");

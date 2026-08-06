@@ -8,9 +8,37 @@
   "rows": 8,
   "anims": [
     "Idle",
+    "Idle2",
+    "Idle3",
+    "Idle4",
     "Walk",
-    "Attack1"
+    "Run",
+    "RunBackwards",
+    "StrafeLeft",
+    "StrafeRight",
+    "CrouchIdle",
+    "CrouchRun",
+    "Attack1",
+    "Attack2",
+    "Attack3",
+    "Attack4",
+    "Attack5",
+    "Attack6",
+    "AttackRun",
+    "AttackRun2",
+    "Kick",
+    "Special1",
+    "TakeDamage",
+    "Die",
+    "Taunt",
+    "Slide",
+    "Rolling",
+    "RideIdle",
+    "RideRun",
+    "RideIdleAttack1",
+    "RideRunAttack1"
   ],
+  "defaultFps": 14,
   "sheetSize": [
     1920,
     1024
@@ -319,6 +347,9 @@
     "Effect3",
     "Effect4",
     "Effect5",
+    "GunFire2",
+    "GunFire3",
+    "GunFire4",
     "Hands1",
     "Hands2",
     "Hands3",
@@ -416,5 +447,5 @@
     "Slash1",
     "Slash2"
   ],
-  "note": "Subset Idle+Walk+Attack1 only (~53MB). Full pack has 30 anims \u00d7 129 folders."
+  "note": "Full pack: 30 anims \u00d7 ~129 folders (~519 MB PNG)."
 }
