@@ -1,7 +1,7 @@
 {
   "id": "mannequin",
-  "label": "Mannequin fight-stance Idle + Walk",
-  "source_zip": "Idle_fight-stance-idle-8-frames (Dropbox scl/fo)",
+  "label": "Mannequin Idle + Walk + Lead jab",
+  "source_zip": "Idle_lead-jab + fight-stance + walk (Dropbox)",
   "template_id": "mannequin",
   "frame": {
     "w": 184,
@@ -17,34 +17,16 @@
     "west",
     "south-west"
   ],
-  "dirRow": [
-    0,
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7
-  ],
+  "dirRow": [0, 1, 2, 3, 4, 5, 6, 7],
   "dirRowValidated": true,
-  "dirRowNote": "Same compass→index mapping as prior pad validation; recalibrate if needed",
   "idle": {
     "file": "Idle.png",
     "cols": 8,
     "rows": 8,
     "w": 1472,
     "h": 1472,
-    "source": "Idle_fight-stance-idle-8-frames_*.gif — 8 dirs (SE=miroir SW)",
-    "fps_hint": 120,
-    "breathing_backup": "src/Idle_breathing_4frame.png",
-    "static_backup": "src/Idle_static_1frame.png"
-  },
-  "qa": {
-    "nude": true,
-    "bald": true,
-    "androgynous_mannequin": true,
-    "notes": "184x184 fight-stance idle 8f; foot ~131–138; crouched combat pose"
+    "source": "Idle_fight-stance-idle-8-frames_*.gif",
+    "fps_hint": 120
   },
   "walk": {
     "file": "Walk.png",
@@ -52,17 +34,21 @@
     "rows": 8,
     "w": 1104,
     "h": 1472,
-    "dirs_row_order": [
-      "south",
-      "south-east",
-      "east",
-      "north-east",
-      "north",
-      "north-west",
-      "west",
-      "south-west"
-    ],
-    "source": "Dropbox Transfer 6 gifs + mirror SE from SW; west from separate link",
     "fps_hint": 120
+  },
+  "melee": {
+    "file": "Melee.png",
+    "cols": 3,
+    "rows": 8,
+    "w": 552,
+    "h": 1472,
+    "source": "Idle_lead-jab_*.gif — 8 dirs (SE=miroir SW)",
+    "fps_hint": 120
+  },
+  "qa": {
+    "nude": true,
+    "bald": true,
+    "androgynous_mannequin": true,
+    "notes": "lead jab 3f; foot ~130–140"
   }
 }

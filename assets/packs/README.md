@@ -68,9 +68,9 @@ Calibrage : `planche-orientations.html?pack=x180`.
 | Format source | `src/fight-idle/*.gif` (8f) + `src/walk/*.gif` (6f) ; breathing archivé `src/idle/` |
 | Planche Idle | **1472×1472** = 8 frames × 8 dirs, cellules **184×184** (@120 fps) |
 | Planche Walk | **1104×1472** = 6 frames × 8 dirs |
-| Contenu | Idle fight-stance + **Walk** ; Run = Walk placeholder |
-| Mapping | `DIR_ROW = [0,1,2,3,4,5,6,7]` — SE = miroir SW (Idle + Walk) |
-| QA | Chauve, nu, mannequin ; Idle 8 dirs complets ; Walk 6+West+SE mirroir |
+| Contenu | Idle fight-stance + **Walk** + **Melee lead-jab** (3f) ; Run = Walk placeholder |
+| Mapping | `DIR_ROW = [0,1,2,3,4,5,6,7]` — SE = miroir SW (Idle + Walk + Melee) |
+| QA | Chauve, nu, mannequin ; Idle/Walk/Melee 8 dirs complets |
 
 Dossier prêt : `assets/packs/mannequin-idle/` (pack jeu **`mannequin`**).  
 Aperçu : `mannequin-idle/preview.html`  
