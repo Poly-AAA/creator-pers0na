@@ -26,30 +26,40 @@
   }
   .callout.on{background:var(--sel);color:#fff;border-color:var(--sel);font-weight:600}
 
-  .float-tab{
+  .stepper{
     position:absolute;z-index:5;display:flex;align-items:center;gap:6px;
-    background:rgba(250,250,248,.94);border:1px solid var(--line);border-radius:12px;
-    padding:4px 6px;min-height:40px;overflow:hidden;
+    background:rgba(250,250,248,.96);border:1px solid var(--line);border-radius:12px;
+    padding:4px 6px;min-height:42px;overflow:hidden;
   }
-  .float-tab .ttl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);flex-shrink:0;padding:0 4px}
-  .float-tab .scroller{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}
-  .float-tab .scroller::-webkit-scrollbar{display:none}
-  .chip{flex-shrink:0;border:1px solid var(--line2);background:var(--soft);color:var(--ink);
-    border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer;min-height:32px}
-  .chip.on{background:var(--sel);color:#fff;border-color:var(--sel);font-weight:600}
+  .stepper .ttl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);flex-shrink:0;padding:0 2px}
+  .stepper .val{flex:1;min-width:0;text-align:center;font-size:13px;font-weight:600;color:var(--ink);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stepper .nav{
+    flex-shrink:0;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);
+    background:var(--soft);color:var(--sel);font-size:20px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;padding:0;
+  }
+  .stepper .nav:active{background:var(--sel);color:#fff}
+
+  .btn-clear{
+    position:absolute;z-index:5;border:1px solid var(--line);background:rgba(250,250,248,.96);
+    color:var(--ink);border-radius:12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    cursor:pointer;padding:8px 6px;min-height:42px;
+  }
+  .btn-clear:active{background:var(--sel);color:#fff}
 
   .rot{
     position:absolute;z-index:6;width:var(--tap);height:var(--tap);border-radius:50%;
     border:1.5px solid var(--line);background:var(--card);color:var(--sel);
     font-size:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-    box-shadow:0 2px 8px rgba(0,0,0,.08);
+    box-shadow:0 2px 8px rgba(0,0,0,.08);padding:0;
   }
   .rot:active{background:var(--sel);color:#fff}
 
   .dock{
     flex-shrink:0;background:rgba(250,250,248,.96);border-top:1px solid var(--line2);
     padding:10px 12px calc(12px + env(safe-area-inset-bottom));
-    display:flex;flex-direction:column;gap:10px;max-height:34%;overflow:auto;
+    display:flex;flex-direction:column;gap:10px;max-height:36%;overflow:auto;
   }
   .row{display:flex;align-items:center;gap:8px;min-width:0}
   .ttl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);flex-shrink:0;width:56px}
@@ -58,16 +68,29 @@
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)}
   .sw.on{border-color:var(--sel)}
   .sw.bw{box-shadow:inset 0 0 0 1px #999}
+
   .body-stack{display:none;flex-direction:column;gap:8px}
   .body-stack.on{display:flex}
-  .body-row{display:flex;align-items:center;gap:8px}
-  .body-row select{flex:1;min-height:44px;border:1px solid var(--line2);border-radius:10px;background:var(--card);color:var(--ink);font-size:14px;padding:0 10px}
-  .body-row input[type=range]{flex:1;accent-color:var(--sel)}
-  .body-row .op{width:42px;text-align:right;color:var(--ink2);font-size:13px}
-  .body-row .rm{width:44px;height:44px;border:0;background:transparent;color:var(--ink2);font-size:22px;cursor:pointer}
+  .body-hint{font-size:11px;color:var(--ink2);line-height:1.3}
+  .body-row{
+    display:grid;grid-template-columns:28px 1fr auto auto auto;gap:6px;align-items:center;
+    padding:8px;border:1px solid var(--line2);border-radius:12px;background:var(--card);
+  }
+  .body-row.on{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
+  .body-row .idx{font-size:11px;color:var(--ink2);text-align:center}
+  .body-row .name{font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .body-row .ops{display:flex;gap:4px}
+  .body-row button{
+    width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--soft);
+    color:var(--ink);font-size:14px;cursor:pointer;padding:0;
+  }
+  .body-row .sw-mini{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);padding:0;cursor:pointer}
+  .body-row input[type=range]{grid-column:1/-1;accent-color:var(--sel);width:100%}
+
   .btn{flex:1;min-height:48px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;font-size:15px;cursor:pointer}
   .btn.primary{background:var(--sel);color:#fff;border-color:var(--sel)}
   .status{font-size:11px;color:var(--ink2);text-align:center}
+
   .sheet{position:fixed;inset:0;z-index:40;background:rgba(40,40,38,.35);display:none;align-items:flex-end;justify-content:center}
   .sheet.on{display:flex}
   .sheet-panel{width:min(430px,100%);background:var(--card);border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
@@ -87,9 +110,25 @@
     <svg class="lines" id="lines"></svg>
     <div id="callouts"></div>
 
-    <div class="float-tab" id="tabAnim"><span class="ttl">Anim</span><div class="scroller" id="animRail"></div></div>
-    <div class="float-tab" id="tabChoix"><span class="ttl">Choix</span><div class="scroller" id="optRail"></div></div>
-    <div class="float-tab" id="tabPartie"><span class="ttl">Partie</span><div class="scroller" id="zoneBar"></div></div>
+    <div class="stepper" id="tabPartie">
+      <button type="button" class="nav" id="partiePrev" aria-label="Partie précédente">‹</button>
+      <span class="ttl">Partie</span>
+      <span class="val" id="partieVal">Tête</span>
+      <button type="button" class="nav" id="partieNext" aria-label="Partie suivante">›</button>
+    </div>
+    <div class="stepper" id="tabAnim">
+      <button type="button" class="nav" id="animPrev" aria-label="Anim précédente">‹</button>
+      <span class="ttl">Anim</span>
+      <span class="val" id="animVal">Idle</span>
+      <button type="button" class="nav" id="animNext" aria-label="Anim suivante">›</button>
+    </div>
+    <div class="stepper" id="tabChoix">
+      <button type="button" class="nav" id="optPrev" aria-label="Choix précédent">‹</button>
+      <span class="ttl">Choix</span>
+      <span class="val" id="optVal">—</span>
+      <button type="button" class="nav" id="optNext" aria-label="Choix suivant">›</button>
+    </div>
+    <button type="button" class="btn-clear" id="btnClear" title="Remettre la dernière partie modifiée sur Aucun">Aucun</button>
 
     <button type="button" class="rot" id="dirPrev" aria-label="Tourner gauche">‹</button>
     <button type="button" class="rot" id="dirNext" aria-label="Tourner droite">›</button>
@@ -107,6 +146,7 @@
         <span class="ttl">Corps</span>
         <button type="button" class="btn" id="addBody" style="flex:0 0 auto;min-width:110px;min-height:44px">+ Couche</button>
       </div>
+      <p class="body-hint">Touche une couche pour la sélectionner (choix + couleur). ↑↓ = ordre (bas → haut). Opacité sous chaque ligne.</p>
       <div id="bodyRows"></div>
     </div>
     <div class="row">
@@ -141,12 +181,12 @@
   let weaponAfterShieldRows=[true,true,true,false,false,false,false,true];
   let backpackInFrontRows=[true,false,false,false,false,true,true,true];
 
-  /* Layout validé (étapes 1–2). Flèches = provisoire jusqu’à étape 3. */
+  /* Layout provisoire — sera remplacé par ton JSON de placement */
   const LAY = {
-    char:{ xPct:47.93, yPct:58.97, sizePct:320/370 }, // sizePct modifiable via curseur
+    char:{ xPct:47.93, yPct:58.97, sizePct:320/370 },
     shadow:{ xPct:50, yPct:72, wPct:60/370, hPct:34/344, opacity:0.05 },
     labSize:10,
-    tabH:40,
+    tabH:42,
     callouts:{
       head:{ lab:"Tête", labX:50.09, labY:20.46, pinX:52.67, pinY:44.8 },
       chest:{ lab:"Torse", labX:72.41, labY:29.43, pinX:59.34, pinY:54.89 },
@@ -157,12 +197,12 @@
       weapon:{ lab:"Extra", labX:84, labY:50, pinX:74.95, pinY:55.09 },
     },
     tabs:{
-      partie:{ xPct:3.11, yPct:86.85, wPct:92 },
-      anim:{ xPct:4, yPct:4, wPct:44 },
-      choix:{ xPct:52, yPct:4, wPct:44 },
+      partie:{ xPct:4, yPct:66, wPct:92 },
+      anim:{ xPct:4, yPct:76, wPct:92 },
+      choix:{ xPct:4, yPct:86, wPct:70 },
     },
-    // provisoire — à valider en étape 3
-    rot:{ prev:{xPct:12, yPct:78}, next:{xPct:88, yPct:78}, size:48 }
+    btnClear:{ xPct:76, yPct:86, wPct:20 },
+    rot:{ prev:{xPct:12, yPct:48}, next:{xPct:88, yPct:48}, size:48 }
   };
 
   const ZONE_ORDER = ["head","chest","backpack","body","legs","shoes","weapon"];
@@ -182,9 +222,11 @@
 
   const state = {
     catalog:null, look:{}, colors:{},
-    bodies:[{folder:"NakedBody", opacity:1}],
+    bodies:[{folder:"NakedBody", opacity:1, color:"#d4a574"}],
+    bodyFocus:0,
     anim:"Idle", dir:0, fps:14,
     zoneId:"head", _miscFocus:"weapon",
+    lastEdited:null,
     charSizePct: 320/370,
     cache:new Map(), raf:0, frame:0, lastT:0,
     drawing:false, dirty:true, drawRect:null,
@@ -203,7 +245,7 @@
     const v=state.look[slotId];
     return (!v||v==="None")?null:v;
   }
-  function tintFor(slotId){
+  function tintForSlot(slotId){
     const c=state.colors[slotId];
     if(!c||c==="#ffffff"||c==="#FFFFFF") return null;
     return c;
@@ -220,6 +262,7 @@
     if(!name||name==="None") return "Aucun";
     return name.replace(/^(Head|Chest|Legs|Shoes|Belt|Hands|Weapon|Shield|Backpack|Melee|Bow|Staff|Mount|Effect|Slash|NakedBody)_?/i,"")||name;
   }
+  function markEdited(key){ state.lastEdited=key; }
 
   function loadImg(folder, anim){
     const key=folder+"/"+anim;
@@ -242,20 +285,22 @@
     const L=[];
     L.push({folder:(state.catalog.shadowFolder||"Shadow"), tint:null, alpha:1});
     for(const b of state.bodies){
-      if(b.folder) L.push({folder:b.folder, tint:tintFor("body"), alpha:Math.max(0,Math.min(1,+b.opacity||1))});
+      if(!b.folder) continue;
+      const tint=(!b.color||b.color==="#ffffff"||b.color==="#FFFFFF")?null:b.color;
+      L.push({folder:b.folder, tint, alpha:Math.max(0,Math.min(1,+b.opacity||1))});
     }
     for(const id of ["shoes","legs","chest","belt","gloves"]){
-      const f=folderFor(id); if(f) L.push({folder:f, tint:tintFor(id), alpha:1});
+      const f=folderFor(id); if(f) L.push({folder:f, tint:tintForSlot(id), alpha:1});
     }
     const shield=folderFor("offhand"), weapon=folderFor("weapon"), bag=folderFor("backpack");
     const wAfter=!!weaponAfterShieldRows[row|0], bagFront=!!backpackInFrontRows[row|0];
     const mid=[];
-    if(wAfter){ if(shield) mid.push({folder:shield,tint:tintFor("offhand"),alpha:1}); if(weapon) mid.push({folder:weapon,tint:tintFor("weapon"),alpha:1}); }
-    else { if(weapon) mid.push({folder:weapon,tint:tintFor("weapon"),alpha:1}); if(shield) mid.push({folder:shield,tint:tintFor("offhand"),alpha:1}); }
-    if(bag){ const item={folder:bag,tint:tintFor("backpack"),alpha:1}; if(bagFront) mid.push(item); else mid.unshift(item); }
+    if(wAfter){ if(shield) mid.push({folder:shield,tint:tintForSlot("offhand"),alpha:1}); if(weapon) mid.push({folder:weapon,tint:tintForSlot("weapon"),alpha:1}); }
+    else { if(weapon) mid.push({folder:weapon,tint:tintForSlot("weapon"),alpha:1}); if(shield) mid.push({folder:shield,tint:tintForSlot("offhand"),alpha:1}); }
+    if(bag){ const item={folder:bag,tint:tintForSlot("backpack"),alpha:1}; if(bagFront) mid.push(item); else mid.unshift(item); }
     L.push(...mid);
-    for(const id of ["head","slash","effect"]){ const f=folderFor(id); if(f) L.push({folder:f, tint:tintFor(id), alpha:1}); }
-    const mount=folderFor("mount"); if(mount) L.unshift({folder:mount, tint:tintFor("mount"), alpha:1});
+    for(const id of ["head","slash","effect"]){ const f=folderFor(id); if(f) L.push({folder:f, tint:tintForSlot(id), alpha:1}); }
+    const mount=folderFor("mount"); if(mount) L.unshift({folder:mount, tint:tintForSlot("mount"), alpha:1});
     return L.filter(x=>x.folder);
   }
 
@@ -284,21 +329,28 @@
     if(stage.width!==w || stage.height!==h){ stage.width=w; stage.height=h; state.dirty=true; }
   }
 
-  function layoutChrome(){
-    const placeTab=(id, key)=>{
-      const t=LAY.tabs[key]; const node=el(id); if(!node||!t) return;
-      node.style.left=t.xPct+"%"; node.style.top=t.yPct+"%";
-      node.style.width=t.wPct+"%"; node.style.minHeight=LAY.tabH+"px";
-    };
-    placeTab("tabAnim","anim"); placeTab("tabChoix","choix"); placeTab("tabPartie","partie");
+  function placeBox(node, box, center){
+    if(!node||!box) return;
+    node.style.left=box.xPct+"%";
+    node.style.top=box.yPct+"%";
+    if(box.wPct!=null) node.style.width=box.wPct+"%";
+    node.style.minHeight=LAY.tabH+"px";
+    if(center){
+      const s=LAY.rot.size;
+      node.style.width=s+"px"; node.style.height=s+"px";
+      node.style.marginLeft=(-s/2)+"px"; node.style.marginTop=(-s/2)+"px";
+    } else {
+      node.style.marginLeft="0"; node.style.marginTop="0";
+    }
+  }
 
-    const rp=el("dirPrev"), rn=el("dirNext");
-    rp.style.left=LAY.rot.prev.xPct+"%"; rp.style.top=LAY.rot.prev.yPct+"%";
-    rp.style.width=LAY.rot.size+"px"; rp.style.height=LAY.rot.size+"px";
-    rp.style.marginLeft=(-LAY.rot.size/2)+"px"; rp.style.marginTop=(-LAY.rot.size/2)+"px";
-    rn.style.left=LAY.rot.next.xPct+"%"; rn.style.top=LAY.rot.next.yPct+"%";
-    rn.style.width=LAY.rot.size+"px"; rn.style.height=LAY.rot.size+"px";
-    rn.style.marginLeft=(-LAY.rot.size/2)+"px"; rn.style.marginTop=(-LAY.rot.size/2)+"px";
+  function layoutChrome(){
+    placeBox(el("tabPartie"), LAY.tabs.partie);
+    placeBox(el("tabAnim"), LAY.tabs.anim);
+    placeBox(el("tabChoix"), LAY.tabs.choix);
+    placeBox(el("btnClear"), LAY.btnClear);
+    placeBox(el("dirPrev"), LAY.rot.prev, true);
+    placeBox(el("dirNext"), LAY.rot.next, true);
 
     const host=el("callouts");
     const svg=el("lines");
@@ -394,74 +446,109 @@
 
   function selectZone(id){
     state.zoneId=id;
+    if(id==="body") state.bodyFocus=Math.min(state.bodyFocus, Math.max(0,state.bodies.length-1));
     el("bodyStack").classList.toggle("on", id==="body");
-    renderZones(); renderOpts(); renderSwatches(); renderBodies(); layoutChrome();
+    syncSteppers(); renderSwatches(); renderBodies(); layoutChrome();
+    state.dirty=true;
   }
 
-  function renderZones(){
-    const bar=el("zoneBar"); bar.innerHTML="";
-    ZONE_ORDER.forEach(id=>{
-      const c=LAY.callouts[id];
-      const b=document.createElement("button");
-      b.type="button"; b.className="chip"+(state.zoneId===id?" on":"");
-      b.textContent=c.lab; b.onclick=()=>selectZone(id);
-      bar.appendChild(b);
-    });
+  function activeSlotId(){
+    if(state.zoneId==="weapon") return state._miscFocus||"weapon";
+    return state.zoneId;
   }
-  function renderAnims(){
-    const rail=el("animRail"); rail.innerHTML="";
-    const anims=(state.catalog.anims&&state.catalog.anims.length)?state.catalog.anims:["Idle","Walk","Attack1"];
-    anims.forEach(a=>{
-      const b=document.createElement("button");
-      b.type="button"; b.className="chip"+(a===state.anim?" on":"");
-      b.textContent=a;
-      b.onclick=()=>{ state.anim=a; state.frame=0; state.dirty=true; renderAnims(); };
-      rail.appendChild(b);
-    });
-  }
-  function renderOpts(){
-    const rail=el("optRail"); rail.innerHTML="";
-    const tab=el("tabChoix");
-    if(state.zoneId==="body"){ tab.style.opacity="0.35"; return; }
-    tab.style.opacity="1";
-    if(state.zoneId==="weapon"){
-      MISC_SLOTS.forEach(sid=>{
-        const s=slotById(sid); if(!s) return;
-        const b=document.createElement("button");
-        b.type="button"; b.className="chip"+(state._miscFocus===sid?" on":"");
-        b.textContent=s.lab.split("/")[0].trim();
-        b.onclick=()=>{ state._miscFocus=sid; renderMiscOpts(sid); };
-        rail.appendChild(b);
-      });
-      renderMiscOpts(state._miscFocus||"weapon"); return;
+
+  function optionList(){
+    if(state.zoneId==="body"){
+      return ((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
     }
-    const s=slotById(state.zoneId); if(!s) return;
-    const cur=state.look[state.zoneId];
-    (s.folders||[]).forEach(name=>{
-      const b=document.createElement("button");
-      b.type="button"; b.className="chip"+(name===cur?" on":"");
-      b.textContent=shortOpt(name); b.title=name;
-      b.onclick=()=>{ state.look[state.zoneId]=name; state.dirty=true; renderOpts(); };
-      rail.appendChild(b);
-    });
+    if(state.zoneId==="weapon"){
+      /* Extra : d’abord les sous-slots, puis les folders du sous-slot focus — on cycle les folders du sous-slot */
+      const s=slotById(state._miscFocus||"weapon");
+      return (s&&s.folders)||["None"];
+    }
+    const s=slotById(state.zoneId);
+    return (s&&s.folders)||["None"];
   }
-  function renderMiscOpts(sid){
-    const rail=el("optRail");
-    [...rail.querySelectorAll("[data-misc]")].forEach(n=>n.remove());
-    const s=slotById(sid); if(!s) return;
-    const cur=state.look[sid];
-    (s.folders||[]).forEach(name=>{
-      const b=document.createElement("button");
-      b.type="button"; b.dataset.misc="1";
-      b.className="chip"+(name===cur?" on":"");
-      b.textContent=name==="None"?"∅":shortOpt(name);
-      b.onclick=()=>{ state.look[sid]=name; state.dirty=true; renderMiscOpts(sid); };
-      rail.appendChild(b);
-    });
+  function currentOption(){
+    if(state.zoneId==="body"){
+      const b=state.bodies[state.bodyFocus|0];
+      return (b&&b.folder)||"NakedBody";
+    }
+    return state.look[activeSlotId()]||"None";
   }
+  function setOption(name){
+    if(state.zoneId==="body"){
+      const i=state.bodyFocus|0;
+      if(!state.bodies[i]) return;
+      state.bodies[i].folder=name;
+      state.look.body=state.bodies[0].folder;
+      markEdited("body:"+i);
+    } else {
+      const sid=activeSlotId();
+      state.look[sid]=name;
+      markEdited(sid);
+    }
+    state.dirty=true;
+    syncSteppers(); renderBodies();
+  }
+  function cycleOption(dir){
+    if(state.zoneId==="weapon"){
+      /* long-press style: if holding misc mode — cycle folders; double-tap zone Extra cycles misc slot via partie? */
+    }
+    const list=optionList(); if(!list.length) return;
+    let i=list.indexOf(currentOption());
+    if(i<0) i=0;
+    i=(i+dir+list.length)%list.length;
+    setOption(list[i]);
+  }
+  function cycleMiscSlot(dir){
+    let i=MISC_SLOTS.indexOf(state._miscFocus||"weapon");
+    if(i<0) i=0;
+    i=(i+dir+MISC_SLOTS.length)%MISC_SLOTS.length;
+    state._miscFocus=MISC_SLOTS[i];
+    syncSteppers(); renderSwatches();
+  }
+  function cycleZone(dir){
+    let i=ZONE_ORDER.indexOf(state.zoneId);
+    if(i<0) i=0;
+    i=(i+dir+ZONE_ORDER.length)%ZONE_ORDER.length;
+    selectZone(ZONE_ORDER[i]);
+  }
+  function cycleAnim(dir){
+    const anims=(state.catalog.anims&&state.catalog.anims.length)?state.catalog.anims:["Idle","Walk","Attack1"];
+    let i=anims.indexOf(state.anim); if(i<0) i=0;
+    i=(i+dir+anims.length)%anims.length;
+    state.anim=anims[i]; state.frame=0; state.dirty=true; syncSteppers();
+  }
+
+  function syncSteppers(){
+    const z=LAY.callouts[state.zoneId];
+    el("partieVal").textContent=z?z.lab:state.zoneId;
+    el("animVal").textContent=state.anim||"—";
+    if(state.zoneId==="weapon"){
+      const s=slotById(state._miscFocus||"weapon");
+      const sub=(s&&s.lab)?s.lab.split("/")[0].trim():(state._miscFocus||"");
+      el("optVal").textContent=sub+": "+shortOpt(currentOption());
+    } else if(state.zoneId==="body"){
+      el("optVal").textContent="L"+(state.bodyFocus+1)+": "+shortOpt(currentOption());
+    } else {
+      el("optVal").textContent=shortOpt(currentOption());
+    }
+  }
+
+  function colorTarget(){
+    if(state.zoneId==="body"){
+      const b=state.bodies[state.bodyFocus|0];
+      return { get:()=> (b&&b.color)||DEFAULT_COLORS.body, set:(hex)=>{ if(b){ b.color=hex; markEdited("body:"+(state.bodyFocus|0)); } } };
+    }
+    const sid=activeSlotId();
+    return { get:()=> state.colors[sid]||DEFAULT_COLORS[sid]||"#888888", set:(hex)=>{ state.colors[sid]=hex; markEdited(sid); } };
+  }
+
   function renderSwatches(){
     const host=el("swatches"); host.innerHTML="";
-    const cur=(state.colors[state.zoneId]||"").toLowerCase();
+    const ct=colorTarget();
+    const cur=(ct.get()||"").toLowerCase();
     PALETTE.forEach(hex=>{
       const b=document.createElement("button");
       b.type="button";
@@ -469,13 +556,14 @@
       b.style.background=hex;
       let timer=null, long=false;
       b.addEventListener("pointerdown", ()=>{ long=false; timer=setTimeout(()=>{ long=true; openColorSheet(hex); },480); });
-      const end=()=>{ clearTimeout(timer); if(!long){ state.colors[state.zoneId]=hex; state.dirty=true; renderSwatches(); } };
+      const end=()=>{ clearTimeout(timer); if(!long){ ct.set(hex); state.dirty=true; renderSwatches(); renderBodies(); } };
       b.addEventListener("pointerup", end);
       b.addEventListener("pointerleave", ()=>clearTimeout(timer));
       b.addEventListener("pointercancel", ()=>clearTimeout(timer));
       host.appendChild(b);
     });
   }
+
   function hslToHex(h,s,l){
     s/=100; l/=100; const a=s*Math.min(l,1-l);
     const f=n=>{ const k=(n+h/30)%12; const c=l-a*Math.max(Math.min(k-3,9-k,1),-1); return Math.round(255*c).toString(16).padStart(2,"0"); };
@@ -491,29 +579,70 @@
   let advTarget=null;
   function syncAdv(){ const hex=hslToHex(+el("advH").value,+el("advS").value,+el("advL").value); el("advPreview").style.background=hex; advTarget=hex; }
   function openColorSheet(fromHex){
-    const hsl=hexToHsl(fromHex||state.colors[state.zoneId]||"#888888");
+    const hsl=hexToHsl(fromHex||colorTarget().get()||"#888888");
     el("advH").value=hsl.h; el("advS").value=hsl.s; el("advL").value=hsl.l; syncAdv(); el("colorSheet").classList.add("on");
   }
   function closeColorSheet(apply){
     el("colorSheet").classList.remove("on");
-    if(apply&&advTarget){ state.colors[state.zoneId]=advTarget; state.dirty=true; renderSwatches(); }
+    if(apply&&advTarget){ colorTarget().set(advTarget); state.dirty=true; renderSwatches(); renderBodies(); }
   }
+
   function renderBodies(){
     const host=el("bodyRows"); host.innerHTML="";
-    const folders=((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
     state.bodies.forEach((b,idx)=>{
-      const row=document.createElement("div"); row.className="body-row";
-      const sel=document.createElement("select");
-      folders.forEach(f=>{ const o=document.createElement("option"); o.value=f; o.textContent=f; if(f===b.folder) o.selected=true; sel.appendChild(o); });
-      sel.onchange=()=>{ state.bodies[idx].folder=sel.value; state.look.body=state.bodies[0].folder; state.dirty=true; };
-      const range=document.createElement("input"); range.type="range"; range.min="0"; range.max="100"; range.value=String(Math.round((b.opacity||1)*100));
-      const op=document.createElement("span"); op.className="op"; op.textContent=range.value+"%";
-      range.oninput=()=>{ state.bodies[idx].opacity=(+range.value)/100; op.textContent=range.value+"%"; state.dirty=true; };
-      const rm=document.createElement("button"); rm.type="button"; rm.className="rm"; rm.textContent="×";
+      const row=document.createElement("div");
+      row.className="body-row"+(state.bodyFocus===idx?" on":"");
+      row.onclick=(e)=>{ if(e.target.closest("button,input")) return; state.bodyFocus=idx; syncSteppers(); renderSwatches(); renderBodies(); };
+      const idxEl=document.createElement("span"); idxEl.className="idx"; idxEl.textContent=(idx+1);
+      const name=document.createElement("span"); name.className="name";
+      name.textContent=shortOpt(b.folder)+(idx===0?" · bas":idx===state.bodies.length-1?" · haut":"");
+      const sw=document.createElement("button"); sw.type="button"; sw.className="sw-mini";
+      sw.style.background=b.color||DEFAULT_COLORS.body;
+      sw.title="Couleur couche";
+      sw.onclick=(e)=>{ e.stopPropagation(); state.bodyFocus=idx; openColorSheet(b.color||DEFAULT_COLORS.body); };
+      const ops=document.createElement("div"); ops.className="ops";
+      const up=document.createElement("button"); up.type="button"; up.textContent="↑"; up.title="Monter (vers le haut / devant)";
+      up.disabled=idx>=state.bodies.length-1;
+      up.onclick=(e)=>{ e.stopPropagation(); if(idx>=state.bodies.length-1) return;
+        const t=state.bodies[idx+1]; state.bodies[idx+1]=state.bodies[idx]; state.bodies[idx]=t;
+        state.bodyFocus=idx+1; state.look.body=state.bodies[0].folder; markEdited("body"); state.dirty=true; renderBodies(); syncSteppers(); };
+      const dn=document.createElement("button"); dn.type="button"; dn.textContent="↓"; dn.title="Descendre (vers le bas / derrière)";
+      dn.disabled=idx<=0;
+      dn.onclick=(e)=>{ e.stopPropagation(); if(idx<=0) return;
+        const t=state.bodies[idx-1]; state.bodies[idx-1]=state.bodies[idx]; state.bodies[idx]=t;
+        state.bodyFocus=idx-1; state.look.body=state.bodies[0].folder; markEdited("body"); state.dirty=true; renderBodies(); syncSteppers(); };
+      const rm=document.createElement("button"); rm.type="button"; rm.textContent="×";
       rm.disabled=state.bodies.length<=1;
-      rm.onclick=()=>{ if(state.bodies.length<=1) return; state.bodies.splice(idx,1); state.look.body=state.bodies[0].folder; renderBodies(); state.dirty=true; };
-      row.appendChild(sel); row.appendChild(range); row.appendChild(op); row.appendChild(rm); host.appendChild(row);
+      rm.onclick=(e)=>{ e.stopPropagation(); if(state.bodies.length<=1) return;
+        state.bodies.splice(idx,1); state.bodyFocus=Math.min(state.bodyFocus, state.bodies.length-1);
+        state.look.body=state.bodies[0].folder; markEdited("body"); state.dirty=true; renderBodies(); syncSteppers(); };
+      ops.appendChild(up); ops.appendChild(dn); ops.appendChild(rm);
+      const range=document.createElement("input"); range.type="range"; range.min="0"; range.max="100";
+      range.value=String(Math.round((b.opacity||1)*100));
+      range.oninput=()=>{ state.bodies[idx].opacity=(+range.value)/100; markEdited("body:"+idx); state.dirty=true; };
+      row.appendChild(idxEl); row.appendChild(name); row.appendChild(sw); row.appendChild(ops);
+      row.appendChild(range);
+      host.appendChild(row);
     });
+  }
+
+  function clearLastPart(){
+    const key=state.lastEdited;
+    if(!key){
+      /* fallback: current zone */
+      if(state.zoneId==="body"){ el("status").textContent="Corps requis — change la couche ou opacité"; return; }
+      const sid=activeSlotId();
+      const s=slotById(sid);
+      if(s&&s.required){ el("status").textContent="Partie obligatoire"; return; }
+      state.look[sid]="None"; state.dirty=true; syncSteppers(); el("status").textContent="→ Aucun ("+(LAY.callouts[state.zoneId]||{}).lab+")"; return;
+    }
+    if(key.startsWith("body")){
+      el("status").textContent="Corps : utilise × sur une couche (pas Aucun)"; return;
+    }
+    const s=slotById(key);
+    if(s&&s.required){ el("status").textContent="Partie obligatoire"; return; }
+    state.look[key]="None"; state.dirty=true; syncSteppers();
+    el("status").textContent="Dernière partie → Aucun ("+key+")";
   }
 
   function syncSizeUI(){
@@ -522,9 +651,23 @@
     if(inp) inp.value=String(pct);
     if(lab) lab.textContent=pct+"%";
   }
+
   function bind(){
     el("dirPrev").onclick=()=>{ state.dir=(state.dir+7)%8; state.dirty=true; };
     el("dirNext").onclick=()=>{ state.dir=(state.dir+1)%8; state.dirty=true; };
+    el("partiePrev").onclick=()=>cycleZone(-1);
+    el("partieNext").onclick=()=>cycleZone(1);
+    el("animPrev").onclick=()=>cycleAnim(-1);
+    el("animNext").onclick=()=>cycleAnim(1);
+    el("optPrev").onclick=()=>cycleOption(-1);
+    el("optNext").onclick=()=>cycleOption(1);
+    /* Extra : taper le libellé Choix / valeur pour changer sous-slot (arme → bouclier → …) */
+    el("optVal").style.cursor="pointer";
+    el("optVal").onclick=()=>{ if(state.zoneId==="weapon") cycleMiscSlot(1); };
+    el("tabChoix").querySelector(".ttl").style.cursor="pointer";
+    el("tabChoix").querySelector(".ttl").onclick=()=>{ if(state.zoneId==="weapon") cycleMiscSlot(1); };
+    el("btnClear").onclick=clearLastPart;
+
     const sizeEl=el("charSize");
     if(sizeEl) sizeEl.oninput=()=>{
       state.charSizePct=Math.max(0.45, Math.min(0.95, (+sizeEl.value)/100));
@@ -536,8 +679,10 @@
     el("colorSheet").addEventListener("click", e=>{ if(e.target.id==="colorSheet") closeColorSheet(false); });
     el("addBody").onclick=()=>{
       const folders=((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
-      state.bodies.push({folder:folders[state.bodies.length%folders.length]||"NakedBody", opacity:0.55});
-      renderBodies(); state.dirty=true;
+      state.bodies.push({folder:folders[state.bodies.length%folders.length]||"NakedBody", opacity:0.7, color:DEFAULT_COLORS.body});
+      state.bodyFocus=state.bodies.length-1;
+      markEdited("body:"+(state.bodies.length-1));
+      renderBodies(); syncSteppers(); renderSwatches(); state.dirty=true;
     };
     el("btnRandom").onclick=()=>{
       const palette=PALETTE.slice(0,-2);
@@ -547,13 +692,15 @@
         if(Math.random()<0.7) state.colors[s.id]=palette[Math.floor(Math.random()*palette.length)];
       }
       const bf=((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
-      state.bodies=[{folder:bf[Math.floor(Math.random()*bf.length)]||"NakedBody", opacity:1}];
-      state.look.body=state.bodies[0].folder;
-      state.dirty=true; renderOpts(); renderSwatches(); renderBodies();
+      state.bodies=[{folder:bf[Math.floor(Math.random()*bf.length)]||"NakedBody", opacity:1, color:palette[Math.floor(Math.random()*palette.length)]}];
+      state.bodyFocus=0; state.look.body=state.bodies[0].folder;
+      state.dirty=true; syncSteppers(); renderSwatches(); renderBodies();
     };
     el("btnReset").onclick=()=>{
-      state.look=defaultLook(state.catalog); state.colors=defaultColors(); state.bodies=[{folder:"NakedBody",opacity:1}];
-      state.dirty=true; renderOpts(); renderSwatches(); renderBodies();
+      state.look=defaultLook(state.catalog); state.colors=defaultColors();
+      state.bodies=[{folder:"NakedBody",opacity:1,color:DEFAULT_COLORS.body}];
+      state.bodyFocus=0; state.lastEdited=null;
+      state.dirty=true; syncSteppers(); renderSwatches(); renderBodies();
     };
     el("btnExport").onclick=()=>{
       const payload={pack:"fantasy-cc", look:state.look, colors:state.colors, bodies:state.bodies, fps:state.fps, anim:state.anim, dir:state.dir, charSizePct:state.charSizePct};
@@ -583,23 +730,27 @@
         if(o&&o.look){
           state.look=o.look;
           if(o.colors) state.colors=Object.assign(defaultColors(), o.colors);
-          if(o.bodies&&o.bodies.length) state.bodies=o.bodies;
-          else if(o.look.body) state.bodies=[{folder:o.look.body, opacity:1}];
+          if(o.bodies&&o.bodies.length){
+            state.bodies=o.bodies.map(b=>({folder:b.folder, opacity:b.opacity==null?1:b.opacity, color:b.color||o.colors?.body||DEFAULT_COLORS.body}));
+          } else if(o.look.body){
+            state.bodies=[{folder:o.look.body, opacity:1, color:state.colors.body||DEFAULT_COLORS.body}];
+          }
           if(o.anim) state.anim=o.anim;
           if(typeof o.charSizePct==="number") state.charSizePct=Math.max(0.45, Math.min(0.95, o.charSizePct));
         }
       }
     }catch(_e){}
     if(!state.look.body) state.look=defaultLook(cat);
-    if(!state.bodies.length) state.bodies=[{folder:"NakedBody",opacity:1}];
+    if(!state.bodies.length) state.bodies=[{folder:"NakedBody",opacity:1,color:DEFAULT_COLORS.body}];
     const anims=(cat.anims&&cat.anims.length)?cat.anims:["Idle","Walk","Attack1"];
     if(!anims.includes(state.anim)) state.anim=anims[0];
-    bind(); syncSizeUI(); renderAnims(); selectZone("head");
+    bind(); syncSizeUI(); selectZone("head");
     state.dirty=true;
     await loadImg(state.bodies[0].folder||"NakedBody","Idle");
+    el("status").textContent="Prêt";
     loop();
   }
-  boot().catch(e=>{ el("status").textContent="Échec: "+(e.message||e); });
+  boot();
 })();
 </script>
 </body>
