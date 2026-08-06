@@ -7097,7 +7097,7 @@ const Sprite = {
       id: "mannequin",
       label: "Mannequin Idle",
       localBase: "assets/packs/mannequin-idle/",
-      cdnBase: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/strict-regen-idle-66c0/assets/packs/mannequin-idle/",
+      cdnBase: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@70492a1/assets/packs/mannequin-idle/",
       // Fight-stance Idle 8f + Walk 6f — nude mannequin 184×184, 8 dirs
       // DIR_ROW [0..7] Face=south … ¾FaceG=SW (recalibrate if needed)
       frameW: 184, frameH: 184, cols: 8, scale: 1.35, foot: 137, gy: 2,
@@ -7141,9 +7141,11 @@ const Sprite = {
   _loadSheet(key, file, b64Key){
     const im = new Image();
     Sprite.imgs[key] = im;
-    const urls = [Sprite.localBase + file, Sprite.cdnBase + file];
-    let i = 0;
     const pack = Sprite.PACKS[Sprite.packId] || {};
+    const ver = pack.assetVer ? ("?v=" + pack.assetVer) : "";
+    // CDN piné d'abord (évite cache branche jsDelivr périmé), puis local
+    const urls = [Sprite.cdnBase + file + ver, Sprite.localBase + file + ver, Sprite.localBase + file];
+    let i = 0;
     const fail = ()=>{
       if(pack.useB64 && b64Key && typeof THUG_B64 !== "undefined" && THUG_B64[b64Key]){
         im.onload = () => Sprite._mark();
