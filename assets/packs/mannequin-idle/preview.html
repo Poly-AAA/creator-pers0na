@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Mannequin Idle — 8 dirs</title>
+<title>Mannequin — Idle breathing + Walk</title>
 <style>
   body{margin:0;font-family:Trebuchet MS,sans-serif;background:#151a22;color:#f2f0eb;padding:16px}
   h1{font-size:18px;color:#E8590C;margin:0 0 8px}
+  h2{font-size:15px;color:#27e0ff;margin:22px 0 8px}
   p{font-size:13px;color:#DCD3C3;max-width:52rem}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:14px}
   .card{background:#1e2430;border:1px solid #2E2E30;border-radius:10px;padding:10px;text-align:center}
@@ -19,10 +20,13 @@
 </style>
 </head>
 <body>
-<h1>Mannequin Idle — FULL REGEN (androgyne nude)</h1>
-<p>Base 184×184 : chauve, nu, mannequin androgyne. Rangées sheet = index jeu 0…7.</p>
+<h1>Mannequin — Idle breathing (4f) + Walk (6f)</h1>
+<p>Base 184×184 : chauve, nu, mannequin androgyne. Rangées sheet = index jeu 0…7. Idle @5 fps.</p>
 <p><a href="calibrage-vues.html" style="color:#27e0ff;font-weight:700">📐 Calibrer les vues (choisir Face / Dos / Profil…)</a></p>
-<div class="grid" id="g"></div>
+<h2>Idle breathing</h2>
+<div class="grid" id="idle"></div>
+<h2>Walk</h2>
+<div class="grid" id="walk"></div>
 <script>
 const DIRS=[
   ["south","0 Face"],
@@ -34,13 +38,17 @@ const DIRS=[
   ["west","6 Profil G"],
   ["south-west","7 ¾ Face G"],
 ];
-const g=document.getElementById("g");
-DIRS.forEach(([dir,label],i)=>{
-  const card=document.createElement("div"); card.className="card";
-  card.innerHTML=`<div><b>${label}</b></div><img alt="${dir}"/><div class="ok">row ${i}</div><code>${dir}.png</code>`;
-  card.querySelector("img").src=`src/rotations/${dir}.png?v=${Date.now()}`;
-  g.appendChild(card);
-});
+function fill(id, folder, ext){
+  const g=document.getElementById(id);
+  DIRS.forEach(([dir,label],i)=>{
+    const card=document.createElement("div"); card.className="card";
+    card.innerHTML=`<div><b>${label}</b></div><img alt="${dir}"/><div class="ok">row ${i}</div><code>${dir}.${ext}</code>`;
+    card.querySelector("img").src=`src/${folder}/${dir}.${ext}?v=${Date.now()}`;
+    g.appendChild(card);
+  });
+}
+fill("idle","idle","gif");
+fill("walk","walk","gif");
 </script>
 </body>
 </html>

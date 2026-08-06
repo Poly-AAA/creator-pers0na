@@ -1,7 +1,7 @@
 {
   "id": "mannequin",
-  "label": "Mannequin Idle (FULL REGEN androgyne nude)",
-  "source_zip": "STRICT_FULL_REGEN_ZERO_I-Idle.zip",
+  "label": "Mannequin Idle breathing + Walk",
+  "source_zip": "Idle_breathing-idle (Dropbox scl/fo)",
   "template_id": "mannequin",
   "frame": {
     "w": 184,
@@ -28,18 +28,22 @@
     7
   ],
   "dirRowValidated": true,
-  "dirRowNote": "Same compass\u2192index mapping as prior pad validation; recalibrate if needed",
+  "dirRowNote": "Same compass→index mapping as prior pad validation; recalibrate if needed",
   "idle": {
     "file": "Idle.png",
-    "cols": 1,
-    "w": 184,
-    "h": 1472
+    "cols": 4,
+    "rows": 8,
+    "w": 736,
+    "h": 1472,
+    "source": "Idle_breathing-idle_*.gif — 8 dirs complets (SE=miroir SW)",
+    "fps_hint": 5,
+    "static_backup": "src/Idle_static_1frame.png"
   },
   "qa": {
     "nude": true,
     "bald": true,
     "androgynous_mannequin": true,
-    "notes": "184x184; sprite ~90px tall in frame; jointed mannequin look; slightly athletic"
+    "notes": "184x184 breathing idle 4f; foot ~134–139; matches Walk mannequin style"
   },
   "walk": {
     "file": "Walk.png",

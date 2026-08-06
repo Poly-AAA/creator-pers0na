@@ -60,16 +60,17 @@ Calibrage : `planche-orientations.html?pack=knight`.
 Dossier prêt : `assets/packs/x180p/` (pack jeu **`x180`**, défaut).  
 Calibrage : `planche-orientations.html?pack=x180`.
 
-## 5) `mannequin-idle/` — FULL REGEN androgyne nude (PixelLab 8-dir)
+## 5) `mannequin-idle/` — Breathing Idle + Walk (PixelLab 8-dir)
 
 | | |
 |--|--|
-| Source zip | `STRICT_FULL_REGEN_ZERO_I-Idle.zip` (Dropbox) |
-| Format source | `Idle/rotations/{south…south-west}.png` + `metadata.json` |
-| Planche jeu | Sheet stitchée **184×1472** = 1 frame × 8 dirs, cellules **184×184** |
-| Contenu | Idle only (placeholders Walk/Run/… = Idle) |
-| Mapping | `DIR_ROW = [0,1,2,3,4,5,6,7]` — Face=south … ¾FaceG=SW (recalibrable) |
-| QA | Chauve, **nu**, mannequin androgyne doll-safe — accepté (un peu athlétique / petit dans le cadre) |
+| Source | Dropbox `Idle_breathing-idle_*.gif` (8 dirs) + Walk GIFs |
+| Format source | `src/idle/*.gif` (4f) + `src/walk/*.gif` (6f) |
+| Planche Idle | **736×1472** = 4 frames × 8 dirs, cellules **184×184** (@5 fps) |
+| Planche Walk | **1104×1472** = 6 frames × 8 dirs |
+| Contenu | Idle breathing + **Walk** ; Run = Walk placeholder |
+| Mapping | `DIR_ROW = [0,1,2,3,4,5,6,7]` — SE = miroir SW (Idle + Walk) |
+| QA | Chauve, nu, mannequin ; Idle 8 dirs complets ; Walk 6+West+SE mirroir |
 
 Dossier prêt : `assets/packs/mannequin-idle/` (pack jeu **`mannequin`**).  
 Aperçu : `mannequin-idle/preview.html`  

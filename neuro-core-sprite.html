@@ -7098,17 +7098,18 @@ const Sprite = {
       label: "Mannequin Idle",
       localBase: "assets/packs/mannequin-idle/",
       cdnBase: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/strict-regen-idle-66c0/assets/packs/mannequin-idle/",
-      // FULL REGEN — androgyne nude mannequin 184×184, 8 dirs × 1 frame
+      // Breathing Idle 4f + Walk 6f — nude mannequin 184×184, 8 dirs
       // DIR_ROW [0..7] Face=south … ¾FaceG=SW (recalibrate if needed)
-      frameW: 184, frameH: 184, cols: 1, scale: 1.35, foot: 137, gy: 2,
+      frameW: 184, frameH: 184, cols: 4, scale: 1.35, foot: 137, gy: 2,
       dirRow: [0,1,2,3,4,5,6,7],
       dirRowLocked: true,
-      sheetCols: { idle:1, walk:1, run:1, melee:1, shoot:1, hurt:1, die:1 },
+      sheetCols: { idle:4, walk:6, run:6, melee:1, shoot:1, hurt:1, die:1 },
+      animFps: { idle:5 }, // GIF 200ms/frame — respiration lisible
       useB64: false,
       sheets: [
         ["idle",  "Idle.png", null],
-        ["walk",  "Idle.png", null],
-        ["run",   "Idle.png", null],
+        ["walk",  "Walk.png", null],
+        ["run",   "Walk.png", null], // until Run regen
         ["melee", "Idle.png", null],
         ["shoot", "Idle.png", null],
         ["hurt",  "Idle.png", null],
@@ -7177,6 +7178,14 @@ const Sprite = {
     Sprite.SHEET_COLS = pack.sheetCols || {};
     if(pack.dirRow && pack.dirRow.length === 8) Sprite.DIR_ROW = pack.dirRow.slice();
     else Sprite.DIR_ROW = [3, 2, 1, 0, 7, 6, 5, 4];
+  },
+
+  /** FPS pack-spécifique (ex. idle respiration mannequin @5). */
+  fpsFor(name){
+    const pack = Sprite.PACKS[Sprite.packId] || {};
+    const A = Sprite.ANIM[name];
+    if(pack.animFps && pack.animFps[name] != null) return pack.animFps[name];
+    return (A && A.fps) || 12;
   },
 
   /** Nb de frames pour une anim (variable selon pack / feuille). */
@@ -7307,7 +7316,7 @@ const Sprite = {
     if(cur){
       const A = Sprite.ANIM[cur.name];
       const cols = Sprite.colsFor(cur.name);
-      const done = (performance.now() - cur.t0) / 1000 * A.fps >= cols;
+      const done = (performance.now() - cur.t0) / 1000 * Sprite.fpsFor(cur.name) >= cols;
       if(!done) return cur.name;
       if(A.hold) return cur.name;
       e._sp = null;
@@ -7324,13 +7333,14 @@ const Sprite = {
   frameIndex(e, name){
     const A = Sprite.ANIM[name];
     const cols = Sprite.colsFor(name);
+    const fps = Sprite.fpsFor(name);
     if(A.loop){
       // Horloge continue : Idle / Walk / Run bouclent toujours (respiration visible)
-      return Math.floor(performance.now() / 1000 * A.fps) % cols;
+      return Math.floor(performance.now() / 1000 * fps) % cols;
     }
     const t0 = (e._sp && e._sp.name === name) ? e._sp.t0 : performance.now();
     const el = (performance.now() - t0) / 1000;
-    return Math.min(Math.floor(el * A.fps), cols - 1);
+    return Math.min(Math.floor(el * fps), cols - 1);
   },
 
   /* cx = centre de la case, gy = ligne de sol (pivot au pied) */
