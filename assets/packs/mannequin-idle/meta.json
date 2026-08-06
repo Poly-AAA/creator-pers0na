@@ -36,7 +36,7 @@
     "w": 736,
     "h": 1472,
     "source": "Idle_breathing-idle_*.gif — 8 dirs complets (SE=miroir SW)",
-    "fps_hint": 12,
+    "fps_hint": 16,
     "static_backup": "src/Idle_static_1frame.png"
   },
   "qa": {

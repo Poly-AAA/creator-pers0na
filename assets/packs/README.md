@@ -66,7 +66,7 @@ Calibrage : `planche-orientations.html?pack=x180`.
 |--|--|
 | Source | Dropbox `Idle_breathing-idle_*.gif` (8 dirs) + Walk GIFs |
 | Format source | `src/idle/*.gif` (4f) + `src/walk/*.gif` (6f) |
-| Planche Idle | **736×1472** = 4 frames × 8 dirs, cellules **184×184** (@12 fps) |
+| Planche Idle | **736×1472** = 4 frames × 8 dirs, cellules **184×184** (@16 fps) |
 | Planche Walk | **1104×1472** = 6 frames × 8 dirs |
 | Contenu | Idle breathing + **Walk** ; Run = Walk placeholder |
 | Mapping | `DIR_ROW = [0,1,2,3,4,5,6,7]` — SE = miroir SW (Idle + Walk) |
