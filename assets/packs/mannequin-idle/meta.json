@@ -40,5 +40,24 @@
     "bald": true,
     "androgynous_mannequin": true,
     "notes": "184x184; sprite ~90px tall in frame; jointed mannequin look; slightly athletic"
+  },
+  "walk": {
+    "file": "Walk.png",
+    "cols": 6,
+    "rows": 8,
+    "w": 1104,
+    "h": 1472,
+    "dirs_row_order": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ],
+    "source": "Dropbox Transfer 6 gifs + mirror SE from SW; west from separate link",
+    "fps_hint": 5
   }
 }
