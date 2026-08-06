@@ -1,45 +1,44 @@
-STRICT REGEN — ZERO IMPROVISATION — ANDROGYNOUS NUDE BASE IDLE — GUSTAVO VISELNER PIXEL STYLE.
+STRICT REGEN — ZERO IMPROVISATION — ANDROGYNOUS NUDE IDLE — VISELNER DETAIL.
 
-MUST BE:
-- COMPLETELY ANDROGYNOUS (not male, not female, not “slightly masculine”)
-- COMPLETELY NUDE mannequin (no underwear, no briefs, no clothes at all)
-- BALD (no hair anywhere on head/face/body)
+WHY PREVIOUS FAILED: too crude, too few pixels, chibi/simple doll. FIX THAT.
 
-STYLE LOCK (match attached Gustavo Viselner pixel-art references EXACTLY):
-- modern cinematic HD pixel art (adventure-game still / Viselner look)
-- visible crisp pixels, clean silhouettes, economical face
-- limited palette, mood lighting, dithered shadows OK
-- flat cel-like shade steps (2–4 tones)
-- NOT PS1 low-poly 3D, NOT Metal Gear, NOT anime, NOT vector/SVG, NOT photoreal, NOT blurry AI
+RESOLUTION (LOCKED):
+- Output frame size: 128x128 (NOT 64, NOT 92)
+- Character must FILL most of the frame height (~100–110 px tall)
+- Dense cinematic pixel detail — many readable pixels on face, torso, limbs
+- NOT a tiny 20-pixel stick figure in a huge empty canvas
+
+STYLE LOCK (match attached Gustavo Viselner references):
+- modern cinematic HD pixel art like Viselner adventure stills
+- crisp pixels, strong silhouette, rich dithering / 3–5 shade steps
+- mood lighting with clear light direction (rim + form shadow)
+- high craftsmanship: detailed anatomy planes, careful anti-aliasing of silhouette only where needed
+- NOT PS1 low-poly 3D, NOT chibi, NOT MS Paint blob, NOT blurry AI mush, NOT anime screencap
 
 CHARACTER (LOCKED):
-- Adult COMPLETELY ANDROGYNOUS humanoid mannequin
-- Neutral slim silhouette
+- Adult COMPLETELY ANDROGYNOUS nude mannequin (not male, not female)
+- Adult proportions (normal head size — NO big chibi head)
+- Neutral slim-athletic build
 - NO pecs, NO breasts, NO six-pack, NO wide male shoulders, NO wide female hips
-- NO genitals, NO nipples detail, NO body hair, NO sexual features
-- Soft featureless crotch / doll-like anatomy (game-safe mannequin)
-- Soft minimalist face (few pixels for eyes/nose/mouth)
-- Light/medium skin, muted cinematic palette
-- BALD scalp — no hair, no beard, no mustache, no eyebrows bushy
+- NO genitals, NO nipples detail, NO body hair — doll-safe anatomy
+- BALD scalp — no hair, no beard, no mustache
+- Face: Viselner-level economy BUT readable (eyes/nose/mouth defined with enough pixels, not 3-pixel smudge)
+- Light/medium skin with multi-tone shading
 
-OUTFIT (LOCKED):
-- NUDE ONLY
-- NO briefs, NO underwear, NO shirt, NO pants, NO shoes, NO socks
-- NO belt, NO armor, NO weapon, NO hat, NO hair, NO cape, NO robes
+OUTFIT: FULLY NUDE ONLY. No briefs, no clothes, no accessories.
 
-CAMERA / TECH (LOCKED — NEURO-CORE):
+CAMERA / TECH (NEURO-CORE):
 - low top-down isometric (~30°, tactical iso 2:1)
 - 8 directions: South, SE, East, NE, North, NW, West, SW
-- 92x92 (or 96x96 if tool requires)
 - transparent background
-- feet near bottom-center; same scale in ALL 8 directions
+- feet near bottom-center; same scale all directions
+- single character, no environment
 
-POSE: neutral standing idle, soft A-pose, arms slightly away, weight on both feet.
-Single character only. NO environment. NO walk/run/jump.
+POSE: neutral standing idle, soft A-pose, arms slightly away, weight both feet.
 
-ACCEPTANCE FAIL IF ANY:
-- male/female sexed body
-- any clothing or underwear
-- any hair
-- PS1 3D / anime / full scene background
-- wrong camera angle
+ACCEPTANCE FAIL IF:
+- crude/low-detail / chibi / tiny in frame
+- any clothes or hair
+- sexed male/female body
+- size not 128x128
+- style not Viselner-like cinematic pixel
