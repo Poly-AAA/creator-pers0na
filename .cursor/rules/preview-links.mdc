@@ -1,0 +1,25 @@
+---
+description: Always verify preview links before sending them to the user (Jean / Poly-AAA mobile)
+alwaysApply: true
+---
+
+# Preview links — mandatory for this project
+
+The user opens links from **Cursor mobile**. Litterbox/catbox links often fail to open on their device even when curl returns 200.
+
+## Rules (every turn that shares a preview)
+
+1. **Never** send a preview URL without verifying it first from this environment.
+2. Verification checklist (all required):
+   - HTTP status **200**
+   - `Content-Type` includes **`text/html`** (not `text/plain`)
+   - Body starts with `<!DOCTYPE html>` / expected title content
+   - Optional but preferred: fetch with an **iPhone Safari User-Agent**
+3. If verification fails, **do not** send that URL. Fix hosting and re-verify.
+4. Preferred hosting order:
+   1. **Cloudflare quick tunnel** (`*.trycloudflare.com`) serving local `docs/previews/` or `/tmp/fcc-preview/` — best mobile open rate
+   2. Repo files under `docs/previews/` + **htmlpreview.github.io** fallback (after push)
+   3. Litterbox only as last resort, and only after the same verification
+5. When sharing, send **direct `.html` URLs** (editor + creator), not only an index.
+6. After each completed task: send the usual “terminé” notification **and** the verified links.
+7. Keep a short publish helper: `scripts/publish-preview.sh`.

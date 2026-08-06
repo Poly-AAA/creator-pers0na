@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
+<title>Placement UI — Créateur Fantasy</title>
+<style>
+  :root{ --bg:#ecece8; --ink:#3d3d3a; --muted:#8e8e8a; --line:#c6c6c2; --card:#fafaf8; --ok:#2f6f4e; --sel:#3d3d3a; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.35 Helvetica,Arial,sans-serif;overflow:hidden}
+  .app{height:100%;height:100dvh;max-width:480px;margin:0 auto;display:flex;flex-direction:column}
+  .top{padding:10px 14px 4px;flex-shrink:0}
+  .top h1{margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+  .top p{margin:5px 0 0;font-size:12px;color:var(--muted);line-height:1.35}
+  .stage{flex:1;min-height:0;margin:0 8px;border:1.5px dashed #b8b8b4;border-radius:14px;
+    background:linear-gradient(180deg,#f7f7f4,#e8e8e4);position:relative;overflow:hidden;touch-action:none}
+  .shadow{position:absolute;border-radius:50%;pointer-events:none;z-index:1}
+  .char{position:absolute;z-index:1;pointer-events:none;image-rendering:pixelated}
+  .char canvas{width:100%;height:100%;display:block}
+  .ghost{position:absolute;z-index:2;pointer-events:none;opacity:.45;font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;background:rgba(250,250,248,.85);border:1px solid var(--line);padding:5px 7px;border-radius:8px}
+  .item{
+    position:absolute;z-index:8;cursor:grab;touch-action:none;user-select:none;
+    border:2px solid #3d3d3a;background:rgba(250,250,248,.96);box-shadow:0 2px 10px rgba(0,0,0,.12);
+  }
+  .item.drag{cursor:grabbing;outline:2px solid #888;z-index:12}
+  .item .tag{position:absolute;top:-18px;left:0;font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);white-space:nowrap;pointer-events:none;background:rgba(236,236,232,.9);padding:1px 4px;border-radius:4px}
+  .item.rot{border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--sel)}
+  .item.tab{border-radius:12px;display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 8px;min-height:40px}
+  .item.tab .lab{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .item.tab .val{font-size:13px;font-weight:600;color:var(--ink);min-width:4.5em;text-align:center}
+  .item.tab .arr{width:28px;height:28px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;background:#f0f0ec}
+  .item.btn{border-radius:12px;display:flex;align-items:center;justify-content:center;padding:8px 10px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;min-height:40px}
+  .dock{flex-shrink:0;padding:8px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(250,250,248,.96);
+    border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px;max-height:38%;overflow:auto}
+  .row{display:flex;align-items:center;gap:8px}
+  .row label{width:78px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
+  .row input[type=range]{flex:1;accent-color:var(--ink)}
+  .row .val{width:36px;text-align:right;font-size:12px;flex-shrink:0}
+  .hint{font-size:11px;color:var(--muted);line-height:1.3}
+  .btns{display:flex;gap:8px}
+  .btn{flex:1;min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:13px}
+  .btn.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .out{font-family:ui-monospace,Menlo,monospace;font-size:9px;color:var(--muted);background:#f0f0ec;
+    border-radius:8px;padding:6px 8px;white-space:pre-wrap;word-break:break-all;max-height:56px;overflow:auto}
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#3d3d3a;color:#fff;
+    padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .2s;z-index:30;pointer-events:none}
+  .toast.on{opacity:1}
+  .sel-hint{font-size:11px;color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <h1>Placement UI — tout montrer</h1>
+    <p>Glisse chaque élément où tu le veux. Les labels Tête/Torse… sont déjà validés (fantômes). Puis <b>Valider</b> et envoie le JSON.</p>
+  </div>
+  <div class="stage" id="stage">
+    <div class="shadow" id="shadow"></div>
+    <div class="char" id="char"><canvas id="cv" width="256" height="256"></canvas></div>
+    <div class="ghost" style="left:50%;top:20%;transform:translateX(-50%)">Tête</div>
+    <div class="ghost" style="left:72%;top:29%">Torse</div>
+    <div class="ghost" style="left:18%;top:27%">Sac</div>
+    <div class="ghost" style="left:8%;top:50%">Corps</div>
+    <div class="ghost" style="left:75%;top:72%">Jambes</div>
+    <div class="ghost" style="left:12%;top:73%">Chauss.</div>
+    <div class="ghost" style="left:84%;top:50%">Extra</div>
+
+    <button type="button" class="item rot" id="rotPrev" data-key="rotPrev"><span class="tag">Tourner ‹</span>‹</button>
+    <button type="button" class="item rot" id="rotNext" data-key="rotNext"><span class="tag">Tourner ›</span>›</button>
+
+    <div class="item tab" id="tabPartie" data-key="tabPartie"><span class="tag">Onglet Partie</span>
+      <span class="lab">Partie</span><span class="val">Tête</span>
+    </div>
+    <div class="item tab" id="tabAnim" data-key="tabAnim"><span class="tag">Onglet Anim</span>
+      <span class="arr">‹</span><span class="lab">Anim</span><span class="val">Idle</span><span class="arr">›</span>
+    </div>
+    <div class="item tab" id="tabChoix" data-key="tabChoix"><span class="tag">Onglet Choix</span>
+      <span class="arr">‹</span><span class="lab">Choix</span><span class="val">Head1</span><span class="arr">›</span>
+    </div>
+    <button type="button" class="item btn" id="btnClear" data-key="btnClear"><span class="tag">Reset partie</span>Aucun</button>
+  </div>
+  <div class="dock">
+    <div class="sel-hint" id="selHint">Touche un élément pour régler sa taille</div>
+    <div class="row">
+      <label>Taille élém.</label>
+      <input type="range" id="itemSize" min="36" max="96" value="48" step="1"/>
+      <span class="val" id="itemSizeVal">48</span>
+    </div>
+    <div class="row">
+      <label>Largeur tab</label>
+      <input type="range" id="tabW" min="30" max="96" value="92" step="1"/>
+      <span class="val" id="tabWVal">92%</span>
+    </div>
+    <p class="hint">Ordre attendu (du haut vers le bas) : perso → Partie → Anim/Choix → menu bas. Place Anim &amp; Choix entre Partie et le bord bas de la zone.</p>
+    <div class="out" id="out">…</div>
+    <div class="btns">
+      <button type="button" class="btn" id="btnReset">Reset</button>
+      <button type="button" class="btn" id="btnCopy">Copier JSON</button>
+      <button type="button" class="btn ok" id="btnOk">Valider ✓</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+(function(){
+  const BASE="https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
+  const KEY="neuro.layoutEditor.uiFull";
+  const STEP1={ char:{xPct:47.93,yPct:58.97,size:320}, shadow:{xPct:50,yPct:72,w:60,h:34,opacity:0.05}, stage:{w:370,h:344} };
+  const stage=document.getElementById("stage");
+
+  /* Positions provisoires — à déplacer par toi */
+  const DEFAULT={
+    rotSize:48,
+    tabH:42,
+    rotPrev:{xPct:12,yPct:52},
+    rotNext:{xPct:88,yPct:52},
+    tabPartie:{xPct:4,yPct:68,wPct:92},
+    tabAnim:{xPct:4,yPct:78,wPct:92},
+    tabChoix:{xPct:4,yPct:87,wPct:70},
+    btnClear:{xPct:78,yPct:87,wPct:18},
+  };
+  const state=JSON.parse(JSON.stringify(DEFAULT));
+  let selected="rotPrev";
+
+  function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("on"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("on"),1600); }
+
+  function placeBG(){
+    const r=stage.getBoundingClientRect();
+    const char=document.getElementById("char"), sh=document.getElementById("shadow");
+    const size=Math.min(r.width,r.height)*(STEP1.char.size/STEP1.stage.w);
+    char.style.width=size+"px"; char.style.height=size+"px";
+    char.style.left=STEP1.char.xPct+"%"; char.style.top=STEP1.char.yPct+"%";
+    char.style.marginLeft=(-size/2)+"px"; char.style.marginTop=(-size/2)+"px";
+    const sw=r.width*(STEP1.shadow.w/STEP1.stage.w), shH=r.height*(STEP1.shadow.h/STEP1.stage.h);
+    sh.style.width=sw+"px"; sh.style.height=shH+"px";
+    sh.style.left=STEP1.shadow.xPct+"%"; sh.style.top=STEP1.shadow.yPct+"%";
+    sh.style.marginLeft=(-sw/2)+"px"; sh.style.marginTop=(-shH/2)+"px";
+    sh.style.background=`rgba(0,0,0,${STEP1.shadow.opacity})`;
+  }
+
+  function apply(){
+    placeBG();
+    const rs=state.rotSize;
+    [["rotPrev","rotPrev"],["rotNext","rotNext"]].forEach(([id,key])=>{
+      const el=document.getElementById(id); const p=state[key];
+      el.style.width=rs+"px"; el.style.height=rs+"px";
+      el.style.left=p.xPct+"%"; el.style.top=p.yPct+"%";
+      el.style.marginLeft=(-rs/2)+"px"; el.style.marginTop=(-rs/2)+"px";
+      el.style.fontSize=Math.round(rs*0.55)+"px";
+    });
+    ["tabPartie","tabAnim","tabChoix"].forEach(key=>{
+      const el=document.getElementById(key); const p=state[key];
+      el.style.left=p.xPct+"%"; el.style.top=p.yPct+"%";
+      el.style.width=p.wPct+"%"; el.style.minHeight=state.tabH+"px";
+      el.style.marginLeft="0"; el.style.marginTop="0";
+    });
+    const bc=document.getElementById("btnClear"); const bp=state.btnClear;
+    bc.style.left=bp.xPct+"%"; bc.style.top=bp.yPct+"%";
+    bc.style.width=bp.wPct+"%"; bc.style.minHeight=state.tabH+"px";
+
+    const sizeCtrl=document.getElementById("itemSize");
+    const wCtrl=document.getElementById("tabW");
+    if(selected==="rotPrev"||selected==="rotNext"){
+      sizeCtrl.min=36; sizeCtrl.max=72; sizeCtrl.value=state.rotSize;
+      document.getElementById("itemSizeVal").textContent=state.rotSize;
+      document.getElementById("selHint").textContent="Sélection : flèche rotation — taille";
+      wCtrl.disabled=true;
+    } else if(selected==="btnClear"){
+      sizeCtrl.min=36; sizeCtrl.max=56; sizeCtrl.value=state.tabH;
+      document.getElementById("itemSizeVal").textContent=state.tabH;
+      wCtrl.disabled=false; wCtrl.value=state.btnClear.wPct;
+      document.getElementById("tabWVal").textContent=state.btnClear.wPct+"%";
+      document.getElementById("selHint").textContent="Sélection : bouton Aucun (reset dernière partie)";
+    } else {
+      sizeCtrl.min=36; sizeCtrl.max=56; sizeCtrl.value=state.tabH;
+      document.getElementById("itemSizeVal").textContent=state.tabH;
+      wCtrl.disabled=false; wCtrl.value=state[selected].wPct;
+      document.getElementById("tabWVal").textContent=state[selected].wPct+"%";
+      document.getElementById("selHint").textContent="Sélection : "+selected.replace("tab","onglet ");
+    }
+    document.getElementById("out").textContent=JSON.stringify(exportObj(),null,2);
+  }
+
+  function select(key){
+    selected=key;
+    document.querySelectorAll(".item").forEach(n=>n.classList.toggle("drag", n.dataset.key===key));
+    apply();
+  }
+
+  function makeDrag(el, key){
+    let dragging=false, ox=0, oy=0;
+    const down=(e)=>{
+      select(key);
+      const p=e.touches?e.touches[0]:e; dragging=true; el.classList.add("drag");
+      const r=stage.getBoundingClientRect();
+      const pos=state[key];
+      const isRot=key==="rotPrev"||key==="rotNext";
+      const cx=r.left+(pos.xPct/100)*r.width;
+      const cy=r.top+(pos.yPct/100)*r.height;
+      ox=p.clientX-cx; oy=p.clientY-cy;
+      if(!isRot){ /* top-left anchored */ ox=p.clientX-(r.left+pos.xPct/100*r.width); oy=p.clientY-(r.top+pos.yPct/100*r.height); }
+      e.preventDefault();
+    };
+    const move=(e)=>{
+      if(!dragging) return;
+      const p=e.touches?e.touches[0]:e; const r=stage.getBoundingClientRect();
+      const isRot=key==="rotPrev"||key==="rotNext";
+      let x,y;
+      if(isRot){
+        x=Math.max(0,Math.min(r.width,p.clientX-r.left-ox));
+        y=Math.max(0,Math.min(r.height,p.clientY-r.top-oy));
+      } else {
+        x=Math.max(0,Math.min(r.width,p.clientX-r.left-ox));
+        y=Math.max(0,Math.min(r.height,p.clientY-r.top-oy));
+      }
+      state[key].xPct=+(x/r.width*100).toFixed(2);
+      state[key].yPct=+(y/r.height*100).toFixed(2);
+      apply(); e.preventDefault();
+    };
+    const up=()=>{ dragging=false; if(selected!==key) el.classList.remove("drag"); save(); };
+    el.addEventListener("pointerdown", down);
+    window.addEventListener("pointermove", move, {passive:false});
+    window.addEventListener("pointerup", up);
+  }
+
+  function exportObj(){
+    const r=stage.getBoundingClientRect();
+    return {
+      step:"ui-full", validatedAt:new Date().toISOString(),
+      stage:{w:Math.round(r.width),h:Math.round(r.height)},
+      rot:{ size:state.rotSize, prev:{...state.rotPrev}, next:{...state.rotNext} },
+      tabH:state.tabH,
+      tabs:{
+        partie:{...state.tabPartie},
+        anim:{...state.tabAnim},
+        choix:{...state.tabChoix},
+      },
+      btnClear:{...state.btnClear},
+      note:"Anim/Choix = flèches (pas de scroll). btnClear = remettre dernière partie sur Aucun."
+    };
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(exportObj())); }catch(_e){} }
+  function load(){
+    try{
+      const o=JSON.parse(localStorage.getItem(KEY)||"null");
+      if(!o) return;
+      if(o.rot){ state.rotSize=o.rot.size||48; if(o.rot.prev) state.rotPrev=o.rot.prev; if(o.rot.next) state.rotNext=o.rot.next; }
+      if(o.tabH) state.tabH=o.tabH;
+      if(o.tabs){
+        if(o.tabs.partie) state.tabPartie=o.tabs.partie;
+        if(o.tabs.anim) state.tabAnim=o.tabs.anim;
+        if(o.tabs.choix) state.tabChoix=o.tabs.choix;
+      }
+      if(o.btnClear) state.btnClear=o.btnClear;
+    }catch(_e){}
+  }
+
+  async function drawChar(){
+    const urls=[BASE+"spritesheets/NakedBody/Idle.png",BASE+"spritesheets/Head1/Idle.png",BASE+"spritesheets/Chest1/Idle.png",BASE+"spritesheets/Legs1/Idle.png",BASE+"spritesheets/Shoes1/Idle.png"];
+    const loadImg=(src)=>new Promise(res=>{ const im=new Image(); im.crossOrigin="anonymous"; im.onload=()=>res(im); im.onerror=()=>res(null); im.src=src; });
+    const imgs=await Promise.all(urls.map(loadImg));
+    const cv=document.getElementById("cv"), cx=cv.getContext("2d");
+    cx.clearRect(0,0,256,256); cx.imageSmoothingEnabled=false;
+    const S=1.7, FW=128, FH=128, dw=FW*S, dh=FH*S, dx=(256-dw)/2, dy=16;
+    for(const im of imgs){ if(im) try{ cx.drawImage(im,0,0,FW,FH,dx,dy,dw,dh);}catch(_e){} }
+  }
+
+  document.getElementById("itemSize").oninput=(e)=>{
+    const v=+e.target.value;
+    if(selected==="rotPrev"||selected==="rotNext") state.rotSize=v;
+    else state.tabH=v;
+    apply(); save();
+  };
+  document.getElementById("tabW").oninput=(e)=>{
+    const v=+e.target.value;
+    if(selected==="btnClear") state.btnClear.wPct=v;
+    else if(state[selected] && "wPct" in state[selected]) state[selected].wPct=v;
+    apply(); save();
+  };
+  document.getElementById("btnReset").onclick=()=>{
+    Object.assign(state, JSON.parse(JSON.stringify(DEFAULT)));
+    apply(); save(); toast("Reset");
+  };
+  document.getElementById("btnCopy").onclick=async()=>{
+    const j=JSON.stringify(exportObj(),null,2);
+    try{ await navigator.clipboard.writeText(j); toast("JSON copié ✓"); }catch(_e){ prompt("Copie :", j); }
+  };
+  document.getElementById("btnOk").onclick=()=>{
+    const o=exportObj(); o.validated=true;
+    try{ localStorage.setItem(KEY, JSON.stringify(o)); }catch(_e){}
+    try{ navigator.clipboard.writeText(JSON.stringify(o,null,2)); }catch(_e){}
+    document.getElementById("out").textContent=JSON.stringify(o,null,2);
+    toast("Placement validé ✓");
+    alert("Placement validé ✓\nEnvoie-moi le JSON et j’applique dans le créateur.");
+  };
+
+  ["rotPrev","rotNext","tabPartie","tabAnim","tabChoix","btnClear"].forEach(k=>makeDrag(document.getElementById(k),k));
+  load(); apply(); drawChar();
+  window.addEventListener("resize", apply);
+})();
+</script>
+</body>
+</html>
