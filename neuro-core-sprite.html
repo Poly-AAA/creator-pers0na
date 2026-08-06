@@ -1210,6 +1210,11 @@ aside.side{
         <div class="char-dock-row"><span class="ttl">Partie</span><div class="char-scroller" id="charZoneBar"></div></div>
         <div class="char-dock-row"><span class="ttl">Anim</span><div class="char-scroller" id="charAnimRail"></div></div>
         <div class="char-dock-row" id="charOptRow"><span class="ttl">Choix</span><div class="char-scroller" id="charOptRail"></div></div>
+        <div class="char-dock-row">
+          <span class="ttl">Taille</span>
+          <input type="range" id="charSize" min="45" max="95" value="86" step="1" style="flex:1;accent-color:#3d3d3a"/>
+          <span id="charSizeVal" style="min-width:3em;text-align:right;font-size:13px;color:#8e8e8a">86%</span>
+        </div>
         <div class="char-dock-row"><span class="ttl">Couleur</span><div class="char-swatches" id="charSwatches"></div></div>
         <div class="char-body-stack" id="charBodyStack">
           <div class="char-dock-row">
@@ -6920,6 +6925,7 @@ const CharCreator = {
   colors: null,
   bodies: null,
   fps: 14,
+  charSizePct: 320/370,
   catalog: null,
   _cache: new Map(),
   _dir: 0,
@@ -7024,6 +7030,7 @@ const CharCreator = {
           if(o.bodies && Array.isArray(o.bodies) && o.bodies.length) CharCreator.bodies = o.bodies;
           else if(o.look.body) CharCreator.bodies = [{folder:o.look.body, opacity:1}];
           if(o.fps) CharCreator.fps = Math.max(1, o.fps|0);
+          if(typeof o.charSizePct === "number") CharCreator.charSizePct = Math.max(0.45, Math.min(0.95, o.charSizePct));
           return;
         }
       }
@@ -7048,7 +7055,8 @@ const CharCreator = {
       look: CharCreator.look||CharCreator.defaultLook(),
       colors: CharCreator.colors||CharCreator.defaultColors(),
       bodies: CharCreator.bodies||CharCreator.defaultBodies(),
-      fps: CharCreator.fps
+      fps: CharCreator.fps,
+      charSizePct: CharCreator.charSizePct
     };
     try{ localStorage.setItem(CharCreator.KEY_FANTASY, JSON.stringify(payload)); }catch(_e){}
     try{ localStorage.setItem(CharCreator.KEY, JSON.stringify(payload.look)); }catch(_e){}
@@ -7151,6 +7159,12 @@ const CharCreator = {
       CharCreator.load();
       if(CharCreator.ANIMS && !CharCreator.ANIMS.includes(CharCreator._anim)) CharCreator._anim = CharCreator.ANIMS[0];
       CharCreator.renderUI();
+      const sizeEl = UI.el("charSize");
+      const sizeVal = UI.el("charSizeVal");
+      if(sizeEl){
+        sizeEl.value = String(Math.round((CharCreator.charSizePct||320/370)*100));
+        if(sizeVal) sizeVal.textContent = sizeEl.value + "%";
+      }
       CharCreator._ready = true;
       CharCreator.startPreview();
       const b = (CharCreator.bodies && CharCreator.bodies[0] && CharCreator.bodies[0].folder) || "NakedBody";
@@ -7421,7 +7435,7 @@ const CharCreator = {
       char:{ xPct:47.93, yPct:58.97, sizePct:320/370 },
       shadow:{ xPct:50, yPct:72, wPct:60/370, hPct:34/344, opacity:0.05 }
     };
-    const charSize = W * LAY.char.sizePct;
+    const charSize = W * (CharCreator.charSizePct || LAY.char.sizePct);
     const scale = charSize / CharCreator.FW;
     const dw = CharCreator.FW*scale, dh = CharCreator.FH*scale;
     const ox = W * (LAY.char.xPct/100);
@@ -7494,6 +7508,17 @@ const CharCreator = {
       CharCreator.bodies.push({folder:next, opacity:0.55});
       CharCreator.renderBodies(); CharCreator._dirty = true;
     };
+    const sizeEl = UI.el("charSize");
+    const sizeVal = UI.el("charSizeVal");
+    if(sizeEl){
+      sizeEl.value = String(Math.round((CharCreator.charSizePct||320/370)*100));
+      if(sizeVal) sizeVal.textContent = sizeEl.value + "%";
+      sizeEl.oninput = ()=>{
+        CharCreator.charSizePct = Math.max(0.45, Math.min(0.95, (+sizeEl.value)/100));
+        if(sizeVal) sizeVal.textContent = sizeEl.value + "%";
+        CharCreator._dirty = true;
+      };
+    }
     window.addEventListener("resize", ()=> CharCreator.layoutCallouts());
   }
 };

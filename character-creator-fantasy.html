@@ -96,6 +96,11 @@
   </section>
 
   <section class="dock">
+    <div class="row">
+      <span class="ttl">Taille</span>
+      <input type="range" id="charSize" min="45" max="95" value="86" step="1" style="flex:1;accent-color:var(--sel)"/>
+      <span id="charSizeVal" style="min-width:3em;text-align:right;font-size:13px;color:var(--ink2)">86%</span>
+    </div>
     <div class="row"><span class="ttl">Couleur</span><div class="swatches" id="swatches"></div></div>
     <div class="body-stack" id="bodyStack">
       <div class="row">
@@ -138,7 +143,7 @@
 
   /* Layout validé (étapes 1–2). Flèches = provisoire jusqu’à étape 3. */
   const LAY = {
-    char:{ xPct:47.93, yPct:58.97, sizePct:320/370 },
+    char:{ xPct:47.93, yPct:58.97, sizePct:320/370 }, // sizePct modifiable via curseur
     shadow:{ xPct:50, yPct:72, wPct:60/370, hPct:34/344, opacity:0.05 },
     labSize:10,
     tabH:40,
@@ -180,6 +185,7 @@
     bodies:[{folder:"NakedBody", opacity:1}],
     anim:"Idle", dir:0, fps:14,
     zoneId:"head", _miscFocus:"weapon",
+    charSizePct: 320/370,
     cache:new Map(), raf:0, frame:0, lastT:0,
     drawing:false, dirty:true, drawRect:null,
   };
@@ -349,7 +355,7 @@
     const W=stage.width, H=stage.height;
     cx.clearRect(0,0,W,H);
 
-    const charSize=W*LAY.char.sizePct;
+    const charSize=W*(state.charSizePct||LAY.char.sizePct);
     const scale=charSize/FW;
     const dw=FW*scale, dh=FH*scale;
     const ox=W*(LAY.char.xPct/100), oy=H*(LAY.char.yPct/100);
@@ -510,9 +516,20 @@
     });
   }
 
+  function syncSizeUI(){
+    const pct=Math.round((state.charSizePct||LAY.char.sizePct)*100);
+    const inp=el("charSize"), lab=el("charSizeVal");
+    if(inp) inp.value=String(pct);
+    if(lab) lab.textContent=pct+"%";
+  }
   function bind(){
     el("dirPrev").onclick=()=>{ state.dir=(state.dir+7)%8; state.dirty=true; };
     el("dirNext").onclick=()=>{ state.dir=(state.dir+1)%8; state.dirty=true; };
+    const sizeEl=el("charSize");
+    if(sizeEl) sizeEl.oninput=()=>{
+      state.charSizePct=Math.max(0.45, Math.min(0.95, (+sizeEl.value)/100));
+      syncSizeUI(); state.dirty=true;
+    };
     el("advH").oninput=syncAdv; el("advS").oninput=syncAdv; el("advL").oninput=syncAdv;
     el("advCancel").onclick=()=>closeColorSheet(false);
     el("advOk").onclick=()=>closeColorSheet(true);
@@ -539,7 +556,7 @@
       state.dirty=true; renderOpts(); renderSwatches(); renderBodies();
     };
     el("btnExport").onclick=()=>{
-      const payload={pack:"fantasy-cc", look:state.look, colors:state.colors, bodies:state.bodies, fps:state.fps, anim:state.anim, dir:state.dir};
+      const payload={pack:"fantasy-cc", look:state.look, colors:state.colors, bodies:state.bodies, fps:state.fps, anim:state.anim, dir:state.dir, charSizePct:state.charSizePct};
       try{ localStorage.setItem("neuro.fantasyLook", JSON.stringify(payload)); }catch(_e){}
       const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}));
       a.download="fantasy-look.json"; a.click(); el("status").textContent="Look sauvé";
@@ -569,6 +586,7 @@
           if(o.bodies&&o.bodies.length) state.bodies=o.bodies;
           else if(o.look.body) state.bodies=[{folder:o.look.body, opacity:1}];
           if(o.anim) state.anim=o.anim;
+          if(typeof o.charSizePct==="number") state.charSizePct=Math.max(0.45, Math.min(0.95, o.charSizePct));
         }
       }
     }catch(_e){}
@@ -576,7 +594,7 @@
     if(!state.bodies.length) state.bodies=[{folder:"NakedBody",opacity:1}];
     const anims=(cat.anims&&cat.anims.length)?cat.anims:["Idle","Walk","Attack1"];
     if(!anims.includes(state.anim)) state.anim=anims[0];
-    bind(); renderAnims(); selectZone("head");
+    bind(); syncSizeUI(); renderAnims(); selectZone("head");
     state.dirty=true;
     await loadImg(state.bodies[0].folder||"NakedBody","Idle");
     loop();
