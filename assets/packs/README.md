@@ -68,7 +68,7 @@ Calibrage : `planche-orientations.html?pack=x180`.
 | Format source | `Idle/rotations/{south…south-west}.png` + `metadata.json` |
 | Planche jeu | Sheet stitchée **92×736** = 1 frame × 8 dirs, cellules **92×92** |
 | Contenu | Idle only (placeholders Walk/Run/… = Idle) |
-| Mapping | `DIR_ROW = [0,1,2,3,4,5,6,7]` (ligne = index jeu, verrouillé) |
+| Mapping | `DIR_ROW = [0,1,2,3,4,5,6,7]` — **validé** pad flèches (Face=south … ¾FaceG=SW) |
 | QA | Chauve, corps nu, **slip sombre uniquement** — accepté |
 
 Dossier prêt : `assets/packs/mannequin-idle/` (pack jeu **`mannequin`**).  

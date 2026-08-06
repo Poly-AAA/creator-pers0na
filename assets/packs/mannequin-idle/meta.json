@@ -17,16 +17,9 @@
     "west",
     "south-west"
   ],
-  "dirRow": [
-    0,
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7
-  ],
+  "dirRow": [0, 1, 2, 3, 4, 5, 6, 7],
+  "dirRowValidated": true,
+  "dirRowNote": "Validé au pad flèches (2026-08-06) : Face=south … ¾ Face G=south-west, ligne = index jeu",
   "idle": {
     "file": "Idle.png",
     "cols": 1,
