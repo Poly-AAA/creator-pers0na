@@ -7202,6 +7202,19 @@ const Sprite = {
     Sprite._n = 0;
     for(const [key, file, b64] of pack.sheets) Sprite._loadSheet(key, file, b64);
     if(!pack.dirRowLocked) Sprite.loadDirOverrides();
+    else Sprite.loadPackDirRow(id); // ex. mannequin : neuro.dirRow.mannequin
+  },
+
+  /** Calibrage dédié par pack (ex. mannequin-idle/calibrage-vues.html). */
+  loadPackDirRow(packId){
+    if(!packId) return;
+    try{
+      const raw = localStorage.getItem("neuro.dirRow." + packId);
+      if(!raw) return;
+      const arr = JSON.parse(raw);
+      if(Array.isArray(arr) && arr.length === 8 && arr.every(n => (n|0) >= 0 && (n|0) < 8))
+        Sprite.DIR_ROW = arr.map(n => n|0);
+    }catch(_e){}
   },
 
   init(){
