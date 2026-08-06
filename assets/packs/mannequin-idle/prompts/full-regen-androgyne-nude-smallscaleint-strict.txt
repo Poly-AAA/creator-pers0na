@@ -1,0 +1,45 @@
+STRICT FULL REGEN — ZERO IMPROVISATION — NEW CHARACTER FROM SCRATCH.
+
+STYLE LOCK (match attached SmallScaleInt / Amelia Celeste itch.io sprite references EXACTLY):
+- lo-fi isometric tactical pixel art (SmallScaleInt pack look)
+- chunky visible pixels, jagged stepped diagonals
+- muted earthy palette (tan, olive, charcoal, drab greys, desaturated skin)
+- soft flat cel shading (few tones), thin/no hard black outline
+- clean silhouette, minimal face detail (features suggested by few pixels)
+- soft oval ground contact shadow under feet OK (keep subtle)
+- NOT Viselner cinematic HD, NOT anime, NOT photoreal, NOT PS1 3D low-poly, NOT blurry AI
+- NOT chibi / big-head
+
+TECH (LOCKED — NEURO-CORE):
+- Size: 128x128 per frame (chunky pixels stay readable; 96x96 OK if tool prefers)
+- Directions: 8 — South, SE, East, NE, North, NW, West, SW
+- View: low top-down / 3/4 isometric (same camera as the attached itch sprites)
+- Transparent background (grey preview BG is NOT part of the sprite)
+- Pivot: feet near bottom-center; same scale in ALL 8 directions
+- Character fills most of the frame height
+
+CHARACTER (LOCKED — base mannequin for gear later):
+- Adult COMPLETELY ANDROGYNOUS humanoid
+- Neutral slim-athletic silhouette matching the attached packs' proportions (not hyper-muscular)
+- BALD — no hair, no beard, no mustache
+- Soft minimal face (few pixels), doll-safe
+- NO pecs exaggeration, NO breasts, NO six-pack, NO wide male shoulders, NO wide female hips
+- NO genitals, NO nipples detail, NO body hair
+
+OUTFIT (LOCKED — nude base):
+- COMPLETELY NUDE mannequin only
+- NO tank top, NO pants, NO boots, NO backpack, NO gun, NO coat, NO armor
+- (Clothes/weapons come later as separate layers — do NOT bake them now)
+
+POSE:
+- Idle standing, soft A-pose / ready stance like the unarmed NPC idle in refs
+- Arms slightly away, weight on both feet
+- Single character only — NO environment furniture
+
+THIS PASS: Idle 8 directions only (no walk/run/shoot yet).
+
+ACCEPTANCE FAIL IF:
+- wrong style (too HD Viselner / too crude blob / 3D PS1)
+- any clothes, hair, weapons
+- sexed male/female body
+- wrong camera or inconsistent scale across dirs
