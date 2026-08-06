@@ -1,0 +1,36 @@
+{
+  "group_id": "13f11a53-5dca-48bb-9b45-30f575533e39",
+  "states": [
+    {
+      "character": {
+        "id": "e64a3c96-adc0-468d-bed6-13e3b25c942c",
+        "name": "Idle",
+        "prompt": "STRICT FULL REGEN \u2014 ZERO IMPROVISATION \u2014 NEW CHARACTER FROM SCRATCH.\n\nTECH: 184x184, 8 dirs South/SE/E/NE/N/NW/W/SW, low top-down iso ~30\u00b0,\ntransparent BG, feet bottom-center, character FILLS most of the frame.\nSame scale all directions.\n\nSTYLE (match attached Gustavo Viselner refs):\nmodern cinematic HD pixel art, crisp pixels, 3\u20135 shade steps, dithering OK,\nclear light direction, HIGH detail density.\nNOT crude, NOT chibi, NOT blurry AI, NOT PS1 3D, NOT anime, NOT photoreal.\n\nCHARACTER:\nAdult COMPLETELY ANDROGYNOUS nude mannequin.\nAdult proportions (normal head \u2014 NO chibi).\nNO pecs/breasts/six-pack/wide male shoulders/wide female hips.\nNO genitals, NO nipples detail, NO body hair \u2014 doll-safe.\nBALD. Soft but detailed readable face. Light/medium multi-tone skin.\n\nOUTFIT: COMPLETELY NUDE ONLY. No briefs, no clothes, no accessories.\n\nPOSE: idle standing, soft A-pose, arms slightly away. Single character. No scene.\nThis pass = Idle 8 directions only.\n\nFAIL IF: crude/chibi/tiny, any clothes/hair, sexed body, wrong style/camera.",
+        "size": {
+          "width": 184,
+          "height": 184
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-08-06T09:55:15.354696+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-08-06T10:00:08.499331"
+}

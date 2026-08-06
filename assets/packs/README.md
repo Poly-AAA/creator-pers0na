@@ -1,7 +1,7 @@
 # Packs d’assets externes (référence)
 
 Packs téléchargés via tes liens Dropbox.  
-Le jeu (`neuro-core-sprite.html`) peut basculer **Thug** / **Knight** / **x180 Fantasy** via ⚙ SPRITE → PACK.
+Le jeu (`neuro-core-sprite.html`) peut basculer **Thug** / **Knight** / **x180 Fantasy** / **Mannequin Idle** via ⚙ SPRITE → PACK.
 
 ## 1) `survivor-hd-bike/` — Character HD Survivor + moto
 
@@ -59,6 +59,23 @@ Calibrage : `planche-orientations.html?pack=knight`.
 
 Dossier prêt : `assets/packs/x180p/` (pack jeu **`x180`**, défaut).  
 Calibrage : `planche-orientations.html?pack=x180`.
+
+## 5) `mannequin-idle/` — Fight-stance Idle + Walk (PixelLab 8-dir)
+
+| | |
+|--|--|
+| Source | Dropbox `Idle_fight-stance-idle-8-frames_*.gif` (8 dirs) + Walk GIFs |
+| Format source | `src/fight-idle/*.gif` (8f) + `src/walk/*.gif` (6f) ; breathing archivé `src/idle/` |
+| Planche Idle | **1472×1472** = 8 frames × 8 dirs, cellules **184×184** (@120 fps) |
+| Planche Walk | **1104×1472** = 6 frames × 8 dirs |
+| Contenu | Idle fight-stance + **Walk** + **Melee lead-jab** (3f) ; Run = Walk placeholder |
+| Mapping | `DIR_ROW = [0,1,2,3,4,5,6,7]` — SE = miroir SW (Idle + Walk + Melee) |
+| QA | Chauve, nu, mannequin ; Idle/Walk/Melee 8 dirs complets |
+
+Dossier prêt : `assets/packs/mannequin-idle/` (pack jeu **`mannequin`**).  
+Aperçu : `mannequin-idle/preview.html`  
+**Calibrage vues (recommandé)** : `mannequin-idle/calibrage-vues.html` — pour chaque image, choisir Face / Profil / Dos… → sauve `neuro.dirRow.mannequin`.  
+**Arena test (séparé)** : `arena-anim-test.html` — Mode Map (cible NPC) + Mode 1v1+ (log JSON joueur/IA).
 
 ## Fichier source (orientations validées)
 

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>Mannequin — flèches = vues</title>
+<style>
+  :root{
+    --bg:#070a10; --ink:#eaf2ff; --muted:#8fa3b8; --accent:#E8590C;
+    --cyan:#27e0ff; --line:#2a3548; --ok:#3ce08a; --panel:#121a26;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none}
+  html,body{height:100%;min-height:100dvh}
+  body{
+    color:var(--ink);
+    font-family:"Trebuchet MS","Segoe UI",Verdana,sans-serif;
+    background:
+      radial-gradient(800px 420px at 50% 0%, #1a2740 0%, transparent 55%),
+      linear-gradient(180deg,#101826,#070a10);
+    max-width:480px; margin:0 auto;
+    padding:10px 12px calc(12px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; min-height:100dvh;
+  }
+  h1{font-size:17px;color:var(--accent);letter-spacing:.3px}
+  .sub{font-size:13px;color:var(--muted);line-height:1.4;margin:4px 0 10px}
+  .sub b{color:var(--ink)}
+  .progress{height:5px;border-radius:99px;background:#1a2330;overflow:hidden;margin-bottom:8px}
+  .progress > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#ffb07a);transition:width .18s}
+  .meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+  .meta b{color:var(--cyan)}
+
+  .stage{
+    flex:1 1 auto; min-height:220px;
+    background:#0a0e14; border:1px solid var(--line); border-radius:16px;
+    display:flex; align-items:center; justify-content:center;
+    position:relative; overflow:hidden; margin-bottom:10px;
+  }
+  .stage canvas{
+    width:min(260px,78vw); height:min(260px,78vw);
+    image-rendering:pixelated;
+  }
+  .badge{
+    position:absolute; left:10px; top:10px;
+    background:rgba(8,16,28,.9); border:1px solid var(--line);
+    border-radius:10px; padding:6px 10px; font-size:12px; font-weight:800;
+  }
+  .badge span{color:var(--accent)}
+  .hint-float{
+    position:absolute; left:10px; right:10px; bottom:10px;
+    background:rgba(8,16,28,.9); border:1px solid var(--line);
+    border-radius:12px; padding:8px 10px; font-size:12px; color:var(--muted); line-height:1.35;
+    text-align:center;
+  }
+  .hint-float b{color:var(--ink)}
+
+  /* Pad flèches iso 3×3 */
+  .pad-wrap{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:10px; margin-bottom:8px;
+  }
+  .pad-lab{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;text-align:center}
+  .pad{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:6px;
+    max-width:300px; margin:0 auto;
+  }
+  .pad button{
+    aspect-ratio:1; min-height:64px; border-radius:14px;
+    border:1px solid var(--line); background:#1a2330; color:var(--ink);
+    font-weight:900; font-size:22px; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; line-height:1.05;
+  }
+  .pad button small{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.2px}
+  .pad button:active{transform:scale(.96)}
+  .pad button.on{border-color:var(--accent); background:#2a1a12; color:#ffc29a; box-shadow:0 0 0 1px rgba(232,89,12,.35)}
+  .pad button.used{opacity:.4}
+  .pad button.used.on{opacity:1}
+  .pad .blank{
+    aspect-ratio:1; min-height:64px; border-radius:14px;
+    border:1px dashed rgba(42,53,72,.7); background:transparent;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--accent); font-size:20px; font-weight:900;
+  }
+
+  .bar{display:flex;gap:8px}
+  .bar button{
+    flex:1; min-height:46px; border-radius:12px; border:1px solid var(--line);
+    background:#1a2330; color:var(--ink); font-weight:800; font-size:13px; cursor:pointer;
+  }
+  .bar button.ok{background:#123024; border-color:#2a6a4a; color:var(--ok)}
+  .bar button:disabled{opacity:.35}
+
+  #done{display:none}
+  #done.show{display:flex; flex-direction:column; flex:1}
+  #wizard.hide{display:none}
+
+  .list{font-size:13px;line-height:1.45; margin-bottom:8px}
+  .list div{
+    padding:8px 0; border-bottom:1px solid rgba(42,53,72,.7);
+    display:flex; gap:10px; align-items:center;
+  }
+  .list canvas{width:44px;height:44px;image-rendering:pixelated;background:#0a0e14;border-radius:8px}
+  .list b{color:var(--cyan)}
+  textarea{
+    width:100%; min-height:130px; border-radius:12px; border:1px solid var(--line);
+    background:#0a0e14; color:#d7e6f5; padding:10px; margin-bottom:8px;
+    font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;
+  }
+  .toast{
+    position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+    background:#123024; color:var(--ok); border:1px solid #2a6a4a;
+    border-radius:999px; padding:8px 14px; font-size:12px; font-weight:700;
+    opacity:0; pointer-events:none; transition:opacity .2s; z-index:9;
+  }
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="wizard">
+  <h1>Mannequin — flèches</h1>
+  <p class="sub">Regarde le perso. Appuie sur la <b>flèche</b> du sens où il regarde. C’est tout.</p>
+  <div class="progress"><i id="prog"></i></div>
+  <div class="meta">Image <b id="stepN">1</b>/8 · <b id="fname">south</b></div>
+
+  <div class="stage">
+    <canvas id="cv" width="184" height="184"></canvas>
+    <div class="badge">rangée <span id="rowLab">0</span></div>
+    <div class="hint-float">Où regarde-t-il ? → tape la flèche</div>
+  </div>
+
+  <div class="pad-wrap">
+    <div class="pad-lab">Direction (écran)</div>
+    <div class="pad" id="pad">
+      <!-- rangée haut : NO N NE -->
+      <button type="button" data-i="5" data-arrow="↖"><span>↖</span><small>¾ Dos G</small></button>
+      <button type="button" data-i="4" data-arrow="↑"><span>↑</span><small>Dos</small></button>
+      <button type="button" data-i="3" data-arrow="↗"><span>↗</span><small>¾ Dos D</small></button>
+      <!-- milieu : O · E -->
+      <button type="button" data-i="6" data-arrow="←"><span>←</span><small>Profil G</small></button>
+      <div class="blank">✦</div>
+      <button type="button" data-i="2" data-arrow="→"><span>→</span><small>Profil D</small></button>
+      <!-- bas : SO S SE -->
+      <button type="button" data-i="7" data-arrow="↙"><span>↙</span><small>¾ Face G</small></button>
+      <button type="button" data-i="0" data-arrow="↓"><span>↓</span><small>Face</small></button>
+      <button type="button" data-i="1" data-arrow="↘"><span>↘</span><small>¾ Face D</small></button>
+    </div>
+  </div>
+
+  <div class="bar">
+    <button type="button" id="btnBack" disabled>◀ Retour</button>
+    <button type="button" id="btnSkip">Passer</button>
+  </div>
+</div>
+
+<div id="done">
+  <h1>Mapping prêt</h1>
+  <p class="sub">Copie et envoie-moi, ou <b>Sauver</b> pour le jeu (pack Mannequin).</p>
+  <div class="list" id="resultList"></div>
+  <textarea id="out" readonly></textarea>
+  <div class="bar">
+    <button type="button" id="btnRedo">↺ Recommencer</button>
+    <button type="button" id="btnCopy">📋 Copier</button>
+    <button type="button" id="btnSave" class="ok">💾 Sauver</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">Ok</div>
+
+<script>
+const FILES = [
+  "south.png","south-east.png","east.png","north-east.png",
+  "north.png","north-west.png","west.png","south-west.png",
+];
+const VUES = [
+  { i:0, short:"Face",     arrow:"↓" },
+  { i:1, short:"¾ Face D", arrow:"↘" },
+  { i:2, short:"Profil D", arrow:"→" },
+  { i:3, short:"¾ Dos D",  arrow:"↗" },
+  { i:4, short:"Dos",      arrow:"↑" },
+  { i:5, short:"¾ Dos G",  arrow:"↖" },
+  { i:6, short:"Profil G", arrow:"←" },
+  { i:7, short:"¾ Face G", arrow:"↙" },
+];
+
+const LOCAL_ROT = "./src/rotations/";
+const LOCAL_SHEET = "./Idle.png";
+const CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@9c44f4a/assets/packs/mannequin-idle/";
+const FRAME = 184;
+const STORE_KEY = "neuro.dirRow.mannequin";
+
+const imgs = new Array(8).fill(null);
+/** answers[row] = game index ou null */
+let answers = new Array(8).fill(null);
+let step = 0;
+
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const toastEl = document.getElementById("toast");
+
+function loadImg(urls){
+  return new Promise(resolve=>{
+    const next = (i)=>{
+      if(i>=urls.length){ resolve(null); return; }
+      const im = new Image();
+      im.decoding = "async";
+      im.onload = ()=> resolve(im);
+      im.onerror = ()=> next(i+1);
+      try{ im.crossOrigin="anonymous"; }catch(_e){}
+      im.src = urls[i];
+    };
+    next(0);
+  });
+}
+
+async function boot(){
+  const sheet = await loadImg([LOCAL_SHEET, CDN+"Idle.png"]);
+  await Promise.all(FILES.map(async (f,i)=>{
+    imgs[i] = await loadImg([LOCAL_ROT+f, CDN+"src/rotations/"+f]);
+  }));
+  if(sheet){
+    for(let r=0;r<8;r++){
+      if(imgs[r]) continue;
+      const c=document.createElement("canvas");
+      c.width=FRAME; c.height=FRAME;
+      c.getContext("2d").drawImage(sheet,0,r*FRAME,FRAME,FRAME,0,0,FRAME,FRAME);
+      imgs[r]=c;
+    }
+  }
+  showStep();
+}
+
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  setTimeout(()=> toastEl.classList.remove("show"), 1400);
+}
+
+function usedExcept(row){
+  const s=new Set();
+  answers.forEach((g,r)=>{ if(g!==null && r!==row) s.add(g); });
+  return s;
+}
+
+function paintPad(){
+  const used = usedExcept(step);
+  document.querySelectorAll("#pad button").forEach(b=>{
+    const i = +b.dataset.i;
+    b.classList.toggle("on", answers[step]===i);
+    b.classList.toggle("used", used.has(i));
+  });
+}
+
+function paintSprite(){
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  // damier
+  const cell=16;
+  for(let y=0;y<cv.height;y+=cell) for(let x=0;x<cv.width;x+=cell){
+    ctx.fillStyle = ((x/cell+y/cell)&1) ? "#121820" : "#0a0e14";
+    ctx.fillRect(x,y,cell,cell);
+  }
+  const im = imgs[step];
+  if(!im) return;
+  const s = Math.min(cv.width, cv.height) / FRAME * 0.88;
+  const dw=FRAME*s, dh=FRAME*s;
+  const dx=(cv.width-dw)/2, dy=(cv.height-dh)/2;
+  if(im instanceof HTMLCanvasElement) ctx.drawImage(im,dx,dy,dw,dh);
+  else ctx.drawImage(im,0,0,im.naturalWidth||FRAME,im.naturalHeight||FRAME,dx,dy,dw,dh);
+}
+
+function showStep(){
+  document.getElementById("wizard").classList.remove("hide");
+  document.getElementById("done").classList.remove("show");
+  document.getElementById("stepN").textContent = String(step+1);
+  document.getElementById("fname").textContent = FILES[step].replace(".png","");
+  document.getElementById("rowLab").textContent = String(step);
+  document.getElementById("prog").style.width = (step/8*100)+"%";
+  document.getElementById("btnBack").disabled = step===0;
+  paintPad();
+  paintSprite();
+}
+
+function pick(gameIdx){
+  // si déjà pris ailleurs, on l'enlève
+  answers = answers.map((g,r)=> (r!==step && g===gameIdx) ? null : g);
+  answers[step] = gameIdx;
+  paintPad();
+  // flash + auto next
+  setTimeout(()=>{
+    if(answers[step]!==gameIdx) return;
+    if(step < 7){ step++; showStep(); }
+    else finish();
+  }, 160);
+}
+
+function dirRow(){
+  const d = new Array(8).fill(-1);
+  answers.forEach((game,row)=>{ if(game!==null) d[game]=row; });
+  return d;
+}
+
+function complete(){
+  const d = dirRow();
+  return d.every(v=>v>=0) && new Set(d).size===8;
+}
+
+function finish(){
+  if(!complete()){
+    // trouver première image sans réponse
+    const miss = answers.findIndex(g=>g===null);
+    if(miss>=0){ step=miss; showStep(); toast("Encore une flèche ici"); return; }
+  }
+  document.getElementById("wizard").classList.add("hide");
+  document.getElementById("done").classList.add("show");
+  document.getElementById("prog").style.width = "100%";
+
+  const d = dirRow();
+  const list = document.getElementById("resultList");
+  list.innerHTML = "";
+  VUES.forEach(v=>{
+    const row = d[v.i];
+    const div = document.createElement("div");
+    const c = document.createElement("canvas");
+    c.width=44; c.height=44;
+    const x=c.getContext("2d");
+    x.imageSmoothingEnabled=false;
+    const im=imgs[row];
+    if(im){
+      if(im instanceof HTMLCanvasElement) x.drawImage(im,0,0,44,44);
+      else x.drawImage(im,0,0,im.naturalWidth||FRAME,im.naturalHeight||FRAME,0,0,44,44);
+    }
+    div.appendChild(c);
+    const meta=document.createElement("div");
+    meta.innerHTML = `<b>${v.arrow} ${v.short}</b><br><span style="color:var(--muted)">← ${FILES[row]} (rangée ${row})</span>`;
+    div.appendChild(meta);
+    list.appendChild(div);
+  });
+
+  document.getElementById("out").value = [
+    "PACK: mannequin",
+    "DIR_ROW = ["+d.join(", ")+"]",
+    "",
+    ...VUES.map(v=>`  ${v.arrow} ${v.short.padEnd(10)} → row ${d[v.i]} ${FILES[d[v.i]]}`),
+    "",
+    "key: "+STORE_KEY,
+  ].join("\n");
+}
+
+document.querySelectorAll("#pad button").forEach(b=>{
+  b.onclick = ()=> pick(+b.dataset.i);
+});
+
+document.getElementById("btnBack").onclick = ()=>{
+  if(step>0){ step--; showStep(); }
+};
+document.getElementById("btnSkip").onclick = ()=>{
+  if(step<7){ step++; showStep(); }
+  else finish();
+};
+document.getElementById("btnRedo").onclick = ()=>{
+  answers = new Array(8).fill(null);
+  step = 0;
+  showStep();
+};
+document.getElementById("btnCopy").onclick = async ()=>{
+  const t = document.getElementById("out").value;
+  try{ await navigator.clipboard.writeText(t); toast("Copié — envoie-moi ça"); }
+  catch(_e){ document.getElementById("out").select(); toast("Sélectionne et copie"); }
+};
+document.getElementById("btnSave").onclick = ()=>{
+  if(!complete()){ toast("Pas complet"); return; }
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(dirRow()));
+    localStorage.setItem("neuro.spritePack", "mannequin");
+    toast("Sauvé — recharge le jeu");
+  }catch(_e){ toast("localStorage bloqué — Copier"); }
+};
+
+// clavier : flèches + diagonales (numpad / WASD-like)
+addEventListener("keydown", ev=>{
+  if(document.getElementById("wizard").classList.contains("hide")) return;
+  const map = {
+    ArrowDown:0, ArrowRight:2, ArrowUp:4, ArrowLeft:6,
+    // diagonales clavier (optionnel)
+    "1":7, "2":0, "3":1, "4":6, "6":2, "7":5, "8":4, "9":3,
+  };
+  if(ev.key in map){ ev.preventDefault(); pick(map[ev.key]); }
+  if(ev.key==="Backspace"){ ev.preventDefault(); document.getElementById("btnBack").click(); }
+});
+
+boot();
+</script>
+</body>
+</html>

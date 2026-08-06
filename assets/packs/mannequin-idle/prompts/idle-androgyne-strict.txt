@@ -1,0 +1,36 @@
+STRICT REGEN — ZERO IMPROVISATION — ANDROGYNOUS BASE IDLE.
+
+Replace the previous male muscular mannequin. New locked identity:
+
+Adult COMPLETELY ANDROGYNOUS humanoid mannequin (not male, not female).
+Average neutral build. Soft body, NO pecs, NO breasts, NO six-pack abs, NO wide male shoulders, NO wide female hips, NO genitals, NO nipples detail.
+Bald head — no hair, no beard, no mustache, no bushy eyebrows.
+Light/medium skin. Simple readable face from low top-down (small eyes with pupils OK, soft features).
+
+CAMERA / TECH (LOCKED — match NEURO-CORE game):
+- low top-down isometric (~30°, same as tactical iso 2:1)
+- 8 directions exactly: South, SE, East, NE, North, NW, West, SW
+- frame size 92x92 (or 96x96 if required by tool)
+- transparent background (NO magenta, NO purple floor disc in final export)
+- pivot: feet near bottom-center of each frame
+- same scale / same footprint in ALL 8 directions
+
+STYLE (LOCKED — match attached NEURO CORE planche):
+- clean bold dark outline
+- soft cel-shade (few flat shadow tones, not noisy pixel grit)
+- smooth mannequin look, comic/vector-like readability
+- NOT muscular gacha pixel hero, NOT realistic, NOT horror
+
+OUTFIT:
+- fully nude mannequin OR only a tiny plain dark brief if tool requires underwear
+- NO shirt, pants, shoes, socks, belt, armor, weapon, hat, hair
+
+POSE: neutral standing idle / soft A-pose, arms slightly away from sides, weight on both feet.
+NO walk, NO run, NO jump.
+
+ACCEPTANCE:
+- androgynous (gender-neutral silhouette)
+- bald
+- clean outline + cel shade
+- 8 correct iso directions, consistent size
+Any male muscle / female curves / hair / clothes / wrong angle = FAIL.

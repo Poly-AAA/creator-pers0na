@@ -1,0 +1,52 @@
+STRICT FULL REGEN — ZERO IMPROVISATION — WALK ONLY — SAME CHARACTER AS APPROVED IDLE.
+
+SAME CHARACTER as the approved androgynous nude Idle mannequin (STRICT_FULL_REGEN). Do not redesign.
+
+TECH (LOCKED — match Idle):
+- Size: 184x184 per frame
+- Directions: 8 — South, SE, East, NE, North, NW, West, SW
+- View: low top-down isometric (~30°, tactical iso 2:1)
+- Transparent background
+- Pivot: feet near bottom-center of every frame
+- Same scale / footprint / body proportions as Idle in ALL directions and ALL frames
+- Character fills the frame like Idle (do not shrink)
+
+STYLE (LOCKED — match Idle exactly):
+- Same cinematic HD pixel craft as the approved Idle
+- Same palette, outline, jointed mannequin look, shading density
+- NOT crude, NOT chibi, NOT blurry AI, NOT PS1 3D, NOT anime, NOT photoreal
+- NOT a different body type
+
+CHARACTER (LOCKED — identical to Idle):
+- Adult COMPLETELY ANDROGYNOUS nude mannequin
+- Bald — no hair, no beard, no mustache
+- Neutral slim-athletic mannequin build (same as Idle)
+- NO pecs exaggeration change, NO breasts, NO genitals, NO nipples detail, NO body hair
+- Doll-safe anatomy
+- Soft but readable face (same as Idle)
+
+OUTFIT (LOCKED):
+- COMPLETELY NUDE ONLY
+- NO briefs, NO underwear, NO clothes, NO accessories
+
+ANIMATION: WALK cycle ONLY (not idle, not run, not jump).
+- Looping walk, medium tactical RPG pace
+- Clear leg steps + opposite arm swing
+- Weight transfers foot to foot
+- Keep contact with ground (no floating)
+- No exaggerated bounce, no sliding without leg motion
+- Prefer 6–8 frames per direction if the tool allows
+- Every frame stays nude + bald + androgynous
+
+POSE LANGUAGE:
+- Walking forward in each facing direction
+- Arms slightly away, natural swing
+- Same jointed mannequin silhouette as Idle
+
+ACCEPTANCE — FAIL IF ANY:
+- different character / different style from Idle
+- any clothes or underwear
+- any hair
+- sexed male/female redesign
+- idle pose or run pose instead of walk
+- crude/low-detail / wrong size / wrong camera

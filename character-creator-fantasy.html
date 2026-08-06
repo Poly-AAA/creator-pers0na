@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Character Creator Fantasy V1.3 — NEURO-CORE</title>
+<style>
+  :root{
+    --bg0:#0b1218; --bg1:#13202c; --line:#2a3d4f; --text:#e8eef4; --muted:#8fa3b8;
+    --accent:#c45c26; --accent2:#e8a05a; --panel:rgba(12,22,32,.92);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(196,92,38,.18), transparent 55%),
+    radial-gradient(900px 500px at 90% 10%, rgba(60,120,160,.12), transparent 50%),
+    linear-gradient(165deg, #0a1016 0%, #121c26 45%, #0d1520 100%);
+    color:var(--text); font:14px/1.4 "Segoe UI", system-ui, sans-serif}
+  header{padding:18px 22px 8px; display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; justify-content:space-between}
+  header h1{margin:0; font-size:clamp(22px,3.2vw,34px); letter-spacing:.04em; font-weight:700; color:var(--accent2)}
+  header p{margin:4px 0 0; color:var(--muted); font-size:13px; max-width:52ch}
+  .wrap{display:grid; grid-template-columns:minmax(280px,360px) 1fr; gap:16px; padding:10px 18px 28px; max-width:1200px; margin:0 auto}
+  @media(max-width:860px){.wrap{grid-template-columns:1fr}}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px; backdrop-filter:blur(8px)}
+  .preview-box{display:flex; flex-direction:column; align-items:center; gap:10px}
+  canvas#stage{width:min(100%,320px); aspect-ratio:1; background:#070b10; border-radius:12px; border:1px solid var(--line); image-rendering:pixelated}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; width:100%}
+  .toolbar button, .slot button, .foot button{
+    border:1px solid var(--line); background:#1a2834; color:var(--text); border-radius:8px;
+    padding:7px 10px; cursor:pointer; font-size:12px}
+  .toolbar button.on, .slot button.on{border-color:var(--accent); color:var(--accent2); background:#2a1a12}
+  .toolbar button:hover, .slot button:hover, .foot button:hover{border-color:var(--accent2)}
+  .fps-row{width:100%; display:flex; align-items:center; gap:10px; padding:4px 2px}
+  .fps-row label{font-size:12px; color:var(--muted); white-space:nowrap; min-width:4.5em}
+  .fps-row input[type=range]{flex:1; accent-color:var(--accent)}
+  .fps-row #fpsVal{font-variant-numeric:tabular-nums; min-width:2.5em; color:var(--accent2); font-size:13px}
+  .slots{display:flex; flex-direction:column; gap:10px; max-height:min(72vh,760px); overflow:auto; padding-right:4px}
+  .slot{border:1px solid var(--line); border-radius:10px; padding:8px 9px; background:rgba(10,20,30,.55)}
+  .slot-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px}
+  .slot .lab{font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--muted)}
+  .slot-color{display:flex; align-items:center; gap:6px}
+  .slot-color input[type=color]{width:28px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:transparent;cursor:pointer}
+  .slot-color button{font-size:10px; padding:4px 7px}
+  .opts{display:flex; flex-wrap:wrap; gap:5px}
+  .opts button{font-size:11px; padding:5px 8px}
+  .foot{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+  .status{font-size:12px; color:var(--muted); text-align:center; min-height:1.2em}
+  .hint{font-size:11px; color:var(--muted); margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Fantasy Character Creator</h1>
+    <p>Couches 128×128 — FPS global + teinte couleur par élément (multiply, lisible sur fond sombre).</p>
+  </div>
+  <div class="hint">Assets : <code>assets/packs/fantasy-cc/</code></div>
+</header>
+<div class="wrap">
+  <aside class="panel preview-box">
+    <canvas id="stage" width="256" height="256"></canvas>
+    <div class="toolbar">
+      <select id="animSelect" title="Animation" style="min-width:11em;border:1px solid var(--line);background:#1a2834;color:var(--text);border-radius:8px;padding:7px 10px;font-size:12px"></select>
+      <button type="button" id="dirPrev">◀ Dir</button>
+      <button type="button" id="dirNext">Dir ▶</button>
+    </div>
+    <div class="fps-row">
+      <label for="fps">FPS</label>
+      <input type="range" id="fps" min="1" max="30" value="14" step="1"/>
+      <span id="fpsVal">14</span>
+    </div>
+    <div class="status" id="status">Chargement catalogue…</div>
+    <div class="foot">
+      <button type="button" id="btnRandom">Aléatoire</button>
+      <button type="button" id="btnReset">Réinitialiser</button>
+      <button type="button" id="btnExport">Exporter look JSON</button>
+    </div>
+  </aside>
+  <main class="panel">
+    <div class="slots" id="slots"></div>
+  </main>
+</div>
+
+<script>
+(function(){
+  const BASE_LOCAL = "assets/packs/fantasy-cc/";
+  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
+
+  const FW = 128, FH = 128, COLS = 15;
+  const DIR_ROW = [0,1,2,3,4,5,6,7];
+
+  let weaponAfterShieldRows = [true,true,true,false,false,false,false,true];
+  let backpackInFrontRows = [true,false,false,false,false,true,true,true];
+
+  /** Couleurs par défaut lisibles (évite le blanc cassé sur fond sombre). */
+  const DEFAULT_COLORS = {
+    body: "#d4a574",
+    shoes: "#3a3230",
+    legs: "#3e4f63",
+    chest: "#5b7c99",
+    belt: "#8b6914",
+    gloves: "#6a5a4e",
+    offhand: "#6b8f71",
+    weapon: "#9aa8b8",
+    backpack: "#7a5c3a",
+    head: "#e0b878",
+    slash: "#e8590c",
+    effect: "#5ec8ff",
+    mount: "#8a7060",
+  };
+
+  const state = {
+    catalog: null,
+    look: {},
+    colors: {},
+    anim: "Idle",
+    dir: 0,
+    fps: 14,
+    cache: new Map(),
+    raf: 0,
+    frame: 0,
+    lastT: 0,
+    drawing: false,
+    dirty: true,
+  };
+
+  const el = (id)=> document.getElementById(id);
+  const stage = el("stage");
+  const cx = stage.getContext("2d");
+  // canvas de teinte réutilisé (évite de figer le navigateur)
+  const tintCv = document.createElement("canvas");
+  const tintCx = tintCv.getContext("2d");
+
+  function urlFor(folder, anim){
+    const rel = `spritesheets/${folder}/${anim}.png`;
+    return { local: BASE_LOCAL + rel, cdn: BASE_CDN + rel };
+  }
+
+  function loadImg(folder, anim){
+    const key = folder + "/" + anim;
+    if(state.cache.has(key)) return state.cache.get(key);
+    const p = new Promise((resolve)=>{
+      const urls = urlFor(folder, anim);
+      // CDN d’abord (page litterbox / preview distante)
+      const order = [urls.cdn, urls.local];
+      const im = new Image();
+      try{ im.crossOrigin = "anonymous"; }catch(_e){}
+      let i = 0;
+      const tryNext = ()=>{
+        if(i >= order.length){ resolve(null); return; }
+        const src = order[i++];
+        im.onload = ()=> resolve(im);
+        im.onerror = ()=> tryNext();
+        im.src = src;
+      };
+      tryNext();
+    });
+    state.cache.set(key, p);
+    return p;
+  }
+
+  function defaultColors(){
+    return Object.assign({}, DEFAULT_COLORS);
+  }
+
+  function defaultLook(cat){
+    const look = {};
+    for(const s of cat.slots){
+      look[s.id] = s.required ? (s.folders[0]||"NakedBody") : "None";
+    }
+    look.body = "NakedBody";
+    look.chest = "Chest1";
+    look.legs = "Legs1";
+    look.shoes = "Shoes1";
+    look.head = "Head1";
+    look.weapon = "Melee1";
+    look.offhand = "Shield1";
+    return look;
+  }
+
+  function folderFor(slotId){
+    const v = state.look[slotId];
+    return (!v || v === "None") ? null : v;
+  }
+
+  function tintFor(slotId){
+    const c = state.colors[slotId];
+    if(!c || c === "#ffffff" || c === "#FFFFFF") return null;
+    return c;
+  }
+
+  function layersForRow(row){
+    const L = [];
+    L.push({ key:"shadow", folder: state.catalog.shadowFolder || "Shadow", tint:null });
+    L.push({ key:"body", folder: folderFor("body"), tint: tintFor("body") });
+    for(const id of ["shoes","legs","chest","belt","gloves"]){
+      const f = folderFor(id); if(f) L.push({ key:id, folder:f, tint: tintFor(id) });
+    }
+
+    const shield = folderFor("offhand");
+    const weapon = folderFor("weapon");
+    const bag = folderFor("backpack");
+    const wAfter = !!weaponAfterShieldRows[row|0];
+    const bagFront = !!backpackInFrontRows[row|0];
+    const mid = [];
+    if(wAfter){
+      if(shield) mid.push({ key:"offhand", folder:shield, tint: tintFor("offhand") });
+      if(weapon) mid.push({ key:"weapon", folder:weapon, tint: tintFor("weapon") });
+    } else {
+      if(weapon) mid.push({ key:"weapon", folder:weapon, tint: tintFor("weapon") });
+      if(shield) mid.push({ key:"offhand", folder:shield, tint: tintFor("offhand") });
+    }
+    if(bag){
+      const item = { key:"backpack", folder:bag, tint: tintFor("backpack") };
+      if(bagFront) mid.push(item); else mid.unshift(item);
+    }
+    L.push(...mid);
+
+    for(const id of ["head","slash","effect"]){
+      const f = folderFor(id); if(f) L.push({ key:id, folder:f, tint: tintFor(id) });
+    }
+    const mount = folderFor("mount");
+    if(mount) L.unshift({ key:"mount", folder:mount, tint: tintFor("mount") });
+    return L.filter(x=> x.folder);
+  }
+
+  /** Multiply + destination-in : recolore le blanc sans casser l’alpha. */
+  function tintDraw(img, sx,sy,sw,sh, dx,dy,dw,dh, tintHex){
+    if(!tintHex){
+      cx.drawImage(img, sx,sy,sw,sh, dx,dy,dw,dh);
+      return;
+    }
+    const tw = Math.max(1, Math.round(dw));
+    const th = Math.max(1, Math.round(dh));
+    if(tintCv.width !== tw) tintCv.width = tw;
+    if(tintCv.height !== th) tintCv.height = th;
+    const t = tintCx;
+    t.setTransform(1,0,0,1,0,0);
+    t.globalCompositeOperation = "source-over";
+    t.globalAlpha = 1;
+    t.clearRect(0,0,tw,th);
+    t.imageSmoothingEnabled = false;
+    t.drawImage(img, sx,sy,sw,sh, 0,0,tw,th);
+    t.globalCompositeOperation = "multiply";
+    t.fillStyle = tintHex;
+    t.fillRect(0,0,tw,th);
+    t.globalCompositeOperation = "destination-in";
+    t.drawImage(img, sx,sy,sw,sh, 0,0,tw,th);
+    t.globalCompositeOperation = "source-over";
+    cx.drawImage(tintCv, dx, dy);
+  }
+
+  async function draw(){
+    const cat = state.catalog;
+    if(!cat) return;
+    const row = DIR_ROW[state.dir|0]|0;
+    const cols = COLS;
+    const anim = state.anim;
+    const fps = Math.max(1, state.fps|0);
+    const interval = 1000 / fps;
+    const now = performance.now();
+    let advanced = false;
+    if(now - state.lastT > interval){
+      const steps = Math.floor((now - state.lastT) / interval);
+      state.frame = (state.frame + steps) % cols;
+      state.lastT += steps * interval;
+      if(now - state.lastT > interval * 2) state.lastT = now;
+      advanced = true;
+    }
+    if(!advanced && !state.dirty) return;
+    state.dirty = false;
+
+    const col = state.frame;
+    const W = stage.width, H = stage.height;
+    cx.clearRect(0,0,W,H);
+    cx.fillStyle = "#0a1420";
+    cx.fillRect(0,0,W,H);
+    const tw=40, th=20, ox=W/2, oy=H/2+36;
+    for(let c=-1;c<=1;c++) for(let r=-1;r<=1;r++){
+      const x = ox+(c-r)*tw/2, y = oy+(c+r)*th/2;
+      cx.beginPath();
+      cx.moveTo(x,y-th/2); cx.lineTo(x+tw/2,y); cx.lineTo(x,y+th/2); cx.lineTo(x-tw/2,y); cx.closePath();
+      cx.fillStyle = ((c+r)&1) ? "rgba(196,92,38,.10)" : "rgba(196,92,38,.18)";
+      cx.fill();
+    }
+
+    const layers = layersForRow(row);
+    const imgs = await Promise.all(layers.map(L=> loadImg(L.folder, anim)));
+    // si l’anim a changé pendant le chargement, on redessinera au prochain tick
+    if(state.anim !== anim){ state.dirty = true; return; }
+    const scale = 1.55;
+    const dw = FW*scale, dh = FH*scale;
+    const foot = 110;
+    const dx = ox - dw/2, dy = oy + 4 - foot*scale;
+    cx.imageSmoothingEnabled = false;
+    let missing = 0;
+    for(let i=0;i<layers.length;i++){
+      const im = imgs[i];
+      if(!im || !im.complete || !im.naturalWidth){ missing++; continue; }
+      try{
+        tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, layers[i].tint);
+      }catch(err){
+        // fallback sans teinte si canvas tainted / CORS
+        try{ cx.drawImage(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh); }catch(_e){ missing++; }
+      }
+    }
+    el("status").textContent = `${anim} · ${fps} fps · dir ${state.dir} · frame ${col+1}/${cols}` +
+      (missing ? ` · ${missing} couche(s) manquante(s)` : "");
+  }
+
+  function loop(){
+    if(!state.drawing){
+      state.drawing = true;
+      draw()
+        .catch((e)=>{ console.error(e); el("status").textContent = "Erreur rendu : " + (e && e.message ? e.message : e); })
+        .finally(()=>{ state.drawing = false; });
+    }
+    state.raf = requestAnimationFrame(loop);
+  }
+
+  function renderSlots(){
+    const root = el("slots");
+    root.innerHTML = "";
+    for(const s of state.catalog.slots){
+      const box = document.createElement("div");
+      box.className = "slot";
+
+      const head = document.createElement("div");
+      head.className = "slot-head";
+      const lab = document.createElement("div");
+      lab.className = "lab";
+      lab.textContent = s.lab + (s.required ? " *" : "");
+
+      const colorWrap = document.createElement("div");
+      colorWrap.className = "slot-color";
+      const col = document.createElement("input");
+      col.type = "color";
+      col.title = "Teinte " + s.lab;
+      col.value = state.colors[s.id] || DEFAULT_COLORS[s.id] || "#888888";
+      col.oninput = ()=>{ state.colors[s.id] = col.value; state.dirty = true; };
+      const clear = document.createElement("button");
+      clear.type = "button";
+      clear.textContent = "Orig.";
+      clear.title = "Couleur d’origine (sans teinte)";
+      clear.onclick = ()=>{
+        state.colors[s.id] = "#ffffff";
+        col.value = "#ffffff";
+        state.dirty = true;
+      };
+      colorWrap.appendChild(col);
+      colorWrap.appendChild(clear);
+      head.appendChild(lab);
+      head.appendChild(colorWrap);
+
+      const opts = document.createElement("div");
+      opts.className = "opts";
+      const cur = state.look[s.id];
+      for(const name of s.folders){
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = name === "None" ? "— None" : name;
+        if(name === cur) b.classList.add("on");
+        b.onclick = ()=>{
+          state.look[s.id] = name;
+          state.dirty = true;
+          renderSlots();
+        };
+        opts.appendChild(b);
+      }
+      box.appendChild(head);
+      box.appendChild(opts);
+      root.appendChild(box);
+    }
+  }
+
+  function fillAnimSelect(anims){
+    const sel = el("animSelect");
+    if(!sel) return;
+    sel.innerHTML = "";
+    for(const a of anims){
+      const o = document.createElement("option");
+      o.value = a; o.textContent = a;
+      if(a === state.anim) o.selected = true;
+      sel.appendChild(o);
+    }
+    sel.onchange = ()=>{ state.anim = sel.value; state.frame = 0; state.dirty = true; };
+  }
+
+  function bindToolbar(){
+    el("dirPrev").onclick = ()=> { state.dir = (state.dir + 7) % 8; state.dirty = true; };
+    el("dirNext").onclick = ()=> { state.dir = (state.dir + 1) % 8; state.dirty = true; };
+    const fps = el("fps");
+    const fpsVal = el("fpsVal");
+    const syncFps = ()=>{
+      state.fps = Math.max(1, parseInt(fps.value,10)||14);
+      fpsVal.textContent = String(state.fps);
+      state.dirty = true;
+    };
+    fps.oninput = syncFps;
+    syncFps();
+
+    el("btnRandom").onclick = ()=>{
+      for(const s of state.catalog.slots){
+        const opts = s.folders;
+        state.look[s.id] = opts[Math.floor(Math.random()*opts.length)];
+      }
+      const palette = ["#d4a574","#5b7c99","#6b8f71","#c45c26","#9aa8b8","#8b6914","#a06bff","#e8590c","#3e4f63","#e0b878"];
+      for(const s of state.catalog.slots){
+        if(Math.random() < 0.7) state.colors[s.id] = palette[Math.floor(Math.random()*palette.length)];
+      }
+      if(!folderFor("body")) state.look.body = "NakedBody";
+      state.dirty = true;
+      renderSlots();
+    };
+    el("btnReset").onclick = ()=>{
+      state.look = defaultLook(state.catalog);
+      state.colors = defaultColors();
+      state.dirty = true;
+      renderSlots();
+    };
+    el("btnExport").onclick = ()=>{
+      const payload = {
+        pack:"fantasy-cc",
+        look: state.look,
+        colors: state.colors,
+        fps: state.fps,
+        anim: state.anim,
+        dir: state.dir
+      };
+      const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "fantasy-look.json";
+      a.click();
+      try{ localStorage.setItem("neuro.fantasyLook", JSON.stringify(payload)); }catch(_e){}
+      el("status").textContent = "Look exporté (+ localStorage neuro.fantasyLook)";
+    };
+  }
+
+  async function boot(){
+    el("status").textContent = "Chargement catalogue…";
+    let cat = null;
+    const catalogUrls = [BASE_CDN+"catalog.json", BASE_LOCAL+"catalog.json"];
+    for(const u of catalogUrls){
+      try{
+        const r = await fetch(u, {cache:"no-store", mode:"cors"});
+        if(r.ok){ cat = await r.json(); break; }
+      }catch(err){ console.warn("catalog fail", u, err); }
+    }
+    if(!cat){
+      el("status").textContent = "Impossible de charger catalog.json (CDN/local). Réessaie ou ouvre via raw.githack.";
+      return;
+    }
+    state.catalog = cat;
+    if(cat.weaponAfterShieldRows) weaponAfterShieldRows = cat.weaponAfterShieldRows;
+    if(cat.backpackInFrontRows) backpackInFrontRows = cat.backpackInFrontRows;
+    if(cat.defaultFps) state.fps = cat.defaultFps|0;
+    el("fps").value = String(state.fps);
+    state.colors = defaultColors();
+    try{
+      const raw = localStorage.getItem("neuro.fantasyLook");
+      if(raw){
+        const o = JSON.parse(raw);
+        if(o && o.look){
+          state.look = o.look;
+          if(o.colors) state.colors = Object.assign(defaultColors(), o.colors);
+          else if(o.skin) state.colors.body = o.skin;
+          if(o.fps) { state.fps = o.fps|0; el("fps").value = String(state.fps); }
+          if(o.anim) state.anim = o.anim;
+        }
+      }
+    }catch(_e){}
+    if(!state.look.body) state.look = defaultLook(cat);
+    const anims = (cat.anims && cat.anims.length) ? cat.anims : ["Idle","Walk","Attack1"];
+    if(!anims.includes(state.anim)) state.anim = anims[0];
+    fillAnimSelect(anims);
+    bindToolbar();
+    renderSlots();
+    el("status").textContent = "Chargement sprites…";
+    state.dirty = true;
+    await loadImg(folderFor("body")||"NakedBody", "Idle");
+    loop();
+  }
+
+  boot().catch((e)=>{
+    console.error(e);
+    el("status").textContent = "Échec démarrage : " + (e && e.message ? e.message : e);
+  });
+})();
+</script>
+</body>
+</html>

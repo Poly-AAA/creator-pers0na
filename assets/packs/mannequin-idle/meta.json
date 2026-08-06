@@ -1,0 +1,54 @@
+{
+  "id": "mannequin",
+  "label": "Mannequin Idle + Walk + Lead jab",
+  "source_zip": "Idle_lead-jab + fight-stance + walk (Dropbox)",
+  "template_id": "mannequin",
+  "frame": {
+    "w": 184,
+    "h": 184
+  },
+  "dirs_row_order": [
+    "south",
+    "south-east",
+    "east",
+    "north-east",
+    "north",
+    "north-west",
+    "west",
+    "south-west"
+  ],
+  "dirRow": [0, 1, 2, 3, 4, 5, 6, 7],
+  "dirRowValidated": true,
+  "idle": {
+    "file": "Idle.png",
+    "cols": 8,
+    "rows": 8,
+    "w": 1472,
+    "h": 1472,
+    "source": "Idle_fight-stance-idle-8-frames_*.gif",
+    "fps_hint": 120
+  },
+  "walk": {
+    "file": "Walk.png",
+    "cols": 6,
+    "rows": 8,
+    "w": 1104,
+    "h": 1472,
+    "fps_hint": 120
+  },
+  "melee": {
+    "file": "Melee.png",
+    "cols": 3,
+    "rows": 8,
+    "w": 552,
+    "h": 1472,
+    "source": "Idle_lead-jab_*.gif — 8 dirs (SE=miroir SW)",
+    "fps_hint": 120
+  },
+  "qa": {
+    "nude": true,
+    "bald": true,
+    "androgynous_mannequin": true,
+    "notes": "lead jab 3f; foot ~130–140"
+  }
+}

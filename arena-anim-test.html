@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>NEURO Arena — Anim + IA data</title>
+<style>
+  :root{
+    --bg:#0b121a; --panel:#121c28; --line:#243244; --text:#e8eef6;
+    --muted:#9bb0c4; --cyan:#27e0ff; --orange:#E8590C; --ok:#3ce08a; --bad:#ff5a6a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+    font:13px/1.4 "Trebuchet MS",sans-serif;overflow:hidden}
+  #app{display:flex;flex-direction:column;height:100%}
+  header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 10px;
+    background:var(--panel);border-bottom:1px solid var(--line);z-index:5}
+  header h1{font-size:14px;margin:0;color:var(--orange);letter-spacing:.04em}
+  .modes{display:flex;gap:6px}
+  .modes button,.toolbar button,select{
+    background:#0d2434;color:var(--cyan);border:1px solid rgba(39,224,255,.45);
+    border-radius:8px;padding:7px 10px;font:inherit;cursor:pointer}
+  .modes button.on{background:rgba(39,224,255,.18);border-color:var(--cyan)}
+  .toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:auto}
+  .toolbar .muted{color:var(--muted);font-size:11px}
+  #wrap{position:relative;flex:1;min-height:0;overflow:hidden;background:#070d14}
+  #arena{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+  #hud{position:absolute;left:10px;top:10px;z-index:3;max-width:min(340px,70vw);
+    background:rgba(8,16,24,.82);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  #hud b{color:var(--cyan)}
+  #logPanel{position:absolute;right:10px;bottom:10px;z-index:3;width:min(360px,92vw);
+    max-height:38vh;overflow:auto;background:rgba(8,16,24,.88);border:1px solid var(--line);
+    border-radius:10px;padding:8px 10px;font:11px/1.35 ui-monospace,monospace}
+  #logPanel .row{border-bottom:1px solid rgba(255,255,255,.06);padding:3px 0;color:var(--muted)}
+  #logPanel .row.player{color:#dff7ff}
+  #logPanel .row.npc{color:#ffd2b0}
+  #tip{position:absolute;left:10px;bottom:10px;z-index:3;color:var(--muted);font-size:11px;
+    background:rgba(8,16,24,.7);padding:6px 8px;border-radius:8px;max-width:55vw}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>NEURO ARENA</h1>
+    <div class="modes">
+      <button type="button" id="modeMap" class="on">Mode Map</button>
+      <button type="button" id="modeDuel">Mode 1v1+</button>
+    </div>
+    <div class="toolbar">
+      <label class="muted">Pack
+        <select id="packSel"></select>
+      </label>
+      <label class="muted">FPS
+        <select id="fpsSel">
+          <option value="12">12</option>
+          <option value="30">30</option>
+          <option value="60">60</option>
+          <option value="120" selected>120</option>
+        </select>
+      </label>
+      <button type="button" id="btnIdle">Idle</button>
+      <button type="button" id="btnMelee">Melee</button>
+      <button type="button" id="btnReset">Reset</button>
+      <button type="button" id="btnExport">Export JSON</button>
+      <button type="button" id="btnClearLog">Clear log</button>
+    </div>
+  </header>
+  <div id="wrap">
+    <canvas id="arena"></canvas>
+    <div id="hud"></div>
+    <div id="logPanel"></div>
+    <div id="tip">Map : clique une case pour te déplacer · cible = NPC. 1v1 : A=attaque, espace=attente, clic=move.</div>
+  </div>
+</div>
+<script>
+/* =====================================================================
+   Arena Anim + IA telemetry — fichier séparé (réutilise le moteur Sprite)
+   Mode Map  : QA animations sur map + NPC cible
+   Mode 1v1+ : sparring + journal JSON (joueur / IA) pour entraînement
+   ===================================================================== */
+
+const CONFIG = { GRID: 10, TILE_W: 64, TILE_H: 32, STEP_MS: 110, NPC_THINK_MS: 420 };
+let canvas, ctx, DPR = Math.min(window.devicePixelRatio || 1, 2);
+let camera = { ox: 0, oy: 0, scale: 1 };
+let mode = "map"; // map | duel
+let busy = false;
+let session = { startedAt: Date.now(), mode: "map", frames: [] };
+const logEl = () => document.getElementById("logPanel");
+const hudEl = () => document.getElementById("hud");
+
+const Iso = {
+  toScreen(c, r){
+    return {
+      x: camera.ox + (c - r) * (CONFIG.TILE_W / 2),
+      y: camera.oy + (c + r) * (CONFIG.TILE_H / 2)
+    };
+  },
+  toTile(px, py){
+    const x = (px - camera.ox) / (CONFIG.TILE_W / 2);
+    const y = (py - camera.oy) / (CONFIG.TILE_H / 2);
+    return { c: Math.floor((x + y) / 2), r: Math.floor((y - x) / 2) };
+  }
+};
+
+const Grid = {
+  inBounds(c, r){ return c >= 0 && r >= 0 && c < CONFIG.GRID && r < CONFIG.GRID; },
+  key(c, r){ return c + "," + r; },
+  manhattan(a, b){ return Math.abs(a.c - b.c) + Math.abs(a.r - b.r); },
+  occupied(ignore){
+    const s = new Set();
+    for(const e of entities){
+      if(!e.alive) continue;
+      if(ignore && e.id === ignore.id) continue;
+      s.add(Grid.key(e.c, e.r));
+    }
+    return s;
+  },
+  reachable(start, maxSteps, ignore){
+    const blocked = Grid.occupied(ignore);
+    const dist = {};
+    const startK = Grid.key(start.c, start.r);
+    dist[startK] = 0;
+    const q = [{ c:start.c, r:start.r }];
+    const out = [];
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+    while(q.length){
+      const cur = q.shift();
+      const d = dist[Grid.key(cur.c, cur.r)];
+      if(d >= maxSteps) continue;
+      for(const [dc, dr] of dirs){
+        const nc = cur.c + dc, nr = cur.r + dr;
+        if(!Grid.inBounds(nc, nr)) continue;
+        const k = Grid.key(nc, nr);
+        if(k in dist) continue;
+        if(blocked.has(k)) continue;
+        dist[k] = d + 1;
+        out.push({ c:nc, r:nr, d:d + 1 });
+        q.push({ c:nc, r:nr });
+      }
+    }
+    return { tiles: out, dist };
+  },
+  buildPath(start, goal, maxSteps, ignore){
+    const { tiles, dist } = Grid.reachable(start, maxSteps, ignore);
+    const gk = Grid.key(goal.c, goal.r);
+    if(!(gk in dist) && !(goal.c === start.c && goal.r === start.r)) return null;
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+    const path = [{ c:goal.c, r:goal.r }];
+    let cur = { c:goal.c, r:goal.r };
+    while(!(cur.c === start.c && cur.r === start.r)){
+      const d = dist[Grid.key(cur.c, cur.r)];
+      let found = false;
+      for(const [dc, dr] of dirs){
+        const pc = cur.c - dc, pr = cur.r - dr;
+        const pk = Grid.key(pc, pr);
+        if(!(pk in dist)) continue;
+        if(dist[pk] !== d - 1) continue;
+        cur = { c:pc, r:pr };
+        path.unshift(cur);
+        found = true;
+        break;
+      }
+      if(!found) return null;
+    }
+    return path;
+  }
+};
+
+/* ---- Sprite (extrait allégé, pack mannequin + x180) ---- */
+const Sprite = {
+  ON: true,
+  PLAYER_ONLY: false,
+  FRAME: 184, FRAME_W: 184, FRAME_H: 184, COLS: 8, SCALE: 1.35, FOOT: 137, GY: 2,
+  packId: "mannequin",
+  PACKS: {
+    mannequin: {
+      id: "mannequin", label: "Mannequin",
+      localBase: "assets/packs/mannequin-idle/",
+      cdnBase: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@9c44f4a/assets/packs/mannequin-idle/",
+      frameW: 184, frameH: 184, cols: 8, scale: 1.35, foot: 137, gy: 2,
+      dirRow: [0,1,2,3,4,5,6,7], dirRowLocked: true,
+      sheetCols: { idle:8, walk:6, run:6, melee:3, shoot:1, hurt:1, die:1 },
+      animFps: { idle:120, walk:120, run:120, melee:120 },
+      assetVer: "jab3",
+      sheets: [
+        ["idle","Idle.png",null], ["walk","Walk.png",null], ["run","Walk.png",null],
+        ["melee","Melee.png",null], ["shoot","Idle.png",null],
+        ["hurt","Idle.png",null], ["die","Idle.png",null],
+      ]
+    },
+    x180: {
+      id: "x180", label: "x180 Fantasy",
+      localBase: "assets/packs/x180p/",
+      cdnBase: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/x180p/",
+      frameW: 180, frameH: 180, cols: 16, scale: 1.15, foot: 145, gy: 4,
+      dirRow: [0,1,2,3,4,5,6,7], dirRowLocked: true,
+      sheetCols: { idle:16, walk:24, run:20, melee:24, shoot:24, hurt:16, die:30 },
+      sheets: [
+        ["idle","Idle.png",null], ["walk","Walk.png",null], ["run","Run.png",null],
+        ["melee","Melee.png",null], ["shoot","CastSpell.png",null],
+        ["hurt","TakeDamage.png",null], ["die","Die.png",null],
+      ]
+    }
+  },
+  DIR_ROW: [0,1,2,3,4,5,6,7],
+  DIR_ROW_SHEET: {},
+  ANIM: {
+    idle:{sheet:"idle",fps:12,loop:true}, walk:{sheet:"walk",fps:12,loop:true},
+    run:{sheet:"run",fps:14,loop:true}, melee:{sheet:"melee",fps:14,loop:false},
+    shoot:{sheet:"shoot",fps:14,loop:false}, hurt:{sheet:"hurt",fps:12,loop:false},
+    die:{sheet:"die",fps:10,loop:false,hold:true}
+  },
+  imgs: {}, ready:false, _n:0, _need:0, localBase:"", cdnBase:"",
+  fpsOverride: null,
+  _mark(){ if(++Sprite._n >= Sprite._need) Sprite.ready = true; },
+  _loadSheet(key, file){
+    const im = new Image();
+    Sprite.imgs[key] = im;
+    const pack = Sprite.PACKS[Sprite.packId] || {};
+    const ver = pack.assetVer ? ("?v=" + pack.assetVer) : "";
+    const urls = [Sprite.cdnBase + file + ver, Sprite.localBase + file + ver, Sprite.localBase + file];
+    let i = 0;
+    const tryNext = ()=>{
+      if(i >= urls.length){ Sprite._mark(); return; }
+      im.onload = () => Sprite._mark();
+      im.onerror = ()=>{ i++; tryNext(); };
+      try{ im.crossOrigin = "anonymous"; }catch(_e){}
+      im.src = urls[i];
+    };
+    tryNext();
+  },
+  applyPack(pack){
+    Sprite.packId = pack.id;
+    Sprite.localBase = pack.localBase;
+    Sprite.cdnBase = pack.cdnBase;
+    Sprite.FRAME_W = pack.frameW; Sprite.FRAME_H = pack.frameH; Sprite.FRAME = pack.frameW;
+    Sprite.COLS = pack.cols || 8; Sprite.SCALE = pack.scale; Sprite.FOOT = pack.foot;
+    Sprite.GY = pack.gy || 0; Sprite.SHEET_COLS = pack.sheetCols || {};
+    Sprite.DIR_ROW = (pack.dirRow && pack.dirRow.length === 8) ? pack.dirRow.slice() : [0,1,2,3,4,5,6,7];
+  },
+  fpsFor(name){
+    if(Sprite.fpsOverride != null) return Sprite.fpsOverride;
+    const pack = Sprite.PACKS[Sprite.packId] || {};
+    const A = Sprite.ANIM[name];
+    if(pack.animFps && pack.animFps[name] != null) return pack.animFps[name];
+    return (A && A.fps) || 12;
+  },
+  colsFor(name){
+    const A = Sprite.ANIM[name];
+    const fromPack = Sprite.SHEET_COLS && Sprite.SHEET_COLS[name];
+    if(fromPack) return fromPack;
+    const sheet = A ? A.sheet : name;
+    const img = Sprite.imgs[sheet] || Sprite.imgs[name];
+    const FW = Sprite.FRAME_W || 64;
+    if(img && img.naturalWidth) return Math.max(1, Math.floor(img.naturalWidth / FW));
+    return Sprite.COLS || 8;
+  },
+  setPack(id){
+    const pack = Sprite.PACKS[id];
+    if(!pack) return;
+    Sprite.applyPack(pack);
+    Sprite.ready = false; Sprite.imgs = {};
+    Sprite._need = pack.sheets.length; Sprite._n = 0;
+    for(const [key, file] of pack.sheets) Sprite._loadSheet(key, file);
+  },
+  use(e){ return Sprite.ON && Sprite.ready; },
+  indexFromDelta(dc, dr){
+    if(!(Math.abs(dc) + Math.abs(dr))) return 0;
+    let i = Math.round(Math.atan2(dc, dr) * 180 / Math.PI / 45) % 8;
+    if(i < 0) i += 8;
+    return i;
+  },
+  faceToward(e, dc, dr){
+    if(!e || Math.abs(dc) + Math.abs(dr) < 1e-6) return;
+    e._dir = Sprite.indexFromDelta(dc, dr);
+  },
+  dirIndex(e){
+    const dc = e.c - (e._rc === undefined ? e.c : e._rc);
+    const dr = e.r - (e._rr === undefined ? e.r : e._rr);
+    if(Math.abs(dc) + Math.abs(dr) > 0.06) e._dir = Sprite.indexFromDelta(dc, dr);
+    if(e._dir === undefined) e._dir = 0;
+    return e._dir;
+  },
+  rowFor(sheetKey, dirIdx){
+    return (Sprite.DIR_ROW[dirIdx] || 0);
+  },
+  play(e, name){ if(Sprite.ANIM[name]) e._sp = { name, t0: performance.now() }; },
+  state(e){
+    if(e.alive === false) return "die";
+    const cur = e._sp;
+    if(cur){
+      const A = Sprite.ANIM[cur.name];
+      const cols = Sprite.colsFor(cur.name);
+      const done = (performance.now() - cur.t0) / 1000 * Sprite.fpsFor(cur.name) >= cols;
+      if(!done) return cur.name;
+      if(A.hold) return cur.name;
+      e._sp = null;
+    }
+    if(e.hitFlash > 0) return "hurt";
+    const moving = Math.abs(e.c - (e._rc ?? e.c)) + Math.abs(e.r - (e._rr ?? e.r)) > 0.05;
+    if(moving) return ((e._packMovePM || 0) >= 2) ? "run" : "walk";
+    e._packMovePM = 0;
+    return "idle";
+  },
+  frameIndex(e, name){
+    const A = Sprite.ANIM[name];
+    const cols = Sprite.colsFor(name);
+    const fps = Sprite.fpsFor(name);
+    if(A.loop) return Math.floor(performance.now() / 1000 * fps) % cols;
+    const t0 = (e._sp && e._sp.name === name) ? e._sp.t0 : performance.now();
+    return Math.min(Math.floor((performance.now() - t0) / 1000 * fps), cols - 1);
+  },
+  draw(e, cx, gy, flash){
+    const name = Sprite.state(e);
+    const A = Sprite.ANIM[name];
+    const img = Sprite.imgs[A.sheet] || (name === "run" ? Sprite.imgs.walk : null);
+    if(!img || !img.complete) return false;
+    const row = Sprite.rowFor(A.sheet, Sprite.dirIndex(e));
+    const col = Sprite.frameIndex(e, name);
+    const FW = Sprite.FRAME_W, FH = Sprite.FRAME_H, S = Sprite.SCALE;
+    const dw = FW * S, dh = FH * S;
+    const dx = cx - dw / 2, dy = gy - Sprite.FOOT * S;
+    const sm = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = FW > 64;
+    ctx.drawImage(img, col * FW, row * FH, FW, FH, dx, dy, dw, dh);
+    if(flash){
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 0.55;
+      ctx.drawImage(img, col * FW, row * FH, FW, FH, dx, dy, dw, dh);
+      ctx.restore();
+    }
+    ctx.imageSmoothingEnabled = sm;
+    return true;
+  }
+};
+
+/* ---- Entities / telemetry ---- */
+let player, npc, entities = [];
+let reachSet = new Set();
+
+function mkEntity(id, isPlayer, c, r, name){
+  return {
+    id, isPlayer, side: isPlayer ? "player" : "npc", alive: true, name,
+    c, r, _rc: c, _rr: r, _dir: 0, _packMovePM: 0, _sp: null,
+    hp: 100, hpMax: 100, pm: 6, pmMax: 6, hitFlash: 0, lastAction: null
+  };
+}
+
+function resetEntities(){
+  player = mkEntity("P", true, 2, 7, "JOUEUR");
+  npc = mkEntity("N", false, 7, 2, "CIBLE-IA");
+  entities = [player, npc];
+  busy = false;
+  refreshReach();
+}
+
+function logFrame(actor, action, extra){
+  const e = actor === "player" ? player : npc;
+  const other = actor === "player" ? npc : player;
+  const frame = {
+    t: performance.now(),
+    ts: Date.now(),
+    mode,
+    actor,
+    action,
+    anim: Sprite.state(e),
+    facing: e._dir|0,
+    from: { c:e.c, r:e.r },
+    hp: e.hp, otherHp: other.hp,
+    pm: e.pm,
+    ...extra
+  };
+  session.frames.push(frame);
+  const row = document.createElement("div");
+  row.className = "row " + actor;
+  row.textContent = `${actor} · ${action}` +
+    (extra && extra.to ? ` → ${extra.to.c},${extra.to.r}` : "") +
+    (extra && extra.dmg != null ? ` dmg=${extra.dmg}` : "") +
+    ` · face=${frame.facing} · ${frame.anim}`;
+  logEl().prepend(row);
+  while(logEl().children.length > 80) logEl().lastChild.remove();
+}
+
+function refreshReach(){
+  reachSet = new Set();
+  if(!player || !player.alive) return;
+  const { tiles } = Grid.reachable(player, player.pm, player);
+  for(const t of tiles) reachSet.add(Grid.key(t.c, t.r));
+}
+
+function moveAlong(entity, path, done){
+  if(!path || path.length < 2){ if(done) done(false); return; }
+  busy = true;
+  const steps = path.slice(1);
+  entity._packMovePM = steps.length;
+  const first = steps[0];
+  Sprite.faceToward(entity, first.c - entity.c, first.r - entity.r);
+  let i = 0;
+  const tick = ()=>{
+    if(i >= steps.length){
+      entity._packMovePM = 0;
+      busy = false;
+      if(entity.isPlayer){ entity.pm = Math.max(0, entity.pm - steps.length); refreshReach(); }
+      if(done) done(true);
+      return;
+    }
+    const n = steps[i++];
+    Sprite.faceToward(entity, n.c - entity.c, n.r - entity.r);
+    entity.c = n.c; entity.r = n.r;
+    setTimeout(tick, CONFIG.STEP_MS);
+  };
+  tick();
+}
+
+function tryPlayerMove(tc, tr){
+  if(busy || !player.alive) return;
+  if(!Grid.inBounds(tc, tr)) return;
+  if(tc === player.c && tr === player.r) return;
+  if(tc === npc.c && tr === npc.r) return;
+  const path = Grid.buildPath(player, { c:tc, r:tr }, player.pm, player);
+  if(!path) return;
+  logFrame("player", "move", { to:{c:tc,r:tr}, pathLen: path.length - 1, path });
+  moveAlong(player, path, ()=>{
+    if(mode === "duel") setTimeout(npcTurn, 180);
+  });
+}
+
+function tryAttack(attacker, defender){
+  if(!attacker.alive || !defender.alive) return false;
+  if(Grid.manhattan(attacker, defender) > 1) return false;
+  Sprite.faceToward(attacker, defender.c - attacker.c, defender.r - attacker.r);
+  Sprite.play(attacker, "melee");
+  const dmg = 8 + Math.floor(Math.random() * 7);
+  defender.hp = Math.max(0, defender.hp - dmg);
+  defender.hitFlash = 10;
+  if(defender.hp <= 0) defender.alive = false;
+  logFrame(attacker.isPlayer ? "player" : "npc", "attack", {
+    to:{ c:defender.c, r:defender.r }, dmg, targetHp: defender.hp
+  });
+  return true;
+}
+
+/** IA simple 1v1 : approche + attaque, sinon wait — journalisée pour training. */
+function npcPolicy(){
+  if(!npc.alive || !player.alive) return { action: "wait", reason: "dead" };
+  const dist = Grid.manhattan(npc, player);
+  if(dist <= 1) return { action: "attack", reason: "in_range", dist };
+  const path = Grid.pathApproach(npc, player, npc.pm);
+  if(path && path.length > 1) return { action: "move", reason: "approach", path, dist };
+  return { action: "wait", reason: "blocked", dist };
+}
+
+Grid.pathApproach = function(mover, target, steps){
+  // stop adjacent
+  const reach = Grid.reachable(mover, steps, mover).tiles;
+  const all = [{ c:mover.c, r:mover.r, d:0 }].concat(reach);
+  const candidates = all.filter(t => Grid.manhattan(t, target) === 1);
+  let chosen = null;
+  if(candidates.length){
+    candidates.sort((a,b)=> (a.d||0)-(b.d||0));
+    chosen = candidates[0];
+  } else {
+    let best = all[0], bd = Grid.manhattan(best, target);
+    for(const t of all){
+      const d = Grid.manhattan(t, target);
+      if(d < bd){ bd = d; best = t; }
+    }
+    chosen = best;
+  }
+  if(chosen.c === mover.c && chosen.r === mover.r) return null;
+  return Grid.buildPath(mover, chosen, steps, mover);
+};
+
+function npcTurn(){
+  if(mode !== "duel" || busy || !npc.alive) return;
+  const decision = npcPolicy();
+  logFrame("npc", "think", { decision });
+  if(decision.action === "attack"){
+    tryAttack(npc, player);
+    return;
+  }
+  if(decision.action === "move" && decision.path){
+    logFrame("npc", "move", {
+      to: decision.path[decision.path.length - 1],
+      pathLen: decision.path.length - 1,
+      path: decision.path,
+      reason: decision.reason
+    });
+    moveAlong(npc, decision.path, ()=>{
+      if(Grid.manhattan(npc, player) <= 1) tryAttack(npc, player);
+    });
+    return;
+  }
+  logFrame("npc", "wait", { reason: decision.reason });
+}
+
+/* ---- Render ---- */
+function layout(){
+  const wrap = document.getElementById("wrap");
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  canvas.width = Math.floor(w * DPR);
+  canvas.height = Math.floor(h * DPR);
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const gw = CONFIG.GRID * CONFIG.TILE_W;
+  const gh = CONFIG.GRID * CONFIG.TILE_H;
+  const pad = 40;
+  const sx = (w - pad * 2) / gw;
+  const sy = (h - pad * 2) / (gh + 80);
+  camera.scale = Math.max(0.55, Math.min(sx, sy, 1.35));
+  camera.ox = w / (2 * camera.scale);
+  camera.oy = h / (2 * camera.scale) - (CONFIG.GRID * CONFIG.TILE_H) / 4;
+}
+
+function drawTile(c, r, fill, stroke){
+  const s = Iso.toScreen(c, r);
+  const hw = CONFIG.TILE_W / 2, hh = CONFIG.TILE_H / 2;
+  ctx.beginPath();
+  ctx.moveTo(s.x, s.y - hh);
+  ctx.lineTo(s.x + hw, s.y);
+  ctx.lineTo(s.x, s.y + hh);
+  ctx.lineTo(s.x - hw, s.y);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if(stroke){
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+
+function drawEntity(e){
+  if(e._rc === undefined){ e._rc = e.c; e._rr = e.r; }
+  e._rc += (e.c - e._rc) * 0.28;
+  e._rr += (e.r - e._rr) * 0.28;
+  if(e.hitFlash > 0) e.hitFlash--;
+  const s = Iso.toScreen(e._rc, e._rr);
+  const gy = s.y + 2 + (Sprite.GY || 0);
+  const flash = e.hitFlash > 0;
+  if(!(Sprite.use(e) && Sprite.draw(e, s.x, gy, flash))){
+    ctx.fillStyle = e.isPlayer ? "#27e0ff" : "#E8590C";
+    ctx.beginPath();
+    ctx.arc(s.x, s.y - 18, 10, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // HP bar
+  const bw = 36, bh = 4;
+  const bx = s.x - bw / 2, by = s.y - Sprite.FOOT * Sprite.SCALE - 10;
+  ctx.fillStyle = "rgba(0,0,0,.55)";
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = e.isPlayer ? "#27e0ff" : "#E8590C";
+  ctx.fillRect(bx, by, bw * (e.hp / e.hpMax), bh);
+  ctx.fillStyle = "#fff";
+  ctx.font = "10px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(e.name, s.x, by - 3);
+}
+
+function draw(){
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  ctx.scale(camera.scale, camera.scale);
+  for(let r = 0; r < CONFIG.GRID; r++){
+    for(let c = 0; c < CONFIG.GRID; c++){
+      const k = Grid.key(c, r);
+      const base = ((c + r) & 1) ? "#152233" : "#1a293a";
+      const fill = reachSet.has(k) ? "rgba(39,224,255,.22)" : base;
+      drawTile(c, r, fill, "rgba(255,255,255,.06)");
+    }
+  }
+  // depth sort
+  const sorted = entities.slice().sort((a,b)=> (a._rc + a._rr) - (b._rc + b._rr));
+  for(const e of sorted) drawEntity(e);
+  ctx.restore();
+
+  const pAnim = player ? Sprite.state(player) : "-";
+  const nAnim = npc ? Sprite.state(npc) : "-";
+  hudEl().innerHTML =
+    `<div><b>Mode</b> ${mode.toUpperCase()} · pack <b>${Sprite.packId}</b> · fps <b>${Sprite.fpsFor("idle")}</b></div>` +
+    `<div>Joueur HP ${player.hp}/${player.hpMax} · PM ${player.pm}/${player.pmMax} · anim <b>${pAnim}</b> · face ${player._dir|0}</div>` +
+    `<div>NPC HP ${npc.hp}/${npc.hpMax} · anim <b>${nAnim}</b> · face ${npc._dir|0}</div>` +
+    `<div style="color:#9bb0c4">frames log: ${session.frames.length}</div>`;
+}
+
+function loop(){
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* ---- Input ---- */
+function pointerToTile(ev){
+  const rect = canvas.getBoundingClientRect();
+  const px = (ev.clientX - rect.left) / camera.scale;
+  const py = (ev.clientY - rect.top) / camera.scale;
+  return Iso.toTile(px, py);
+}
+
+canvas = document.getElementById("arena");
+ctx = canvas.getContext("2d");
+
+canvas.addEventListener("pointerdown", (ev)=>{
+  if(busy) return;
+  const t = pointerToTile(ev);
+  if(!Grid.inBounds(t.c, t.r)) return;
+  if(mode === "duel" && t.c === npc.c && t.r === npc.r){
+    if(tryAttack(player, npc)) setTimeout(npcTurn, 220);
+    return;
+  }
+  tryPlayerMove(t.c, t.r);
+});
+
+window.addEventListener("keydown", (ev)=>{
+  if(ev.repeat) return;
+  if(ev.key === "a" || ev.key === "A"){
+    if(mode === "duel" && tryAttack(player, npc)) setTimeout(npcTurn, 220);
+  } else if(ev.key === " "){
+    ev.preventDefault();
+    if(mode === "duel" && !busy){
+      logFrame("player", "wait", {});
+      setTimeout(npcTurn, 120);
+    }
+  } else if(ev.key === "r" || ev.key === "R"){
+    hardReset();
+  }
+});
+
+/* ---- UI ---- */
+function setMode(m){
+  mode = m;
+  session.mode = m;
+  document.getElementById("modeMap").classList.toggle("on", m === "map");
+  document.getElementById("modeDuel").classList.toggle("on", m === "duel");
+  document.getElementById("tip").textContent = m === "map"
+    ? "Map : clique une case pour te déplacer · NPC = cible anim. Boutons Idle/Melee pour forcer une anim."
+    : "1v1+ : clic=move, clic NPC ou A=attaque, Espace=wait. L’IA répond et tout est journalisé (Export JSON).";
+  hardReset();
+}
+
+function hardReset(){
+  resetEntities();
+  if(mode === "map"){ player.pm = 99; player.pmMax = 99; npc.pm = 0; }
+  else { player.pm = 6; player.pmMax = 6; npc.pm = 6; npc.pmMax = 6; }
+  refreshReach();
+  session = { startedAt: Date.now(), mode, pack: Sprite.packId, fps: Sprite.fpsFor("idle"), frames: [] };
+  logEl().innerHTML = "";
+  logFrame("system", "reset", { mode, pack: Sprite.packId });
+}
+
+document.getElementById("modeMap").onclick = ()=> setMode("map");
+document.getElementById("modeDuel").onclick = ()=> setMode("duel");
+document.getElementById("btnIdle").onclick = ()=>{
+  if(!player) return;
+  player._packMovePM = 0; player._sp = null;
+  Sprite.play(player, "idle");
+  logFrame("player", "force_idle", {});
+};
+document.getElementById("btnMelee").onclick = ()=>{
+  if(!player) return;
+  Sprite.play(player, "melee");
+  logFrame("player", "force_melee", {});
+};
+document.getElementById("btnReset").onclick = ()=> hardReset();
+document.getElementById("btnClearLog").onclick = ()=>{
+  session.frames = [];
+  logEl().innerHTML = "";
+};
+document.getElementById("btnExport").onclick = ()=>{
+  const payload = {
+    meta: {
+      app: "neuro-arena-anim-test",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      mode: session.mode,
+      pack: Sprite.packId,
+      fps: Sprite.fpsFor("idle"),
+      grid: CONFIG.GRID,
+      startedAt: session.startedAt,
+      frameCount: session.frames.length,
+      note: "Dataset joueur vs IA (think/move/attack/wait) pour entraîner une politique proche d’un vrai joueur."
+    },
+    frames: session.frames
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `arena-${mode}-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+const packSel = document.getElementById("packSel");
+for(const id of Object.keys(Sprite.PACKS)){
+  const o = document.createElement("option");
+  o.value = id; o.textContent = Sprite.PACKS[id].label;
+  packSel.appendChild(o);
+}
+packSel.value = "mannequin";
+packSel.onchange = ()=> { Sprite.setPack(packSel.value); hardReset(); };
+
+document.getElementById("fpsSel").onchange = (ev)=>{
+  Sprite.fpsOverride = +ev.target.value;
+  session.fps = Sprite.fpsOverride;
+};
+
+window.addEventListener("resize", layout);
+
+/* boot */
+Sprite.setPack("mannequin");
+Sprite.fpsOverride = 120;
+resetEntities();
+layout();
+hardReset();
+requestAnimationFrame(loop);
+const waitReady = setInterval(()=>{
+  if(Sprite.ready){ clearInterval(waitReady); refreshReach(); }
+}, 50);
+</script>
+</body>
+</html>
