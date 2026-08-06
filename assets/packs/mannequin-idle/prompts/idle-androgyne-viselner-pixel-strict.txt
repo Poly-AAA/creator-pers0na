@@ -1,0 +1,40 @@
+STRICT REGEN — ZERO IMPROVISATION — ANDROGYNOUS BASE IDLE — GUSTAVO VISELNER PIXEL STYLE.
+
+STYLE LOCK (match attached Gustavo Viselner pixel-art references EXACTLY):
+- modern cinematic HD pixel art (adventure-game still / Viselner look)
+- visible crisp pixels, clean silhouettes, expressive but economical faces
+- limited palette with strong mood lighting (baked glow, rim light, dithered shadows OK)
+- flat cel-like shade steps (2–4 tones), NOT smooth gradients, NOT photoreal, NOT 3D low-poly PS1
+- NOT Metal Gear PS1, NOT anime screencap, NOT vector/SVG, NOT mushy AI blur
+- chunky readable pixels like the attached Star Wars / Star Trek / Doctor Who pixel scenes
+
+CHARACTER (LOCKED):
+- Adult COMPLETELY ANDROGYNOUS humanoid (not male, not female)
+- Neutral slim-athletic silhouette
+- NO pecs, NO breasts, NO six-pack, NO wide male shoulders, NO wide female hips, NO genitals
+- BALD — no hair, no beard, no mustache, no bushy eyebrows
+- Soft minimalist face in Viselner pixel style (few pixels for eyes/nose/mouth)
+- Light/medium skin within a muted cinematic palette
+
+OUTFIT (base mannequin for later gear layers):
+- ONLY a tiny plain dark brief / underwear
+- OR fully nude mannequin if tool allows (no sexual detail)
+- NO shirt, pants, shoes, belt, armor, weapon, hat, hair, cape, robes
+
+CAMERA / TECH (LOCKED — NEURO-CORE game, not side-scroller scene):
+- low top-down isometric (~30°, tactical iso 2:1) — translate Viselner STYLE into this camera
+- 8 directions exactly: South, SE, East, NE, North, NW, West, SW
+- frame size 92x92 (or 96x96 if tool requires)
+- transparent background (NO letterbox bars, NO subtitles, NO scene furniture)
+- pivot: feet near bottom-center of every frame
+- identical scale / footprint in ALL 8 directions
+
+POSE: neutral standing idle, soft A-pose, arms slightly away, weight on both feet.
+Single character only. NO environment, NO holograms, NO other people.
+NO walk, NO run, NO jump.
+
+ACCEPTANCE:
+- instantly reads as Viselner-like cinematic pixel art
+- androgynous bald base
+- 8 correct iso directions, consistent size, transparent BG
+Any PS1 low-poly / HD 3D / anime / sexed body / full scene background = FAIL.
