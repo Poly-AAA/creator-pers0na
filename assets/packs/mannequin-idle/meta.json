@@ -1,0 +1,37 @@
+{
+  "id": "mannequin",
+  "label": "Mannequin Idle (STRICT REGEN)",
+  "source_zip": "STRICT_REGEN_ZERO_IMPROV-Idle.zip",
+  "template_id": "mannequin",
+  "frame": {
+    "w": 92,
+    "h": 92
+  },
+  "dirs_row_order": [
+    "south",
+    "south-east",
+    "east",
+    "north-east",
+    "north",
+    "north-west",
+    "west",
+    "south-west"
+  ],
+  "dirRow": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "idle": {
+    "file": "Idle.png",
+    "cols": 1,
+    "w": 92,
+    "h": 736
+  },
+  "acceptance": "bald scalp + bare body + tiny dark briefs only"
+}

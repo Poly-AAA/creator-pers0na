@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Mannequin Idle — 8 dirs</title>
+<style>
+  body{margin:0;font-family:Trebuchet MS,sans-serif;background:#151a22;color:#f2f0eb;padding:16px}
+  h1{font-size:18px;color:#E8590C;margin:0 0 8px}
+  p{font-size:13px;color:#DCD3C3;max-width:52rem}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:14px}
+  .card{background:#1e2430;border:1px solid #2E2E30;border-radius:10px;padding:10px;text-align:center}
+  .card img{width:92px;height:92px;image-rendering:pixelated;background:
+    linear-gradient(45deg,#333 25%,transparent 25%),linear-gradient(-45deg,#333 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#333 75%),linear-gradient(-45deg,transparent 75%,#333 75%);
+    background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+  code{font-size:11px;color:#DCD3C3}
+  .ok{color:#3ce08a}
+</style>
+</head>
+<body>
+<h1>Mannequin Idle — STRICT REGEN</h1>
+<p>Base male 92×92 : chauve, torse/jambes nus, slip sombre uniquement. Rangées sheet = index jeu 0…7.</p>
+<div class="grid" id="g"></div>
+<script>
+const DIRS=[
+  ["south","0 Face"],
+  ["south-east","1 ¾ Face D"],
+  ["east","2 Profil D"],
+  ["north-east","3 ¾ Dos D"],
+  ["north","4 Dos"],
+  ["north-west","5 ¾ Dos G"],
+  ["west","6 Profil G"],
+  ["south-west","7 ¾ Face G"],
+];
+const g=document.getElementById("g");
+DIRS.forEach(([dir,label],i)=>{
+  const card=document.createElement("div"); card.className="card";
+  card.innerHTML=`<div><b>${label}</b></div><img alt="${dir}"/><div class="ok">row ${i}</div><code>${dir}.png</code>`;
+  card.querySelector("img").src=`src/rotations/${dir}.png?v=${Date.now()}`;
+  g.appendChild(card);
+});
+</script>
+</body>
+</html>

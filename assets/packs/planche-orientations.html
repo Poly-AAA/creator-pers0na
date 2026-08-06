@@ -93,6 +93,7 @@
     <button type="button" id="btnPackThug">Thug</button>
     <button type="button" id="btnPackKnight">Knight</button>
     <button type="button" id="btnPackX180" class="primary">x180</button>
+    <button type="button" id="btnPackMannequin">Mannequin</button>
   </div>
 
   <div class="card">
@@ -176,6 +177,15 @@ const PACKS = {
     // Sheets stitchées : 180×180, N frames × 8 dirs (ligne = index jeu 0..7)
     frameW:180, frameH:180, cols:24, foot:145, scale:1.1,
     walk:"Walk.png", shoot:"Melee.png",
+    dirRow:[0,1,2,3,4,5,6,7]
+  },
+  mannequin: {
+    id:"mannequin", label:"Mannequin Idle",
+    local:"./mannequin-idle/",
+    cdn:"https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/strict-regen-idle-66c0/assets/packs/mannequin-idle/",
+    // STRICT REGEN — 92×92, 1 frame × 8 dirs (ligne = index jeu)
+    frameW:92, frameH:92, cols:1, foot:89, scale:2.4,
+    walk:"Idle.png", shoot:"Idle.png",
     dirRow:[0,1,2,3,4,5,6,7]
   }
 };
@@ -332,7 +342,7 @@ function save(){
 
 function loadSaved(){
   // Packs stitchés avec dirRow identité : ne pas écraser avec le calibrage Thug/Knight
-  if(PACK.dirRow && PACK.id === "x180") return;
+  if(PACK.dirRow && (PACK.id === "x180" || PACK.id === "mannequin")) return;
   try{
     const raw=localStorage.getItem("neuro.dirRow");
     if(raw){
@@ -397,8 +407,9 @@ document.getElementById("packLab").textContent = PACK.label + " · "+PACK.frameW
 document.getElementById("btnPackThug").onclick=()=>{ location.search="?pack=thug"; };
 document.getElementById("btnPackKnight").onclick=()=>{ location.search="?pack=knight"; };
 document.getElementById("btnPackX180").onclick=()=>{ location.search="?pack=x180"; };
-["btnPackThug","btnPackKnight","btnPackX180"].forEach(id=>document.getElementById(id).classList.remove("primary"));
-const packBtn = PACK.id==="thug" ? "btnPackThug" : PACK.id==="knight" ? "btnPackKnight" : "btnPackX180";
+document.getElementById("btnPackMannequin").onclick=()=>{ location.search="?pack=mannequin"; };
+["btnPackThug","btnPackKnight","btnPackX180","btnPackMannequin"].forEach(id=>document.getElementById(id).classList.remove("primary"));
+const packBtn = ({thug:"btnPackThug",knight:"btnPackKnight",x180:"btnPackX180",mannequin:"btnPackMannequin"})[PACK.id] || "btnPackX180";
 document.getElementById(packBtn).classList.add("primary");
 
 (async()=>{

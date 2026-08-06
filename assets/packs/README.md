@@ -1,7 +1,7 @@
 # Packs d’assets externes (référence)
 
 Packs téléchargés via tes liens Dropbox.  
-Le jeu (`neuro-core-sprite.html`) peut basculer **Thug** / **Knight** / **x180 Fantasy** via ⚙ SPRITE → PACK.
+Le jeu (`neuro-core-sprite.html`) peut basculer **Thug** / **Knight** / **x180 Fantasy** / **Mannequin Idle** via ⚙ SPRITE → PACK.
 
 ## 1) `survivor-hd-bike/` — Character HD Survivor + moto
 
@@ -59,6 +59,20 @@ Calibrage : `planche-orientations.html?pack=knight`.
 
 Dossier prêt : `assets/packs/x180p/` (pack jeu **`x180`**, défaut).  
 Calibrage : `planche-orientations.html?pack=x180`.
+
+## 5) `mannequin-idle/` — STRICT REGEN base male (PixelLab 8-dir)
+
+| | |
+|--|--|
+| Source zip | `STRICT_REGEN_ZERO_IMPROV-Idle.zip` (Dropbox) |
+| Format source | `Idle/rotations/{south…south-west}.png` + `metadata.json` |
+| Planche jeu | Sheet stitchée **92×736** = 1 frame × 8 dirs, cellules **92×92** |
+| Contenu | Idle only (placeholders Walk/Run/… = Idle) |
+| Mapping | `DIR_ROW = [0,1,2,3,4,5,6,7]` (ligne = index jeu, verrouillé) |
+| QA | Chauve, corps nu, **slip sombre uniquement** — accepté |
+
+Dossier prêt : `assets/packs/mannequin-idle/` (pack jeu **`mannequin`**).  
+Aperçu : `mannequin-idle/preview.html` · Calibrage : `planche-orientations.html?pack=mannequin`.
 
 ## Fichier source (orientations validées)
 

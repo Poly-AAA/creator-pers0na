@@ -1,0 +1,36 @@
+{
+  "group_id": "58bea605-dae2-4512-82e2-cd709c3faaa2",
+  "states": [
+    {
+      "character": {
+        "id": "5f33b7ea-a3cc-486b-b3c7-45a76f57ee28",
+        "name": "Idle",
+        "prompt": "STRICT REGEN \u2014 ZERO IMPROVISATION.\n\nAdult NORMAL man, average build, light/medium skin, low top-down isometric, 8 directions, 92x92, transparent background.\n\nHEAD (LOCKED):\n- BALD \u2014 no hair, no beard, no mustache, no eyebrows bushy\n- Clean shaved scalp, simple readable face from low top-down\n\nOUTFIT MUST BE EXACTLY THIS AND NOTHING ELSE:\n- bare chest (skin visible)\n- bare arms\n- bare legs\n- bare feet\n- ONLY a tiny plain dark brief / underwear\n- NO tank top, NO shirt, NO pants, NO belt, NO shoes, NO socks\n- NO armor, NO weapon, NO hat, NO hair\n\nPOSE: neutral standing idle, arms at sides, weight on both feet.\n\nDIRECTIONS: South, SE, East, NE, North, NW, West, SW \u2014 identical bald head + briefs only.\n\nSTYLE: highly detailed pixel art, crisp pixels.\n\nACCEPTANCE: bald scalp + mostly skin body + tiny dark underwear only. Any hair/clothes/shoes = FAIL.",
+        "size": {
+          "width": 92,
+          "height": 92
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-08-06T00:00:03.794240+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-08-06T00:04:20.303977"
+}
