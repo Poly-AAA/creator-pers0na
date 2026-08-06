@@ -8,45 +8,86 @@
   :root{
     --bg:#ecece8; --bg2:#f5f5f2; --ink:#555552; --ink2:#8e8e8a;
     --line:#c6c6c2; --line2:#dcdcd8; --card:#fafaf8; --tap:48px;
-    --sel:#3d3d3a; --soft:#f0f0ec;
+    --sel:#3d3d3a; --soft:#f0f0ec; --side:132px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
     font:15px/1.35 Helvetica,Arial,sans-serif; overflow:hidden; overscroll-behavior:none}
-  .app{height:100%;height:100dvh;max-width:430px;margin:0 auto;display:flex;flex-direction:column;
-    background:linear-gradient(180deg,var(--bg2),var(--bg) 60%,#e2e2de)}
+  .app{
+    height:100%;height:100dvh;max-width:430px;margin:0 auto;display:flex;flex-direction:row;
+    background:linear-gradient(180deg,var(--bg2),var(--bg) 60%,#e2e2de);
+  }
 
-  .stage{flex:1;min-height:0;position:relative;overflow:hidden}
+  /* Menu gauche (ex-bas) */
+  .dock{
+    width:var(--side);flex-shrink:0;display:flex;flex-direction:column;gap:8px;
+    padding:10px 8px calc(10px + env(safe-area-inset-bottom));
+    background:rgba(250,250,248,.96);border-right:1px solid var(--line2);
+    overflow:auto;min-height:0;
+  }
+  .dock .sec{display:flex;flex-direction:column;gap:6px}
+  .dock .ttl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+  .step-row{display:flex;align-items:center;gap:4px}
+  .step-row .nav{
+    width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--soft);
+    color:var(--sel);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;
+  }
+  .step-row .nav:active{background:var(--sel);color:#fff}
+  .step-row .val{
+    flex:1;min-width:0;text-align:center;font-size:12px;font-weight:600;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .swatches{display:flex;flex-wrap:wrap;gap:6px}
+  .sw{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)}
+  .sw.on{border-color:var(--sel)}
+  .sw.bw{box-shadow:inset 0 0 0 1px #999}
+  .btn{
+    width:100%;min-height:40px;border:1px solid var(--line);background:var(--card);color:var(--ink);
+    border-radius:10px;font-size:12px;cursor:pointer;padding:6px 4px;
+  }
+  .btn.primary{background:var(--sel);color:#fff;border-color:var(--sel)}
+  .btn.ghost{min-height:36px;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  .status{font-size:10px;color:var(--ink2);text-align:center;line-height:1.25}
+  .size-row{display:flex;align-items:center;gap:4px}
+  .size-row input{flex:1;accent-color:var(--sel);min-width:0}
+  .size-row span{font-size:11px;color:var(--ink2);width:2.6em;text-align:right}
+
+  .body-stack{display:none;flex-direction:column;gap:6px}
+  .body-stack.on{display:flex}
+  .body-hint{font-size:10px;color:var(--ink2);line-height:1.25;margin:0}
+  .body-row{
+    display:flex;flex-direction:column;gap:4px;padding:6px;border:1px solid var(--line2);
+    border-radius:10px;background:var(--card);
+  }
+  .body-row.on{border-color:var(--sel)}
+  .body-row .top{display:flex;align-items:center;gap:4px}
+  .body-row .idx{font-size:10px;color:var(--ink2);width:14px}
+  .body-row .name{flex:1;font-size:11px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .body-row .ops{display:flex;gap:2px}
+  .body-row .ops button,.body-row .sw-mini{
+    width:28px;height:28px;border:1px solid var(--line);border-radius:8px;background:var(--soft);
+    color:var(--ink);font-size:12px;cursor:pointer;padding:0;
+  }
+  .body-row .sw-mini{border-radius:50%}
+  .body-row input[type=range]{width:100%;accent-color:var(--sel)}
+
+  /* Zone perso */
+  .stage{flex:1;min-width:0;min-height:0;position:relative;overflow:hidden}
   canvas#stage{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;touch-action:none}
-  .lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
-  .callout{
-    position:absolute;z-index:4;border:0;background:rgba(250,250,248,.92);color:var(--ink);
-    padding:6px 8px;border-radius:8px;border:1px solid var(--line);cursor:pointer;
-    letter-spacing:.1em;text-transform:uppercase;font-size:10px;min-height:36px;
-  }
-  .callout.on{background:var(--sel);color:#fff;border-color:var(--sel);font-weight:600}
 
-  .stepper{
-    position:absolute;z-index:5;display:flex;align-items:center;gap:6px;
-    background:rgba(250,250,248,.96);border:1px solid var(--line);border-radius:12px;
-    padding:4px 6px;min-height:42px;overflow:hidden;
+  /* Onglets parties — colonne droite, tête → pieds */
+  .zones{
+    position:absolute;top:10%;right:6px;bottom:22%;z-index:4;
+    display:flex;flex-direction:column;justify-content:space-between;align-items:stretch;
+    width:72px;pointer-events:none;
   }
-  .stepper .ttl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);flex-shrink:0;padding:0 2px}
-  .stepper .val{flex:1;min-width:0;text-align:center;font-size:13px;font-weight:600;color:var(--ink);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .stepper .nav{
-    flex-shrink:0;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);
-    background:var(--soft);color:var(--sel);font-size:20px;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;padding:0;
+  .zones .callout{
+    pointer-events:auto;border:1px solid var(--line);background:rgba(250,250,248,.94);color:var(--ink);
+    padding:7px 6px;border-radius:8px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;
+    font-size:10px;min-height:34px;text-align:center;line-height:1.2;
   }
-  .stepper .nav:active{background:var(--sel);color:#fff}
-
-  .btn-clear{
-    position:absolute;z-index:5;border:1px solid var(--line);background:rgba(250,250,248,.96);
-    color:var(--ink);border-radius:12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
-    cursor:pointer;padding:8px 6px;min-height:42px;
-  }
-  .btn-clear:active{background:var(--sel);color:#fff}
+  .zones .callout.on{background:var(--sel);color:#fff;border-color:var(--sel);font-weight:600}
 
   .rot{
     position:absolute;z-index:6;width:var(--tap);height:var(--tap);border-radius:50%;
@@ -55,41 +96,6 @@
     box-shadow:0 2px 8px rgba(0,0,0,.08);padding:0;
   }
   .rot:active{background:var(--sel);color:#fff}
-
-  .dock{
-    flex-shrink:0;background:rgba(250,250,248,.96);border-top:1px solid var(--line2);
-    padding:10px 12px calc(12px + env(safe-area-inset-bottom));
-    display:flex;flex-direction:column;gap:10px;max-height:36%;overflow:auto;
-  }
-  .row{display:flex;align-items:center;gap:8px;min-width:0}
-  .ttl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);flex-shrink:0;width:56px}
-  .swatches{display:flex;flex-wrap:wrap;gap:8px;flex:1}
-  .sw{width:34px;height:34px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;
-    box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)}
-  .sw.on{border-color:var(--sel)}
-  .sw.bw{box-shadow:inset 0 0 0 1px #999}
-
-  .body-stack{display:none;flex-direction:column;gap:8px}
-  .body-stack.on{display:flex}
-  .body-hint{font-size:11px;color:var(--ink2);line-height:1.3}
-  .body-row{
-    display:grid;grid-template-columns:28px 1fr auto auto auto;gap:6px;align-items:center;
-    padding:8px;border:1px solid var(--line2);border-radius:12px;background:var(--card);
-  }
-  .body-row.on{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
-  .body-row .idx{font-size:11px;color:var(--ink2);text-align:center}
-  .body-row .name{font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .body-row .ops{display:flex;gap:4px}
-  .body-row button{
-    width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--soft);
-    color:var(--ink);font-size:14px;cursor:pointer;padding:0;
-  }
-  .body-row .sw-mini{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);padding:0;cursor:pointer}
-  .body-row input[type=range]{grid-column:1/-1;accent-color:var(--sel);width:100%}
-
-  .btn{flex:1;min-height:48px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;font-size:15px;cursor:pointer}
-  .btn.primary{background:var(--sel);color:#fff;border-color:var(--sel)}
-  .status{font-size:11px;color:var(--ink2);text-align:center}
 
   .sheet{position:fixed;inset:0;z-index:40;background:rgba(40,40,38,.35);display:none;align-items:flex-end;justify-content:center}
   .sheet.on{display:flex}
@@ -105,56 +111,54 @@
 </head>
 <body>
 <div class="app">
-  <section class="stage" id="stageWrap">
-    <canvas id="stage" width="374" height="393" aria-label="Personnage"></canvas>
-    <svg class="lines" id="lines"></svg>
-    <div id="callouts"></div>
-
-    <div class="stepper" id="tabPartie">
-      <button type="button" class="nav" id="partiePrev" aria-label="Partie précédente">‹</button>
-      <span class="ttl">Partie</span>
-      <span class="val" id="partieVal">Tête</span>
-      <button type="button" class="nav" id="partieNext" aria-label="Partie suivante">›</button>
-    </div>
-    <div class="stepper" id="tabAnim">
-      <button type="button" class="nav" id="animPrev" aria-label="Anim précédente">‹</button>
+  <aside class="dock" id="dock">
+    <div class="sec">
       <span class="ttl">Anim</span>
-      <span class="val" id="animVal">Idle</span>
-      <button type="button" class="nav" id="animNext" aria-label="Anim suivante">›</button>
-    </div>
-    <div class="stepper" id="tabChoix">
-      <button type="button" class="nav" id="optPrev" aria-label="Choix précédent">‹</button>
-      <span class="ttl">Choix</span>
-      <span class="val" id="optVal">—</span>
-      <button type="button" class="nav" id="optNext" aria-label="Choix suivant">›</button>
-    </div>
-    <button type="button" class="btn-clear" id="btnClear" title="Remettre la dernière partie modifiée sur Aucun">Aucun</button>
-
-    <button type="button" class="rot" id="dirPrev" aria-label="Tourner gauche">‹</button>
-    <button type="button" class="rot" id="dirNext" aria-label="Tourner droite">›</button>
-  </section>
-
-  <section class="dock">
-    <div class="row">
-      <span class="ttl">Taille</span>
-      <input type="range" id="charSize" min="45" max="95" value="86" step="1" style="flex:1;accent-color:var(--sel)"/>
-      <span id="charSizeVal" style="min-width:3em;text-align:right;font-size:13px;color:var(--ink2)">86%</span>
-    </div>
-    <div class="row"><span class="ttl">Couleur</span><div class="swatches" id="swatches"></div></div>
-    <div class="body-stack" id="bodyStack">
-      <div class="row">
-        <span class="ttl">Corps</span>
-        <button type="button" class="btn" id="addBody" style="flex:0 0 auto;min-width:110px;min-height:44px">+ Couche</button>
+      <div class="step-row">
+        <button type="button" class="nav" id="animPrev" aria-label="Anim précédente">‹</button>
+        <span class="val" id="animVal">Idle</span>
+        <button type="button" class="nav" id="animNext" aria-label="Anim suivante">›</button>
       </div>
-      <p class="body-hint">Touche une couche pour la sélectionner (choix + couleur). ↑↓ = ordre (bas → haut). Opacité sous chaque ligne.</p>
+    </div>
+    <div class="sec">
+      <span class="ttl">Choix</span>
+      <div class="step-row">
+        <button type="button" class="nav" id="optPrev" aria-label="Choix précédent">‹</button>
+        <span class="val" id="optVal" title="Extra : taper pour sous-slot">—</span>
+        <button type="button" class="nav" id="optNext" aria-label="Choix suivant">›</button>
+      </div>
+      <button type="button" class="btn ghost" id="btnClear">Aucun</button>
+    </div>
+    <div class="sec">
+      <span class="ttl">Taille</span>
+      <div class="size-row">
+        <input type="range" id="charSize" min="45" max="95" value="86" step="1"/>
+        <span id="charSizeVal">86%</span>
+      </div>
+    </div>
+    <div class="sec">
+      <span class="ttl">Couleur</span>
+      <div class="swatches" id="swatches"></div>
+    </div>
+    <div class="body-stack" id="bodyStack">
+      <span class="ttl">Corps</span>
+      <button type="button" class="btn" id="addBody">+ Couche</button>
+      <p class="body-hint">Couche · ↑↓ ordre · couleur</p>
       <div id="bodyRows"></div>
     </div>
-    <div class="row">
+    <div class="sec" style="margin-top:auto">
       <button type="button" class="btn" id="btnRandom">Aléatoire</button>
       <button type="button" class="btn" id="btnReset">Reset</button>
       <button type="button" class="btn primary" id="btnExport">Sauver</button>
+      <div class="status" id="status">Chargement…</div>
     </div>
-    <div class="status" id="status">Chargement…</div>
+  </aside>
+
+  <section class="stage" id="stageWrap">
+    <canvas id="stage" width="280" height="520" aria-label="Personnage"></canvas>
+    <div class="zones" id="callouts"></div>
+    <button type="button" class="rot" id="dirPrev" aria-label="Tourner gauche">‹</button>
+    <button type="button" class="rot" id="dirNext" aria-label="Tourner droite">›</button>
   </section>
 </div>
 
@@ -181,30 +185,18 @@
   let weaponAfterShieldRows=[true,true,true,false,false,false,false,true];
   let backpackInFrontRows=[true,false,false,false,false,true,true,true];
 
-  /* Layout provisoire — sera remplacé par ton JSON de placement */
+  /* Layout épuré : perso haut, ombre, rot dessous ; zones à droite tête→pieds ; menu à gauche */
   const LAY = {
-    char:{ xPct:47.93, yPct:58.97, sizePct:320/370 },
-    shadow:{ xPct:50, yPct:72, wPct:60/370, hPct:34/344, opacity:0.05 },
-    labSize:10,
-    tabH:42,
-    callouts:{
-      head:{ lab:"Tête", labX:50.09, labY:20.46, pinX:52.67, pinY:44.8 },
-      chest:{ lab:"Torse", labX:72.41, labY:29.43, pinX:59.34, pinY:54.89 },
-      backpack:{ lab:"Sac", labX:18.2, labY:26.78, pinX:43.56, pinY:50.63 },
-      body:{ lab:"Corps", labX:8, labY:50, pinX:40.21, pinY:59.54 },
-      legs:{ lab:"Jambes", labX:75, labY:72.18, pinX:61.05, pinY:63.32 },
-      shoes:{ lab:"Chauss.", labX:12.05, labY:73.42, pinX:38.15, pinY:72.74 },
-      weapon:{ lab:"Extra", labX:84, labY:50, pinX:74.95, pinY:55.09 },
+    char:{ xPct:42, yPct:42, sizePct:0.82 },
+    shadow:{ xPct:42, yPct:58, wPct:0.42, hPct:0.06, opacity:0.06 },
+    zonesLab:{
+      head:"Tête", chest:"Torse", backpack:"Sac", body:"Corps",
+      legs:"Jambes", shoes:"Chauss.", weapon:"Extra",
     },
-    tabs:{
-      partie:{ xPct:4, yPct:66, wPct:92 },
-      anim:{ xPct:4, yPct:76, wPct:92 },
-      choix:{ xPct:4, yPct:86, wPct:70 },
-    },
-    btnClear:{ xPct:76, yPct:86, wPct:20 },
-    rot:{ prev:{xPct:12, yPct:48}, next:{xPct:88, yPct:48}, size:48 }
+    rot:{ yPct:78, gapPct:18, size:48 } // sous le perso, centrées sur x char
   };
 
+  /* Ordre anatomique haut → bas */
   const ZONE_ORDER = ["head","chest","backpack","body","legs","shoes","weapon"];
   const MISC_SLOTS = ["weapon","offhand","belt","gloves","slash","effect","mount"];
   const PALETTE = [
@@ -227,7 +219,7 @@
     anim:"Idle", dir:0, fps:14,
     zoneId:"head", _miscFocus:"weapon",
     lastEdited:null,
-    charSizePct: 320/370,
+    charSizePct: 0.82,
     cache:new Map(), raf:0, frame:0, lastT:0,
     drawing:false, dirty:true, drawRect:null,
   };
@@ -324,66 +316,40 @@
   function fitCanvas(){
     const wrap=el("stageWrap");
     const r=wrap.getBoundingClientRect();
-    const w=Math.max(200, Math.round(r.width));
+    const w=Math.max(160, Math.round(r.width));
     const h=Math.max(200, Math.round(r.height));
     if(stage.width!==w || stage.height!==h){ stage.width=w; stage.height=h; state.dirty=true; }
   }
 
-  function placeBox(node, box, center){
-    if(!node||!box) return;
-    node.style.left=box.xPct+"%";
-    node.style.top=box.yPct+"%";
-    if(box.wPct!=null) node.style.width=box.wPct+"%";
-    node.style.minHeight=LAY.tabH+"px";
-    if(center){
-      const s=LAY.rot.size;
-      node.style.width=s+"px"; node.style.height=s+"px";
-      node.style.marginLeft=(-s/2)+"px"; node.style.marginTop=(-s/2)+"px";
-    } else {
-      node.style.marginLeft="0"; node.style.marginTop="0";
-    }
-  }
-
   function layoutChrome(){
-    placeBox(el("tabPartie"), LAY.tabs.partie);
-    placeBox(el("tabAnim"), LAY.tabs.anim);
-    placeBox(el("tabChoix"), LAY.tabs.choix);
-    placeBox(el("btnClear"), LAY.btnClear);
-    placeBox(el("dirPrev"), LAY.rot.prev, true);
-    placeBox(el("dirNext"), LAY.rot.next, true);
-
+    /* Pas de lignes — onglets droite gérés en flex CSS. Flèches sous le perso. */
     const host=el("callouts");
-    const svg=el("lines");
-    const wr=el("stageWrap").getBoundingClientRect();
-    host.innerHTML=""; svg.innerHTML="";
-    svg.setAttribute("viewBox", `0 0 ${wr.width} ${wr.height}`);
-    ZONE_ORDER.forEach(id=>{
-      const c=LAY.callouts[id]; if(!c) return;
-      const btn=document.createElement("button");
-      btn.type="button"; btn.className="callout"+(state.zoneId===id?" on":"");
-      btn.textContent=c.lab;
-      btn.style.fontSize=LAY.labSize+"px";
-      btn.style.left=c.labX+"%"; btn.style.top=c.labY+"%";
-      btn.onclick=()=>selectZone(id);
-      host.appendChild(btn);
-
-      const labEl=btn.getBoundingClientRect();
-      const x1 = c.labX/100*wr.width + labEl.width*0.5;
-      const y1 = c.labY/100*wr.height + labEl.height*0.5;
-      const x2 = c.pinX/100*wr.width;
-      const y2 = c.pinY/100*wr.height;
-      const line=document.createElementNS("http://www.w3.org/2000/svg","line");
-      line.setAttribute("x1",x1); line.setAttribute("y1",y1);
-      line.setAttribute("x2",x2); line.setAttribute("y2",y2);
-      line.setAttribute("stroke", state.zoneId===id?"#3d3d3a":"#b0b0ac");
-      line.setAttribute("stroke-width", state.zoneId===id?"1.5":"1");
-      svg.appendChild(line);
-      const pin=document.createElementNS("http://www.w3.org/2000/svg","circle");
-      pin.setAttribute("cx",x2); pin.setAttribute("cy",y2);
-      pin.setAttribute("r", state.zoneId===id?"3.5":"2.5");
-      pin.setAttribute("fill", state.zoneId===id?"#3d3d3a":"#b0b0ac");
-      svg.appendChild(pin);
+    if(!host.dataset.ready){
+      host.innerHTML="";
+      ZONE_ORDER.forEach(id=>{
+        const btn=document.createElement("button");
+        btn.type="button"; btn.className="callout"; btn.dataset.zone=id;
+        btn.textContent=LAY.zonesLab[id]||id;
+        btn.onclick=()=>selectZone(id);
+        host.appendChild(btn);
+      });
+      host.dataset.ready="1";
+    }
+    host.querySelectorAll(".callout").forEach(btn=>{
+      btn.classList.toggle("on", btn.dataset.zone===state.zoneId);
     });
+
+    const s=LAY.rot.size;
+    const cxPct=LAY.char.xPct;
+    const y=LAY.rot.yPct;
+    const gap=LAY.rot.gapPct;
+    const rp=el("dirPrev"), rn=el("dirNext");
+    rp.style.width=s+"px"; rp.style.height=s+"px";
+    rn.style.width=s+"px"; rn.style.height=s+"px";
+    rp.style.left=(cxPct-gap)+"%"; rp.style.top=y+"%";
+    rn.style.left=(cxPct+gap)+"%"; rn.style.top=y+"%";
+    rp.style.marginLeft=(-s/2)+"px"; rp.style.marginTop=(-s/2)+"px";
+    rn.style.marginLeft=(-s/2)+"px"; rn.style.marginTop=(-s/2)+"px";
   }
 
   async function draw(){
@@ -432,7 +398,7 @@
       try{ tintDraw(im,col*FW,row*FH,FW,FH,dx,dy,dw,dh,layers[i].tint,layers[i].alpha); }
       catch(_e){ try{ cx.globalAlpha=layers[i].alpha||1; cx.drawImage(im,col*FW,row*FH,FW,FH,dx,dy,dw,dh); cx.globalAlpha=1; }catch(__e){ missing++; } }
     }
-    el("status").textContent=`${anim} · tour ${state.dir+1}/8`+(missing?` · ${missing} manq.`:"");
+    el("status").textContent=`${anim} · ${state.dir+1}/8`+(missing?` · ${missing}∅`:"");
     layoutChrome();
   }
   function loop(){
@@ -456,63 +422,33 @@
     if(state.zoneId==="weapon") return state._miscFocus||"weapon";
     return state.zoneId;
   }
-
   function optionList(){
-    if(state.zoneId==="body"){
-      return ((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
-    }
-    if(state.zoneId==="weapon"){
-      /* Extra : d’abord les sous-slots, puis les folders du sous-slot focus — on cycle les folders du sous-slot */
-      const s=slotById(state._miscFocus||"weapon");
-      return (s&&s.folders)||["None"];
-    }
-    const s=slotById(state.zoneId);
-    return (s&&s.folders)||["None"];
+    if(state.zoneId==="body") return ((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
+    if(state.zoneId==="weapon"){ const s=slotById(state._miscFocus||"weapon"); return (s&&s.folders)||["None"]; }
+    const s=slotById(state.zoneId); return (s&&s.folders)||["None"];
   }
   function currentOption(){
-    if(state.zoneId==="body"){
-      const b=state.bodies[state.bodyFocus|0];
-      return (b&&b.folder)||"NakedBody";
-    }
+    if(state.zoneId==="body"){ const b=state.bodies[state.bodyFocus|0]; return (b&&b.folder)||"NakedBody"; }
     return state.look[activeSlotId()]||"None";
   }
   function setOption(name){
     if(state.zoneId==="body"){
-      const i=state.bodyFocus|0;
-      if(!state.bodies[i]) return;
-      state.bodies[i].folder=name;
-      state.look.body=state.bodies[0].folder;
-      markEdited("body:"+i);
+      const i=state.bodyFocus|0; if(!state.bodies[i]) return;
+      state.bodies[i].folder=name; state.look.body=state.bodies[0].folder; markEdited("body:"+i);
     } else {
-      const sid=activeSlotId();
-      state.look[sid]=name;
-      markEdited(sid);
+      const sid=activeSlotId(); state.look[sid]=name; markEdited(sid);
     }
-    state.dirty=true;
-    syncSteppers(); renderBodies();
+    state.dirty=true; syncSteppers(); renderBodies();
   }
   function cycleOption(dir){
-    if(state.zoneId==="weapon"){
-      /* long-press style: if holding misc mode — cycle folders; double-tap zone Extra cycles misc slot via partie? */
-    }
     const list=optionList(); if(!list.length) return;
-    let i=list.indexOf(currentOption());
-    if(i<0) i=0;
-    i=(i+dir+list.length)%list.length;
-    setOption(list[i]);
+    let i=list.indexOf(currentOption()); if(i<0) i=0;
+    i=(i+dir+list.length)%list.length; setOption(list[i]);
   }
   function cycleMiscSlot(dir){
-    let i=MISC_SLOTS.indexOf(state._miscFocus||"weapon");
-    if(i<0) i=0;
+    let i=MISC_SLOTS.indexOf(state._miscFocus||"weapon"); if(i<0) i=0;
     i=(i+dir+MISC_SLOTS.length)%MISC_SLOTS.length;
-    state._miscFocus=MISC_SLOTS[i];
-    syncSteppers(); renderSwatches();
-  }
-  function cycleZone(dir){
-    let i=ZONE_ORDER.indexOf(state.zoneId);
-    if(i<0) i=0;
-    i=(i+dir+ZONE_ORDER.length)%ZONE_ORDER.length;
-    selectZone(ZONE_ORDER[i]);
+    state._miscFocus=MISC_SLOTS[i]; syncSteppers(); renderSwatches();
   }
   function cycleAnim(dir){
     const anims=(state.catalog.anims&&state.catalog.anims.length)?state.catalog.anims:["Idle","Walk","Attack1"];
@@ -522,8 +458,6 @@
   }
 
   function syncSteppers(){
-    const z=LAY.callouts[state.zoneId];
-    el("partieVal").textContent=z?z.lab:state.zoneId;
     el("animVal").textContent=state.anim||"—";
     if(state.zoneId==="weapon"){
       const s=slotById(state._miscFocus||"weapon");
@@ -593,20 +527,20 @@
       const row=document.createElement("div");
       row.className="body-row"+(state.bodyFocus===idx?" on":"");
       row.onclick=(e)=>{ if(e.target.closest("button,input")) return; state.bodyFocus=idx; syncSteppers(); renderSwatches(); renderBodies(); };
-      const idxEl=document.createElement("span"); idxEl.className="idx"; idxEl.textContent=(idx+1);
+      const top=document.createElement("div"); top.className="top";
+      const idxEl=document.createElement("span"); idxEl.className="idx"; idxEl.textContent=String(idx+1);
       const name=document.createElement("span"); name.className="name";
-      name.textContent=shortOpt(b.folder)+(idx===0?" · bas":idx===state.bodies.length-1?" · haut":"");
+      name.textContent=shortOpt(b.folder)+(idx===0?" ↓":idx===state.bodies.length-1?" ↑":"");
       const sw=document.createElement("button"); sw.type="button"; sw.className="sw-mini";
       sw.style.background=b.color||DEFAULT_COLORS.body;
-      sw.title="Couleur couche";
       sw.onclick=(e)=>{ e.stopPropagation(); state.bodyFocus=idx; openColorSheet(b.color||DEFAULT_COLORS.body); };
       const ops=document.createElement("div"); ops.className="ops";
-      const up=document.createElement("button"); up.type="button"; up.textContent="↑"; up.title="Monter (vers le haut / devant)";
+      const up=document.createElement("button"); up.type="button"; up.textContent="↑";
       up.disabled=idx>=state.bodies.length-1;
       up.onclick=(e)=>{ e.stopPropagation(); if(idx>=state.bodies.length-1) return;
         const t=state.bodies[idx+1]; state.bodies[idx+1]=state.bodies[idx]; state.bodies[idx]=t;
         state.bodyFocus=idx+1; state.look.body=state.bodies[0].folder; markEdited("body"); state.dirty=true; renderBodies(); syncSteppers(); };
-      const dn=document.createElement("button"); dn.type="button"; dn.textContent="↓"; dn.title="Descendre (vers le bas / derrière)";
+      const dn=document.createElement("button"); dn.type="button"; dn.textContent="↓";
       dn.disabled=idx<=0;
       dn.onclick=(e)=>{ e.stopPropagation(); if(idx<=0) return;
         const t=state.bodies[idx-1]; state.bodies[idx-1]=state.bodies[idx]; state.bodies[idx]=t;
@@ -617,32 +551,27 @@
         state.bodies.splice(idx,1); state.bodyFocus=Math.min(state.bodyFocus, state.bodies.length-1);
         state.look.body=state.bodies[0].folder; markEdited("body"); state.dirty=true; renderBodies(); syncSteppers(); };
       ops.appendChild(up); ops.appendChild(dn); ops.appendChild(rm);
+      top.appendChild(idxEl); top.appendChild(name); top.appendChild(sw); top.appendChild(ops);
       const range=document.createElement("input"); range.type="range"; range.min="0"; range.max="100";
       range.value=String(Math.round((b.opacity||1)*100));
       range.oninput=()=>{ state.bodies[idx].opacity=(+range.value)/100; markEdited("body:"+idx); state.dirty=true; };
-      row.appendChild(idxEl); row.appendChild(name); row.appendChild(sw); row.appendChild(ops);
-      row.appendChild(range);
-      host.appendChild(row);
+      row.appendChild(top); row.appendChild(range); host.appendChild(row);
     });
   }
 
   function clearLastPart(){
     const key=state.lastEdited;
     if(!key){
-      /* fallback: current zone */
-      if(state.zoneId==="body"){ el("status").textContent="Corps requis — change la couche ou opacité"; return; }
-      const sid=activeSlotId();
-      const s=slotById(sid);
-      if(s&&s.required){ el("status").textContent="Partie obligatoire"; return; }
-      state.look[sid]="None"; state.dirty=true; syncSteppers(); el("status").textContent="→ Aucun ("+(LAY.callouts[state.zoneId]||{}).lab+")"; return;
+      if(state.zoneId==="body"){ el("status").textContent="Corps : × couche"; return; }
+      const sid=activeSlotId(); const s=slotById(sid);
+      if(s&&s.required){ el("status").textContent="Obligatoire"; return; }
+      state.look[sid]="None"; state.dirty=true; syncSteppers(); el("status").textContent="→ Aucun"; return;
     }
-    if(key.startsWith("body")){
-      el("status").textContent="Corps : utilise × sur une couche (pas Aucun)"; return;
-    }
+    if(key.startsWith("body")){ el("status").textContent="Corps : × couche"; return; }
     const s=slotById(key);
-    if(s&&s.required){ el("status").textContent="Partie obligatoire"; return; }
+    if(s&&s.required){ el("status").textContent="Obligatoire"; return; }
     state.look[key]="None"; state.dirty=true; syncSteppers();
-    el("status").textContent="Dernière partie → Aucun ("+key+")";
+    el("status").textContent="→ Aucun ("+key+")";
   }
 
   function syncSizeUI(){
@@ -655,17 +584,12 @@
   function bind(){
     el("dirPrev").onclick=()=>{ state.dir=(state.dir+7)%8; state.dirty=true; };
     el("dirNext").onclick=()=>{ state.dir=(state.dir+1)%8; state.dirty=true; };
-    el("partiePrev").onclick=()=>cycleZone(-1);
-    el("partieNext").onclick=()=>cycleZone(1);
     el("animPrev").onclick=()=>cycleAnim(-1);
     el("animNext").onclick=()=>cycleAnim(1);
     el("optPrev").onclick=()=>cycleOption(-1);
     el("optNext").onclick=()=>cycleOption(1);
-    /* Extra : taper le libellé Choix / valeur pour changer sous-slot (arme → bouclier → …) */
     el("optVal").style.cursor="pointer";
     el("optVal").onclick=()=>{ if(state.zoneId==="weapon") cycleMiscSlot(1); };
-    el("tabChoix").querySelector(".ttl").style.cursor="pointer";
-    el("tabChoix").querySelector(".ttl").onclick=()=>{ if(state.zoneId==="weapon") cycleMiscSlot(1); };
     el("btnClear").onclick=clearLastPart;
 
     const sizeEl=el("charSize");
@@ -712,12 +636,12 @@
   }
 
   async function boot(){
-    el("status").textContent="Chargement…";
+    el("status").textContent="…";
     let cat=null;
     for(const u of [BASE_CDN+"catalog.json", BASE_LOCAL+"catalog.json"]){
       try{ const r=await fetch(u,{cache:"no-store",mode:"cors"}); if(r.ok){ cat=await r.json(); break; } }catch(_e){}
     }
-    if(!cat){ el("status").textContent="Catalogue introuvable"; return; }
+    if(!cat){ el("status").textContent="Catalogue ∅"; return; }
     state.catalog=cat;
     if(cat.weaponAfterShieldRows) weaponAfterShieldRows=cat.weaponAfterShieldRows;
     if(cat.backpackInFrontRows) backpackInFrontRows=cat.backpackInFrontRows;
