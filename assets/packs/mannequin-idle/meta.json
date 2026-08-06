@@ -36,7 +36,7 @@
     "w": 1472,
     "h": 1472,
     "source": "Idle_fight-stance-idle-8-frames_*.gif — 8 dirs (SE=miroir SW)",
-    "fps_hint": 60,
+    "fps_hint": 120,
     "breathing_backup": "src/Idle_breathing_4frame.png",
     "static_backup": "src/Idle_static_1frame.png"
   },

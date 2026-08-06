@@ -66,7 +66,7 @@ Calibrage : `planche-orientations.html?pack=x180`.
 |--|--|
 | Source | Dropbox `Idle_fight-stance-idle-8-frames_*.gif` (8 dirs) + Walk GIFs |
 | Format source | `src/fight-idle/*.gif` (8f) + `src/walk/*.gif` (6f) ; breathing archivé `src/idle/` |
-| Planche Idle | **1472×1472** = 8 frames × 8 dirs, cellules **184×184** (@60 fps) |
+| Planche Idle | **1472×1472** = 8 frames × 8 dirs, cellules **184×184** (@120 fps) |
 | Planche Walk | **1104×1472** = 6 frames × 8 dirs |
 | Contenu | Idle fight-stance + **Walk** ; Run = Walk placeholder |
 | Mapping | `DIR_ROW = [0,1,2,3,4,5,6,7]` — SE = miroir SW (Idle + Walk) |
