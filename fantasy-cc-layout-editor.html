@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
+<title>Placement — Perso + Ombre</title>
+<style>
+  :root{
+    --bg:#ecece8; --ink:#3d3d3a; --muted:#8e8e8a; --line:#c6c6c2; --card:#fafaf8; --ok:#2f6f4e;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font:15px/1.35 Helvetica,Arial,sans-serif; overflow:hidden; overscroll-behavior:none}
+  .app{height:100%;height:100dvh;max-width:480px;margin:0 auto;display:flex;flex-direction:column}
+
+  .top{padding:12px 14px 8px; flex-shrink:0}
+  .top h1{margin:0;font-size:15px;letter-spacing:.08em;text-transform:uppercase}
+  .top p{margin:6px 0 0;font-size:13px;color:var(--muted);line-height:1.4}
+
+  .stage{
+    flex:1; min-height:0; margin:0 10px; border:1.5px dashed #b8b8b4; border-radius:14px;
+    background:linear-gradient(180deg,#f7f7f4,#e8e8e4); position:relative; overflow:hidden;
+    touch-action:none;
+  }
+  .hint{position:absolute;top:10px;left:0;right:0;text-align:center;font-size:12px;color:var(--muted);pointer-events:none;z-index:1}
+
+  .shadow{
+    position:absolute; left:50%; top:70%;
+    width:140px; height:36px; margin-left:-70px; margin-top:-18px;
+    border-radius:50%; background:rgba(0,0,0,.22);
+    cursor:grab; z-index:2; touch-action:none;
+    box-shadow:0 0 0 2px rgba(0,0,0,.05);
+  }
+  .shadow:active,.shadow.drag{cursor:grabbing; outline:2px solid #888}
+  .shadow .tag{
+    position:absolute; left:50%; top:-22px; transform:translateX(-50%);
+    font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+    white-space:nowrap; pointer-events:none;
+  }
+
+  .char{
+    position:absolute; left:50%; top:42%;
+    width:200px; height:200px; margin-left:-100px; margin-top:-100px;
+    cursor:grab; z-index:3; touch-action:none;
+    image-rendering:pixelated;
+  }
+  .char:active,.char.drag{cursor:grabbing; outline:2px dashed #3d3d3a; outline-offset:2px}
+  .char canvas{width:100%;height:100%;display:block; pointer-events:none}
+  .char .tag{
+    position:absolute; left:50%; bottom:-22px; transform:translateX(-50%);
+    font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink);
+    background:rgba(250,250,248,.9); padding:2px 6px; border-radius:4px;
+    white-space:nowrap; pointer-events:none;
+  }
+
+  .dock{
+    flex-shrink:0; padding:10px 12px calc(12px + env(safe-area-inset-bottom));
+    background:rgba(250,250,248,.96); border-top:1px solid var(--line);
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .row{display:flex; align-items:center; gap:10px}
+  .row label{width:72px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; flex-shrink:0}
+  .row input[type=range]{flex:1; accent-color:var(--ink)}
+  .row .val{width:48px; text-align:right; font-size:13px; color:var(--ink)}
+  .btns{display:flex; gap:8px}
+  .btn{
+    flex:1; min-height:48px; border-radius:12px; border:1px solid var(--line);
+    background:var(--card); color:var(--ink); font-size:15px; cursor:pointer;
+  }
+  .btn.ok{background:var(--ok); color:#fff; border-color:var(--ok)}
+  .btn:active{opacity:.85}
+  .out{
+    font-family:ui-monospace,Menlo,monospace; font-size:11px; color:var(--muted);
+    background:#f0f0ec; border-radius:8px; padding:8px 10px; white-space:pre-wrap; word-break:break-all;
+    max-height:72px; overflow:auto;
+  }
+  .toast{
+    position:fixed; left:50%; bottom:90px; transform:translateX(-50%);
+    background:#3d3d3a; color:#fff; padding:10px 16px; border-radius:999px;
+    font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s; z-index:20;
+  }
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <h1>Étape 1 — Perso + ombre</h1>
+    <p>Glisse le personnage et l’ombre où tu veux. Change la taille avec les curseurs. Quand c’est bon → <b>Valider</b>.</p>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="hint">Zone d’aperçu (comme sur téléphone)</div>
+    <div class="shadow" id="shadow" aria-label="Ombre">
+      <span class="tag">Ombre</span>
+    </div>
+    <div class="char" id="char" aria-label="Personnage">
+      <canvas id="cv" width="256" height="256"></canvas>
+      <span class="tag">Perso</span>
+    </div>
+  </div>
+
+  <div class="dock">
+    <div class="row">
+      <label>Perso</label>
+      <input type="range" id="charSize" min="120" max="320" value="220" step="2"/>
+      <span class="val" id="charSizeVal">220</span>
+    </div>
+    <div class="row">
+      <label>Ombre L</label>
+      <input type="range" id="shW" min="60" max="260" value="150" step="2"/>
+      <span class="val" id="shWVal">150</span>
+    </div>
+    <div class="row">
+      <label>Ombre H</label>
+      <input type="range" id="shH" min="12" max="80" value="34" step="1"/>
+      <span class="val" id="shHVal">34</span>
+    </div>
+    <div class="row">
+      <label>Opacité</label>
+      <input type="range" id="shOp" min="5" max="50" value="22" step="1"/>
+      <span class="val" id="shOpVal">22%</span>
+    </div>
+    <div class="out" id="out">…</div>
+    <div class="btns">
+      <button type="button" class="btn" id="btnReset">Reset</button>
+      <button type="button" class="btn" id="btnCopy">Copier JSON</button>
+      <button type="button" class="btn ok" id="btnOk">Valider ✓</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const BASE = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
+  const FW=128, FH=128;
+  const stage = document.getElementById("stage");
+  const charEl = document.getElementById("char");
+  const shadowEl = document.getElementById("shadow");
+  const cv = document.getElementById("cv");
+  const cx = cv.getContext("2d");
+  const KEY = "neuro.layoutEditor.step1";
+
+  const state = {
+    char: { xPct:50, yPct:42, size:220 },
+    shadow: { xPct:50, yPct:72, w:150, h:34, opacity:0.22 },
+  };
+
+  function toast(msg){
+    const t=document.getElementById("toast");
+    t.textContent=msg; t.classList.add("on");
+    clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("on"), 1600);
+  }
+
+  function apply(){
+    const r = stage.getBoundingClientRect();
+    const cs = state.char.size;
+    charEl.style.width = cs+"px";
+    charEl.style.height = cs+"px";
+    charEl.style.left = state.char.xPct+"%";
+    charEl.style.top = state.char.yPct+"%";
+    charEl.style.marginLeft = (-cs/2)+"px";
+    charEl.style.marginTop = (-cs/2)+"px";
+
+    shadowEl.style.width = state.shadow.w+"px";
+    shadowEl.style.height = state.shadow.h+"px";
+    shadowEl.style.left = state.shadow.xPct+"%";
+    shadowEl.style.top = state.shadow.yPct+"%";
+    shadowEl.style.marginLeft = (-state.shadow.w/2)+"px";
+    shadowEl.style.marginTop = (-state.shadow.h/2)+"px";
+    shadowEl.style.background = `rgba(0,0,0,${state.shadow.opacity})`;
+
+    document.getElementById("charSize").value = state.char.size;
+    document.getElementById("charSizeVal").textContent = state.char.size;
+    document.getElementById("shW").value = state.shadow.w;
+    document.getElementById("shWVal").textContent = state.shadow.w;
+    document.getElementById("shH").value = state.shadow.h;
+    document.getElementById("shHVal").textContent = state.shadow.h;
+    document.getElementById("shOp").value = Math.round(state.shadow.opacity*100);
+    document.getElementById("shOpVal").textContent = Math.round(state.shadow.opacity*100)+"%";
+
+    document.getElementById("out").textContent = JSON.stringify({
+      step:1, stageW: Math.round(r.width), stageH: Math.round(r.height),
+      char: state.char, shadow: state.shadow
+    }, null, 2);
+  }
+
+  function exportObj(){
+    const r = stage.getBoundingClientRect();
+    return {
+      step: 1,
+      validatedAt: new Date().toISOString(),
+      stage: { w: Math.round(r.width), h: Math.round(r.height) },
+      char: { ...state.char },
+      shadow: { ...state.shadow },
+    };
+  }
+
+  function saveLocal(){
+    try{ localStorage.setItem(KEY, JSON.stringify(exportObj())); }catch(_e){}
+  }
+
+  function loadLocal(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(!raw) return;
+      const o = JSON.parse(raw);
+      if(o.char) Object.assign(state.char, o.char);
+      if(o.shadow) Object.assign(state.shadow, o.shadow);
+    }catch(_e){}
+  }
+
+  function makeDrag(el, which){
+    let dragging=false, ox=0, oy=0;
+    const onDown = (e)=>{
+      const p = e.touches ? e.touches[0] : e;
+      dragging=true; el.classList.add("drag");
+      const r = stage.getBoundingClientRect();
+      const cxp = (which==="char"?state.char.xPct:state.shadow.xPct)/100 * r.width;
+      const cyp = (which==="char"?state.char.yPct:state.shadow.yPct)/100 * r.height;
+      ox = p.clientX - (r.left + cxp);
+      oy = p.clientY - (r.top + cyp);
+      e.preventDefault();
+    };
+    const onMove = (e)=>{
+      if(!dragging) return;
+      const p = e.touches ? e.touches[0] : e;
+      const r = stage.getBoundingClientRect();
+      let x = p.clientX - r.left - ox;
+      let y = p.clientY - r.top - oy;
+      x = Math.max(0, Math.min(r.width, x));
+      y = Math.max(0, Math.min(r.height, y));
+      const xPct = +(x / r.width * 100).toFixed(2);
+      const yPct = +(y / r.height * 100).toFixed(2);
+      if(which==="char"){ state.char.xPct=xPct; state.char.yPct=yPct; }
+      else { state.shadow.xPct=xPct; state.shadow.yPct=yPct; }
+      apply();
+      e.preventDefault();
+    };
+    const onUp = ()=>{ dragging=false; el.classList.remove("drag"); saveLocal(); };
+    el.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove, {passive:false});
+    window.addEventListener("pointerup", onUp);
+    el.addEventListener("touchstart", onDown, {passive:false});
+    window.addEventListener("touchmove", onMove, {passive:false});
+    window.addEventListener("touchend", onUp);
+  }
+
+  async function drawChar(){
+    const urls = [
+      BASE+"spritesheets/NakedBody/Idle.png",
+      BASE+"spritesheets/Head1/Idle.png",
+      BASE+"spritesheets/Chest1/Idle.png",
+      BASE+"spritesheets/Legs1/Idle.png",
+      BASE+"spritesheets/Shoes1/Idle.png",
+    ];
+    const load = (src)=> new Promise(res=>{
+      const im=new Image(); im.crossOrigin="anonymous";
+      im.onload=()=>res(im); im.onerror=()=>res(null); im.src=src;
+    });
+    const imgs = await Promise.all(urls.map(load));
+    cx.clearRect(0,0,256,256);
+    cx.imageSmoothingEnabled=false;
+    const S=1.7, dw=FW*S, dh=FH*S, dx=(256-dw)/2, dy=20;
+    for(const im of imgs){
+      if(!im) continue;
+      try{ cx.drawImage(im, 0,0,FW,FH, dx,dy,dw,dh); }catch(_e){}
+    }
+  }
+
+  document.getElementById("charSize").oninput = (e)=>{
+    state.char.size = +e.target.value; apply(); saveLocal();
+  };
+  document.getElementById("shW").oninput = (e)=>{
+    state.shadow.w = +e.target.value; apply(); saveLocal();
+  };
+  document.getElementById("shH").oninput = (e)=>{
+    state.shadow.h = +e.target.value; apply(); saveLocal();
+  };
+  document.getElementById("shOp").oninput = (e)=>{
+    state.shadow.opacity = (+e.target.value)/100; apply(); saveLocal();
+  };
+
+  document.getElementById("btnReset").onclick = ()=>{
+    state.char = { xPct:50, yPct:42, size:220 };
+    state.shadow = { xPct:50, yPct:72, w:150, h:34, opacity:0.22 };
+    apply(); saveLocal(); toast("Reset");
+  };
+  document.getElementById("btnCopy").onclick = async ()=>{
+    const json = JSON.stringify(exportObj(), null, 2);
+    try{
+      await navigator.clipboard.writeText(json);
+      toast("JSON copié ✓");
+    }catch(_e){
+      prompt("Copie ce JSON :", json);
+    }
+  };
+  document.getElementById("btnOk").onclick = ()=>{
+    const obj = exportObj();
+    obj.validated = true;
+    try{ localStorage.setItem(KEY, JSON.stringify(obj)); }catch(_e){}
+    const json = JSON.stringify(obj, null, 2);
+    document.getElementById("out").textContent = json;
+    try{ navigator.clipboard.writeText(json); }catch(_e){}
+    toast("Validé — envoie-moi le JSON (ou dis OK) ✓");
+    alert("Étape 1 validée ✓\n\nLe JSON est affiché en bas (et copié si possible).\nEnvoie-le moi ou dis juste « OK » et on passe aux onglets / lignes.");
+  };
+
+  makeDrag(charEl, "char");
+  makeDrag(shadowEl, "shadow");
+  loadLocal();
+  apply();
+  drawChar();
+  window.addEventListener("resize", apply);
+})();
+</script>
+</body>
+</html>
