@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>Planche orientations — Marche & Tir</title>
+<style>
+  :root{
+    --bg:#0b1018; --ink:#eaf2ff; --muted:#8fa3b8; --accent:#E8590C;
+    --cyan:#27e0ff; --line:#2a3548; --ok:#3ce08a; --panel:#121a26;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{min-height:100%}
+  body{
+    color:var(--ink);
+    font-family:"Trebuchet MS","Segoe UI",Verdana,sans-serif;
+    background:
+      radial-gradient(900px 480px at 50% -8%, #1c2b40 0%, transparent 55%),
+      linear-gradient(180deg,#101826,#070a10);
+    max-width:720px; margin:0 auto;
+    padding:12px 12px calc(16px + env(safe-area-inset-bottom));
+  }
+  h1{font-size:18px;color:var(--accent);margin-bottom:4px}
+  .sub{font-size:13px;color:var(--muted);line-height:1.45;margin-bottom:12px}
+  .sub b{color:var(--ink)}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:12px; margin-bottom:10px;
+  }
+  .lab{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .dirs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .dirs button{
+    min-height:44px; border-radius:10px; border:1px solid var(--line);
+    background:#1a2330; color:var(--ink); font-weight:800; font-size:11px;
+    padding:6px 4px; cursor:pointer; line-height:1.25;
+  }
+  .dirs button small{display:block;font-weight:600;color:var(--muted);font-size:10px}
+  .dirs button.on{border-color:var(--accent); color:#ffc29a; background:#2a1a12}
+  .previews{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  @media(max-width:520px){ .previews{grid-template-columns:1fr} }
+  figure{
+    margin:0; background:#0a0e14; border:1px solid var(--line); border-radius:12px; overflow:hidden;
+  }
+  figure header{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 10px; border-bottom:1px solid var(--line); font-size:12px; font-weight:800;
+  }
+  figure header em{font-style:normal;color:var(--cyan)}
+  canvas{display:block;width:100%;height:auto;image-rendering:pixelated;background:#0a0e14}
+  .rowctl{display:flex;gap:8px;margin-top:10px}
+  .rowctl button{
+    flex:1; min-height:48px; border-radius:12px; border:1px solid var(--line);
+    background:#1a2330; color:var(--ink); font-weight:900; font-size:15px; cursor:pointer;
+  }
+  .rowctl button.primary{background:var(--accent); border-color:#ff7a3c; color:#1a0c04}
+  .rowctl .val{
+    min-width:88px; display:flex; align-items:center; justify-content:center;
+    border-radius:12px; border:1px solid var(--cyan); color:var(--cyan); font-weight:900;
+  }
+  .toggles{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .toggles label{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
+  .toggles input{accent-color:var(--cyan);width:16px;height:16px}
+  textarea{
+    width:100%; min-height:110px; margin-top:8px; border-radius:12px; border:1px solid var(--line);
+    background:#0a0e14; color:#d7e6f5; padding:10px;
+    font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;
+  }
+  .bar{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .bar button{
+    flex:1; min-width:120px; min-height:46px; border-radius:12px; border:1px solid var(--line);
+    background:#1a2330; color:var(--ink); font-weight:800; font-size:13px; cursor:pointer;
+  }
+  .bar button.primary{background:var(--accent); border-color:#ff7a3c; color:#1a0c04}
+  .bar button.ok{background:#123024; border-color:#2a6a4a; color:var(--ok)}
+  .toast{
+    position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    background:#123024; color:var(--ok); border:1px solid #2a6a4a;
+    border-radius:999px; padding:8px 14px; font-size:12px; font-weight:700;
+    opacity:0; pointer-events:none; transition:opacity .2s; z-index:9;
+  }
+  .toast.show{opacity:1}
+  .hint{font-size:12px;color:var(--muted);line-height:1.45;margin-top:8px}
+  .hint b{color:var(--ink)}
+</style>
+</head>
+<body>
+  <h1>Planche — Marche & Tir</h1>
+  <p class="sub">
+    Pack : <b id="packLab">—</b>. Choisis une direction (flèche orange). Si le sprite ne regarde <b>pas</b> dans ce sens,
+    ajuste la <b>ligne</b> avec − / +. Sauve → le jeu lit ça au prochain chargement.
+  </p>
+  <div class="bar" style="margin-bottom:10px">
+    <button type="button" id="btnPackThug">Thug</button>
+    <button type="button" id="btnPackKnight">Knight</button>
+    <button type="button" id="btnPackX180" class="primary">x180</button>
+  </div>
+
+  <div class="card">
+    <div class="lab">1 · Direction logique (grille du jeu)</div>
+    <div class="dirs" id="dirs"></div>
+    <div class="hint">Clavier : ← → · ou tape un chiffre 0–7</div>
+  </div>
+
+  <div class="card">
+    <div class="lab">2 · Aperçu (même direction)</div>
+    <div class="toggles" style="margin-bottom:8px">
+      <label><input type="checkbox" id="split"/> Calibrer Tir séparément de Marche</label>
+    </div>
+    <div class="previews">
+      <figure>
+        <header><span>Marche (Walk)</span><em id="labWalk">ligne ?</em></header>
+        <canvas id="cvWalk" width="320" height="260"></canvas>
+      </figure>
+      <figure>
+        <header><span>Tir (Attack1)</span><em id="labShoot">ligne ?</em></header>
+        <canvas id="cvShoot" width="320" height="260"></canvas>
+      </figure>
+    </div>
+    <div class="rowctl">
+      <button type="button" id="btnMinus">− Ligne</button>
+      <div class="val" id="rowVal">—</div>
+      <button type="button" id="btnPlus">Ligne +</button>
+    </div>
+    <div class="hint" id="editHint">Ajuste la ligne pour <b>les deux</b> (mapping commun).</div>
+  </div>
+
+  <div class="card">
+    <div class="lab">3 · Résultat à coller / sauver</div>
+    <textarea id="out" readonly></textarea>
+    <div class="bar">
+      <button type="button" id="btnReset">↺ Défaut</button>
+      <button type="button" id="btnCopy">📋 Copier</button>
+      <button type="button" class="ok" id="btnSave">💾 Sauver pour le jeu</button>
+    </div>
+    <div class="hint">
+      Sauver écrit <b>localStorage</b> (<code>neuro.dirRow</code>).
+      Dans le jeu : panneau ⚙ SPRITE → <b>Reload DIR_ROW</b>, ou recharge la page.
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Ok</div>
+
+<script>
+const W=320, H=260, TW=72, TH=36, OX=W/2, OY=H/2+28;
+const NAMES=[
+  {i:0, short:"Face",      tip:"Δrow +1"},
+  {i:1, short:"¾ Face D",  tip:"Δcol+1 Δrow+1"},
+  {i:2, short:"Profil D",  tip:"Δcol +1"},
+  {i:3, short:"¾ Dos D",   tip:"Δcol+1 Δrow−1"},
+  {i:4, short:"Dos",       tip:"Δrow −1"},
+  {i:5, short:"¾ Dos G",   tip:"Δcol−1 Δrow−1"},
+  {i:6, short:"Profil G",  tip:"Δcol −1"},
+  {i:7, short:"¾ Face G",  tip:"Δcol−1 Δrow+1"},
+];
+const DEFAULT = [3,2,1,0,7,6,5,4];
+const PACKS = {
+  thug: {
+    id:"thug", label:"Thug 16-bit",
+    local:"./thug-16bit-outlined/",
+    cdn:"https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/thug-16bit-outlined/",
+    frameW:64, frameH:64, cols:8, foot:45, scale:3.2,
+    walk:"Walk.png", shoot:"Attack1.png"
+  },
+  knight: {
+    id:"knight", label:"Knight 2D",
+    local:"./knight-2d/",
+    cdn:"https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/knight-2d/",
+    // 960×512 → 15×8 cellules 64×64 ; marche = Run (test) ; attaque = Melee2
+    frameW:64, frameH:64, cols:15, foot:43, scale:3.6,
+    walk:"Run.png", shoot:"Melee2.png"
+  },
+  x180: {
+    id:"x180", label:"x180 Fantasy",
+    local:"./x180p/",
+    cdn:"https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/orientations-dir-row-69b8/assets/packs/x180p/",
+    // Sheets stitchées : 180×180, N frames × 8 dirs (ligne = index jeu 0..7)
+    frameW:180, frameH:180, cols:24, foot:145, scale:1.1,
+    walk:"Walk.png", shoot:"Melee.png",
+    dirRow:[0,1,2,3,4,5,6,7]
+  }
+};
+const packId = (new URLSearchParams(location.search).get("pack") || "x180");
+const PACK = PACKS[packId] || PACKS.x180;
+const FILES = {
+  walk:  { file:PACK.walk,  fps:12 },
+  shoot: { file:PACK.shoot, fps:14 },
+};
+const LOCAL = PACK.local;
+const CDN = PACK.cdn;
+let F=PACK.frameW, FH=PACK.frameH, COLS=PACK.cols||8;
+
+let dir = 0;
+let split = false;
+let editTarget = "common"; // common | walk | shoot
+let DIR = (PACK.dirRow || DEFAULT).slice();
+let SHEET = { walk: null, shoot: null }; // null = use DIR
+const imgs = {};
+let ready = 0;
+
+function delta(i){
+  const y = i * 45 * Math.PI / 180;
+  return { dc: Math.round(Math.sin(y)), dr: Math.round(Math.cos(y)) };
+}
+function tableFor(key){
+  if(split && SHEET[key] && SHEET[key].length===8) return SHEET[key];
+  return DIR;
+}
+function ensureSheet(key){
+  if(!SHEET[key] || SHEET[key].length!==8) SHEET[key] = DIR.slice();
+  return SHEET[key];
+}
+function iso(c,r){ return { x: OX+(c-r)*TW/2, y: OY+(c+r)*TH/2 }; }
+
+function loadImg(file){
+  return new Promise(res=>{
+    const im=new Image();
+    let i=0;
+    const urls=[LOCAL+file, CDN+file];
+    const next=()=>{
+      if(i>=urls.length){ res(null); return; }
+      im.onload=()=>res(im);
+      im.onerror=()=>{ i++; next(); };
+      try{ im.crossOrigin="anonymous"; }catch(_e){}
+      im.src=urls[i];
+    };
+    next();
+  });
+}
+
+function diamond(cx,c,r,fill,stroke,lw){
+  const p=iso(c,r);
+  cx.beginPath();
+  cx.moveTo(p.x,p.y-TH/2); cx.lineTo(p.x+TW/2,p.y);
+  cx.lineTo(p.x,p.y+TH/2); cx.lineTo(p.x-TW/2,p.y);
+  cx.closePath();
+  if(fill){ cx.fillStyle=fill; cx.fill(); }
+  cx.strokeStyle=stroke; cx.lineWidth=lw||1; cx.stroke();
+}
+function arrow(cx,a,b){
+  const dx=b.x-a.x, dy=b.y-a.y, L=Math.hypot(dx,dy)||1, ux=dx/L, uy=dy/L;
+  const s={x:a.x+ux*26,y:a.y+uy*26}, e={x:b.x-ux*16,y:b.y-uy*16};
+  cx.strokeStyle="#E8590C"; cx.lineWidth=3; cx.lineCap="round";
+  cx.beginPath(); cx.moveTo(s.x,s.y); cx.lineTo(e.x,e.y); cx.stroke();
+  const ang=Math.atan2(uy,ux);
+  cx.fillStyle="#E8590C"; cx.beginPath(); cx.moveTo(e.x,e.y);
+  cx.lineTo(e.x-10*Math.cos(ang-0.42), e.y-10*Math.sin(ang-0.42));
+  cx.lineTo(e.x-10*Math.cos(ang+0.42), e.y-10*Math.sin(ang+0.42));
+  cx.closePath(); cx.fill();
+}
+
+function drawOne(cv, key){
+  const cx=cv.getContext("2d");
+  cx.clearRect(0,0,W,H);
+  const d=delta(dir);
+  const row=tableFor(key)[dir]|0;
+  for(let c=-1;c<=1;c++) for(let r=-1;r<=1;r++){
+    const on=(c===d.dc&&r===d.dr);
+    if(c===0&&r===0) diamond(cx,c,r,"rgba(39,224,255,.12)","#2a6d8c",1.2);
+    else diamond(cx,c,r, on?"rgba(232,89,12,.30)":"rgba(10,28,40,.5)", on?"#E8590C":"#123244", on?2:1);
+  }
+  arrow(cx, iso(0,0), iso(d.dc,d.dr));
+  const im=imgs[key];
+  if(!im||!im.complete) return;
+  const fps=FILES[key].fps;
+  const cols = Math.max(1, Math.floor(im.naturalWidth / F));
+  const col=Math.floor(performance.now()/1000*fps)%cols;
+  const g=iso(0,0), S=PACK.scale;
+  cx.fillStyle="rgba(0,0,0,.35)";
+  cx.beginPath(); cx.ellipse(g.x, g.y+4, 16, 7, 0, 0, Math.PI*2); cx.fill();
+  cx.imageSmoothingEnabled = F > 64;
+  cx.drawImage(im, col*F, row*FH, F, FH, g.x-F*S/2, g.y-PACK.foot*S, F*S, FH*S);
+}
+
+function syncUI(){
+  document.querySelectorAll("#dirs button").forEach(b=>{
+    b.classList.toggle("on", (+b.dataset.i)===dir);
+  });
+  const tw=tableFor("walk")[dir]|0;
+  const ts=tableFor("shoot")[dir]|0;
+  document.getElementById("labWalk").textContent="ligne "+tw;
+  document.getElementById("labShoot").textContent="ligne "+ts;
+  const active = split ? (editTarget==="shoot" ? ts : tw) : (DIR[dir]|0);
+  document.getElementById("rowVal").textContent="L"+active;
+  document.getElementById("editHint").innerHTML = split
+    ? 'Mode séparé : tape le panneau <b>Marche</b> ou <b>Tir</b> pour choisir lequel ajuster. Actuel : <b>'+(editTarget==="shoot"?"Tir":"Marche")+'</b>.'
+    : 'Ajuste la ligne pour <b>les deux</b> (mapping commun).';
+  const lines=[
+    "DIR_ROW = ["+DIR.join(", ")+"]",
+  ];
+  if(split){
+    lines.push("DIR_ROW_SHEET.walk  = ["+(tableFor("walk").join(", "))+"]");
+    lines.push("DIR_ROW_SHEET.shoot = ["+(tableFor("shoot").join(", "))+"]");
+  }
+  lines.push("");
+  lines.push("Index "+dir+" · "+NAMES[dir].short+" · "+NAMES[dir].tip);
+  lines.push("→ Walk ligne "+tw+(split?"":" (= commun)"));
+  lines.push("→ Shoot ligne "+ts+(split?"":" (= commun)"));
+  document.getElementById("out").value=lines.join("\n");
+}
+
+function bump(deltaRow){
+  if(split){
+    const key = editTarget==="shoot" ? "shoot" : "walk";
+    const t = ensureSheet(key);
+    t[dir] = (t[dir] + deltaRow + 8) % 8;
+  } else {
+    DIR[dir] = (DIR[dir] + deltaRow + 8) % 8;
+  }
+  syncUI();
+}
+
+function toast(msg){
+  const el=document.getElementById("toast");
+  el.textContent=msg;
+  el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),1400);
+}
+
+function save(){
+  localStorage.setItem("neuro.dirRow", JSON.stringify(DIR));
+  if(split){
+    localStorage.setItem("neuro.dirRow.sheets", JSON.stringify({
+      walk: tableFor("walk"),
+      shoot: tableFor("shoot"),
+      // idle / run suivent walk par défaut côté jeu s'ils n'ont pas d'entrée
+    }));
+  } else {
+    localStorage.removeItem("neuro.dirRow.sheets");
+  }
+  toast("Sauvé — recharge le jeu ou Reload DIR_ROW");
+}
+
+function loadSaved(){
+  // Packs stitchés avec dirRow identité : ne pas écraser avec le calibrage Thug/Knight
+  if(PACK.dirRow && PACK.id === "x180") return;
+  try{
+    const raw=localStorage.getItem("neuro.dirRow");
+    if(raw){
+      const a=JSON.parse(raw);
+      if(Array.isArray(a)&&a.length===8) DIR=a.map(n=>n|0);
+    }
+    const sh=localStorage.getItem("neuro.dirRow.sheets");
+    if(sh){
+      const o=JSON.parse(sh);
+      if(o&&o.walk&&o.shoot){
+        SHEET.walk=o.walk.map(n=>n|0);
+        SHEET.shoot=o.shoot.map(n=>n|0);
+        split=true;
+        document.getElementById("split").checked=true;
+      }
+    }
+  }catch(_e){}
+}
+
+function reset(){
+  DIR=(PACK.dirRow || DEFAULT).slice();
+  SHEET={walk:null,shoot:null};
+  localStorage.removeItem("neuro.dirRow");
+  localStorage.removeItem("neuro.dirRow.sheets");
+  syncUI();
+  toast("Défaut restauré");
+}
+
+// UI build
+const box=document.getElementById("dirs");
+NAMES.forEach(n=>{
+  const b=document.createElement("button");
+  b.type="button"; b.dataset.i=String(n.i);
+  b.innerHTML=n.short+"<small>"+n.tip+"</small>";
+  b.onclick=()=>{ dir=n.i; syncUI(); };
+  box.appendChild(b);
+});
+document.getElementById("btnMinus").onclick=()=>bump(-1);
+document.getElementById("btnPlus").onclick=()=>bump(+1);
+document.getElementById("split").onchange=e=>{
+  split=!!e.target.checked;
+  if(split){ ensureSheet("walk"); ensureSheet("shoot"); }
+  syncUI();
+};
+document.getElementById("cvWalk").onclick=()=>{ if(split){ editTarget="walk"; syncUI(); toast("Édite Marche"); } };
+document.getElementById("cvShoot").onclick=()=>{ if(split){ editTarget="shoot"; syncUI(); toast("Édite Tir"); } };
+document.getElementById("btnCopy").onclick=async()=>{
+  try{ await navigator.clipboard.writeText(document.getElementById("out").value); toast("Copié"); }
+  catch(_e){ document.getElementById("out").select(); toast("Sélectionne et copie"); }
+};
+document.getElementById("btnSave").onclick=save;
+document.getElementById("btnReset").onclick=reset;
+addEventListener("keydown", ev=>{
+  if(ev.key==="ArrowLeft"){ dir=(dir+7)%8; syncUI(); }
+  if(ev.key==="ArrowRight"){ dir=(dir+1)%8; syncUI(); }
+  if(ev.key==="-"||ev.key==="_") bump(-1);
+  if(ev.key==="+"||ev.key==="=") bump(+1);
+  if(ev.key>="0"&&ev.key<="7"){ dir=+ev.key; syncUI(); }
+});
+
+document.getElementById("packLab").textContent = PACK.label + " · "+PACK.frameW+"×"+PACK.frameH;
+document.getElementById("btnPackThug").onclick=()=>{ location.search="?pack=thug"; };
+document.getElementById("btnPackKnight").onclick=()=>{ location.search="?pack=knight"; };
+document.getElementById("btnPackX180").onclick=()=>{ location.search="?pack=x180"; };
+["btnPackThug","btnPackKnight","btnPackX180"].forEach(id=>document.getElementById(id).classList.remove("primary"));
+const packBtn = PACK.id==="thug" ? "btnPackThug" : PACK.id==="knight" ? "btnPackKnight" : "btnPackX180";
+document.getElementById(packBtn).classList.add("primary");
+
+(async()=>{
+  loadSaved();
+  for(const k of Object.keys(FILES)){
+    imgs[k]=await loadImg(FILES[k].file);
+    if(imgs[k]) ready++;
+  }
+  syncUI();
+  const loop=()=>{
+    requestAnimationFrame(loop);
+    drawOne(document.getElementById("cvWalk"), "walk");
+    drawOne(document.getElementById("cvShoot"), "shoot");
+  };
+  loop();
+  if(ready<2) toast("Images manquantes — pack "+PACK.id);
+})();
+</script>
+</body>
+</html>
