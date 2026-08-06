@@ -6862,6 +6862,10 @@ const CharCreator = {
   _lastT: 0,
   _raf: 0,
   _ready: false,
+  _drawing: false,
+  _dirty: true,
+  _tintCv: null,
+  _tintCx: null,
 
   SLOTS: [],
 
@@ -7032,17 +7036,28 @@ const CharCreator = {
 
   tintDraw(cx, img, sx,sy,sw,sh, dx,dy,dw,dh, tintHex){
     if(!tintHex){ cx.drawImage(img, sx,sy,sw,sh, dx,dy,dw,dh); return; }
-    const tmp = document.createElement("canvas");
-    tmp.width = Math.max(1, Math.round(dw));
-    tmp.height = Math.max(1, Math.round(dh));
-    const t = tmp.getContext("2d");
+    if(!CharCreator._tintCv){
+      CharCreator._tintCv = document.createElement("canvas");
+      CharCreator._tintCx = CharCreator._tintCv.getContext("2d");
+    }
+    const tmp = CharCreator._tintCv;
+    const t = CharCreator._tintCx;
+    const tw = Math.max(1, Math.round(dw));
+    const th = Math.max(1, Math.round(dh));
+    if(tmp.width !== tw) tmp.width = tw;
+    if(tmp.height !== th) tmp.height = th;
+    t.setTransform(1,0,0,1,0,0);
+    t.globalCompositeOperation = "source-over";
+    t.globalAlpha = 1;
+    t.clearRect(0,0,tw,th);
     t.imageSmoothingEnabled = false;
-    t.drawImage(img, sx,sy,sw,sh, 0,0,tmp.width,tmp.height);
+    t.drawImage(img, sx,sy,sw,sh, 0,0,tw,th);
     t.globalCompositeOperation = "multiply";
     t.fillStyle = tintHex;
-    t.fillRect(0,0,tmp.width,tmp.height);
+    t.fillRect(0,0,tw,th);
     t.globalCompositeOperation = "destination-in";
-    t.drawImage(img, sx,sy,sw,sh, 0,0,tmp.width,tmp.height);
+    t.drawImage(img, sx,sy,sw,sh, 0,0,tw,th);
+    t.globalCompositeOperation = "source-over";
     cx.drawImage(tmp, dx, dy);
   },
 
@@ -7058,7 +7073,7 @@ const CharCreator = {
       if(a === CharCreator._anim) o.selected = true;
       sel.appendChild(o);
     }
-    sel.onchange = ()=>{ CharCreator._anim = sel.value; CharCreator._frame = 0; CharCreator.syncSummary(); };
+    sel.onchange = ()=>{ CharCreator._anim = sel.value; CharCreator._frame = 0; CharCreator._dirty = true; CharCreator.syncSummary(); };
   },
 
   open(){
@@ -7102,12 +7117,12 @@ const CharCreator = {
       col.type = "color";
       col.value = CharCreator.colors[s.id] || CharCreator.DEFAULT_COLORS[s.id] || "#888888";
       col.title = "Teinte " + s.lab;
-      col.oninput = ()=>{ CharCreator.colors[s.id] = col.value; };
+      col.oninput = ()=>{ CharCreator.colors[s.id] = col.value; CharCreator._dirty = true; };
       const clear = document.createElement("button");
       clear.type = "button";
       clear.textContent = "Orig.";
       clear.title = "Sans teinte";
-      clear.onclick = ()=>{ CharCreator.colors[s.id] = "#ffffff"; col.value = "#ffffff"; };
+      clear.onclick = ()=>{ CharCreator.colors[s.id] = "#ffffff"; col.value = "#ffffff"; CharCreator._dirty = true; };
       colorWrap.appendChild(col); colorWrap.appendChild(clear);
       head.appendChild(lab); head.appendChild(colorWrap);
 
@@ -7121,6 +7136,7 @@ const CharCreator = {
         if(name === cur) b.classList.add("on");
         b.onclick = ()=>{
           CharCreator.look[s.id] = name;
+          CharCreator._dirty = true;
           CharCreator.renderUI();
         };
         opts.appendChild(b);
@@ -7139,8 +7155,14 @@ const CharCreator = {
   },
   startPreview(){
     if(CharCreator._raf) cancelAnimationFrame(CharCreator._raf);
+    CharCreator._dirty = true;
     const tick = ()=>{
-      CharCreator.drawPreview();
+      if(!CharCreator._drawing){
+        CharCreator._drawing = true;
+        CharCreator.drawPreview()
+          .catch(()=>{})
+          .finally(()=>{ CharCreator._drawing = false; });
+      }
       CharCreator._raf = requestAnimationFrame(tick);
     };
     tick();
@@ -7149,6 +7171,26 @@ const CharCreator = {
     const cv = UI.el("charPreview"); if(!cv) return;
     const cx = cv.getContext("2d");
     const W = cv.width, H = cv.height;
+    if(!CharCreator._ready || !CharCreator.look){
+      cx.clearRect(0,0,W,H);
+      cx.fillStyle = "#0a1420"; cx.fillRect(0,0,W,H);
+      cx.fillStyle="#8fa3b8"; cx.font="12px sans-serif"; cx.fillText("Chargement…", W/2-36, H/2);
+      return;
+    }
+    const fps = Math.max(1, CharCreator.fps|0);
+    const interval = 1000 / fps;
+    const now = performance.now();
+    let advanced = false;
+    if(now - CharCreator._lastT > interval){
+      const steps = Math.floor((now - CharCreator._lastT) / interval);
+      CharCreator._frame = (CharCreator._frame + steps) % CharCreator.COLS;
+      CharCreator._lastT += steps * interval;
+      if(now - CharCreator._lastT > interval * 2) CharCreator._lastT = now;
+      advanced = true;
+    }
+    if(!advanced && !CharCreator._dirty) return;
+    CharCreator._dirty = false;
+
     cx.clearRect(0,0,W,H);
     cx.fillStyle = "#0a1420"; cx.fillRect(0,0,W,H);
     const tw=36, th=18, ox=W/2, oy=H/2+32;
@@ -7159,23 +7201,12 @@ const CharCreator = {
       cx.fillStyle = ((c+r)&1) ? "rgba(232,89,12,.10)" : "rgba(232,89,12,.18)";
       cx.fill();
     }
-    if(!CharCreator._ready || !CharCreator.look){
-      cx.fillStyle="#8fa3b8"; cx.font="12px sans-serif"; cx.fillText("Chargement…", W/2-36, H/2);
-      return;
-    }
-    const fps = Math.max(1, CharCreator.fps|0);
-    const interval = 1000 / fps;
-    const now = performance.now();
-    if(now - CharCreator._lastT > interval){
-      const steps = Math.floor((now - CharCreator._lastT) / interval);
-      CharCreator._frame = (CharCreator._frame + steps) % CharCreator.COLS;
-      CharCreator._lastT += steps * interval;
-      if(now - CharCreator._lastT > interval * 2) CharCreator._lastT = now;
-    }
     const row = CharCreator.DIR_ROW[CharCreator._dir|0]|0;
     const col = CharCreator._frame;
+    const anim = CharCreator._anim;
     const layers = CharCreator.layersForRow(row);
-    const imgs = await Promise.all(layers.map(L=> CharCreator.loadImg(L.folder, CharCreator._anim)));
+    const imgs = await Promise.all(layers.map(L=> CharCreator.loadImg(L.folder, anim)));
+    if(CharCreator._anim !== anim){ CharCreator._dirty = true; return; }
     const S = 1.35;
     const foot = 108;
     const dw = CharCreator.FW*S, dh = CharCreator.FH*S;
@@ -7184,7 +7215,11 @@ const CharCreator = {
     for(let i=0;i<layers.length;i++){
       const im = imgs[i];
       if(!im || !im.naturalWidth) continue;
-      CharCreator.tintDraw(cx, im, col*CharCreator.FW, row*CharCreator.FH, CharCreator.FW, CharCreator.FH, dx, dy, dw, dh, layers[i].tint);
+      try{
+        CharCreator.tintDraw(cx, im, col*CharCreator.FW, row*CharCreator.FH, CharCreator.FW, CharCreator.FH, dx, dy, dw, dh, layers[i].tint);
+      }catch(_e){
+        try{ cx.drawImage(im, col*CharCreator.FW, row*CharCreator.FH, CharCreator.FW, CharCreator.FH, dx, dy, dw, dh); }catch(__e){}
+      }
     }
   },
   randomize(){
@@ -7215,14 +7250,15 @@ const CharCreator = {
     };
     const bar = UI.el("charAnimBar");
     // anim select filled in open()/fillAnimSelect
-    const dp = UI.el("charDirPrev"); if(dp) dp.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+7)%8; CharCreator.syncSummary(); };
-    const dn = UI.el("charDirNext"); if(dn) dn.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+1)%8; CharCreator.syncSummary(); };
+    const dp = UI.el("charDirPrev"); if(dp) dp.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+7)%8; CharCreator._dirty = true; CharCreator.syncSummary(); };
+    const dn = UI.el("charDirNext"); if(dn) dn.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+1)%8; CharCreator._dirty = true; CharCreator.syncSummary(); };
     const fps = UI.el("charFps");
     const fpsVal = UI.el("charFpsVal");
     if(fps){
       fps.oninput = ()=>{
         CharCreator.fps = Math.max(1, parseInt(fps.value,10)||14);
         if(fpsVal) fpsVal.textContent = String(CharCreator.fps);
+        CharCreator._dirty = true;
         CharCreator.syncSummary();
       };
     }

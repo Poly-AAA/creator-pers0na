@@ -119,11 +119,16 @@
     raf: 0,
     frame: 0,
     lastT: 0,
+    drawing: false,
+    dirty: true,
   };
 
   const el = (id)=> document.getElementById(id);
   const stage = el("stage");
   const cx = stage.getContext("2d");
+  // canvas de teinte réutilisé (évite de figer le navigateur)
+  const tintCv = document.createElement("canvas");
+  const tintCx = tintCv.getContext("2d");
 
   function urlFor(folder, anim){
     const rel = `spritesheets/${folder}/${anim}.png`;
@@ -135,13 +140,14 @@
     if(state.cache.has(key)) return state.cache.get(key);
     const p = new Promise((resolve)=>{
       const urls = urlFor(folder, anim);
+      // CDN d’abord (page litterbox / preview distante)
+      const order = [urls.cdn, urls.local];
       const im = new Image();
       try{ im.crossOrigin = "anonymous"; }catch(_e){}
       let i = 0;
       const tryNext = ()=>{
-        if(i >= 2){ resolve(null); return; }
-        const src = i===0 ? urls.local : urls.cdn;
-        i++;
+        if(i >= order.length){ resolve(null); return; }
+        const src = order[i++];
         im.onload = ()=> resolve(im);
         im.onerror = ()=> tryNext();
         im.src = src;
@@ -223,18 +229,24 @@
       cx.drawImage(img, sx,sy,sw,sh, dx,dy,dw,dh);
       return;
     }
-    const tmp = document.createElement("canvas");
-    tmp.width = Math.max(1, Math.round(dw));
-    tmp.height = Math.max(1, Math.round(dh));
-    const t = tmp.getContext("2d");
+    const tw = Math.max(1, Math.round(dw));
+    const th = Math.max(1, Math.round(dh));
+    if(tintCv.width !== tw) tintCv.width = tw;
+    if(tintCv.height !== th) tintCv.height = th;
+    const t = tintCx;
+    t.setTransform(1,0,0,1,0,0);
+    t.globalCompositeOperation = "source-over";
+    t.globalAlpha = 1;
+    t.clearRect(0,0,tw,th);
     t.imageSmoothingEnabled = false;
-    t.drawImage(img, sx,sy,sw,sh, 0,0,tmp.width,tmp.height);
+    t.drawImage(img, sx,sy,sw,sh, 0,0,tw,th);
     t.globalCompositeOperation = "multiply";
     t.fillStyle = tintHex;
-    t.fillRect(0,0,tmp.width,tmp.height);
+    t.fillRect(0,0,tw,th);
     t.globalCompositeOperation = "destination-in";
-    t.drawImage(img, sx,sy,sw,sh, 0,0,tmp.width,tmp.height);
-    cx.drawImage(tmp, dx, dy);
+    t.drawImage(img, sx,sy,sw,sh, 0,0,tw,th);
+    t.globalCompositeOperation = "source-over";
+    cx.drawImage(tintCv, dx, dy);
   }
 
   async function draw(){
@@ -246,12 +258,17 @@
     const fps = Math.max(1, state.fps|0);
     const interval = 1000 / fps;
     const now = performance.now();
+    let advanced = false;
     if(now - state.lastT > interval){
       const steps = Math.floor((now - state.lastT) / interval);
       state.frame = (state.frame + steps) % cols;
       state.lastT += steps * interval;
       if(now - state.lastT > interval * 2) state.lastT = now;
+      advanced = true;
     }
+    if(!advanced && !state.dirty) return;
+    state.dirty = false;
+
     const col = state.frame;
     const W = stage.width, H = stage.height;
     cx.clearRect(0,0,W,H);
@@ -268,6 +285,8 @@
 
     const layers = layersForRow(row);
     const imgs = await Promise.all(layers.map(L=> loadImg(L.folder, anim)));
+    // si l’anim a changé pendant le chargement, on redessinera au prochain tick
+    if(state.anim !== anim){ state.dirty = true; return; }
     const scale = 1.55;
     const dw = FW*scale, dh = FH*scale;
     const foot = 110;
@@ -277,14 +296,24 @@
     for(let i=0;i<layers.length;i++){
       const im = imgs[i];
       if(!im || !im.complete || !im.naturalWidth){ missing++; continue; }
-      tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, layers[i].tint);
+      try{
+        tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, layers[i].tint);
+      }catch(err){
+        // fallback sans teinte si canvas tainted / CORS
+        try{ cx.drawImage(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh); }catch(_e){ missing++; }
+      }
     }
     el("status").textContent = `${anim} · ${fps} fps · dir ${state.dir} · frame ${col+1}/${cols}` +
       (missing ? ` · ${missing} couche(s) manquante(s)` : "");
   }
 
   function loop(){
-    draw().catch(()=>{});
+    if(!state.drawing){
+      state.drawing = true;
+      draw()
+        .catch((e)=>{ console.error(e); el("status").textContent = "Erreur rendu : " + (e && e.message ? e.message : e); })
+        .finally(()=>{ state.drawing = false; });
+    }
     state.raf = requestAnimationFrame(loop);
   }
 
@@ -307,7 +336,7 @@
       col.type = "color";
       col.title = "Teinte " + s.lab;
       col.value = state.colors[s.id] || DEFAULT_COLORS[s.id] || "#888888";
-      col.oninput = ()=>{ state.colors[s.id] = col.value; };
+      col.oninput = ()=>{ state.colors[s.id] = col.value; state.dirty = true; };
       const clear = document.createElement("button");
       clear.type = "button";
       clear.textContent = "Orig.";
@@ -315,6 +344,7 @@
       clear.onclick = ()=>{
         state.colors[s.id] = "#ffffff";
         col.value = "#ffffff";
+        state.dirty = true;
       };
       colorWrap.appendChild(col);
       colorWrap.appendChild(clear);
@@ -331,6 +361,7 @@
         if(name === cur) b.classList.add("on");
         b.onclick = ()=>{
           state.look[s.id] = name;
+          state.dirty = true;
           renderSlots();
         };
         opts.appendChild(b);
@@ -351,17 +382,18 @@
       if(a === state.anim) o.selected = true;
       sel.appendChild(o);
     }
-    sel.onchange = ()=>{ state.anim = sel.value; state.frame = 0; };
+    sel.onchange = ()=>{ state.anim = sel.value; state.frame = 0; state.dirty = true; };
   }
 
   function bindToolbar(){
-    el("dirPrev").onclick = ()=> { state.dir = (state.dir + 7) % 8; };
-    el("dirNext").onclick = ()=> { state.dir = (state.dir + 1) % 8; };
+    el("dirPrev").onclick = ()=> { state.dir = (state.dir + 7) % 8; state.dirty = true; };
+    el("dirNext").onclick = ()=> { state.dir = (state.dir + 1) % 8; state.dirty = true; };
     const fps = el("fps");
     const fpsVal = el("fpsVal");
     const syncFps = ()=>{
       state.fps = Math.max(1, parseInt(fps.value,10)||14);
       fpsVal.textContent = String(state.fps);
+      state.dirty = true;
     };
     fps.oninput = syncFps;
     syncFps();
@@ -376,11 +408,13 @@
         if(Math.random() < 0.7) state.colors[s.id] = palette[Math.floor(Math.random()*palette.length)];
       }
       if(!folderFor("body")) state.look.body = "NakedBody";
+      state.dirty = true;
       renderSlots();
     };
     el("btnReset").onclick = ()=>{
       state.look = defaultLook(state.catalog);
       state.colors = defaultColors();
+      state.dirty = true;
       renderSlots();
     };
     el("btnExport").onclick = ()=>{
@@ -403,15 +437,17 @@
   }
 
   async function boot(){
+    el("status").textContent = "Chargement catalogue…";
     let cat = null;
-    for(const u of [BASE_LOCAL+"catalog.json", BASE_CDN+"catalog.json"]){
+    const catalogUrls = [BASE_CDN+"catalog.json", BASE_LOCAL+"catalog.json"];
+    for(const u of catalogUrls){
       try{
-        const r = await fetch(u, {cache:"no-store"});
+        const r = await fetch(u, {cache:"no-store", mode:"cors"});
         if(r.ok){ cat = await r.json(); break; }
-      }catch(_e){}
+      }catch(err){ console.warn("catalog fail", u, err); }
     }
     if(!cat){
-      el("status").textContent = "Impossible de charger catalog.json";
+      el("status").textContent = "Impossible de charger catalog.json (CDN/local). Réessaie ou ouvre via raw.githack.";
       return;
     }
     state.catalog = cat;
@@ -439,11 +475,16 @@
     fillAnimSelect(anims);
     bindToolbar();
     renderSlots();
+    el("status").textContent = "Chargement sprites…";
+    state.dirty = true;
     await loadImg(folderFor("body")||"NakedBody", "Idle");
     loop();
   }
 
-  boot();
+  boot().catch((e)=>{
+    console.error(e);
+    el("status").textContent = "Échec démarrage : " + (e && e.message ? e.message : e);
+  });
 })();
 </script>
 </body>
