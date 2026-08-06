@@ -3,114 +3,67 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
-<title>Placement — Étape 2 · Lignes + onglets</title>
+<title>Placement — Étape 3 · Flèches</title>
 <style>
-  :root{
-    --bg:#ecece8; --ink:#3d3d3a; --muted:#8e8e8a; --line:#c6c6c2; --card:#fafaf8; --ok:#2f6f4e; --pin:#c45c26;
-  }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
-    font:15px/1.35 Helvetica,Arial,sans-serif; overflow:hidden; overscroll-behavior:none}
+  :root{ --bg:#ecece8; --ink:#3d3d3a; --muted:#8e8e8a; --line:#c6c6c2; --card:#fafaf8; --ok:#2f6f4e; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.35 Helvetica,Arial,sans-serif;overflow:hidden}
   .app{height:100%;height:100dvh;max-width:480px;margin:0 auto;display:flex;flex-direction:column}
-  .top{padding:10px 14px 6px; flex-shrink:0}
+  .top{padding:10px 14px 6px}
   .top h1{margin:0;font-size:14px;letter-spacing:.08em;text-transform:uppercase}
   .top p{margin:5px 0 0;font-size:12px;color:var(--muted);line-height:1.35}
-
-  .stage{
-    flex:1; min-height:0; margin:0 8px; border:1.5px dashed #b8b8b4; border-radius:14px;
-    background:linear-gradient(180deg,#f7f7f4,#e8e8e4); position:relative; overflow:hidden;
-    touch-action:none;
-  }
-  svg.lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
-
-  .shadow{
-    position:absolute; border-radius:50%; background:rgba(0,0,0,.05);
-    pointer-events:none; z-index:1;
-  }
-  .char{
-    position:absolute; z-index:1; pointer-events:none; image-rendering:pixelated;
-  }
+  .stage{flex:1;min-height:0;margin:0 8px;border:1.5px dashed #b8b8b4;border-radius:14px;
+    background:linear-gradient(180deg,#f7f7f4,#e8e8e4);position:relative;overflow:hidden;touch-action:none}
+  .shadow{position:absolute;border-radius:50%;pointer-events:none;z-index:1}
+  .char{position:absolute;z-index:1;pointer-events:none;image-rendering:pixelated}
   .char canvas{width:100%;height:100%;display:block}
-
-  .lab{
-    position:absolute; z-index:5; cursor:grab; touch-action:none;
-    font-size:12px; letter-spacing:.12em; text-transform:uppercase;
-    background:rgba(250,250,248,.95); border:1px solid var(--line);
-    padding:8px 10px; border-radius:8px; min-height:40px;
-    display:flex; align-items:center; user-select:none;
+  .ghost{position:absolute;z-index:2;pointer-events:none;opacity:.55;font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;background:rgba(250,250,248,.85);border:1px solid var(--line);padding:6px 8px;border-radius:8px}
+  .rot{
+    position:absolute;z-index:8;border-radius:50%;border:2px solid #3d3d3a;background:#fafaf8;color:#3d3d3a;
+    font-size:30px;cursor:grab;touch-action:none;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 2px 10px rgba(0,0,0,.12);
   }
-  .lab.on{background:#3d3d3a;color:#fff;border-color:#3d3d3a}
-  .lab.drag{cursor:grabbing; outline:2px solid #888}
-
-  .pin{
-    position:absolute; z-index:6; width:22px; height:22px; margin:-11px 0 0 -11px;
-    border-radius:50%; background:var(--pin); border:2px solid #fff;
-    box-shadow:0 1px 4px rgba(0,0,0,.25); cursor:grab; touch-action:none;
-  }
-  .pin.drag{cursor:grabbing; transform:scale(1.15)}
-
-  .tab{
-    position:absolute; z-index:7; cursor:grab; touch-action:none;
-    background:rgba(250,250,248,.96); border:1.5px solid var(--line);
-    border-radius:12px; padding:8px 10px; min-height:44px;
-    display:flex; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(0,0,0,.06);
-  }
-  .tab .name{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); flex-shrink:0}
-  .tab .chips{display:flex; gap:4px; overflow:hidden}
-  .tab .chip{font-size:11px; padding:4px 8px; border-radius:999px; background:#f0f0ec; color:var(--ink); white-space:nowrap}
-  .tab.drag{cursor:grabbing; outline:2px solid #888}
-  .tab .handle{font-size:10px; color:var(--muted); margin-left:4px}
-
-  .dock{
-    flex-shrink:0; padding:8px 12px calc(10px + env(safe-area-inset-bottom));
-    background:rgba(250,250,248,.96); border-top:1px solid var(--line);
-    display:flex; flex-direction:column; gap:8px; max-height:34%; overflow:auto;
-  }
-  .row{display:flex; align-items:center; gap:8px}
-  .row label{width:70px; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; flex-shrink:0}
-  .row input[type=range]{flex:1; accent-color:var(--ink)}
-  .row .val{width:40px; text-align:right; font-size:12px}
-  .sel{display:flex; gap:6px; overflow-x:auto; scrollbar-width:none}
-  .sel button{
-    flex-shrink:0; border:1px solid var(--line); background:#f0f0ec; border-radius:999px;
-    padding:8px 12px; font-size:12px; min-height:40px; cursor:pointer; text-transform:uppercase; letter-spacing:.06em;
-  }
-  .sel button.on{background:#3d3d3a;color:#fff;border-color:#3d3d3a}
-  .btns{display:flex; gap:8px}
-  .btn{flex:1; min-height:48px; border-radius:12px; border:1px solid var(--line); background:var(--card); font-size:14px; cursor:pointer}
-  .btn.ok{background:var(--ok); color:#fff; border-color:var(--ok)}
-  .out{font-family:ui-monospace,Menlo,monospace; font-size:10px; color:var(--muted);
-    background:#f0f0ec; border-radius:8px; padding:6px 8px; white-space:pre-wrap; word-break:break-all;
-    max-height:56px; overflow:auto}
+  .rot.drag{cursor:grabbing;outline:2px solid #888}
+  .rot .tag{position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);white-space:nowrap;pointer-events:none}
+  .dock{flex-shrink:0;padding:10px 12px calc(12px + env(safe-area-inset-bottom));background:rgba(250,250,248,.96);
+    border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+  .row{display:flex;align-items:center;gap:8px}
+  .row label{width:70px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .row input[type=range]{flex:1;accent-color:var(--ink)}
+  .row .val{width:40px;text-align:right;font-size:12px}
+  .btns{display:flex;gap:8px}
+  .btn{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:14px}
+  .btn.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .out{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--muted);background:#f0f0ec;
+    border-radius:8px;padding:6px 8px;white-space:pre-wrap;word-break:break-all;max-height:64px;overflow:auto}
   .toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#3d3d3a;color:#fff;
-    padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:30}
+    padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .2s;z-index:30;pointer-events:none}
   .toast.on{opacity:1}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="top">
-    <h1>Étape 2 — Lignes + onglets</h1>
-    <p>Perso/ombre déjà validés. Glisse un <b>point orange</b> sur le corps, et le <b>texte</b> à côté. Glisse aussi les barres d’onglets. Puis Valider.</p>
+    <h1>Étape 3 — Flèches rotation</h1>
+    <p>Glisse les deux gros boutons ‹ › où tu veux (pour tourner le perso). Taille avec le curseur. Puis <b>Valider</b>.</p>
   </div>
-
   <div class="stage" id="stage">
     <div class="shadow" id="shadow"></div>
     <div class="char" id="char"><canvas id="cv" width="256" height="256"></canvas></div>
-    <svg class="lines" id="lines"></svg>
+    <!-- rappel soft des labels déjà validés -->
+    <div class="ghost" style="left:50%;top:20%">Tête</div>
+    <div class="ghost" style="left:72%;top:29%">Torse</div>
+    <div class="ghost" style="left:18%;top:27%">Sac</div>
+    <button type="button" class="rot" id="prev"><span class="tag">Gauche</span>‹</button>
+    <button type="button" class="rot" id="next"><span class="tag">Droite</span>›</button>
   </div>
-
   <div class="dock">
-    <div class="sel" id="pick"></div>
     <div class="row">
-      <label>Texte</label>
-      <input type="range" id="labSize" min="10" max="18" value="12" step="1"/>
-      <span class="val" id="labSizeVal">12</span>
-    </div>
-    <div class="row">
-      <label>Onglet</label>
-      <input type="range" id="tabH" min="40" max="72" value="48" step="1"/>
-      <span class="val" id="tabHVal">48</span>
+      <label>Taille</label>
+      <input type="range" id="size" min="40" max="72" value="52" step="1"/>
+      <span class="val" id="sizeVal">52</span>
     </div>
     <div class="out" id="out">…</div>
     <div class="btns">
@@ -121,207 +74,61 @@
   </div>
 </div>
 <div class="toast" id="toast"></div>
-
 <script>
 (function(){
-  const BASE = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
-  const FW=128, FH=128;
-  const KEY = "neuro.layoutEditor.step2";
-  const STEP1 = {
-    stage:{w:370,h:344},
-    char:{xPct:47.93,yPct:58.97,size:320},
-    shadow:{xPct:50,yPct:72,w:60,h:34,opacity:0.05}
-  };
+  const BASE="https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
+  const KEY="neuro.layoutEditor.step3";
+  const STEP1={ char:{xPct:47.93,yPct:58.97,size:320}, shadow:{xPct:50,yPct:72,w:60,h:34,opacity:0.05}, stage:{w:370,h:344} };
+  const stage=document.getElementById("stage");
+  const state={ size:52, prev:{xPct:18,yPct:78}, next:{xPct:82,yPct:78} };
 
-  const PARTS = [
-    {id:"head", lab:"Hat"},
-    {id:"chest", lab:"Chest"},
-    {id:"backpack", lab:"Back"},
-    {id:"body", lab:"Body"},
-    {id:"legs", lab:"Pants"},
-    {id:"shoes", lab:"Shoes"},
-    {id:"weapon", lab:"Misc"},
-  ];
-  const TABS = [
-    {id:"partie", name:"Partie", chips:["Hat","Chest","Pants"]},
-    {id:"anim", name:"Anim", chips:["Idle","Walk","Run"]},
-    {id:"choix", name:"Choix", chips:["1","2","3","4"]},
-  ];
+  function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("on"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("on"),1600); }
 
-  const stage = document.getElementById("stage");
-  const lines = document.getElementById("lines");
-  const state = {
-    active:"head",
-    labSize:12,
-    tabH:48,
-    callouts:{},
-    tabs:{},
-  };
-
-  // defaults: labels on sides, pins roughly on body
-  function defaults(){
-    const c = {};
-    const map = {
-      head:{labX:82,labY:18, pinX:50,pinY:28},
-      chest:{labX:84,labY:38, pinX:54,pinY:42},
-      backpack:{labX:10,labY:30, pinX:40,pinY:38},
-      body:{labX:8,labY:50, pinX:46,pinY:52},
-      legs:{labX:84,labY:62, pinX:50,pinY:64},
-      shoes:{labX:10,labY:78, pinX:50,pinY:78},
-      weapon:{labX:84,labY:50, pinX:68,pinY:50},
-    };
-    PARTS.forEach(p=>{ c[p.id] = Object.assign({}, map[p.id]); });
-    const t = {
-      partie:{xPct:4, yPct:86, wPct:92},
-      anim:{xPct:4, yPct:4, wPct:44},
-      choix:{xPct:52, yPct:4, wPct:44},
-    };
-    return {callouts:c, tabs:t};
-  }
-
-  function toast(msg){
-    const t=document.getElementById("toast");
-    t.textContent=msg; t.classList.add("on");
-    clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("on"),1600);
-  }
-
-  function placeCharShadow(){
-    const r = stage.getBoundingClientRect();
-    const char = document.getElementById("char");
-    const sh = document.getElementById("shadow");
-    const size = Math.min(r.width, r.height) * (STEP1.char.size / STEP1.stage.w);
-    // Use % of current stage matching step1 ratios
-    char.style.width = size+"px";
-    char.style.height = size+"px";
-    char.style.left = STEP1.char.xPct+"%";
-    char.style.top = STEP1.char.yPct+"%";
-    char.style.marginLeft = (-size/2)+"px";
-    char.style.marginTop = (-size/2)+"px";
-
-    const sw = r.width * (STEP1.shadow.w / STEP1.stage.w);
-    const shH = r.height * (STEP1.shadow.h / STEP1.stage.h);
-    sh.style.width = sw+"px";
-    sh.style.height = shH+"px";
-    sh.style.left = STEP1.shadow.xPct+"%";
-    sh.style.top = STEP1.shadow.yPct+"%";
-    sh.style.marginLeft = (-sw/2)+"px";
-    sh.style.marginTop = (-shH/2)+"px";
-    sh.style.background = `rgba(0,0,0,${STEP1.shadow.opacity})`;
-  }
-
-  function ensureDOM(){
-    PARTS.forEach(p=>{
-      if(!document.getElementById("lab_"+p.id)){
-        const lab=document.createElement("div");
-        lab.className="lab"; lab.id="lab_"+p.id; lab.textContent=p.lab;
-        lab.dataset.id=p.id;
-        stage.appendChild(lab);
-        makeDrag(lab, "lab", p.id);
-      }
-      if(!document.getElementById("pin_"+p.id)){
-        const pin=document.createElement("div");
-        pin.className="pin"; pin.id="pin_"+p.id;
-        pin.dataset.id=p.id; pin.title=p.lab;
-        stage.appendChild(pin);
-        makeDrag(pin, "pin", p.id);
-      }
-    });
-    TABS.forEach(t=>{
-      if(!document.getElementById("tab_"+t.id)){
-        const el=document.createElement("div");
-        el.className="tab"; el.id="tab_"+t.id; el.dataset.id=t.id;
-        el.innerHTML = `<span class="name">${t.name}</span><div class="chips">${t.chips.map(c=>`<span class="chip">${c}</span>`).join("")}</div><span class="handle">⋮⋮</span>`;
-        stage.appendChild(el);
-        makeDrag(el, "tab", t.id);
-      }
-    });
-    const pick=document.getElementById("pick");
-    pick.innerHTML="";
-    PARTS.forEach(p=>{
-      const b=document.createElement("button");
-      b.type="button"; b.textContent=p.lab;
-      b.className = state.active===p.id?"on":"";
-      b.onclick=()=>{ state.active=p.id; render(); };
-      pick.appendChild(b);
-    });
+  function placeBG(){
+    const r=stage.getBoundingClientRect();
+    const char=document.getElementById("char"), sh=document.getElementById("shadow");
+    const size=Math.min(r.width,r.height)*(STEP1.char.size/STEP1.stage.w);
+    char.style.width=size+"px"; char.style.height=size+"px";
+    char.style.left=STEP1.char.xPct+"%"; char.style.top=STEP1.char.yPct+"%";
+    char.style.marginLeft=(-size/2)+"px"; char.style.marginTop=(-size/2)+"px";
+    const sw=r.width*(STEP1.shadow.w/STEP1.stage.w), shH=r.height*(STEP1.shadow.h/STEP1.stage.h);
+    sh.style.width=sw+"px"; sh.style.height=shH+"px";
+    sh.style.left=STEP1.shadow.xPct+"%"; sh.style.top=STEP1.shadow.yPct+"%";
+    sh.style.marginLeft=(-sw/2)+"px"; sh.style.marginTop=(-shH/2)+"px";
+    sh.style.background=`rgba(0,0,0,${STEP1.shadow.opacity})`;
   }
 
   function apply(){
-    placeCharShadow();
-    ensureDOM();
-    const r = stage.getBoundingClientRect();
-    PARTS.forEach(p=>{
-      const c = state.callouts[p.id];
-      const lab = document.getElementById("lab_"+p.id);
-      const pin = document.getElementById("pin_"+p.id);
-      lab.style.left = c.labX+"%";
-      lab.style.top = c.labY+"%";
-      lab.style.fontSize = state.labSize+"px";
-      lab.classList.toggle("on", state.active===p.id);
-      pin.style.left = c.pinX+"%";
-      pin.style.top = c.pinY+"%";
+    placeBG();
+    ["prev","next"].forEach(k=>{
+      const el=document.getElementById(k);
+      const p=state[k];
+      el.style.width=state.size+"px"; el.style.height=state.size+"px";
+      el.style.left=p.xPct+"%"; el.style.top=p.yPct+"%";
+      el.style.marginLeft=(-state.size/2)+"px"; el.style.marginTop=(-state.size/2)+"px";
+      el.style.fontSize=Math.round(state.size*0.55)+"px";
     });
-    TABS.forEach(t=>{
-      const o = state.tabs[t.id];
-      const el = document.getElementById("tab_"+t.id);
-      el.style.left = o.xPct+"%";
-      el.style.top = o.yPct+"%";
-      el.style.width = o.wPct+"%";
-      el.style.minHeight = state.tabH+"px";
-    });
-    // lines
-    lines.innerHTML="";
-    lines.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
-    PARTS.forEach(p=>{
-      const c = state.callouts[p.id];
-      const x1 = c.labX/100*r.width + 30;
-      const y1 = c.labY/100*r.height + 18;
-      const x2 = c.pinX/100*r.width;
-      const y2 = c.pinY/100*r.height;
-      const line=document.createElementNS("http://www.w3.org/2000/svg","line");
-      line.setAttribute("x1",x1); line.setAttribute("y1",y1);
-      line.setAttribute("x2",x2); line.setAttribute("y2",y2);
-      line.setAttribute("stroke", state.active===p.id ? "#3d3d3a" : "#b0b0ac");
-      line.setAttribute("stroke-width", state.active===p.id ? "1.5" : "1");
-      lines.appendChild(line);
-    });
-    document.getElementById("labSizeVal").textContent = state.labSize;
-    document.getElementById("tabHVal").textContent = state.tabH;
-    document.getElementById("out").textContent = JSON.stringify(exportObj(), null, 2);
-    [...document.querySelectorAll("#pick button")].forEach((b,i)=>{
-      b.classList.toggle("on", PARTS[i].id===state.active);
-    });
+    document.getElementById("size").value=state.size;
+    document.getElementById("sizeVal").textContent=state.size;
+    document.getElementById("out").textContent=JSON.stringify(exportObj(),null,2);
   }
 
-  function render(){ apply(); }
-
-  function makeDrag(el, kind, id){
+  function makeDrag(el, key){
     let dragging=false, ox=0, oy=0;
     const down=(e)=>{
-      const p=e.touches?e.touches[0]:e;
-      dragging=true; el.classList.add("drag");
-      if(kind!=="tab"){ state.active=id; }
+      const p=e.touches?e.touches[0]:e; dragging=true; el.classList.add("drag");
       const r=stage.getBoundingClientRect();
-      let xp, yp;
-      if(kind==="lab"){ xp=state.callouts[id].labX; yp=state.callouts[id].labY; }
-      else if(kind==="pin"){ xp=state.callouts[id].pinX; yp=state.callouts[id].pinY; }
-      else { xp=state.tabs[id].xPct; yp=state.tabs[id].yPct; }
-      ox = p.clientX - (r.left + xp/100*r.width);
-      oy = p.clientY - (r.top + yp/100*r.height);
+      ox=p.clientX-(r.left+state[key].xPct/100*r.width);
+      oy=p.clientY-(r.top+state[key].yPct/100*r.height);
       e.preventDefault();
-      apply();
     };
     const move=(e)=>{
       if(!dragging) return;
-      const p=e.touches?e.touches[0]:e;
-      const r=stage.getBoundingClientRect();
-      let x=p.clientX-r.left-ox, y=p.clientY-r.top-oy;
-      x=Math.max(0,Math.min(r.width,x)); y=Math.max(0,Math.min(r.height,y));
-      const xPct=+(x/r.width*100).toFixed(2);
-      const yPct=+(y/r.height*100).toFixed(2);
-      if(kind==="lab"){ state.callouts[id].labX=xPct; state.callouts[id].labY=yPct; }
-      else if(kind==="pin"){ state.callouts[id].pinX=xPct; state.callouts[id].pinY=yPct; }
-      else { state.tabs[id].xPct=xPct; state.tabs[id].yPct=yPct; }
+      const p=e.touches?e.touches[0]:e; const r=stage.getBoundingClientRect();
+      let x=Math.max(0,Math.min(r.width,p.clientX-r.left-ox));
+      let y=Math.max(0,Math.min(r.height,p.clientY-r.top-oy));
+      state[key].xPct=+(x/r.width*100).toFixed(2);
+      state[key].yPct=+(y/r.height*100).toFixed(2);
       apply(); e.preventDefault();
     };
     const up=()=>{ dragging=false; el.classList.remove("drag"); save(); };
@@ -333,71 +140,50 @@
   function exportObj(){
     const r=stage.getBoundingClientRect();
     return {
-      step:2,
-      validatedAt: new Date().toISOString(),
-      stage:{w:Math.round(r.width), h:Math.round(r.height)},
-      step1: STEP1,
-      labSize: state.labSize,
-      tabH: state.tabH,
-      callouts: state.callouts,
-      tabs: state.tabs,
+      step:3, validatedAt:new Date().toISOString(),
+      stage:{w:Math.round(r.width),h:Math.round(r.height)},
+      rot:{ size:state.size, prev:{...state.prev}, next:{...state.next} }
     };
   }
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(exportObj())); }catch(_e){} }
   function load(){
-    const d=defaults();
-    state.callouts=d.callouts; state.tabs=d.tabs;
     try{
-      const raw=localStorage.getItem(KEY);
-      if(!raw) return;
-      const o=JSON.parse(raw);
-      if(o.callouts) state.callouts=o.callouts;
-      if(o.tabs) state.tabs=o.tabs;
-      if(o.labSize) state.labSize=o.labSize;
-      if(o.tabH) state.tabH=o.tabH;
+      const o=JSON.parse(localStorage.getItem(KEY)||"null");
+      if(!o||!o.rot) return;
+      state.size=o.rot.size||52;
+      if(o.rot.prev) state.prev=o.rot.prev;
+      if(o.rot.next) state.next=o.rot.next;
     }catch(_e){}
   }
 
   async function drawChar(){
-    const urls=[
-      BASE+"spritesheets/NakedBody/Idle.png",
-      BASE+"spritesheets/Head1/Idle.png",
-      BASE+"spritesheets/Chest1/Idle.png",
-      BASE+"spritesheets/Legs1/Idle.png",
-      BASE+"spritesheets/Shoes1/Idle.png",
-    ];
+    const urls=[BASE+"spritesheets/NakedBody/Idle.png",BASE+"spritesheets/Head1/Idle.png",BASE+"spritesheets/Chest1/Idle.png",BASE+"spritesheets/Legs1/Idle.png",BASE+"spritesheets/Shoes1/Idle.png"];
     const loadImg=(src)=>new Promise(res=>{ const im=new Image(); im.crossOrigin="anonymous"; im.onload=()=>res(im); im.onerror=()=>res(null); im.src=src; });
     const imgs=await Promise.all(urls.map(loadImg));
-    const cv=document.getElementById("cv"); const cx=cv.getContext("2d");
+    const cv=document.getElementById("cv"), cx=cv.getContext("2d");
     cx.clearRect(0,0,256,256); cx.imageSmoothingEnabled=false;
-    const S=1.7, dw=FW*S, dh=FH*S, dx=(256-dw)/2, dy=16;
+    const S=1.7, FW=128, FH=128, dw=FW*S, dh=FH*S, dx=(256-dw)/2, dy=16;
     for(const im of imgs){ if(im) try{ cx.drawImage(im,0,0,FW,FH,dx,dy,dw,dh);}catch(_e){} }
   }
 
-  document.getElementById("labSize").oninput=(e)=>{ state.labSize=+e.target.value; apply(); save(); };
-  document.getElementById("tabH").oninput=(e)=>{ state.tabH=+e.target.value; apply(); save(); };
-  document.getElementById("btnReset").onclick=()=>{
-    const d=defaults(); state.callouts=d.callouts; state.tabs=d.tabs; state.labSize=12; state.tabH=48;
-    document.getElementById("labSize").value=12; document.getElementById("tabH").value=48;
-    apply(); save(); toast("Reset");
-  };
+  document.getElementById("size").oninput=(e)=>{ state.size=+e.target.value; apply(); save(); };
+  document.getElementById("btnReset").onclick=()=>{ state.size=52; state.prev={xPct:18,yPct:78}; state.next={xPct:82,yPct:78}; apply(); save(); toast("Reset"); };
   document.getElementById("btnCopy").onclick=async()=>{
-    const json=JSON.stringify(exportObj(),null,2);
-    try{ await navigator.clipboard.writeText(json); toast("JSON copié ✓"); }
-    catch(_e){ prompt("Copie :", json); }
+    const j=JSON.stringify(exportObj(),null,2);
+    try{ await navigator.clipboard.writeText(j); toast("JSON copié ✓"); }catch(_e){ prompt("Copie :", j); }
   };
   document.getElementById("btnOk").onclick=()=>{
-    const obj=exportObj(); obj.validated=true;
-    try{ localStorage.setItem(KEY, JSON.stringify(obj)); }catch(_e){}
-    document.getElementById("out").textContent=JSON.stringify(obj,null,2);
-    try{ navigator.clipboard.writeText(JSON.stringify(obj,null,2)); }catch(_e){}
-    toast("Étape 2 validée ✓");
-    alert("Étape 2 validée ✓\n\nEnvoie-moi le JSON (Copier JSON) et j’applique tout dans le créateur.");
+    const o=exportObj(); o.validated=true;
+    try{ localStorage.setItem(KEY, JSON.stringify(o)); }catch(_e){}
+    try{ navigator.clipboard.writeText(JSON.stringify(o,null,2)); }catch(_e){}
+    document.getElementById("out").textContent=JSON.stringify(o,null,2);
+    toast("Étape 3 validée ✓");
+    alert("Flèches validées ✓\nEnvoie-moi le JSON et j’applique.");
   };
 
-  load();
-  apply();
-  drawChar();
+  makeDrag(document.getElementById("prev"),"prev");
+  makeDrag(document.getElementById("next"),"next");
+  load(); apply(); drawChar();
   window.addEventListener("resize", apply);
 })();
 </script>
