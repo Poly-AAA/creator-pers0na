@@ -60,15 +60,15 @@ Calibrage : `planche-orientations.html?pack=knight`.
 Dossier prêt : `assets/packs/x180p/` (pack jeu **`x180`**, défaut).  
 Calibrage : `planche-orientations.html?pack=x180`.
 
-## 5) `mannequin-idle/` — Breathing Idle + Walk (PixelLab 8-dir)
+## 5) `mannequin-idle/` — Fight-stance Idle + Walk (PixelLab 8-dir)
 
 | | |
 |--|--|
-| Source | Dropbox `Idle_breathing-idle_*.gif` (8 dirs) + Walk GIFs |
-| Format source | `src/idle/*.gif` (4f) + `src/walk/*.gif` (6f) |
-| Planche Idle | **736×1472** = 4 frames × 8 dirs, cellules **184×184** (@60 fps) |
+| Source | Dropbox `Idle_fight-stance-idle-8-frames_*.gif` (8 dirs) + Walk GIFs |
+| Format source | `src/fight-idle/*.gif` (8f) + `src/walk/*.gif` (6f) ; breathing archivé `src/idle/` |
+| Planche Idle | **1472×1472** = 8 frames × 8 dirs, cellules **184×184** (@60 fps) |
 | Planche Walk | **1104×1472** = 6 frames × 8 dirs |
-| Contenu | Idle breathing + **Walk** ; Run = Walk placeholder |
+| Contenu | Idle fight-stance + **Walk** ; Run = Walk placeholder |
 | Mapping | `DIR_ROW = [0,1,2,3,4,5,6,7]` — SE = miroir SW (Idle + Walk) |
 | QA | Chauve, nu, mannequin ; Idle 8 dirs complets ; Walk 6+West+SE mirroir |
 

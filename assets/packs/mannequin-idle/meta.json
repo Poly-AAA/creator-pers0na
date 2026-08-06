@@ -1,7 +1,7 @@
 {
   "id": "mannequin",
-  "label": "Mannequin Idle breathing + Walk",
-  "source_zip": "Idle_breathing-idle (Dropbox scl/fo)",
+  "label": "Mannequin fight-stance Idle + Walk",
+  "source_zip": "Idle_fight-stance-idle-8-frames (Dropbox scl/fo)",
   "template_id": "mannequin",
   "frame": {
     "w": 184,
@@ -31,19 +31,20 @@
   "dirRowNote": "Same compass→index mapping as prior pad validation; recalibrate if needed",
   "idle": {
     "file": "Idle.png",
-    "cols": 4,
+    "cols": 8,
     "rows": 8,
-    "w": 736,
+    "w": 1472,
     "h": 1472,
-    "source": "Idle_breathing-idle_*.gif — 8 dirs complets (SE=miroir SW)",
+    "source": "Idle_fight-stance-idle-8-frames_*.gif — 8 dirs (SE=miroir SW)",
     "fps_hint": 60,
+    "breathing_backup": "src/Idle_breathing_4frame.png",
     "static_backup": "src/Idle_static_1frame.png"
   },
   "qa": {
     "nude": true,
     "bald": true,
     "androgynous_mannequin": true,
-    "notes": "184x184 breathing idle 4f; foot ~134–139; matches Walk mannequin style"
+    "notes": "184x184 fight-stance idle 8f; foot ~131–138; crouched combat pose"
   },
   "walk": {
     "file": "Walk.png",
@@ -62,6 +63,6 @@
       "south-west"
     ],
     "source": "Dropbox Transfer 6 gifs + mirror SE from SW; west from separate link",
-    "fps_hint": 60,
+    "fps_hint": 60
   }
 }
