@@ -539,31 +539,40 @@ aside.side{
 .hub-tile.zone-data{--tc:#3ce08a;--tg:rgba(60,224,138,.3)}
 .hub-tile.zone-char{--tc:#E8590C;--tg:rgba(232,89,12,.35)}
 
-/* ====== CRÉATEUR DE PERSONNAGE (test) ====== */
-#charCreateOverlay{z-index:62;background:rgba(4,10,16,.92)}
-.char-wrap{width:min(960px,96vw);max-height:94vh;display:flex;flex-direction:column;gap:10px;
-  border:1px solid rgba(232,89,12,.45);border-radius:16px;padding:14px 16px;
-  background:linear-gradient(180deg,#121a26,#0a1018);overflow:hidden}
-.char-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.char-head h2{font-size:16px;color:#E8590C;letter-spacing:1px;margin:0}
-.char-head .sub{font-size:11px;color:var(--acier-clair);margin:0}
-.char-body{display:grid;grid-template-columns:200px 1fr;gap:12px;min-height:0;flex:1;overflow:hidden}
-@media(max-width:720px){.char-body{grid-template-columns:1fr}}
-.char-preview{background:#0a0e14;border:1px solid #2a3548;border-radius:12px;padding:8px;
-  display:flex;flex-direction:column;align-items:center;gap:8px}
-.char-preview canvas{width:100%;max-width:180px;aspect-ratio:1;image-rendering:pixelated;background:#070b10;border-radius:8px}
-.char-slots{overflow:auto;min-height:0;display:flex;flex-direction:column;gap:8px;padding-right:2px}
-.char-slot{border:1px solid #2a3548;border-radius:10px;padding:8px;background:rgba(10,24,38,.55)}
-.char-slot .lab{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#8fa3b8}
-.char-slot-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
-.char-slot-color{display:flex;align-items:center;gap:5px}
-.char-slot-color input[type=color]{width:26px;height:26px;padding:0;border:1px solid #2a3548;border-radius:6px;background:transparent;cursor:pointer}
-.char-slot-color button{border:1px solid #2a3548;background:#1a2330;color:#eaf2ff;border-radius:6px;padding:3px 6px;font-size:10px;cursor:pointer}
-.char-opts{display:flex;flex-wrap:wrap;gap:5px}
-.char-opts button{border:1px solid #2a3548;background:#1a2330;color:#eaf2ff;border-radius:8px;
-  font-size:11px;padding:6px 8px;cursor:pointer;min-height:34px}
+/* ====== CRÉATEUR DE PERSONNAGE — mobile zones + flèches ====== */
+#charCreateOverlay{z-index:62;background:rgba(4,10,16,.94)}
+.char-wrap{width:min(920px,100vw);height:min(94vh,100%);max-height:100dvh;display:flex;flex-direction:column;
+  border:1px solid rgba(232,89,12,.4);border-radius:0;padding:0;background:#0c1218;overflow:hidden}
+@media(min-width:640px){.char-wrap{border-radius:14px;height:min(90vh,760px);width:min(920px,96vw)}}
+.char-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid #2a3548;flex-shrink:0}
+.char-head h2{font-size:15px;color:#E8590C;letter-spacing:1px;margin:0}
+.char-head .sub{display:none}
+.char-body{display:grid;grid-template-columns:42% 1fr;gap:0;min-height:0;flex:1;overflow:hidden}
+@media(max-width:720px){.char-body{grid-template-columns:1fr;grid-template-rows:38% 1fr}}
+.char-preview{background:linear-gradient(165deg,#0a1016,#15202a);border-right:1px solid #2a3548;padding:8px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:0}
+@media(max-width:720px){.char-preview{border-right:0;border-bottom:1px solid #2a3548}}
+.char-preview canvas{width:min(100%,220px);max-height:72%;aspect-ratio:1;image-rendering:pixelated;background:#070b10;border-radius:10px}
+.char-ui{display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:10px}
+.char-screen{display:none;flex:1;flex-direction:column;min-height:0;gap:8px}
+.char-screen.on{display:flex}
+.char-zone-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;overflow:auto;flex:1;align-content:start}
+.char-zone-card{min-height:52px;border:1px solid #2a3548;border-radius:10px;background:#18232e;padding:10px;text-align:left;cursor:pointer;color:#eaf2ff}
+.char-zone-card .zlab{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#8fa3b8}
+.char-zone-card .zval{font-size:13px;font-weight:600;color:#ffc29a;margin-top:3px;word-break:break-word}
+.char-row-arrows{display:flex;align-items:center;gap:8px}
+.char-row-arrows .mid{flex:1;text-align:center;min-width:0}
+.char-row-arrows .lab{font-size:10px;color:#8fa3b8;text-transform:uppercase;letter-spacing:1px}
+.char-row-arrows .val{font-size:18px;font-weight:700;margin-top:4px;word-break:break-word}
+.char-arrow{width:44px;height:44px;flex-shrink:0;border-radius:10px;border:1px solid #2a3548;background:#1a2330;color:#eaf2ff;font-size:22px;cursor:pointer}
+.char-color-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #2a3548;border-radius:10px;background:#18232e}
+.char-color-row span{flex:1;font-size:13px;color:#8fa3b8}
+.char-color-row input[type=color]{width:40px;height:40px;border:0;background:transparent;padding:0}
+.char-foot{display:flex;gap:8px;flex-wrap:wrap;padding:8px 12px 12px;border-top:1px solid #2a3548;flex-shrink:0}
+.char-foot .btn{flex:1;min-width:90px;min-height:44px}
+.char-opts{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+.char-opts button,.char-opts select{border:1px solid #2a3548;background:#1a2330;color:#eaf2ff;border-radius:8px;font-size:12px;padding:6px 8px;min-height:36px}
 .char-opts button.on{border-color:#E8590C;color:#ffc29a;background:#2a1a12}
-.char-foot{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .hub-tile.soon{opacity:.62}
 .hub-foot{margin-top:14px;display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:11px;color:var(--acier-clair);z-index:2}
 .hub-foot b{color:var(--cyan)}
@@ -1159,37 +1168,63 @@ aside.side{
   </div>
 </div>
 
-<!-- ====== CRÉATEUR DE PERSONNAGE — Fantasy V1.3 modular ====== -->
+<!-- ====== CRÉATEUR DE PERSONNAGE — Fantasy V1.3 (zones + flèches) ====== -->
 <div class="overlay" id="charCreateOverlay">
   <div class="char-wrap">
     <div class="char-head">
       <div>
-        <h2>CRÉATEUR — FANTASY V1.3</h2>
-        <p class="sub">Couches modulaires SmallScaleInt (128×128). Idle / Walk / Attack1. Page dédiée : character-creator-fantasy.html</p>
+        <h2>CRÉATEUR — FANTASY</h2>
+        <p class="sub">Zones · flèches · couleurs</p>
       </div>
       <button class="btn ghost" type="button" id="charClose">✕</button>
     </div>
     <div class="char-body">
       <div class="char-preview">
         <canvas id="charPreview" width="220" height="220"></canvas>
-        <div class="char-opts" id="charAnimBar" style="justify-content:center;margin-top:6px;align-items:center">
-          <select id="charAnimSelect" style="min-width:10em;border:1px solid #2a3548;background:#1a2330;color:#eaf2ff;border-radius:8px;padding:6px 8px;font-size:12px"></select>
+        <div class="char-opts" id="charAnimBar">
+          <select id="charAnimSelect"></select>
           <button type="button" id="charDirPrev">◀</button>
           <button type="button" id="charDirNext">▶</button>
         </div>
-        <label style="display:flex;align-items:center;gap:8px;width:100%;margin-top:8px;font-size:11px;color:var(--acier-clair)">
+        <label style="display:flex;align-items:center;gap:8px;width:100%;max-width:220px;font-size:11px;color:var(--acier-clair)">
           FPS
           <input type="range" id="charFps" min="1" max="30" value="14" step="1" style="flex:1;accent-color:#E8590C"/>
           <span id="charFpsVal" style="min-width:2em;color:#ffc29a">14</span>
         </label>
-        <div id="charSummary" style="font-size:10px;color:var(--acier-clair);text-align:center;line-height:1.4;margin-top:6px"></div>
+        <div id="charSummary" style="font-size:10px;color:var(--acier-clair);text-align:center;line-height:1.3"></div>
       </div>
-      <div class="char-slots" id="charSlots"></div>
+      <div class="char-ui">
+        <div class="char-screen on" id="charScreenHome">
+          <div style="font-size:12px;color:var(--acier-clair)">Touche une zone</div>
+          <div class="char-zone-grid" id="charSlots"></div>
+        </div>
+        <div class="char-screen" id="charScreenZone">
+          <div style="display:flex;align-items:center;gap:8px">
+            <button type="button" class="btn ghost" id="charZoneBack">←</button>
+            <strong id="charZoneTitle" style="flex:1;color:#ffc29a">Zone</strong>
+          </div>
+          <div class="char-row-arrows">
+            <button type="button" class="char-arrow" id="charOptPrev">‹</button>
+            <div class="mid"><div class="lab">Option</div><div class="val" id="charOptVal">—</div></div>
+            <button type="button" class="char-arrow" id="charOptNext">›</button>
+          </div>
+          <div class="char-color-row">
+            <span>Couleur</span>
+            <input type="color" id="charOptColor" value="#888888"/>
+            <button type="button" class="btn ghost" id="charOptColorClear">Orig.</button>
+          </div>
+          <div class="char-row-arrows">
+            <button type="button" class="char-arrow" id="charZonePrev">‹</button>
+            <div class="mid"><div class="lab">Zone</div><div class="val" id="charZoneNav" style="font-size:14px">—</div></div>
+            <button type="button" class="char-arrow" id="charZoneNext">›</button>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="char-foot">
       <button class="btn ghost" type="button" id="charRandom">Aléatoire</button>
-      <button class="btn ghost" type="button" id="charReset">Réinitialiser</button>
-      <button class="btn" type="button" id="charSave">✓ Sauver l’apparence</button>
+      <button class="btn ghost" type="button" id="charReset">Reset</button>
+      <button class="btn" type="button" id="charSave">✓ Sauver</button>
     </div>
   </div>
 </div>
@@ -7099,52 +7134,67 @@ const CharCreator = {
     if(UI.hub) UI.hub.open();
   },
 
-  renderUI(){
-    const root = UI.el("charSlots"); if(!root) return;
-    if(!CharCreator.colors) CharCreator.colors = CharCreator.defaultColors();
-    root.innerHTML = "";
-    for(const s of CharCreator.SLOTS){
-      const box = document.createElement("div");
-      box.className = "char-slot";
-      const head = document.createElement("div");
-      head.className = "char-slot-head";
-      const lab = document.createElement("div");
-      lab.className = "lab";
-      lab.textContent = s.lab + (s.required ? " *" : "");
-      const colorWrap = document.createElement("div");
-      colorWrap.className = "char-slot-color";
-      const col = document.createElement("input");
-      col.type = "color";
-      col.value = CharCreator.colors[s.id] || CharCreator.DEFAULT_COLORS[s.id] || "#888888";
-      col.title = "Teinte " + s.lab;
-      col.oninput = ()=>{ CharCreator.colors[s.id] = col.value; CharCreator._dirty = true; };
-      const clear = document.createElement("button");
-      clear.type = "button";
-      clear.textContent = "Orig.";
-      clear.title = "Sans teinte";
-      clear.onclick = ()=>{ CharCreator.colors[s.id] = "#ffffff"; col.value = "#ffffff"; CharCreator._dirty = true; };
-      colorWrap.appendChild(col); colorWrap.appendChild(clear);
-      head.appendChild(lab); head.appendChild(colorWrap);
+  _zoneIdx: 0,
+  _zoneId: null,
 
-      const opts = document.createElement("div");
-      opts.className = "char-opts";
-      const cur = CharCreator.look[s.id];
-      (s.folders || s.opts || []).forEach((name)=>{
-        const b = document.createElement("button");
-        b.type = "button";
-        b.textContent = name === "None" ? "— None" : name;
-        if(name === cur) b.classList.add("on");
-        b.onclick = ()=>{
-          CharCreator.look[s.id] = name;
-          CharCreator._dirty = true;
-          CharCreator.renderUI();
-        };
-        opts.appendChild(b);
-      });
-      box.appendChild(head); box.appendChild(opts);
-      root.appendChild(box);
-    }
+  showCharScreen(id){
+    document.querySelectorAll("#charCreateOverlay .char-screen").forEach(s=>{
+      s.classList.toggle("on", s.id === id);
+    });
+  },
+  displayOpt(name){
+    return (!name || name === "None") ? "Aucun" : name;
+  },
+  renderUI(){
+    if(!CharCreator.colors) CharCreator.colors = CharCreator.defaultColors();
+    CharCreator.renderHome();
+    CharCreator.showCharScreen("charScreenHome");
     CharCreator.syncSummary();
+  },
+  renderHome(){
+    const root = UI.el("charSlots"); if(!root) return;
+    root.innerHTML = "";
+    CharCreator.SLOTS.forEach((s, idx)=>{
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "char-zone-card";
+      b.innerHTML = `<span class="zlab">${s.lab}</span><span class="zval">${CharCreator.displayOpt(CharCreator.look[s.id])}</span>`;
+      b.onclick = ()=> CharCreator.openZone(idx);
+      root.appendChild(b);
+    });
+  },
+  openZone(idx){
+    const list = CharCreator.SLOTS;
+    if(!list.length) return;
+    CharCreator._zoneIdx = ((idx % list.length) + list.length) % list.length;
+    CharCreator._zoneId = list[CharCreator._zoneIdx].id;
+    CharCreator.renderZone();
+    CharCreator.showCharScreen("charScreenZone");
+  },
+  renderZone(){
+    const s = CharCreator.SLOTS[CharCreator._zoneIdx]; if(!s) return;
+    const title = UI.el("charZoneTitle"); if(title) title.textContent = s.lab;
+    const nav = UI.el("charZoneNav"); if(nav) nav.textContent = s.lab;
+    const opts = s.folders || s.opts || [];
+    let cur = CharCreator.look[s.id];
+    let i = opts.indexOf(cur); if(i < 0) i = 0;
+    const optVal = UI.el("charOptVal"); if(optVal) optVal.textContent = CharCreator.displayOpt(opts[i]);
+    const col = UI.el("charOptColor");
+    if(col) col.value = CharCreator.colors[s.id] || CharCreator.DEFAULT_COLORS[s.id] || "#888888";
+  },
+  cycleOpt(delta){
+    const s = CharCreator.SLOTS[CharCreator._zoneIdx]; if(!s) return;
+    const opts = s.folders || s.opts || []; if(!opts.length) return;
+    let i = opts.indexOf(CharCreator.look[s.id]); if(i < 0) i = 0;
+    i = (i + delta + opts.length) % opts.length;
+    CharCreator.look[s.id] = opts[i];
+    CharCreator._dirty = true;
+    CharCreator.renderZone();
+    CharCreator.renderHome();
+    CharCreator.syncSummary();
+  },
+  cycleZone(delta){
+    CharCreator.openZone(CharCreator._zoneIdx + delta);
   },
   syncSummary(){
     const el = UI.el("charSummary"); if(!el) return;
@@ -7234,8 +7284,11 @@ const CharCreator = {
     }
     if(!CharCreator.folder("body")) CharCreator.look.body = "NakedBody";
     CharCreator.renderUI();
+    CharCreator._dirty = true;
   },
   bind(){
+    if(CharCreator._bound) return;
+    CharCreator._bound = true;
     const c = UI.el("charClose"); if(c) c.onclick = ()=> CharCreator.close();
     const s = UI.el("charSave"); if(s) s.onclick = ()=>{
       CharCreator.save();
@@ -7247,9 +7300,8 @@ const CharCreator = {
       CharCreator.look = CharCreator.defaultLook();
       CharCreator.colors = CharCreator.defaultColors();
       CharCreator.renderUI();
+      CharCreator._dirty = true;
     };
-    const bar = UI.el("charAnimBar");
-    // anim select filled in open()/fillAnimSelect
     const dp = UI.el("charDirPrev"); if(dp) dp.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+7)%8; CharCreator._dirty = true; CharCreator.syncSummary(); };
     const dn = UI.el("charDirNext"); if(dn) dn.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+1)%8; CharCreator._dirty = true; CharCreator.syncSummary(); };
     const fps = UI.el("charFps");
@@ -7261,6 +7313,34 @@ const CharCreator = {
         CharCreator._dirty = true;
         CharCreator.syncSummary();
       };
+    }
+    const back = UI.el("charZoneBack"); if(back) back.onclick = ()=>{ CharCreator.showCharScreen("charScreenHome"); CharCreator.renderHome(); };
+    const op = UI.el("charOptPrev"); if(op) op.onclick = ()=> CharCreator.cycleOpt(-1);
+    const on = UI.el("charOptNext"); if(on) on.onclick = ()=> CharCreator.cycleOpt(1);
+    const zp = UI.el("charZonePrev"); if(zp) zp.onclick = ()=> CharCreator.cycleZone(-1);
+    const zn = UI.el("charZoneNext"); if(zn) zn.onclick = ()=> CharCreator.cycleZone(1);
+    const col = UI.el("charOptColor");
+    if(col) col.oninput = ()=>{
+      if(!CharCreator._zoneId) return;
+      CharCreator.colors[CharCreator._zoneId] = col.value;
+      CharCreator._dirty = true;
+    };
+    const clear = UI.el("charOptColorClear");
+    if(clear) clear.onclick = ()=>{
+      if(!CharCreator._zoneId) return;
+      CharCreator.colors[CharCreator._zoneId] = "#ffffff";
+      if(col) col.value = "#ffffff";
+      CharCreator._dirty = true;
+    };
+    const zoneScr = UI.el("charScreenZone");
+    if(zoneScr && !zoneScr._swipeBound){
+      zoneScr._swipeBound = true;
+      let sx = 0;
+      zoneScr.addEventListener("touchstart", e=>{ sx = e.changedTouches[0].clientX; }, {passive:true});
+      zoneScr.addEventListener("touchend", e=>{
+        const dx = e.changedTouches[0].clientX - sx;
+        if(Math.abs(dx) > 50) CharCreator.cycleOpt(dx > 0 ? -1 : 1);
+      }, {passive:true});
     }
   }
 };
