@@ -1,40 +1,45 @@
-STRICT REGEN — ZERO IMPROVISATION — ANDROGYNOUS BASE IDLE — GUSTAVO VISELNER PIXEL STYLE.
+STRICT REGEN — ZERO IMPROVISATION — ANDROGYNOUS NUDE BASE IDLE — GUSTAVO VISELNER PIXEL STYLE.
+
+MUST BE:
+- COMPLETELY ANDROGYNOUS (not male, not female, not “slightly masculine”)
+- COMPLETELY NUDE mannequin (no underwear, no briefs, no clothes at all)
+- BALD (no hair anywhere on head/face/body)
 
 STYLE LOCK (match attached Gustavo Viselner pixel-art references EXACTLY):
 - modern cinematic HD pixel art (adventure-game still / Viselner look)
-- visible crisp pixels, clean silhouettes, expressive but economical faces
-- limited palette with strong mood lighting (baked glow, rim light, dithered shadows OK)
-- flat cel-like shade steps (2–4 tones), NOT smooth gradients, NOT photoreal, NOT 3D low-poly PS1
-- NOT Metal Gear PS1, NOT anime screencap, NOT vector/SVG, NOT mushy AI blur
-- chunky readable pixels like the attached Star Wars / Star Trek / Doctor Who pixel scenes
+- visible crisp pixels, clean silhouettes, economical face
+- limited palette, mood lighting, dithered shadows OK
+- flat cel-like shade steps (2–4 tones)
+- NOT PS1 low-poly 3D, NOT Metal Gear, NOT anime, NOT vector/SVG, NOT photoreal, NOT blurry AI
 
 CHARACTER (LOCKED):
-- Adult COMPLETELY ANDROGYNOUS humanoid (not male, not female)
-- Neutral slim-athletic silhouette
-- NO pecs, NO breasts, NO six-pack, NO wide male shoulders, NO wide female hips, NO genitals
-- BALD — no hair, no beard, no mustache, no bushy eyebrows
-- Soft minimalist face in Viselner pixel style (few pixels for eyes/nose/mouth)
-- Light/medium skin within a muted cinematic palette
+- Adult COMPLETELY ANDROGYNOUS humanoid mannequin
+- Neutral slim silhouette
+- NO pecs, NO breasts, NO six-pack, NO wide male shoulders, NO wide female hips
+- NO genitals, NO nipples detail, NO body hair, NO sexual features
+- Soft featureless crotch / doll-like anatomy (game-safe mannequin)
+- Soft minimalist face (few pixels for eyes/nose/mouth)
+- Light/medium skin, muted cinematic palette
+- BALD scalp — no hair, no beard, no mustache, no eyebrows bushy
 
-OUTFIT (base mannequin for later gear layers):
-- ONLY a tiny plain dark brief / underwear
-- OR fully nude mannequin if tool allows (no sexual detail)
-- NO shirt, pants, shoes, belt, armor, weapon, hat, hair, cape, robes
+OUTFIT (LOCKED):
+- NUDE ONLY
+- NO briefs, NO underwear, NO shirt, NO pants, NO shoes, NO socks
+- NO belt, NO armor, NO weapon, NO hat, NO hair, NO cape, NO robes
 
-CAMERA / TECH (LOCKED — NEURO-CORE game, not side-scroller scene):
-- low top-down isometric (~30°, tactical iso 2:1) — translate Viselner STYLE into this camera
-- 8 directions exactly: South, SE, East, NE, North, NW, West, SW
-- frame size 92x92 (or 96x96 if tool requires)
-- transparent background (NO letterbox bars, NO subtitles, NO scene furniture)
-- pivot: feet near bottom-center of every frame
-- identical scale / footprint in ALL 8 directions
+CAMERA / TECH (LOCKED — NEURO-CORE):
+- low top-down isometric (~30°, tactical iso 2:1)
+- 8 directions: South, SE, East, NE, North, NW, West, SW
+- 92x92 (or 96x96 if tool requires)
+- transparent background
+- feet near bottom-center; same scale in ALL 8 directions
 
 POSE: neutral standing idle, soft A-pose, arms slightly away, weight on both feet.
-Single character only. NO environment, NO holograms, NO other people.
-NO walk, NO run, NO jump.
+Single character only. NO environment. NO walk/run/jump.
 
-ACCEPTANCE:
-- instantly reads as Viselner-like cinematic pixel art
-- androgynous bald base
-- 8 correct iso directions, consistent size, transparent BG
-Any PS1 low-poly / HD 3D / anime / sexed body / full scene background = FAIL.
+ACCEPTANCE FAIL IF ANY:
+- male/female sexed body
+- any clothing or underwear
+- any hair
+- PS1 3D / anime / full scene background
+- wrong camera angle
