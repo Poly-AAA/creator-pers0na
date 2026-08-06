@@ -17,17 +17,25 @@
     background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
   code{font-size:11px;color:#DCD3C3}
   .ok{color:#3ce08a}
+  a{color:#27e0ff;font-weight:700}
 </style>
 </head>
 <body>
 <h1>Mannequin — Idle breathing (4f) + Walk (6f)</h1>
 <p>Base 184×184 : chauve, nu, mannequin androgyne. Rangées sheet = index jeu 0…7. Idle + Walk @60 fps.</p>
-<p><a href="calibrage-vues.html" style="color:#27e0ff;font-weight:700">📐 Calibrer les vues (choisir Face / Dos / Profil…)</a></p>
+<p><a id="calLink" href="calibrage-vues.html">📐 Calibrer les vues (choisir Face / Dos / Profil…)</a></p>
 <h2>Idle breathing</h2>
 <div class="grid" id="idle"></div>
 <h2>Walk</h2>
 <div class="grid" id="walk"></div>
 <script>
+// Assets via jsDelivr (images OK). Ne pas ouvrir ce HTML via jsDelivr (text/plain).
+const CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/strict-regen-idle-66c0/assets/packs/mannequin-idle/";
+const localOk = location.protocol === "file:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+  || location.hostname.includes("githack");
+const BASE = localOk ? "" : CDN;
+document.getElementById("calLink").href = (localOk ? "" : CDN) + "calibrage-vues.html";
+
 const DIRS=[
   ["south","0 Face"],
   ["south-east","1 ¾ Face D"],
@@ -41,9 +49,12 @@ const DIRS=[
 function fill(id, folder, ext){
   const g=document.getElementById(id);
   DIRS.forEach(([dir,label],i)=>{
+    const rel=`src/${folder}/${dir}.${ext}`;
     const card=document.createElement("div"); card.className="card";
     card.innerHTML=`<div><b>${label}</b></div><img alt="${dir}"/><div class="ok">row ${i}</div><code>${dir}.${ext}</code>`;
-    card.querySelector("img").src=`src/${folder}/${dir}.${ext}?v=${Date.now()}`;
+    const img=card.querySelector("img");
+    img.src=`${BASE}${rel}?v=60`;
+    img.onerror=()=>{ img.onerror=null; img.src=`${CDN}${rel}?v=60`; };
     g.appendChild(card);
   });
 }
