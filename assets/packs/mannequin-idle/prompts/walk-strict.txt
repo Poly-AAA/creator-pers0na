@@ -1,0 +1,33 @@
+STRICT REGEN — ZERO IMPROVISATION — WALK ONLY.
+
+SAME CHARACTER AS THE APPROVED IDLE MANNEQUIN. Do not redesign.
+
+Adult NORMAL man, average build, light/medium skin, low top-down isometric, 8 directions, 92x92, transparent background.
+
+HEAD (LOCKED):
+- BALD — no hair, no beard, no mustache, no bushy eyebrows
+- Clean shaved scalp, simple readable face from low top-down
+
+OUTFIT MUST BE EXACTLY THIS AND NOTHING ELSE:
+- bare chest (skin visible)
+- bare arms
+- bare legs
+- bare feet
+- ONLY a tiny plain dark brief / underwear
+- NO tank top, NO shirt, NO pants, NO belt, NO shoes, NO socks
+- NO armor, NO weapon, NO hat, NO hair
+
+ANIMATION: WALK cycle only (not idle, not run, not jump).
+- Looping walk, medium pace, tactical RPG step
+- Arms swing naturally opposite to legs
+- Weight transfers foot to foot
+- Keep same body proportions / pivot as Idle (feet near bottom-center of frame)
+- No exaggerated bounce, no flying, no sliding without leg motion
+
+DIRECTIONS: South, SE, East, NE, North, NW, West, SW
+— identical bald head + briefs only in EVERY direction and EVERY frame.
+
+STYLE: highly detailed pixel art, crisp pixels. Match Idle mannequin style exactly.
+
+ACCEPTANCE: bald scalp + mostly skin body + tiny dark underwear only + clear walk cycle.
+Any hair / clothes / shoes / idle pose / run pose = FAIL.
