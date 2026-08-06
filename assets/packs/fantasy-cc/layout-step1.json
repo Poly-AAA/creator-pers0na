@@ -1,0 +1,7 @@
+{
+  "step": 1,
+  "validatedAt": "2026-08-06T22:23:14.088Z",
+  "stage": { "w": 370, "h": 344 },
+  "char": { "xPct": 47.93, "yPct": 58.97, "size": 320 },
+  "shadow": { "xPct": 50, "yPct": 72, "w": 60, "h": 34, "opacity": 0.05 }
+}

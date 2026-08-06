@@ -552,7 +552,7 @@ aside.side{
 .char-body{display:flex;flex-direction:column;min-height:0;flex:1;overflow:hidden;position:relative}
 .char-stage{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 0 0}
 .char-stage-main{position:relative;width:100%;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
-.char-stage canvas{width:min(92vw,360px);height:auto;aspect-ratio:1;image-rendering:pixelated;background:transparent;display:block}
+.char-stage canvas{width:100%;height:auto;max-height:100%;aspect-ratio:1;image-rendering:pixelated;background:transparent;display:block}
 .char-callouts{position:absolute;inset:0;pointer-events:none;z-index:3}
 .char-callout{position:absolute;pointer-events:auto;z-index:4;border:0;background:transparent;padding:8px 4px;cursor:pointer;min-height:40px;display:flex;align-items:center}
 .char-callout .lab{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#555552;background:rgba(245,245,242,.9);padding:4px 6px;border-radius:4px;white-space:nowrap}
@@ -7416,17 +7416,26 @@ const CharCreator = {
     if(!advanced && !CharCreator._dirty) return;
     CharCreator._dirty = false;
     cx.clearRect(0,0,W,H);
-    const scale = 2.15;
+    // Placement validé étape 1 (éditeur layout)
+    const LAY = {
+      char:{ xPct:47.93, yPct:58.97, sizePct:320/370 },
+      shadow:{ xPct:50, yPct:72, wPct:60/370, hPct:34/344, opacity:0.05 }
+    };
+    const charSize = W * LAY.char.sizePct;
+    const scale = charSize / CharCreator.FW;
     const dw = CharCreator.FW*scale, dh = CharCreator.FH*scale;
-    const footFromTop = 108 * scale;
-    const ox = W/2;
-    const feetY = H * 0.82;
+    const ox = W * (LAY.char.xPct/100);
+    const oy = H * (LAY.char.yPct/100);
     const dx = ox - dw/2;
-    const dy = feetY - footFromTop;
-    CharCreator._drawRect = { dx, dy, dw, dh, feetX: ox, feetY, scale };
-    const grd = cx.createRadialGradient(ox, feetY, 2, ox, feetY, dw*0.28);
-    grd.addColorStop(0,"rgba(0,0,0,.18)"); grd.addColorStop(1,"rgba(0,0,0,0)");
-    cx.fillStyle = grd; cx.beginPath(); cx.ellipse(ox, feetY, dw*0.26, dh*0.055, 0, 0, Math.PI*2); cx.fill();
+    const dy = oy - dh/2;
+    const shX = W * (LAY.shadow.xPct/100);
+    const shY = H * (LAY.shadow.yPct/100);
+    const shRx = (W * LAY.shadow.wPct) / 2;
+    const shRy = (H * LAY.shadow.hPct) / 2;
+    CharCreator._drawRect = { dx, dy, dw, dh, feetX: shX, feetY: shY, scale };
+    const grd = cx.createRadialGradient(shX, shY, 1, shX, shY, Math.max(shRx, shRy));
+    grd.addColorStop(0, "rgba(0,0,0,"+LAY.shadow.opacity+")"); grd.addColorStop(1,"rgba(0,0,0,0)");
+    cx.fillStyle = grd; cx.beginPath(); cx.ellipse(shX, shY, shRx, shRy, 0, 0, Math.PI*2); cx.fill();
     const row = CharCreator.DIR_ROW[CharCreator._dir|0]|0;
     const col = CharCreator._frame;
     const anim = CharCreator._anim;

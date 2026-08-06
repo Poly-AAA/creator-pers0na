@@ -3,123 +3,114 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
-<title>Placement — Perso + Ombre</title>
+<title>Placement — Étape 2 · Lignes + onglets</title>
 <style>
   :root{
-    --bg:#ecece8; --ink:#3d3d3a; --muted:#8e8e8a; --line:#c6c6c2; --card:#fafaf8; --ok:#2f6f4e;
+    --bg:#ecece8; --ink:#3d3d3a; --muted:#8e8e8a; --line:#c6c6c2; --card:#fafaf8; --ok:#2f6f4e; --pin:#c45c26;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
     font:15px/1.35 Helvetica,Arial,sans-serif; overflow:hidden; overscroll-behavior:none}
   .app{height:100%;height:100dvh;max-width:480px;margin:0 auto;display:flex;flex-direction:column}
-
-  .top{padding:12px 14px 8px; flex-shrink:0}
-  .top h1{margin:0;font-size:15px;letter-spacing:.08em;text-transform:uppercase}
-  .top p{margin:6px 0 0;font-size:13px;color:var(--muted);line-height:1.4}
+  .top{padding:10px 14px 6px; flex-shrink:0}
+  .top h1{margin:0;font-size:14px;letter-spacing:.08em;text-transform:uppercase}
+  .top p{margin:5px 0 0;font-size:12px;color:var(--muted);line-height:1.35}
 
   .stage{
-    flex:1; min-height:0; margin:0 10px; border:1.5px dashed #b8b8b4; border-radius:14px;
+    flex:1; min-height:0; margin:0 8px; border:1.5px dashed #b8b8b4; border-radius:14px;
     background:linear-gradient(180deg,#f7f7f4,#e8e8e4); position:relative; overflow:hidden;
     touch-action:none;
   }
-  .hint{position:absolute;top:10px;left:0;right:0;text-align:center;font-size:12px;color:var(--muted);pointer-events:none;z-index:1}
+  svg.lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
 
   .shadow{
-    position:absolute; left:50%; top:70%;
-    width:140px; height:36px; margin-left:-70px; margin-top:-18px;
-    border-radius:50%; background:rgba(0,0,0,.22);
-    cursor:grab; z-index:2; touch-action:none;
-    box-shadow:0 0 0 2px rgba(0,0,0,.05);
+    position:absolute; border-radius:50%; background:rgba(0,0,0,.05);
+    pointer-events:none; z-index:1;
   }
-  .shadow:active,.shadow.drag{cursor:grabbing; outline:2px solid #888}
-  .shadow .tag{
-    position:absolute; left:50%; top:-22px; transform:translateX(-50%);
-    font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
-    white-space:nowrap; pointer-events:none;
-  }
-
   .char{
-    position:absolute; left:50%; top:42%;
-    width:200px; height:200px; margin-left:-100px; margin-top:-100px;
-    cursor:grab; z-index:3; touch-action:none;
-    image-rendering:pixelated;
+    position:absolute; z-index:1; pointer-events:none; image-rendering:pixelated;
   }
-  .char:active,.char.drag{cursor:grabbing; outline:2px dashed #3d3d3a; outline-offset:2px}
-  .char canvas{width:100%;height:100%;display:block; pointer-events:none}
-  .char .tag{
-    position:absolute; left:50%; bottom:-22px; transform:translateX(-50%);
-    font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink);
-    background:rgba(250,250,248,.9); padding:2px 6px; border-radius:4px;
-    white-space:nowrap; pointer-events:none;
+  .char canvas{width:100%;height:100%;display:block}
+
+  .lab{
+    position:absolute; z-index:5; cursor:grab; touch-action:none;
+    font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+    background:rgba(250,250,248,.95); border:1px solid var(--line);
+    padding:8px 10px; border-radius:8px; min-height:40px;
+    display:flex; align-items:center; user-select:none;
   }
+  .lab.on{background:#3d3d3a;color:#fff;border-color:#3d3d3a}
+  .lab.drag{cursor:grabbing; outline:2px solid #888}
+
+  .pin{
+    position:absolute; z-index:6; width:22px; height:22px; margin:-11px 0 0 -11px;
+    border-radius:50%; background:var(--pin); border:2px solid #fff;
+    box-shadow:0 1px 4px rgba(0,0,0,.25); cursor:grab; touch-action:none;
+  }
+  .pin.drag{cursor:grabbing; transform:scale(1.15)}
+
+  .tab{
+    position:absolute; z-index:7; cursor:grab; touch-action:none;
+    background:rgba(250,250,248,.96); border:1.5px solid var(--line);
+    border-radius:12px; padding:8px 10px; min-height:44px;
+    display:flex; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(0,0,0,.06);
+  }
+  .tab .name{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); flex-shrink:0}
+  .tab .chips{display:flex; gap:4px; overflow:hidden}
+  .tab .chip{font-size:11px; padding:4px 8px; border-radius:999px; background:#f0f0ec; color:var(--ink); white-space:nowrap}
+  .tab.drag{cursor:grabbing; outline:2px solid #888}
+  .tab .handle{font-size:10px; color:var(--muted); margin-left:4px}
 
   .dock{
-    flex-shrink:0; padding:10px 12px calc(12px + env(safe-area-inset-bottom));
+    flex-shrink:0; padding:8px 12px calc(10px + env(safe-area-inset-bottom));
     background:rgba(250,250,248,.96); border-top:1px solid var(--line);
-    display:flex; flex-direction:column; gap:10px;
+    display:flex; flex-direction:column; gap:8px; max-height:34%; overflow:auto;
   }
-  .row{display:flex; align-items:center; gap:10px}
-  .row label{width:72px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; flex-shrink:0}
+  .row{display:flex; align-items:center; gap:8px}
+  .row label{width:70px; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; flex-shrink:0}
   .row input[type=range]{flex:1; accent-color:var(--ink)}
-  .row .val{width:48px; text-align:right; font-size:13px; color:var(--ink)}
+  .row .val{width:40px; text-align:right; font-size:12px}
+  .sel{display:flex; gap:6px; overflow-x:auto; scrollbar-width:none}
+  .sel button{
+    flex-shrink:0; border:1px solid var(--line); background:#f0f0ec; border-radius:999px;
+    padding:8px 12px; font-size:12px; min-height:40px; cursor:pointer; text-transform:uppercase; letter-spacing:.06em;
+  }
+  .sel button.on{background:#3d3d3a;color:#fff;border-color:#3d3d3a}
   .btns{display:flex; gap:8px}
-  .btn{
-    flex:1; min-height:48px; border-radius:12px; border:1px solid var(--line);
-    background:var(--card); color:var(--ink); font-size:15px; cursor:pointer;
-  }
+  .btn{flex:1; min-height:48px; border-radius:12px; border:1px solid var(--line); background:var(--card); font-size:14px; cursor:pointer}
   .btn.ok{background:var(--ok); color:#fff; border-color:var(--ok)}
-  .btn:active{opacity:.85}
-  .out{
-    font-family:ui-monospace,Menlo,monospace; font-size:11px; color:var(--muted);
-    background:#f0f0ec; border-radius:8px; padding:8px 10px; white-space:pre-wrap; word-break:break-all;
-    max-height:72px; overflow:auto;
-  }
-  .toast{
-    position:fixed; left:50%; bottom:90px; transform:translateX(-50%);
-    background:#3d3d3a; color:#fff; padding:10px 16px; border-radius:999px;
-    font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s; z-index:20;
-  }
+  .out{font-family:ui-monospace,Menlo,monospace; font-size:10px; color:var(--muted);
+    background:#f0f0ec; border-radius:8px; padding:6px 8px; white-space:pre-wrap; word-break:break-all;
+    max-height:56px; overflow:auto}
+  .toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#3d3d3a;color:#fff;
+    padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:30}
   .toast.on{opacity:1}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="top">
-    <h1>Étape 1 — Perso + ombre</h1>
-    <p>Glisse le personnage et l’ombre où tu veux. Change la taille avec les curseurs. Quand c’est bon → <b>Valider</b>.</p>
+    <h1>Étape 2 — Lignes + onglets</h1>
+    <p>Perso/ombre déjà validés. Glisse un <b>point orange</b> sur le corps, et le <b>texte</b> à côté. Glisse aussi les barres d’onglets. Puis Valider.</p>
   </div>
 
   <div class="stage" id="stage">
-    <div class="hint">Zone d’aperçu (comme sur téléphone)</div>
-    <div class="shadow" id="shadow" aria-label="Ombre">
-      <span class="tag">Ombre</span>
-    </div>
-    <div class="char" id="char" aria-label="Personnage">
-      <canvas id="cv" width="256" height="256"></canvas>
-      <span class="tag">Perso</span>
-    </div>
+    <div class="shadow" id="shadow"></div>
+    <div class="char" id="char"><canvas id="cv" width="256" height="256"></canvas></div>
+    <svg class="lines" id="lines"></svg>
   </div>
 
   <div class="dock">
+    <div class="sel" id="pick"></div>
     <div class="row">
-      <label>Perso</label>
-      <input type="range" id="charSize" min="120" max="320" value="220" step="2"/>
-      <span class="val" id="charSizeVal">220</span>
+      <label>Texte</label>
+      <input type="range" id="labSize" min="10" max="18" value="12" step="1"/>
+      <span class="val" id="labSizeVal">12</span>
     </div>
     <div class="row">
-      <label>Ombre L</label>
-      <input type="range" id="shW" min="60" max="260" value="150" step="2"/>
-      <span class="val" id="shWVal">150</span>
-    </div>
-    <div class="row">
-      <label>Ombre H</label>
-      <input type="range" id="shH" min="12" max="80" value="34" step="1"/>
-      <span class="val" id="shHVal">34</span>
-    </div>
-    <div class="row">
-      <label>Opacité</label>
-      <input type="range" id="shOp" min="5" max="50" value="22" step="1"/>
-      <span class="val" id="shOpVal">22%</span>
+      <label>Onglet</label>
+      <input type="range" id="tabH" min="40" max="72" value="48" step="1"/>
+      <span class="val" id="tabHVal">48</span>
     </div>
     <div class="out" id="out">…</div>
     <div class="btns">
@@ -135,181 +126,276 @@
 (function(){
   const BASE = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
   const FW=128, FH=128;
-  const stage = document.getElementById("stage");
-  const charEl = document.getElementById("char");
-  const shadowEl = document.getElementById("shadow");
-  const cv = document.getElementById("cv");
-  const cx = cv.getContext("2d");
-  const KEY = "neuro.layoutEditor.step1";
-
-  const state = {
-    char: { xPct:50, yPct:42, size:220 },
-    shadow: { xPct:50, yPct:72, w:150, h:34, opacity:0.22 },
+  const KEY = "neuro.layoutEditor.step2";
+  const STEP1 = {
+    stage:{w:370,h:344},
+    char:{xPct:47.93,yPct:58.97,size:320},
+    shadow:{xPct:50,yPct:72,w:60,h:34,opacity:0.05}
   };
+
+  const PARTS = [
+    {id:"head", lab:"Hat"},
+    {id:"chest", lab:"Chest"},
+    {id:"backpack", lab:"Back"},
+    {id:"body", lab:"Body"},
+    {id:"legs", lab:"Pants"},
+    {id:"shoes", lab:"Shoes"},
+    {id:"weapon", lab:"Misc"},
+  ];
+  const TABS = [
+    {id:"partie", name:"Partie", chips:["Hat","Chest","Pants"]},
+    {id:"anim", name:"Anim", chips:["Idle","Walk","Run"]},
+    {id:"choix", name:"Choix", chips:["1","2","3","4"]},
+  ];
+
+  const stage = document.getElementById("stage");
+  const lines = document.getElementById("lines");
+  const state = {
+    active:"head",
+    labSize:12,
+    tabH:48,
+    callouts:{},
+    tabs:{},
+  };
+
+  // defaults: labels on sides, pins roughly on body
+  function defaults(){
+    const c = {};
+    const map = {
+      head:{labX:82,labY:18, pinX:50,pinY:28},
+      chest:{labX:84,labY:38, pinX:54,pinY:42},
+      backpack:{labX:10,labY:30, pinX:40,pinY:38},
+      body:{labX:8,labY:50, pinX:46,pinY:52},
+      legs:{labX:84,labY:62, pinX:50,pinY:64},
+      shoes:{labX:10,labY:78, pinX:50,pinY:78},
+      weapon:{labX:84,labY:50, pinX:68,pinY:50},
+    };
+    PARTS.forEach(p=>{ c[p.id] = Object.assign({}, map[p.id]); });
+    const t = {
+      partie:{xPct:4, yPct:86, wPct:92},
+      anim:{xPct:4, yPct:4, wPct:44},
+      choix:{xPct:52, yPct:4, wPct:44},
+    };
+    return {callouts:c, tabs:t};
+  }
 
   function toast(msg){
     const t=document.getElementById("toast");
     t.textContent=msg; t.classList.add("on");
-    clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("on"), 1600);
+    clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("on"),1600);
+  }
+
+  function placeCharShadow(){
+    const r = stage.getBoundingClientRect();
+    const char = document.getElementById("char");
+    const sh = document.getElementById("shadow");
+    const size = Math.min(r.width, r.height) * (STEP1.char.size / STEP1.stage.w);
+    // Use % of current stage matching step1 ratios
+    char.style.width = size+"px";
+    char.style.height = size+"px";
+    char.style.left = STEP1.char.xPct+"%";
+    char.style.top = STEP1.char.yPct+"%";
+    char.style.marginLeft = (-size/2)+"px";
+    char.style.marginTop = (-size/2)+"px";
+
+    const sw = r.width * (STEP1.shadow.w / STEP1.stage.w);
+    const shH = r.height * (STEP1.shadow.h / STEP1.stage.h);
+    sh.style.width = sw+"px";
+    sh.style.height = shH+"px";
+    sh.style.left = STEP1.shadow.xPct+"%";
+    sh.style.top = STEP1.shadow.yPct+"%";
+    sh.style.marginLeft = (-sw/2)+"px";
+    sh.style.marginTop = (-shH/2)+"px";
+    sh.style.background = `rgba(0,0,0,${STEP1.shadow.opacity})`;
+  }
+
+  function ensureDOM(){
+    PARTS.forEach(p=>{
+      if(!document.getElementById("lab_"+p.id)){
+        const lab=document.createElement("div");
+        lab.className="lab"; lab.id="lab_"+p.id; lab.textContent=p.lab;
+        lab.dataset.id=p.id;
+        stage.appendChild(lab);
+        makeDrag(lab, "lab", p.id);
+      }
+      if(!document.getElementById("pin_"+p.id)){
+        const pin=document.createElement("div");
+        pin.className="pin"; pin.id="pin_"+p.id;
+        pin.dataset.id=p.id; pin.title=p.lab;
+        stage.appendChild(pin);
+        makeDrag(pin, "pin", p.id);
+      }
+    });
+    TABS.forEach(t=>{
+      if(!document.getElementById("tab_"+t.id)){
+        const el=document.createElement("div");
+        el.className="tab"; el.id="tab_"+t.id; el.dataset.id=t.id;
+        el.innerHTML = `<span class="name">${t.name}</span><div class="chips">${t.chips.map(c=>`<span class="chip">${c}</span>`).join("")}</div><span class="handle">⋮⋮</span>`;
+        stage.appendChild(el);
+        makeDrag(el, "tab", t.id);
+      }
+    });
+    const pick=document.getElementById("pick");
+    pick.innerHTML="";
+    PARTS.forEach(p=>{
+      const b=document.createElement("button");
+      b.type="button"; b.textContent=p.lab;
+      b.className = state.active===p.id?"on":"";
+      b.onclick=()=>{ state.active=p.id; render(); };
+      pick.appendChild(b);
+    });
   }
 
   function apply(){
+    placeCharShadow();
+    ensureDOM();
     const r = stage.getBoundingClientRect();
-    const cs = state.char.size;
-    charEl.style.width = cs+"px";
-    charEl.style.height = cs+"px";
-    charEl.style.left = state.char.xPct+"%";
-    charEl.style.top = state.char.yPct+"%";
-    charEl.style.marginLeft = (-cs/2)+"px";
-    charEl.style.marginTop = (-cs/2)+"px";
+    PARTS.forEach(p=>{
+      const c = state.callouts[p.id];
+      const lab = document.getElementById("lab_"+p.id);
+      const pin = document.getElementById("pin_"+p.id);
+      lab.style.left = c.labX+"%";
+      lab.style.top = c.labY+"%";
+      lab.style.fontSize = state.labSize+"px";
+      lab.classList.toggle("on", state.active===p.id);
+      pin.style.left = c.pinX+"%";
+      pin.style.top = c.pinY+"%";
+    });
+    TABS.forEach(t=>{
+      const o = state.tabs[t.id];
+      const el = document.getElementById("tab_"+t.id);
+      el.style.left = o.xPct+"%";
+      el.style.top = o.yPct+"%";
+      el.style.width = o.wPct+"%";
+      el.style.minHeight = state.tabH+"px";
+    });
+    // lines
+    lines.innerHTML="";
+    lines.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
+    PARTS.forEach(p=>{
+      const c = state.callouts[p.id];
+      const x1 = c.labX/100*r.width + 30;
+      const y1 = c.labY/100*r.height + 18;
+      const x2 = c.pinX/100*r.width;
+      const y2 = c.pinY/100*r.height;
+      const line=document.createElementNS("http://www.w3.org/2000/svg","line");
+      line.setAttribute("x1",x1); line.setAttribute("y1",y1);
+      line.setAttribute("x2",x2); line.setAttribute("y2",y2);
+      line.setAttribute("stroke", state.active===p.id ? "#3d3d3a" : "#b0b0ac");
+      line.setAttribute("stroke-width", state.active===p.id ? "1.5" : "1");
+      lines.appendChild(line);
+    });
+    document.getElementById("labSizeVal").textContent = state.labSize;
+    document.getElementById("tabHVal").textContent = state.tabH;
+    document.getElementById("out").textContent = JSON.stringify(exportObj(), null, 2);
+    [...document.querySelectorAll("#pick button")].forEach((b,i)=>{
+      b.classList.toggle("on", PARTS[i].id===state.active);
+    });
+  }
 
-    shadowEl.style.width = state.shadow.w+"px";
-    shadowEl.style.height = state.shadow.h+"px";
-    shadowEl.style.left = state.shadow.xPct+"%";
-    shadowEl.style.top = state.shadow.yPct+"%";
-    shadowEl.style.marginLeft = (-state.shadow.w/2)+"px";
-    shadowEl.style.marginTop = (-state.shadow.h/2)+"px";
-    shadowEl.style.background = `rgba(0,0,0,${state.shadow.opacity})`;
+  function render(){ apply(); }
 
-    document.getElementById("charSize").value = state.char.size;
-    document.getElementById("charSizeVal").textContent = state.char.size;
-    document.getElementById("shW").value = state.shadow.w;
-    document.getElementById("shWVal").textContent = state.shadow.w;
-    document.getElementById("shH").value = state.shadow.h;
-    document.getElementById("shHVal").textContent = state.shadow.h;
-    document.getElementById("shOp").value = Math.round(state.shadow.opacity*100);
-    document.getElementById("shOpVal").textContent = Math.round(state.shadow.opacity*100)+"%";
-
-    document.getElementById("out").textContent = JSON.stringify({
-      step:1, stageW: Math.round(r.width), stageH: Math.round(r.height),
-      char: state.char, shadow: state.shadow
-    }, null, 2);
+  function makeDrag(el, kind, id){
+    let dragging=false, ox=0, oy=0;
+    const down=(e)=>{
+      const p=e.touches?e.touches[0]:e;
+      dragging=true; el.classList.add("drag");
+      if(kind!=="tab"){ state.active=id; }
+      const r=stage.getBoundingClientRect();
+      let xp, yp;
+      if(kind==="lab"){ xp=state.callouts[id].labX; yp=state.callouts[id].labY; }
+      else if(kind==="pin"){ xp=state.callouts[id].pinX; yp=state.callouts[id].pinY; }
+      else { xp=state.tabs[id].xPct; yp=state.tabs[id].yPct; }
+      ox = p.clientX - (r.left + xp/100*r.width);
+      oy = p.clientY - (r.top + yp/100*r.height);
+      e.preventDefault();
+      apply();
+    };
+    const move=(e)=>{
+      if(!dragging) return;
+      const p=e.touches?e.touches[0]:e;
+      const r=stage.getBoundingClientRect();
+      let x=p.clientX-r.left-ox, y=p.clientY-r.top-oy;
+      x=Math.max(0,Math.min(r.width,x)); y=Math.max(0,Math.min(r.height,y));
+      const xPct=+(x/r.width*100).toFixed(2);
+      const yPct=+(y/r.height*100).toFixed(2);
+      if(kind==="lab"){ state.callouts[id].labX=xPct; state.callouts[id].labY=yPct; }
+      else if(kind==="pin"){ state.callouts[id].pinX=xPct; state.callouts[id].pinY=yPct; }
+      else { state.tabs[id].xPct=xPct; state.tabs[id].yPct=yPct; }
+      apply(); e.preventDefault();
+    };
+    const up=()=>{ dragging=false; el.classList.remove("drag"); save(); };
+    el.addEventListener("pointerdown", down);
+    window.addEventListener("pointermove", move, {passive:false});
+    window.addEventListener("pointerup", up);
   }
 
   function exportObj(){
-    const r = stage.getBoundingClientRect();
+    const r=stage.getBoundingClientRect();
     return {
-      step: 1,
+      step:2,
       validatedAt: new Date().toISOString(),
-      stage: { w: Math.round(r.width), h: Math.round(r.height) },
-      char: { ...state.char },
-      shadow: { ...state.shadow },
+      stage:{w:Math.round(r.width), h:Math.round(r.height)},
+      step1: STEP1,
+      labSize: state.labSize,
+      tabH: state.tabH,
+      callouts: state.callouts,
+      tabs: state.tabs,
     };
   }
-
-  function saveLocal(){
-    try{ localStorage.setItem(KEY, JSON.stringify(exportObj())); }catch(_e){}
-  }
-
-  function loadLocal(){
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(exportObj())); }catch(_e){} }
+  function load(){
+    const d=defaults();
+    state.callouts=d.callouts; state.tabs=d.tabs;
     try{
-      const raw = localStorage.getItem(KEY);
+      const raw=localStorage.getItem(KEY);
       if(!raw) return;
-      const o = JSON.parse(raw);
-      if(o.char) Object.assign(state.char, o.char);
-      if(o.shadow) Object.assign(state.shadow, o.shadow);
+      const o=JSON.parse(raw);
+      if(o.callouts) state.callouts=o.callouts;
+      if(o.tabs) state.tabs=o.tabs;
+      if(o.labSize) state.labSize=o.labSize;
+      if(o.tabH) state.tabH=o.tabH;
     }catch(_e){}
   }
 
-  function makeDrag(el, which){
-    let dragging=false, ox=0, oy=0;
-    const onDown = (e)=>{
-      const p = e.touches ? e.touches[0] : e;
-      dragging=true; el.classList.add("drag");
-      const r = stage.getBoundingClientRect();
-      const cxp = (which==="char"?state.char.xPct:state.shadow.xPct)/100 * r.width;
-      const cyp = (which==="char"?state.char.yPct:state.shadow.yPct)/100 * r.height;
-      ox = p.clientX - (r.left + cxp);
-      oy = p.clientY - (r.top + cyp);
-      e.preventDefault();
-    };
-    const onMove = (e)=>{
-      if(!dragging) return;
-      const p = e.touches ? e.touches[0] : e;
-      const r = stage.getBoundingClientRect();
-      let x = p.clientX - r.left - ox;
-      let y = p.clientY - r.top - oy;
-      x = Math.max(0, Math.min(r.width, x));
-      y = Math.max(0, Math.min(r.height, y));
-      const xPct = +(x / r.width * 100).toFixed(2);
-      const yPct = +(y / r.height * 100).toFixed(2);
-      if(which==="char"){ state.char.xPct=xPct; state.char.yPct=yPct; }
-      else { state.shadow.xPct=xPct; state.shadow.yPct=yPct; }
-      apply();
-      e.preventDefault();
-    };
-    const onUp = ()=>{ dragging=false; el.classList.remove("drag"); saveLocal(); };
-    el.addEventListener("pointerdown", onDown);
-    window.addEventListener("pointermove", onMove, {passive:false});
-    window.addEventListener("pointerup", onUp);
-    el.addEventListener("touchstart", onDown, {passive:false});
-    window.addEventListener("touchmove", onMove, {passive:false});
-    window.addEventListener("touchend", onUp);
-  }
-
   async function drawChar(){
-    const urls = [
+    const urls=[
       BASE+"spritesheets/NakedBody/Idle.png",
       BASE+"spritesheets/Head1/Idle.png",
       BASE+"spritesheets/Chest1/Idle.png",
       BASE+"spritesheets/Legs1/Idle.png",
       BASE+"spritesheets/Shoes1/Idle.png",
     ];
-    const load = (src)=> new Promise(res=>{
-      const im=new Image(); im.crossOrigin="anonymous";
-      im.onload=()=>res(im); im.onerror=()=>res(null); im.src=src;
-    });
-    const imgs = await Promise.all(urls.map(load));
-    cx.clearRect(0,0,256,256);
-    cx.imageSmoothingEnabled=false;
-    const S=1.7, dw=FW*S, dh=FH*S, dx=(256-dw)/2, dy=20;
-    for(const im of imgs){
-      if(!im) continue;
-      try{ cx.drawImage(im, 0,0,FW,FH, dx,dy,dw,dh); }catch(_e){}
-    }
+    const loadImg=(src)=>new Promise(res=>{ const im=new Image(); im.crossOrigin="anonymous"; im.onload=()=>res(im); im.onerror=()=>res(null); im.src=src; });
+    const imgs=await Promise.all(urls.map(loadImg));
+    const cv=document.getElementById("cv"); const cx=cv.getContext("2d");
+    cx.clearRect(0,0,256,256); cx.imageSmoothingEnabled=false;
+    const S=1.7, dw=FW*S, dh=FH*S, dx=(256-dw)/2, dy=16;
+    for(const im of imgs){ if(im) try{ cx.drawImage(im,0,0,FW,FH,dx,dy,dw,dh);}catch(_e){} }
   }
 
-  document.getElementById("charSize").oninput = (e)=>{
-    state.char.size = +e.target.value; apply(); saveLocal();
+  document.getElementById("labSize").oninput=(e)=>{ state.labSize=+e.target.value; apply(); save(); };
+  document.getElementById("tabH").oninput=(e)=>{ state.tabH=+e.target.value; apply(); save(); };
+  document.getElementById("btnReset").onclick=()=>{
+    const d=defaults(); state.callouts=d.callouts; state.tabs=d.tabs; state.labSize=12; state.tabH=48;
+    document.getElementById("labSize").value=12; document.getElementById("tabH").value=48;
+    apply(); save(); toast("Reset");
   };
-  document.getElementById("shW").oninput = (e)=>{
-    state.shadow.w = +e.target.value; apply(); saveLocal();
+  document.getElementById("btnCopy").onclick=async()=>{
+    const json=JSON.stringify(exportObj(),null,2);
+    try{ await navigator.clipboard.writeText(json); toast("JSON copié ✓"); }
+    catch(_e){ prompt("Copie :", json); }
   };
-  document.getElementById("shH").oninput = (e)=>{
-    state.shadow.h = +e.target.value; apply(); saveLocal();
-  };
-  document.getElementById("shOp").oninput = (e)=>{
-    state.shadow.opacity = (+e.target.value)/100; apply(); saveLocal();
-  };
-
-  document.getElementById("btnReset").onclick = ()=>{
-    state.char = { xPct:50, yPct:42, size:220 };
-    state.shadow = { xPct:50, yPct:72, w:150, h:34, opacity:0.22 };
-    apply(); saveLocal(); toast("Reset");
-  };
-  document.getElementById("btnCopy").onclick = async ()=>{
-    const json = JSON.stringify(exportObj(), null, 2);
-    try{
-      await navigator.clipboard.writeText(json);
-      toast("JSON copié ✓");
-    }catch(_e){
-      prompt("Copie ce JSON :", json);
-    }
-  };
-  document.getElementById("btnOk").onclick = ()=>{
-    const obj = exportObj();
-    obj.validated = true;
+  document.getElementById("btnOk").onclick=()=>{
+    const obj=exportObj(); obj.validated=true;
     try{ localStorage.setItem(KEY, JSON.stringify(obj)); }catch(_e){}
-    const json = JSON.stringify(obj, null, 2);
-    document.getElementById("out").textContent = json;
-    try{ navigator.clipboard.writeText(json); }catch(_e){}
-    toast("Validé — envoie-moi le JSON (ou dis OK) ✓");
-    alert("Étape 1 validée ✓\n\nLe JSON est affiché en bas (et copié si possible).\nEnvoie-le moi ou dis juste « OK » et on passe aux onglets / lignes.");
+    document.getElementById("out").textContent=JSON.stringify(obj,null,2);
+    try{ navigator.clipboard.writeText(JSON.stringify(obj,null,2)); }catch(_e){}
+    toast("Étape 2 validée ✓");
+    alert("Étape 2 validée ✓\n\nEnvoie-moi le JSON (Copier JSON) et j’applique tout dans le créateur.");
   };
 
-  makeDrag(charEl, "char");
-  makeDrag(shadowEl, "shadow");
-  loadLocal();
+  load();
   apply();
   drawChar();
   window.addEventListener("resize", apply);

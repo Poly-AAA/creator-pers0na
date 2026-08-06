@@ -23,7 +23,7 @@
   }
   .stage-main{position:relative; width:100%; flex:1; min-height:0; display:flex; align-items:center; justify-content:center}
   canvas#stage{
-    width:min(92vw, 380px); height:auto; aspect-ratio:1;
+    width:100%; height:auto; max-height:100%; aspect-ratio:1;
     image-rendering:pixelated; background:transparent; touch-action:none; display:block;
   }
   .callouts{position:absolute; inset:0; pointer-events:none; z-index:3}
@@ -317,23 +317,31 @@
     const W=stage.width, H=stage.height;
     cx.clearRect(0,0,W,H);
 
-    // Sprite grand, centré ; pieds ancrés pour l'ombre
-    const scale = 2.15;
+    // Placement validé étape 1 (éditeur layout — stage ~370×344)
+    const LAY = {
+      char:{ xPct:47.93, yPct:58.97, sizePct:320/370 },
+      shadow:{ xPct:50, yPct:72, wPct:60/370, hPct:34/344, opacity:0.05 }
+    };
+    const charSize = W * LAY.char.sizePct;
+    const scale = charSize / FW;
     const dw = FW*scale, dh = FH*scale;
-    const footFromTop = 108 * scale; // point des pieds dans le frame
-    const ox = W/2;
-    const feetY = H * 0.82;
+    const ox = W * (LAY.char.xPct/100);
+    const oy = H * (LAY.char.yPct/100);
     const dx = ox - dw/2;
-    const dy = feetY - footFromTop;
-    state.drawRect = { dx, dy, dw, dh, feetX: ox, feetY, scale };
+    const dy = oy - dh/2;
+    const shX = W * (LAY.shadow.xPct/100);
+    const shY = H * (LAY.shadow.yPct/100);
+    const shRx = (W * LAY.shadow.wPct) / 2;
+    const shRy = (H * LAY.shadow.hPct) / 2;
+    state.drawRect = { dx, dy, dw, dh, feetX: shX, feetY: shY, scale };
 
-    // Ombre sous les pieds
-    const grd = cx.createRadialGradient(ox, feetY, 2, ox, feetY, dw*0.28);
-    grd.addColorStop(0, "rgba(0,0,0,.18)");
+    // Ombre (placement user)
+    const grd = cx.createRadialGradient(shX, shY, 1, shX, shY, Math.max(shRx, shRy));
+    grd.addColorStop(0, `rgba(0,0,0,${LAY.shadow.opacity})`);
     grd.addColorStop(1, "rgba(0,0,0,0)");
     cx.fillStyle = grd;
     cx.beginPath();
-    cx.ellipse(ox, feetY, dw*0.26, dh*0.055, 0, 0, Math.PI*2);
+    cx.ellipse(shX, shY, shRx, shRy, 0, 0, Math.PI*2);
     cx.fill();
 
     const layers=layersForRow(row);
