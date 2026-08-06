@@ -24,27 +24,34 @@
   .preview-box{display:flex; flex-direction:column; align-items:center; gap:10px}
   canvas#stage{width:min(100%,320px); aspect-ratio:1; background:#070b10; border-radius:12px; border:1px solid var(--line); image-rendering:pixelated}
   .toolbar{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; width:100%}
-  .toolbar button, .toolbar select, .slot button, .foot button{
+  .toolbar button, .slot button, .foot button{
     border:1px solid var(--line); background:#1a2834; color:var(--text); border-radius:8px;
     padding:7px 10px; cursor:pointer; font-size:12px}
   .toolbar button.on, .slot button.on{border-color:var(--accent); color:var(--accent2); background:#2a1a12}
   .toolbar button:hover, .slot button:hover, .foot button:hover{border-color:var(--accent2)}
+  .fps-row{width:100%; display:flex; align-items:center; gap:10px; padding:4px 2px}
+  .fps-row label{font-size:12px; color:var(--muted); white-space:nowrap; min-width:4.5em}
+  .fps-row input[type=range]{flex:1; accent-color:var(--accent)}
+  .fps-row #fpsVal{font-variant-numeric:tabular-nums; min-width:2.5em; color:var(--accent2); font-size:13px}
   .slots{display:flex; flex-direction:column; gap:10px; max-height:min(72vh,760px); overflow:auto; padding-right:4px}
   .slot{border:1px solid var(--line); border-radius:10px; padding:8px 9px; background:rgba(10,20,30,.55)}
-  .slot .lab{font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
+  .slot-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px}
+  .slot .lab{font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--muted)}
+  .slot-color{display:flex; align-items:center; gap:6px}
+  .slot-color input[type=color]{width:28px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:transparent;cursor:pointer}
+  .slot-color button{font-size:10px; padding:4px 7px}
   .opts{display:flex; flex-wrap:wrap; gap:5px}
   .opts button{font-size:11px; padding:5px 8px}
   .foot{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
   .status{font-size:12px; color:var(--muted); text-align:center; min-height:1.2em}
   .hint{font-size:11px; color:var(--muted); margin-top:8px}
-  a{color:var(--accent2)}
 </style>
 </head>
 <body>
 <header>
   <div>
     <h1>Fantasy Character Creator</h1>
-    <p>Pack SmallScaleInt V1.3 — couches modulaires 128×128 (Idle / Walk / Attack1). Pas de mannequin PixelLab.</p>
+    <p>Couches 128×128 — FPS global + teinte couleur par élément (multiply, lisible sur fond sombre).</p>
   </div>
   <div class="hint">Assets : <code>assets/packs/fantasy-cc/</code></div>
 </header>
@@ -57,10 +64,11 @@
       <button type="button" data-anim="Attack1">Attack1</button>
       <button type="button" id="dirPrev">◀ Dir</button>
       <button type="button" id="dirNext">Dir ▶</button>
-      <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px">
-        Skin
-        <input type="color" id="skin" value="#d4a574" style="width:36px;height:28px;border:0;background:transparent;cursor:pointer"/>
-      </label>
+    </div>
+    <div class="fps-row">
+      <label for="fps">FPS</label>
+      <input type="range" id="fps" min="1" max="30" value="10" step="1"/>
+      <span id="fpsVal">10</span>
     </div>
     <div class="status" id="status">Chargement catalogue…</div>
     <div class="foot">
@@ -77,24 +85,38 @@
 <script>
 (function(){
   const BASE_LOCAL = "assets/packs/fantasy-cc/";
-  // CDN pinned after push — updated by commit hash when available
   const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@c9e8700/assets/packs/fantasy-cc/";
 
-  const FW = 128, FH = 128, COLS = 15, ROWS = 8;
-  // Identity map: game dir 0..7 → sheet row (calibrate if needed)
+  const FW = 128, FH = 128, COLS = 15;
   const DIR_ROW = [0,1,2,3,4,5,6,7];
 
-  // Unity combine order + per-row weapon/shield / backpack policies
-  const LAYER_KEYS = ["shadow","body","shoes","legs","chest","belt","gloves","offhand","weapon","backpack","head","slash","effect","mount"];
   let weaponAfterShieldRows = [true,true,true,false,false,false,false,true];
   let backpackInFrontRows = [true,false,false,false,false,true,true,true];
+
+  /** Couleurs par défaut lisibles (évite le blanc cassé sur fond sombre). */
+  const DEFAULT_COLORS = {
+    body: "#d4a574",
+    shoes: "#3a3230",
+    legs: "#3e4f63",
+    chest: "#5b7c99",
+    belt: "#8b6914",
+    gloves: "#6a5a4e",
+    offhand: "#6b8f71",
+    weapon: "#9aa8b8",
+    backpack: "#7a5c3a",
+    head: "#e0b878",
+    slash: "#e8590c",
+    effect: "#5ec8ff",
+    mount: "#8a7060",
+  };
 
   const state = {
     catalog: null,
     look: {},
+    colors: {},
     anim: "Idle",
     dir: 0,
-    skin: "#d4a574",
+    fps: 10,
     cache: new Map(),
     raf: 0,
     frame: 0,
@@ -132,12 +154,15 @@
     return p;
   }
 
+  function defaultColors(){
+    return Object.assign({}, DEFAULT_COLORS);
+  }
+
   function defaultLook(cat){
     const look = {};
     for(const s of cat.slots){
       look[s.id] = s.required ? (s.folders[0]||"NakedBody") : "None";
     }
-    // sensible starter
     look.body = "NakedBody";
     look.chest = "Chest1";
     look.legs = "Legs1";
@@ -153,62 +178,64 @@
     return (!v || v === "None") ? null : v;
   }
 
-  /** Build draw list for a sheet row (0..7), respecting Unity policies. */
+  function tintFor(slotId){
+    const c = state.colors[slotId];
+    if(!c || c === "#ffffff" || c === "#FFFFFF") return null;
+    return c;
+  }
+
   function layersForRow(row){
     const L = [];
     L.push({ key:"shadow", folder: state.catalog.shadowFolder || "Shadow", tint:null });
-    L.push({ key:"body", folder: folderFor("body"), tint: state.skin });
-    L.push({ key:"shoes", folder: folderFor("shoes"), tint:null });
-    L.push({ key:"legs", folder: folderFor("legs"), tint:null });
-    L.push({ key:"chest", folder: folderFor("chest"), tint:null });
-    L.push({ key:"belt", folder: folderFor("belt"), tint:null });
-    L.push({ key:"gloves", folder: folderFor("gloves"), tint:null });
+    L.push({ key:"body", folder: folderFor("body"), tint: tintFor("body") });
+    for(const id of ["shoes","legs","chest","belt","gloves"]){
+      const f = folderFor(id); if(f) L.push({ key:id, folder:f, tint: tintFor(id) });
+    }
 
     const shield = folderFor("offhand");
     const weapon = folderFor("weapon");
     const bag = folderFor("backpack");
     const wAfter = !!weaponAfterShieldRows[row|0];
     const bagFront = !!backpackInFrontRows[row|0];
-
     const mid = [];
     if(wAfter){
-      if(shield) mid.push({ key:"offhand", folder:shield, tint:null });
-      if(weapon) mid.push({ key:"weapon", folder:weapon, tint:null });
+      if(shield) mid.push({ key:"offhand", folder:shield, tint: tintFor("offhand") });
+      if(weapon) mid.push({ key:"weapon", folder:weapon, tint: tintFor("weapon") });
     } else {
-      if(weapon) mid.push({ key:"weapon", folder:weapon, tint:null });
-      if(shield) mid.push({ key:"offhand", folder:shield, tint:null });
+      if(weapon) mid.push({ key:"weapon", folder:weapon, tint: tintFor("weapon") });
+      if(shield) mid.push({ key:"offhand", folder:shield, tint: tintFor("offhand") });
     }
     if(bag){
-      if(bagFront) mid.push({ key:"backpack", folder:bag, tint:null });
-      else mid.unshift({ key:"backpack", folder:bag, tint:null });
+      const item = { key:"backpack", folder:bag, tint: tintFor("backpack") };
+      if(bagFront) mid.push(item); else mid.unshift(item);
     }
     L.push(...mid);
 
-    L.push({ key:"head", folder: folderFor("head"), tint:null });
-    L.push({ key:"slash", folder: folderFor("slash"), tint:null });
-    L.push({ key:"effect", folder: folderFor("effect"), tint:null });
-    // Mount drawn behind body would be better; keep last as optional overlay for now
+    for(const id of ["head","slash","effect"]){
+      const f = folderFor(id); if(f) L.push({ key:id, folder:f, tint: tintFor(id) });
+    }
     const mount = folderFor("mount");
-    if(mount) L.unshift({ key:"mount", folder:mount, tint:null });
+    if(mount) L.unshift({ key:"mount", folder:mount, tint: tintFor("mount") });
     return L.filter(x=> x.folder);
   }
 
+  /** Multiply + destination-in : recolore le blanc sans casser l’alpha. */
   function tintDraw(img, sx,sy,sw,sh, dx,dy,dw,dh, tintHex){
     if(!tintHex){
       cx.drawImage(img, sx,sy,sw,sh, dx,dy,dw,dh);
       return;
     }
     const tmp = document.createElement("canvas");
-    tmp.width = dw; tmp.height = dh;
+    tmp.width = Math.max(1, Math.round(dw));
+    tmp.height = Math.max(1, Math.round(dh));
     const t = tmp.getContext("2d");
     t.imageSmoothingEnabled = false;
-    t.drawImage(img, sx,sy,sw,sh, 0,0,dw,dh);
-    t.globalCompositeOperation = "source-atop";
+    t.drawImage(img, sx,sy,sw,sh, 0,0,tmp.width,tmp.height);
+    t.globalCompositeOperation = "multiply";
     t.fillStyle = tintHex;
-    t.globalAlpha = 0.35;
-    t.fillRect(0,0,dw,dh);
-    t.globalAlpha = 1;
-    t.globalCompositeOperation = "source-over";
+    t.fillRect(0,0,tmp.width,tmp.height);
+    t.globalCompositeOperation = "destination-in";
+    t.drawImage(img, sx,sy,sw,sh, 0,0,tmp.width,tmp.height);
     cx.drawImage(tmp, dx, dy);
   }
 
@@ -218,18 +245,20 @@
     const row = DIR_ROW[state.dir|0]|0;
     const cols = COLS;
     const anim = state.anim;
-    // frame advance ~10 fps
+    const fps = Math.max(1, state.fps|0);
+    const interval = 1000 / fps;
     const now = performance.now();
-    if(now - state.lastT > 100){
-      state.frame = (state.frame + 1) % cols;
-      state.lastT = now;
+    if(now - state.lastT > interval){
+      const steps = Math.floor((now - state.lastT) / interval);
+      state.frame = (state.frame + steps) % cols;
+      state.lastT += steps * interval;
+      if(now - state.lastT > interval * 2) state.lastT = now;
     }
     const col = state.frame;
     const W = stage.width, H = stage.height;
     cx.clearRect(0,0,W,H);
     cx.fillStyle = "#0a1420";
     cx.fillRect(0,0,W,H);
-    // iso tiles
     const tw=40, th=20, ox=W/2, oy=H/2+36;
     for(let c=-1;c<=1;c++) for(let r=-1;r<=1;r++){
       const x = ox+(c-r)*tw/2, y = oy+(c+r)*th/2;
@@ -252,7 +281,7 @@
       if(!im || !im.complete || !im.naturalWidth){ missing++; continue; }
       tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, layers[i].tint);
     }
-    el("status").textContent = `${anim} · dir ${state.dir} (row ${row}) · frame ${col+1}/${cols}` +
+    el("status").textContent = `${anim} · ${fps} fps · dir ${state.dir} · frame ${col+1}/${cols}` +
       (missing ? ` · ${missing} couche(s) manquante(s)` : "");
   }
 
@@ -267,9 +296,33 @@
     for(const s of state.catalog.slots){
       const box = document.createElement("div");
       box.className = "slot";
+
+      const head = document.createElement("div");
+      head.className = "slot-head";
       const lab = document.createElement("div");
       lab.className = "lab";
       lab.textContent = s.lab + (s.required ? " *" : "");
+
+      const colorWrap = document.createElement("div");
+      colorWrap.className = "slot-color";
+      const col = document.createElement("input");
+      col.type = "color";
+      col.title = "Teinte " + s.lab;
+      col.value = state.colors[s.id] || DEFAULT_COLORS[s.id] || "#888888";
+      col.oninput = ()=>{ state.colors[s.id] = col.value; };
+      const clear = document.createElement("button");
+      clear.type = "button";
+      clear.textContent = "Orig.";
+      clear.title = "Couleur d’origine (sans teinte)";
+      clear.onclick = ()=>{
+        state.colors[s.id] = "#ffffff";
+        col.value = "#ffffff";
+      };
+      colorWrap.appendChild(col);
+      colorWrap.appendChild(clear);
+      head.appendChild(lab);
+      head.appendChild(colorWrap);
+
       const opts = document.createElement("div");
       opts.className = "opts";
       const cur = state.look[s.id];
@@ -284,7 +337,8 @@
         };
         opts.appendChild(b);
       }
-      box.appendChild(lab); box.appendChild(opts);
+      box.appendChild(head);
+      box.appendChild(opts);
       root.appendChild(box);
     }
   }
@@ -299,21 +353,48 @@
     });
     el("dirPrev").onclick = ()=> { state.dir = (state.dir + 7) % 8; };
     el("dirNext").onclick = ()=> { state.dir = (state.dir + 1) % 8; };
-    el("skin").oninput = (e)=> { state.skin = e.target.value; };
+    const fps = el("fps");
+    const fpsVal = el("fpsVal");
+    const syncFps = ()=>{
+      state.fps = Math.max(1, parseInt(fps.value,10)||10);
+      fpsVal.textContent = String(state.fps);
+    };
+    fps.oninput = syncFps;
+    syncFps();
+
     el("btnRandom").onclick = ()=>{
       for(const s of state.catalog.slots){
         const opts = s.folders;
         state.look[s.id] = opts[Math.floor(Math.random()*opts.length)];
+        const base = DEFAULT_COLORS[s.id] || "#888888";
+        // légère variation aléatoire de teinte
+        const n = parseInt(base.slice(1),16);
+        const j = ()=> Math.max(0, Math.min(255, ((n>>16)&255) + (Math.random()*60-30)|0));
+        // keep structured random from defaults
+        state.colors[s.id] = base;
+      }
+      // randomize colors more visibly
+      const palette = ["#d4a574","#5b7c99","#6b8f71","#c45c26","#9aa8b8","#8b6914","#a06bff","#e8590c","#3e4f63","#e0b878"];
+      for(const s of state.catalog.slots){
+        if(Math.random() < 0.7) state.colors[s.id] = palette[Math.floor(Math.random()*palette.length)];
       }
       if(!folderFor("body")) state.look.body = "NakedBody";
       renderSlots();
     };
     el("btnReset").onclick = ()=>{
       state.look = defaultLook(state.catalog);
+      state.colors = defaultColors();
       renderSlots();
     };
     el("btnExport").onclick = ()=>{
-      const payload = { pack:"fantasy-cc", look: state.look, skin: state.skin, anim: state.anim, dir: state.dir };
+      const payload = {
+        pack:"fantasy-cc",
+        look: state.look,
+        colors: state.colors,
+        fps: state.fps,
+        anim: state.anim,
+        dir: state.dir
+      };
       const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -339,18 +420,22 @@
     state.catalog = cat;
     if(cat.weaponAfterShieldRows) weaponAfterShieldRows = cat.weaponAfterShieldRows;
     if(cat.backpackInFrontRows) backpackInFrontRows = cat.backpackInFrontRows;
+    state.colors = defaultColors();
     try{
       const raw = localStorage.getItem("neuro.fantasyLook");
       if(raw){
         const o = JSON.parse(raw);
-        if(o && o.look){ state.look = o.look; if(o.skin) state.skin = o.skin; }
+        if(o && o.look){
+          state.look = o.look;
+          if(o.colors) state.colors = Object.assign(defaultColors(), o.colors);
+          else if(o.skin) state.colors.body = o.skin;
+          if(o.fps) { state.fps = o.fps|0; el("fps").value = String(state.fps); }
+        }
       }
     }catch(_e){}
     if(!state.look.body) state.look = defaultLook(cat);
-    el("skin").value = state.skin;
     bindToolbar();
     renderSlots();
-    // preload body idle
     await loadImg(folderFor("body")||"NakedBody", "Idle");
     loop();
   }

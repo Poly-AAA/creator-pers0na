@@ -554,7 +554,11 @@ aside.side{
 .char-preview canvas{width:100%;max-width:180px;aspect-ratio:1;image-rendering:pixelated;background:#070b10;border-radius:8px}
 .char-slots{overflow:auto;min-height:0;display:flex;flex-direction:column;gap:8px;padding-right:2px}
 .char-slot{border:1px solid #2a3548;border-radius:10px;padding:8px;background:rgba(10,24,38,.55)}
-.char-slot .lab{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#8fa3b8;margin-bottom:6px}
+.char-slot .lab{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#8fa3b8}
+.char-slot-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.char-slot-color{display:flex;align-items:center;gap:5px}
+.char-slot-color input[type=color]{width:26px;height:26px;padding:0;border:1px solid #2a3548;border-radius:6px;background:transparent;cursor:pointer}
+.char-slot-color button{border:1px solid #2a3548;background:#1a2330;color:#eaf2ff;border-radius:6px;padding:3px 6px;font-size:10px;cursor:pointer}
 .char-opts{display:flex;flex-wrap:wrap;gap:5px}
 .char-opts button{border:1px solid #2a3548;background:#1a2330;color:#eaf2ff;border-radius:8px;
   font-size:11px;padding:6px 8px;cursor:pointer;min-height:34px}
@@ -1175,6 +1179,11 @@ aside.side{
           <button type="button" id="charDirPrev">◀</button>
           <button type="button" id="charDirNext">▶</button>
         </div>
+        <label style="display:flex;align-items:center;gap:8px;width:100%;margin-top:8px;font-size:11px;color:var(--acier-clair)">
+          FPS
+          <input type="range" id="charFps" min="1" max="30" value="10" step="1" style="flex:1;accent-color:#E8590C"/>
+          <span id="charFpsVal" style="min-width:2em;color:#ffc29a">10</span>
+        </label>
         <div id="charSummary" style="font-size:10px;color:var(--acier-clair);text-align:center;line-height:1.4;margin-top:6px"></div>
       </div>
       <div class="char-slots" id="charSlots"></div>
@@ -6839,8 +6848,14 @@ const CharCreator = {
   DIR_ROW: [0,1,2,3,4,5,6,7],
   weaponAfterShieldRows: [true,true,true,false,false,false,false,true],
   backpackInFrontRows: [true,false,false,false,false,true,true,true],
+  DEFAULT_COLORS: {
+    body: "#d4a574", shoes: "#3a3230", legs: "#3e4f63", chest: "#5b7c99",
+    belt: "#8b6914", gloves: "#6a5a4e", offhand: "#6b8f71", weapon: "#9aa8b8",
+    backpack: "#7a5c3a", head: "#e0b878", slash: "#e8590c", effect: "#5ec8ff", mount: "#8a7060",
+  },
   look: null,
-  skin: "#d4a574",
+  colors: null,
+  fps: 10,
   catalog: null,
   _cache: new Map(),
   _dir: 0,
@@ -6850,8 +6865,9 @@ const CharCreator = {
   _raf: 0,
   _ready: false,
 
-  SLOTS: [], // rempli depuis catalog.json
+  SLOTS: [],
 
+  defaultColors(){ return Object.assign({}, CharCreator.DEFAULT_COLORS); },
   defaultLook(){
     const o = {};
     for(const s of CharCreator.SLOTS){
@@ -6872,6 +6888,11 @@ const CharCreator = {
   },
   label(slotId){
     return CharCreator.folder(slotId) || "None";
+  },
+  tintFor(slotId){
+    const c = CharCreator.colors && CharCreator.colors[slotId];
+    if(!c || c === "#ffffff" || c === "#FFFFFF") return null;
+    return c;
   },
   /** Teinte combat (fallback pack jeu) — effet équipé. */
   cssFilter(){
@@ -6901,7 +6922,6 @@ const CharCreator = {
         return cat;
       }catch(_e){}
     }
-    // fallback minimal si catalogue inaccessible
     CharCreator.SLOTS = [
       { id:"body", lab:"Body", folders:["NakedBody","NakedBody2","NakedBody3"], required:true, opts:["NakedBody","NakedBody2","NakedBody3"] },
       { id:"head", lab:"Head", folders:["None","Head1","Head2","Head3"], required:false, opts:["None","Head1","Head2","Head3"] },
@@ -6917,20 +6937,22 @@ const CharCreator = {
   },
 
   load(){
+    if(!CharCreator.colors) CharCreator.colors = CharCreator.defaultColors();
     try{
       const rawF = localStorage.getItem(CharCreator.KEY_FANTASY);
       if(rawF){
         const o = JSON.parse(rawF);
         if(o && o.look){
           CharCreator.look = Object.assign(CharCreator.defaultLook(), o.look);
-          if(o.skin) CharCreator.skin = o.skin;
+          if(o.colors) CharCreator.colors = Object.assign(CharCreator.defaultColors(), o.colors);
+          else if(o.skin) CharCreator.colors.body = o.skin;
+          if(o.fps) CharCreator.fps = Math.max(1, o.fps|0);
           return;
         }
       }
       const raw = localStorage.getItem(CharCreator.KEY);
       if(raw){
         const o = JSON.parse(raw);
-        // migrate old index-based look → ignore, use defaults
         if(o && typeof o === "object" && typeof o.body === "string"){
           CharCreator.look = Object.assign(CharCreator.defaultLook(), o);
           return;
@@ -6938,9 +6960,15 @@ const CharCreator = {
       }
     }catch(_e){}
     CharCreator.look = CharCreator.defaultLook();
+    CharCreator.colors = CharCreator.defaultColors();
   },
   save(){
-    const payload = { pack:"fantasy-cc", look: CharCreator.look||CharCreator.defaultLook(), skin: CharCreator.skin };
+    const payload = {
+      pack:"fantasy-cc",
+      look: CharCreator.look||CharCreator.defaultLook(),
+      colors: CharCreator.colors||CharCreator.defaultColors(),
+      fps: CharCreator.fps
+    };
     try{ localStorage.setItem(CharCreator.KEY_FANTASY, JSON.stringify(payload)); }catch(_e){}
     try{ localStorage.setItem(CharCreator.KEY, JSON.stringify(payload.look)); }catch(_e){}
   },
@@ -6972,9 +7000,9 @@ const CharCreator = {
     const shadow = (CharCreator.catalog && CharCreator.catalog.shadowFolder) || "Shadow";
     L.push({ folder: shadow, tint: null });
     const body = CharCreator.folder("body");
-    if(body) L.push({ folder: body, tint: CharCreator.skin });
+    if(body) L.push({ folder: body, tint: CharCreator.tintFor("body") });
     for(const id of ["shoes","legs","chest","belt","gloves"]){
-      const f = CharCreator.folder(id); if(f) L.push({ folder:f, tint:null });
+      const f = CharCreator.folder(id); if(f) L.push({ folder:f, tint: CharCreator.tintFor(id) });
     }
     const shield = CharCreator.folder("offhand");
     const weapon = CharCreator.folder("weapon");
@@ -6982,30 +7010,39 @@ const CharCreator = {
     const wAfter = !!CharCreator.weaponAfterShieldRows[row|0];
     const bagFront = !!CharCreator.backpackInFrontRows[row|0];
     const mid = [];
-    if(wAfter){ if(shield) mid.push({folder:shield,tint:null}); if(weapon) mid.push({folder:weapon,tint:null}); }
-    else { if(weapon) mid.push({folder:weapon,tint:null}); if(shield) mid.push({folder:shield,tint:null}); }
-    if(bag){ if(bagFront) mid.push({folder:bag,tint:null}); else mid.unshift({folder:bag,tint:null}); }
+    if(wAfter){
+      if(shield) mid.push({folder:shield, tint: CharCreator.tintFor("offhand")});
+      if(weapon) mid.push({folder:weapon, tint: CharCreator.tintFor("weapon")});
+    } else {
+      if(weapon) mid.push({folder:weapon, tint: CharCreator.tintFor("weapon")});
+      if(shield) mid.push({folder:shield, tint: CharCreator.tintFor("offhand")});
+    }
+    if(bag){
+      const item = {folder:bag, tint: CharCreator.tintFor("backpack")};
+      if(bagFront) mid.push(item); else mid.unshift(item);
+    }
     L.push(...mid);
     for(const id of ["head","slash","effect"]){
-      const f = CharCreator.folder(id); if(f) L.push({ folder:f, tint:null });
+      const f = CharCreator.folder(id); if(f) L.push({ folder:f, tint: CharCreator.tintFor(id) });
     }
     const mount = CharCreator.folder("mount");
-    if(mount) L.unshift({ folder:mount, tint:null });
+    if(mount) L.unshift({ folder:mount, tint: CharCreator.tintFor("mount") });
     return L;
   },
 
   tintDraw(cx, img, sx,sy,sw,sh, dx,dy,dw,dh, tintHex){
     if(!tintHex){ cx.drawImage(img, sx,sy,sw,sh, dx,dy,dw,dh); return; }
     const tmp = document.createElement("canvas");
-    tmp.width = dw; tmp.height = dh;
+    tmp.width = Math.max(1, Math.round(dw));
+    tmp.height = Math.max(1, Math.round(dh));
     const t = tmp.getContext("2d");
     t.imageSmoothingEnabled = false;
-    t.drawImage(img, sx,sy,sw,sh, 0,0,dw,dh);
-    t.globalCompositeOperation = "source-atop";
+    t.drawImage(img, sx,sy,sw,sh, 0,0,tmp.width,tmp.height);
+    t.globalCompositeOperation = "multiply";
     t.fillStyle = tintHex;
-    t.globalAlpha = 0.35;
-    t.fillRect(0,0,dw,dh);
-    t.globalAlpha = 1;
+    t.fillRect(0,0,tmp.width,tmp.height);
+    t.globalCompositeOperation = "destination-in";
+    t.drawImage(img, sx,sy,sw,sh, 0,0,tmp.width,tmp.height);
     cx.drawImage(tmp, dx, dy);
   },
 
@@ -7014,10 +7051,12 @@ const CharCreator = {
     UI.show("charCreateOverlay");
     CharCreator.ensureCatalog().then(()=>{
       CharCreator.load();
+      const fpsEl = UI.el("charFps");
+      const fpsVal = UI.el("charFpsVal");
+      if(fpsEl){ fpsEl.value = String(CharCreator.fps); if(fpsVal) fpsVal.textContent = String(CharCreator.fps); }
       CharCreator.renderUI();
       CharCreator._ready = true;
       CharCreator.startPreview();
-      // warm body sheet
       const b = CharCreator.folder("body") || "NakedBody";
       CharCreator.loadImg(b, CharCreator._anim);
     });
@@ -7030,13 +7069,31 @@ const CharCreator = {
 
   renderUI(){
     const root = UI.el("charSlots"); if(!root) return;
+    if(!CharCreator.colors) CharCreator.colors = CharCreator.defaultColors();
     root.innerHTML = "";
     for(const s of CharCreator.SLOTS){
       const box = document.createElement("div");
       box.className = "char-slot";
+      const head = document.createElement("div");
+      head.className = "char-slot-head";
       const lab = document.createElement("div");
       lab.className = "lab";
       lab.textContent = s.lab + (s.required ? " *" : "");
+      const colorWrap = document.createElement("div");
+      colorWrap.className = "char-slot-color";
+      const col = document.createElement("input");
+      col.type = "color";
+      col.value = CharCreator.colors[s.id] || CharCreator.DEFAULT_COLORS[s.id] || "#888888";
+      col.title = "Teinte " + s.lab;
+      col.oninput = ()=>{ CharCreator.colors[s.id] = col.value; };
+      const clear = document.createElement("button");
+      clear.type = "button";
+      clear.textContent = "Orig.";
+      clear.title = "Sans teinte";
+      clear.onclick = ()=>{ CharCreator.colors[s.id] = "#ffffff"; col.value = "#ffffff"; };
+      colorWrap.appendChild(col); colorWrap.appendChild(clear);
+      head.appendChild(lab); head.appendChild(colorWrap);
+
       const opts = document.createElement("div");
       opts.className = "char-opts";
       const cur = CharCreator.look[s.id];
@@ -7051,7 +7108,7 @@ const CharCreator = {
         };
         opts.appendChild(b);
       });
-      box.appendChild(lab); box.appendChild(opts);
+      box.appendChild(head); box.appendChild(opts);
       root.appendChild(box);
     }
     CharCreator.syncSummary();
@@ -7061,7 +7118,7 @@ const CharCreator = {
     el.innerHTML = [
       CharCreator.label("body"), CharCreator.label("head"), CharCreator.label("chest"),
       CharCreator.label("weapon"), CharCreator.label("effect")
-    ].join(" · ") + `<br>dir ${CharCreator._dir} · ${CharCreator._anim}`;
+    ].join(" · ") + `<br>dir ${CharCreator._dir} · ${CharCreator._anim} · ${CharCreator.fps} fps`;
   },
   startPreview(){
     if(CharCreator._raf) cancelAnimationFrame(CharCreator._raf);
@@ -7089,10 +7146,14 @@ const CharCreator = {
       cx.fillStyle="#8fa3b8"; cx.font="12px sans-serif"; cx.fillText("Chargement…", W/2-36, H/2);
       return;
     }
+    const fps = Math.max(1, CharCreator.fps|0);
+    const interval = 1000 / fps;
     const now = performance.now();
-    if(now - CharCreator._lastT > 100){
-      CharCreator._frame = (CharCreator._frame + 1) % CharCreator.COLS;
-      CharCreator._lastT = now;
+    if(now - CharCreator._lastT > interval){
+      const steps = Math.floor((now - CharCreator._lastT) / interval);
+      CharCreator._frame = (CharCreator._frame + steps) % CharCreator.COLS;
+      CharCreator._lastT += steps * interval;
+      if(now - CharCreator._lastT > interval * 2) CharCreator._lastT = now;
     }
     const row = CharCreator.DIR_ROW[CharCreator._dir|0]|0;
     const col = CharCreator._frame;
@@ -7111,10 +7172,13 @@ const CharCreator = {
   },
   randomize(){
     CharCreator.look = CharCreator.defaultLook();
+    CharCreator.colors = CharCreator.defaultColors();
+    const palette = ["#d4a574","#5b7c99","#6b8f71","#c45c26","#9aa8b8","#8b6914","#a06bff","#e8590c","#3e4f63","#e0b878"];
     for(const s of CharCreator.SLOTS){
       const opts = s.folders || s.opts || [];
       if(!opts.length) continue;
       CharCreator.look[s.id] = opts[Math.floor(Math.random()*opts.length)];
+      if(Math.random() < 0.7) CharCreator.colors[s.id] = palette[Math.floor(Math.random()*palette.length)];
     }
     if(!CharCreator.folder("body")) CharCreator.look.body = "NakedBody";
     CharCreator.renderUI();
@@ -7123,11 +7187,15 @@ const CharCreator = {
     const c = UI.el("charClose"); if(c) c.onclick = ()=> CharCreator.close();
     const s = UI.el("charSave"); if(s) s.onclick = ()=>{
       CharCreator.save();
-      UI.setHint && UI.setHint("Apparence Fantasy sauvée (couches). Combat : teinte effet tant que bake non branché.");
+      UI.setHint && UI.setHint("Apparence Fantasy sauvée (couches + couleurs + fps).");
       CharCreator.close();
     };
     const r = UI.el("charRandom"); if(r) r.onclick = ()=> CharCreator.randomize();
-    const z = UI.el("charReset"); if(z) z.onclick = ()=>{ CharCreator.look = CharCreator.defaultLook(); CharCreator.renderUI(); };
+    const z = UI.el("charReset"); if(z) z.onclick = ()=>{
+      CharCreator.look = CharCreator.defaultLook();
+      CharCreator.colors = CharCreator.defaultColors();
+      CharCreator.renderUI();
+    };
     const bar = UI.el("charAnimBar");
     if(bar){
       bar.querySelectorAll("[data-anim]").forEach(btn=>{
@@ -7141,6 +7209,15 @@ const CharCreator = {
     }
     const dp = UI.el("charDirPrev"); if(dp) dp.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+7)%8; CharCreator.syncSummary(); };
     const dn = UI.el("charDirNext"); if(dn) dn.onclick = ()=>{ CharCreator._dir = (CharCreator._dir+1)%8; CharCreator.syncSummary(); };
+    const fps = UI.el("charFps");
+    const fpsVal = UI.el("charFpsVal");
+    if(fps){
+      fps.oninput = ()=>{
+        CharCreator.fps = Math.max(1, parseInt(fps.value,10)||10);
+        if(fpsVal) fpsVal.textContent = String(CharCreator.fps);
+        CharCreator.syncSummary();
+      };
+    }
   }
 };
 
