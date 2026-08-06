@@ -74,7 +74,8 @@ Calibrage : `planche-orientations.html?pack=x180`.
 
 Dossier prêt : `assets/packs/mannequin-idle/` (pack jeu **`mannequin`**).  
 Aperçu : `mannequin-idle/preview.html`  
-**Calibrage vues (recommandé)** : `mannequin-idle/calibrage-vues.html` — pour chaque image, choisir Face / Profil / Dos… → sauve `neuro.dirRow.mannequin`.
+**Calibrage vues (recommandé)** : `mannequin-idle/calibrage-vues.html` — pour chaque image, choisir Face / Profil / Dos… → sauve `neuro.dirRow.mannequin`.  
+**Arena test (séparé)** : `arena-anim-test.html` — Mode Map (cible NPC) + Mode 1v1+ (log JSON joueur/IA).
 
 ## Fichier source (orientations validées)
 
