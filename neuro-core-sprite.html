@@ -539,70 +539,60 @@ aside.side{
 .hub-tile.zone-data{--tc:#3ce08a;--tg:rgba(60,224,138,.3)}
 .hub-tile.zone-char{--tc:#E8590C;--tg:rgba(232,89,12,.35)}
 
-/* ====== CRÉATEUR DE PERSONNAGE — callouts épuré (réf. light) ====== */
-#charCreateOverlay{z-index:62;background:rgba(40,40,38,.45)}
-.char-wrap{width:min(480px,100vw);height:min(100dvh,100%);max-height:100dvh;display:flex;flex-direction:column;
-  border:0;border-radius:0;padding:0;background:linear-gradient(180deg,#f2f2f0 0%,#e8e8e6 55%,#dededc 100%);
-  overflow:hidden;color:#6a6a68;font:13px/1.35 Helvetica,Arial,sans-serif}
-@media(min-width:640px){.char-wrap{border-radius:14px;height:min(92vh,820px);width:min(420px,96vw);border:1px solid #d0d0cc}}
-.char-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid #d0d0cc;flex-shrink:0;background:rgba(247,247,245,.9)}
-.char-head h2{font-size:13px;color:#4a4a48;letter-spacing:.12em;margin:0;text-transform:uppercase;font-weight:600}
+/* ====== CRÉATEUR DE PERSONNAGE — callouts épuré, layout mobile clair ====== */
+#charCreateOverlay{z-index:62;background:rgba(40,40,38,.4)}
+.char-wrap{width:min(430px,100vw);height:min(100dvh,100%);max-height:100dvh;display:flex;flex-direction:column;
+  border:0;border-radius:0;padding:0;background:linear-gradient(180deg,#f5f5f2,#ecece8 60%,#e2e2de);
+  overflow:hidden;color:#555552;font:15px/1.35 Helvetica,Arial,sans-serif}
+@media(min-width:640px){.char-wrap{border-radius:16px;height:min(92vh,860px);width:min(430px,96vw);border:1px solid #dcdcd8}}
+.char-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid #dcdcd8;flex-shrink:0;background:rgba(250,250,248,.92)}
+.char-head h2{font-size:13px;color:#3d3d3a;letter-spacing:.12em;margin:0;text-transform:uppercase;font-weight:600}
 .char-head .sub{display:none}
-.char-head .btn.ghost{border-color:#c8c8c4;color:#6a6a68;background:transparent}
+.char-head .btn.ghost{border-color:#c6c6c2;color:#555552;background:transparent;min-width:44px;min-height:44px}
 .char-body{display:flex;flex-direction:column;min-height:0;flex:1;overflow:hidden;position:relative}
-.char-stage{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
-.char-stage canvas{width:min(72vw,280px);height:auto;aspect-ratio:1;image-rendering:pixelated;background:transparent}
-.char-rot{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border:0;background:transparent;
-  color:#9a9a98;font-size:28px;cursor:pointer;z-index:5;display:flex;align-items:center;justify-content:center}
-.char-rot:active{color:#4a4a48}
-.char-rot.l{left:4px}.char-rot.r{right:4px}
-.char-callouts{position:absolute;inset:0;pointer-events:none;z-index:4}
-.char-callout{position:absolute;pointer-events:auto;border:0;background:transparent;cursor:pointer;padding:4px 2px}
-.char-callout .lab{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6a6a68;white-space:nowrap}
-.char-callout.on .lab{color:#4a4a48;font-weight:600}
-.char-rail{position:absolute;top:6%;bottom:6%;width:70px;z-index:6;display:flex;flex-direction:column;gap:2px;
-  overflow:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.char-rail::-webkit-scrollbar{display:none}
-.char-rail.left{left:2px;align-items:flex-start}
-.char-rail.right{right:2px;align-items:flex-end}
-.char-rail .sec{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#9a9a98;padding:4px 2px}
-.char-chip{border:0;background:transparent;color:#6a6a68;font-size:11px;padding:5px 3px;cursor:pointer;
-  text-align:inherit;max-width:68px;line-height:1.15;letter-spacing:.03em}
-.char-chip.on{color:#4a4a48;font-weight:600;text-decoration:underline;text-underline-offset:3px}
-.char-chip.sm{font-size:10px;opacity:.9}
-.char-dock{flex-shrink:0;padding:8px 12px 12px;border-top:1px solid #d0d0cc;background:rgba(247,247,245,.94);
-  display:flex;flex-direction:column;gap:8px;max-height:40%;overflow:auto}
-.char-dock-row{display:flex;align-items:center;gap:8px}
-.char-dock-row .ttl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#9a9a98;min-width:48px}
-.char-swatches{display:flex;flex-wrap:wrap;gap:6px;flex:1}
-.char-sw{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
-.char-sw.on{border-color:#4a4a48}
-.char-sw.bw{box-shadow:inset 0 0 0 1px #aaa}
-.char-body-stack{display:none;flex-direction:column;gap:6px}
+.char-stage{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 0 0}
+.char-stage-main{position:relative;width:100%;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.char-stage canvas{width:min(92vw,360px);height:auto;aspect-ratio:1;image-rendering:pixelated;background:transparent;display:block}
+.char-callouts{position:absolute;inset:0;pointer-events:none;z-index:3}
+.char-callout{position:absolute;pointer-events:auto;z-index:4;border:0;background:transparent;padding:8px 4px;cursor:pointer;min-height:40px;display:flex;align-items:center}
+.char-callout .lab{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#555552;background:rgba(245,245,242,.9);padding:4px 6px;border-radius:4px;white-space:nowrap}
+.char-callout.on .lab{color:#fff;background:#3d3d3a;font-weight:600}
+.char-rot-row{display:flex;align-items:center;justify-content:center;gap:28px;padding:4px 12px 8px;flex-shrink:0;z-index:5}
+.char-rot{width:52px;height:52px;border-radius:50%;border:1.5px solid #c6c6c2;background:#fafaf8;color:#3d3d3a;font-size:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.char-rot:active{background:#3d3d3a;color:#fff}
+.char-dock{flex-shrink:0;padding:10px 12px 12px;border-top:1px solid #dcdcd8;background:rgba(250,250,248,.96);display:flex;flex-direction:column;gap:10px;max-height:46%;overflow:auto}
+.char-dock-row{display:flex;align-items:center;gap:8px;min-width:0}
+.char-dock-row .ttl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8e8e8a;flex-shrink:0;width:48px}
+.char-scroller{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex:1;min-width:0;scrollbar-width:none}
+.char-scroller::-webkit-scrollbar{display:none}
+.char-chip{flex-shrink:0;border:1px solid #dcdcd8;background:#f0f0ec;color:#555552;border-radius:999px;padding:8px 12px;font-size:13px;cursor:pointer;min-height:40px}
+.char-chip.on{background:#3d3d3a;color:#fff;border-color:#3d3d3a;font-weight:600}
+.char-swatches{display:flex;flex-wrap:wrap;gap:8px;flex:1}
+.char-sw{width:34px;height:34px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)}
+.char-sw.on{border-color:#3d3d3a}
+.char-sw.bw{box-shadow:inset 0 0 0 1px #999}
+.char-body-stack{display:none;flex-direction:column;gap:8px}
 .char-body-stack.on{display:flex}
-.char-body-row{display:flex;align-items:center;gap:6px;font-size:12px}
-.char-body-row select{flex:1;min-height:34px;border:1px solid #d0d0cc;border-radius:8px;background:#f7f7f5;color:#6a6a68;font-size:12px}
-.char-body-row input[type=range]{flex:1;accent-color:#5a5a58}
-.char-body-row .op{min-width:34px;text-align:right;color:#9a9a98;font-size:11px}
-.char-body-row .rm{width:30px;height:30px;border:0;background:transparent;color:#9a9a98;font-size:18px;cursor:pointer}
-.char-btn{border:1px solid #c8c8c4;background:#f7f7f5;color:#6a6a68;border-radius:8px;min-height:36px;padding:0 10px;font-size:12px;cursor:pointer}
-.char-foot{display:flex;gap:8px;flex-wrap:wrap;padding:0;border:0;background:transparent}
-.char-foot .char-btn,.char-foot .btn{flex:1;min-width:80px;min-height:40px;border:1px solid #c8c8c4;background:#f7f7f5;color:#6a6a68;border-radius:8px}
-.char-foot .btn{box-shadow:none}
-.char-summary{font-size:10px;color:#9a9a98;text-align:center}
+.char-body-row{display:flex;align-items:center;gap:8px}
+.char-body-row select{flex:1;min-height:44px;border:1px solid #dcdcd8;border-radius:10px;background:#fafaf8;color:#555552;font-size:14px;padding:0 10px}
+.char-body-row input[type=range]{flex:1;accent-color:#3d3d3a}
+.char-body-row .op{width:42px;text-align:right;color:#8e8e8a;font-size:13px}
+.char-body-row .rm{width:44px;height:44px;border:0;background:transparent;color:#8e8e8a;font-size:22px;cursor:pointer}
+.char-btn{border:1px solid #c6c6c2;background:#fafaf8;color:#555552;border-radius:12px;min-height:48px;padding:0 12px;font-size:15px;cursor:pointer;flex:1}
+.char-btn.primary{background:#3d3d3a;color:#fff;border-color:#3d3d3a}
+.char-foot{display:flex;gap:8px}
+.char-summary{font-size:11px;color:#8e8e8a;text-align:center}
 .char-sheet{position:absolute;inset:0;z-index:20;background:rgba(40,40,38,.35);display:none;align-items:flex-end;justify-content:center}
 .char-sheet.on{display:flex}
-.char-sheet-panel{width:100%;background:#f7f7f5;border-radius:16px 16px 0 0;padding:16px;display:flex;flex-direction:column;gap:10px;color:#6a6a68}
-.char-sheet-panel h3{margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
-.char-sheet-panel label{font-size:11px;color:#9a9a98;display:flex;align-items:center;gap:10px}
-.char-sheet-panel input[type=range]{flex:1;accent-color:#5a5a58}
-.char-adv-sw{width:44px;height:44px;border-radius:50%;border:1px solid #c8c8c4;margin:0 auto}
-.char-sheet-actions{display:flex;gap:8px}
-.char-sheet-actions button{flex:1;min-height:44px;border-radius:10px;border:1px solid #c8c8c4;background:#eee;color:#6a6a68}
-.char-sheet-actions .ok{background:#4a4a48;color:#f5f5f3;border-color:#4a4a48}
-/* legacy unused */
-.char-ui,.char-screen,.char-zone-grid,.char-zone-card,.char-row-arrows,.char-arrow,.char-color-row,.char-preview,.char-opts{display:none!important}
+.char-sheet-panel{width:100%;background:#fafaf8;border-radius:18px 18px 0 0;padding:18px 16px;display:flex;flex-direction:column;gap:12px;color:#555552}
+.char-sheet-panel h3{margin:0;font-size:15px;letter-spacing:.08em;text-transform:uppercase}
+.char-sheet-panel label{font-size:13px;color:#8e8e8a;display:flex;align-items:center;gap:10px}
+.char-sheet-panel input[type=range]{flex:1;accent-color:#3d3d3a}
+.char-adv-sw{width:56px;height:56px;border-radius:50%;border:1px solid #c6c6c2;margin:0 auto}
+.char-sheet-actions{display:flex;gap:10px}
+.char-sheet-actions button{flex:1;min-height:48px;border-radius:12px;border:1px solid #c6c6c2;background:#f0f0ec;color:#555552;font-size:15px}
+.char-sheet-actions .ok{background:#3d3d3a;color:#fff;border-color:#3d3d3a}
+.char-ui,.char-screen,.char-zone-grid,.char-zone-card,.char-row-arrows,.char-arrow,.char-color-row,.char-preview,.char-opts,.char-rail{display:none!important}
 .hub-tile.soon{opacity:.62}
 .hub-foot{margin-top:14px;display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:11px;color:var(--acier-clair);z-index:2}
 .hub-foot b{color:var(--cyan)}
@@ -1202,30 +1192,29 @@ aside.side{
 <div class="overlay" id="charCreateOverlay">
   <div class="char-wrap">
     <div class="char-head">
-      <div>
-        <h2>Créateur</h2>
-        <p class="sub">Fantasy</p>
-      </div>
+      <div><h2>Créateur</h2><p class="sub">Fantasy</p></div>
       <button class="btn ghost" type="button" id="charClose">✕</button>
     </div>
     <div class="char-body">
-      <div class="char-stage" id="charStage">
-        <button type="button" class="char-rot l" id="charDirPrev" aria-label="Tourner">‹</button>
-        <canvas id="charPreview" width="256" height="256"></canvas>
-        <button type="button" class="char-rot r" id="charDirNext" aria-label="Tourner">›</button>
-        <div class="char-callouts" id="charCallouts"></div>
-        <aside class="char-rail left" id="charAnimRail"></aside>
-        <aside class="char-rail right" id="charOptRail"></aside>
+      <div class="char-stage" id="charStageSection">
+        <div class="char-stage-main" id="charStage">
+          <canvas id="charPreview" width="320" height="320"></canvas>
+          <div class="char-callouts" id="charCallouts"></div>
+        </div>
+        <div class="char-rot-row">
+          <button type="button" class="char-rot" id="charDirPrev" aria-label="Tourner">‹</button>
+          <button type="button" class="char-rot" id="charDirNext" aria-label="Tourner">›</button>
+        </div>
       </div>
       <div class="char-dock">
-        <div class="char-dock-row">
-          <span class="ttl" id="charZoneLab">—</span>
-          <div class="char-swatches" id="charSwatches"></div>
-        </div>
+        <div class="char-dock-row"><span class="ttl">Partie</span><div class="char-scroller" id="charZoneBar"></div></div>
+        <div class="char-dock-row"><span class="ttl">Anim</span><div class="char-scroller" id="charAnimRail"></div></div>
+        <div class="char-dock-row" id="charOptRow"><span class="ttl">Choix</span><div class="char-scroller" id="charOptRail"></div></div>
+        <div class="char-dock-row"><span class="ttl">Couleur</span><div class="char-swatches" id="charSwatches"></div></div>
         <div class="char-body-stack" id="charBodyStack">
           <div class="char-dock-row">
             <span class="ttl">Corps</span>
-            <button type="button" class="char-btn" id="charAddBody">+ Couche</button>
+            <button type="button" class="char-btn" id="charAddBody" style="flex:0 0 auto;min-width:110px;min-height:44px">+ Couche</button>
           </div>
           <div id="charBodyRows"></div>
         </div>
@@ -1233,7 +1222,7 @@ aside.side{
         <div class="char-foot">
           <button class="char-btn" type="button" id="charRandom">Aléatoire</button>
           <button class="char-btn" type="button" id="charReset">Reset</button>
-          <button class="char-btn" type="button" id="charSave">✓ Sauver</button>
+          <button class="char-btn primary" type="button" id="charSave">✓ Sauver</button>
         </div>
       </div>
       <div class="char-sheet" id="charColorSheet">
@@ -6917,14 +6906,15 @@ const CharCreator = {
     "#ffffff","#000000",
   ],
   CALLOUTS: [
-    {id:"head", lab:"Hat", x:0.72, y:0.18, side:"right"},
-    {id:"chest", lab:"Chest", x:0.70, y:0.38, side:"right"},
-    {id:"legs", lab:"Pants", x:0.28, y:0.58, side:"left"},
-    {id:"shoes", lab:"Shoes", x:0.30, y:0.78, side:"left"},
-    {id:"backpack", lab:"Back", x:0.26, y:0.32, side:"left"},
-    {id:"weapon", lab:"Misc", x:0.74, y:0.52, side:"right"},
-    {id:"body", lab:"Body", x:0.50, y:0.48, side:"left"},
+    {id:"head", lab:"Hat", rx:0.50, ry:0.16, side:"right"},
+    {id:"chest", lab:"Chest", rx:0.58, ry:0.36, side:"right"},
+    {id:"backpack", lab:"Back", rx:0.34, ry:0.30, side:"left"},
+    {id:"body", lab:"Body", rx:0.42, ry:0.48, side:"left"},
+    {id:"legs", lab:"Pants", rx:0.50, ry:0.64, side:"right"},
+    {id:"shoes", lab:"Shoes", rx:0.50, ry:0.84, side:"left"},
+    {id:"weapon", lab:"Misc", rx:0.78, ry:0.50, side:"right"},
   ],
+  _drawRect: null,
   MISC_SLOTS: ["weapon","offhand","belt","gloves","slash","effect","mount"],
   look: null,
   colors: null,
@@ -7179,27 +7169,35 @@ const CharCreator = {
   renderUI(){
     if(!CharCreator.colors) CharCreator.colors = CharCreator.defaultColors();
     if(!CharCreator.bodies) CharCreator.bodies = CharCreator.defaultBodies();
+    CharCreator.renderZones();
     CharCreator.renderAnims();
     CharCreator.selectZone(CharCreator._zoneId || "head");
     CharCreator.syncSummary();
-  },
+  },,
   selectZone(id){
     CharCreator._zoneId = id;
-    const lab = UI.el("charZoneLab");
-    const c = CharCreator.CALLOUTS.find(x=>x.id===id);
-    if(lab) lab.textContent = (c && c.lab) || id;
     const stack = UI.el("charBodyStack");
     if(stack) stack.classList.toggle("on", id==="body");
+    CharCreator.renderZones();
     CharCreator.renderOpts();
     CharCreator.renderSwatches();
     CharCreator.renderBodies();
     CharCreator.layoutCallouts();
+  },,
+  renderZones(){
+    const bar = UI.el("charZoneBar"); if(!bar) return;
+    bar.innerHTML = "";
+    CharCreator.CALLOUTS.forEach(c=>{
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "char-chip"+(CharCreator._zoneId===c.id?" on":"");
+      b.textContent = c.lab;
+      b.onclick = ()=> CharCreator.selectZone(c.id);
+      bar.appendChild(b);
+    });
   },
   renderAnims(){
     const rail = UI.el("charAnimRail"); if(!rail) return;
     rail.innerHTML = "";
-    const sec = document.createElement("div"); sec.className = "sec"; sec.textContent = "Anim";
-    rail.appendChild(sec);
     (CharCreator.ANIMS||["Idle"]).forEach(a=>{
       const b = document.createElement("button");
       b.type = "button"; b.className = "char-chip"+(a===CharCreator._anim?" on":"");
@@ -7207,31 +7205,31 @@ const CharCreator = {
       b.onclick = ()=>{ CharCreator._anim = a; CharCreator._frame = 0; CharCreator._dirty = true; CharCreator.renderAnims(); CharCreator.syncSummary(); };
       rail.appendChild(b);
     });
-  },
+  },,
   shortOpt(name){
     if(!name || name==="None") return "Aucun";
     return name.replace(/^(Head|Chest|Legs|Shoes|Belt|Hands|Weapon|Shield|Backpack|Melee|Bow|Staff|Mount|Effect|Slash)_?/i,"") || name;
   },
   renderOpts(){
     const rail = UI.el("charOptRail"); if(!rail) return;
+    const optRow = UI.el("charOptRow");
     rail.innerHTML = "";
-    const sec = document.createElement("div"); sec.className = "sec"; sec.textContent = "Choix";
-    rail.appendChild(sec);
+    if(CharCreator._zoneId === "body"){
+      if(optRow) optRow.style.display = "none";
+      return;
+    }
+    if(optRow) optRow.style.display = "flex";
     if(CharCreator._zoneId === "weapon"){
       CharCreator.MISC_SLOTS.forEach(sid=>{
         const s = CharCreator.slotById(sid); if(!s) return;
         const b = document.createElement("button");
-        b.type = "button"; b.className = "char-chip sm"+(CharCreator._miscFocus===sid?" on":"");
+        b.type = "button"; b.className = "char-chip"+(CharCreator._miscFocus===sid?" on":"");
         b.textContent = s.lab.split("/")[0].trim();
         b.onclick = ()=>{ CharCreator._miscFocus = sid; CharCreator.renderMiscOpts(sid); };
         rail.appendChild(b);
       });
       CharCreator.renderMiscOpts(CharCreator._miscFocus || "weapon");
       return;
-    }
-    if(CharCreator._zoneId === "body"){
-      const tip = document.createElement("div"); tip.className = "char-chip sm"; tip.style.cursor = "default"; tip.textContent = "Couches ↓";
-      rail.appendChild(tip); return;
     }
     const s = CharCreator.slotById(CharCreator._zoneId); if(!s) return;
     const cur = CharCreator.look[CharCreator._zoneId];
@@ -7242,7 +7240,7 @@ const CharCreator = {
       b.onclick = ()=>{ CharCreator.look[CharCreator._zoneId] = name; CharCreator._dirty = true; CharCreator.renderOpts(); CharCreator.syncSummary(); };
       rail.appendChild(b);
     });
-  },
+  },,
   renderMiscOpts(sid){
     const rail = UI.el("charOptRail"); if(!rail) return;
     [...rail.querySelectorAll("[data-misc-opt]")].forEach(n=>n.remove());
@@ -7251,12 +7249,12 @@ const CharCreator = {
     (s.folders||[]).forEach(name=>{
       const b = document.createElement("button");
       b.type = "button"; b.dataset.miscOpt = "1";
-      b.className = "char-chip sm"+(name===cur?" on":"");
-      b.textContent = name==="None" ? "∅" : name.slice(0,10);
+      b.className = "char-chip"+(name===cur?" on":"");
+      b.textContent = name==="None" ? "∅" : CharCreator.shortOpt(name);
       b.onclick = ()=>{ CharCreator.look[sid] = name; CharCreator._dirty = true; CharCreator.renderMiscOpts(sid); CharCreator.syncSummary(); };
       rail.appendChild(b);
     });
-  },
+  },,
   renderSwatches(){
     const host = UI.el("charSwatches"); if(!host) return;
     host.innerHTML = "";
@@ -7336,39 +7334,48 @@ const CharCreator = {
     const wrap = UI.el("charStage"); const cv = UI.el("charPreview"); const host = UI.el("charCallouts");
     if(!wrap || !cv || !host) return;
     const box = cv.getBoundingClientRect(); const wr = wrap.getBoundingClientRect();
+    const r = CharCreator._drawRect;
     host.innerHTML = "";
+    if(!r) return;
+    const sx = box.width / cv.width; const sy = box.height / cv.height;
+    const spriteL = box.left - wr.left + r.dx * sx;
+    const spriteT = box.top - wr.top + r.dy * sy;
+    const spriteW = r.dw * sx; const spriteH = r.dh * sy;
     const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
     svg.setAttribute("width", String(wr.width)); svg.setAttribute("height", String(wr.height));
     svg.style.cssText = "position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none";
     host.appendChild(svg);
+    const margin = 6;
     CharCreator.CALLOUTS.forEach(c=>{
-      const ax = box.left - wr.left + c.x * box.width;
-      const ay = box.top - wr.top + c.y * box.height;
-      const labLeft = c.side === "left";
-      const labelW = 52;
-      const lx = labLeft ? Math.max(4, ax - 88) : Math.min(wr.width - labelW - 4, ax + 36);
-      const ly = ay;
+      const ax = spriteL + c.rx * spriteW;
+      const ay = spriteT + c.ry * spriteH;
+      const left = c.side === "left";
+      const labW = 58;
+      const lx = left ? margin : Math.max(margin, wr.width - labW - margin);
+      const ly = Math.max(18, Math.min(wr.height - 18, ay));
       const line = document.createElementNS("http://www.w3.org/2000/svg","line");
-      line.setAttribute("x1", String(labLeft ? lx + labelW : lx));
+      line.setAttribute("x1", String(left ? lx + labW : lx));
       line.setAttribute("y1", String(ly));
       line.setAttribute("x2", String(ax));
       line.setAttribute("y2", String(ay));
-      line.setAttribute("stroke", CharCreator._zoneId===c.id ? "#4a4a48" : "#b8b8b4");
-      line.setAttribute("stroke-width", "1");
+      line.setAttribute("stroke", CharCreator._zoneId===c.id ? "#3d3d3a" : "#b0b0ac");
+      line.setAttribute("stroke-width", CharCreator._zoneId===c.id ? "1.5" : "1");
       svg.appendChild(line);
       const pin = document.createElementNS("http://www.w3.org/2000/svg","circle");
-      pin.setAttribute("cx", String(ax)); pin.setAttribute("cy", String(ay)); pin.setAttribute("r","2.5");
-      pin.setAttribute("fill", CharCreator._zoneId===c.id ? "#4a4a48" : "#b8b8b4");
+      pin.setAttribute("cx", String(ax)); pin.setAttribute("cy", String(ay));
+      pin.setAttribute("r", CharCreator._zoneId===c.id ? "3.5" : "2.5");
+      pin.setAttribute("fill", CharCreator._zoneId===c.id ? "#3d3d3a" : "#b0b0ac");
       svg.appendChild(pin);
       const btn = document.createElement("button");
       btn.type = "button"; btn.className = "char-callout"+(CharCreator._zoneId===c.id?" on":"");
-      btn.style.left = lx+"px"; btn.style.top = (ly-11)+"px";
+      btn.style.left = lx+"px"; btn.style.top = (ly-18)+"px"; btn.style.width = labW+"px";
+      btn.style.justifyContent = left ? "flex-start" : "flex-end";
       const span = document.createElement("span"); span.className="lab"; span.textContent=c.lab;
       btn.appendChild(span);
       btn.onclick = ()=> CharCreator.selectZone(c.id);
       host.appendChild(btn);
     });
-  },
+  },,
   syncSummary(){
     const el = UI.el("charSummary"); if(!el) return;
     el.textContent = [CharCreator.label("body"), CharCreator.label("head"), CharCreator.label("chest"), CharCreator.label("weapon")].join(" · ")
@@ -7392,7 +7399,7 @@ const CharCreator = {
     const W = cv.width, H = cv.height;
     if(!CharCreator._ready || !CharCreator.look){
       cx.clearRect(0,0,W,H);
-      cx.fillStyle="#9a9a98"; cx.font="12px sans-serif"; cx.fillText("Chargement…", W/2-36, H/2);
+      cx.fillStyle="#8e8e8a"; cx.font="14px sans-serif"; cx.fillText("Chargement…", W/2-40, H/2);
       return;
     }
     const fps = Math.max(1, CharCreator.fps|0);
@@ -7409,26 +7416,31 @@ const CharCreator = {
     if(!advanced && !CharCreator._dirty) return;
     CharCreator._dirty = false;
     cx.clearRect(0,0,W,H);
-    const gx=W/2, gy=H*0.78;
-    const grd=cx.createRadialGradient(gx,gy,4,gx,gy,78);
-    grd.addColorStop(0,"rgba(0,0,0,.10)"); grd.addColorStop(1,"rgba(0,0,0,0)");
-    cx.fillStyle=grd; cx.beginPath(); cx.ellipse(gx,gy,72,18,0,0,Math.PI*2); cx.fill();
+    const scale = 2.15;
+    const dw = CharCreator.FW*scale, dh = CharCreator.FH*scale;
+    const footFromTop = 108 * scale;
+    const ox = W/2;
+    const feetY = H * 0.82;
+    const dx = ox - dw/2;
+    const dy = feetY - footFromTop;
+    CharCreator._drawRect = { dx, dy, dw, dh, feetX: ox, feetY, scale };
+    const grd = cx.createRadialGradient(ox, feetY, 2, ox, feetY, dw*0.28);
+    grd.addColorStop(0,"rgba(0,0,0,.18)"); grd.addColorStop(1,"rgba(0,0,0,0)");
+    cx.fillStyle = grd; cx.beginPath(); cx.ellipse(ox, feetY, dw*0.26, dh*0.055, 0, 0, Math.PI*2); cx.fill();
     const row = CharCreator.DIR_ROW[CharCreator._dir|0]|0;
     const col = CharCreator._frame;
     const anim = CharCreator._anim;
     const layers = CharCreator.layersForRow(row);
     const imgs = await Promise.all(layers.map(L=> CharCreator.loadImg(L.folder, anim)));
     if(CharCreator._anim !== anim){ CharCreator._dirty = true; return; }
-    const S = 1.45, foot = 108, ox=W/2, oy=H/2+28;
-    const dw = CharCreator.FW*S, dh = CharCreator.FH*S;
-    const dx = ox - dw/2, dy = oy + 4 - foot*S;
     cx.imageSmoothingEnabled = false;
     for(let i=0;i<layers.length;i++){
       const im = imgs[i]; if(!im || !im.naturalWidth) continue;
       try{ CharCreator.tintDraw(cx, im, col*CharCreator.FW, row*CharCreator.FH, CharCreator.FW, CharCreator.FH, dx, dy, dw, dh, layers[i].tint, layers[i].alpha); }
       catch(_e){ try{ cx.globalAlpha=layers[i].alpha||1; cx.drawImage(im, col*CharCreator.FW, row*CharCreator.FH, CharCreator.FW, CharCreator.FH, dx, dy, dw, dh); cx.globalAlpha=1; }catch(__e){} }
     }
-  },
+    CharCreator.layoutCallouts();
+  },,
   randomize(){
     CharCreator.look = CharCreator.defaultLook();
     CharCreator.colors = CharCreator.defaultColors();
