@@ -72,7 +72,8 @@ Calibrage : `planche-orientations.html?pack=x180`.
 | QA | Chauve, corps nu, **slip sombre uniquement** — accepté |
 
 Dossier prêt : `assets/packs/mannequin-idle/` (pack jeu **`mannequin`**).  
-Aperçu : `mannequin-idle/preview.html` · Calibrage : `planche-orientations.html?pack=mannequin`.
+Aperçu : `mannequin-idle/preview.html`  
+**Calibrage vues (recommandé)** : `mannequin-idle/calibrage-vues.html` — pour chaque image, choisir Face / Profil / Dos… → sauve `neuro.dirRow.mannequin`.
 
 ## Fichier source (orientations validées)
 

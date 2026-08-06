@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>Calibrage Mannequin — quelles vues</title>
+<style>
+  :root{
+    --bg:#0b1018; --ink:#eaf2ff; --muted:#8fa3b8; --accent:#E8590C;
+    --cyan:#27e0ff; --line:#2a3548; --ok:#3ce08a; --panel:#121a26;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{min-height:100%}
+  body{
+    color:var(--ink);
+    font-family:"Trebuchet MS","Segoe UI",Verdana,sans-serif;
+    background:
+      radial-gradient(900px 480px at 50% -8%, #1c2b40 0%, transparent 55%),
+      linear-gradient(180deg,#101826,#070a10);
+    max-width:520px; margin:0 auto;
+    padding:12px 12px calc(18px + env(safe-area-inset-bottom));
+  }
+  h1{font-size:18px;color:var(--accent);margin-bottom:4px}
+  .sub{font-size:13px;color:var(--muted);line-height:1.45;margin-bottom:12px}
+  .sub b{color:var(--ink)}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:12px; margin-bottom:10px;
+  }
+  .lab{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .progress{height:6px;border-radius:99px;background:#1a2330;overflow:hidden;margin-bottom:10px}
+  .progress > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#ffb07a);transition:width .2s}
+  .step{font-size:12px;color:var(--muted);margin-bottom:6px}
+  .step b{color:var(--cyan)}
+  .ask{font-size:15px;font-weight:800;line-height:1.35;margin-bottom:10px}
+  .ask b{color:var(--cyan)}
+  .stage{
+    background:#0a0e14; border:1px solid var(--line); border-radius:14px;
+    padding:14px; text-align:center; margin-bottom:10px;
+  }
+  .stage canvas{
+    width:min(220px,70vw); height:min(220px,70vw);
+    image-rendering:pixelated; background:
+      linear-gradient(45deg,#1a2330 25%,transparent 25%),
+      linear-gradient(-45deg,#1a2330 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#1a2330 75%),
+      linear-gradient(-45deg,transparent 75%,#1a2330 75%);
+    background-size:16px 16px; background-position:0 0,0 8px,8px -8px,-8px 0;
+    border-radius:10px; display:block; margin:0 auto 8px;
+  }
+  .fname{font-size:12px;color:var(--muted)}
+  .fname b{color:var(--ink)}
+  .compass{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:4px;
+    max-width:200px; margin:10px auto 0; text-align:center;
+    font-size:11px; color:var(--muted);
+  }
+  .compass b{display:block;color:var(--ink);font-size:12px}
+  .dirs{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+  .dirs button{
+    min-height:48px; border-radius:12px; border:1px solid var(--line);
+    background:#1a2330; color:var(--ink); font-weight:800; font-size:13px;
+    padding:8px 6px; cursor:pointer; line-height:1.25; text-align:left;
+  }
+  .dirs button small{display:block;font-weight:600;color:var(--muted);font-size:10px}
+  .dirs button.on{border-color:var(--accent); color:#ffc29a; background:#2a1a12}
+  .dirs button.used{opacity:.45}
+  .dirs button.used.on{opacity:1}
+  .bar{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .bar button{
+    flex:1; min-width:110px; min-height:46px; border-radius:12px; border:1px solid var(--line);
+    background:#1a2330; color:var(--ink); font-weight:800; font-size:13px; cursor:pointer;
+  }
+  .bar button.primary{background:var(--accent); border-color:#ff7a3c; color:#1a0c04}
+  .bar button.ok{background:#123024; border-color:#2a6a4a; color:var(--ok)}
+  .bar button:disabled{opacity:.35}
+  .list{font-size:13px;line-height:1.5}
+  .list div{padding:7px 0;border-bottom:1px solid rgba(42,53,72,.7);display:flex;gap:8px;align-items:center}
+  .list canvas{width:40px;height:40px;image-rendering:pixelated;background:#0a0e14;border-radius:6px;flex:0 0 auto}
+  .list b{color:var(--cyan)}
+  textarea{
+    width:100%; min-height:120px; margin-top:8px; border-radius:12px; border:1px solid var(--line);
+    background:#0a0e14; color:#d7e6f5; padding:10px;
+    font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;
+  }
+  .toast{
+    position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    background:#123024; color:var(--ok); border:1px solid #2a6a4a;
+    border-radius:999px; padding:8px 14px; font-size:12px; font-weight:700;
+    opacity:0; pointer-events:none; transition:opacity .2s; z-index:9;
+  }
+  .toast.show{opacity:1}
+  #done.hide,#wizard.hide{display:none}
+  .hint{font-size:12px;color:var(--muted);line-height:1.45;margin-top:8px}
+</style>
+</head>
+<body>
+  <h1>Calibrage Mannequin</h1>
+  <p class="sub">
+    Pour chaque image : choisis <b>vers où le perso regarde</b> (vue du jeu).
+    Pas de − / + — tu étiquettes juste.
+  </p>
+
+  <div id="wizard">
+    <div class="progress"><i id="prog"></i></div>
+    <div class="step">Image <b id="stepN">1</b>/8 · fichier <b id="fileLab">—</b></div>
+    <div class="ask">Cette image = quelle <b>vue</b> du jeu&nbsp;?</div>
+
+    <div class="card stage">
+      <canvas id="cv" width="184" height="184"></canvas>
+      <div class="fname">fichier : <b id="fname">—</b> · rangée sheet <b id="rowLab">0</b></div>
+      <div class="compass">
+        <div></div><div><b>N</b>dos</div><div></div>
+        <div><b>O</b>gauche</div><div style="color:var(--accent)"><b>✦</b></div><div><b>E</b>droite</div>
+        <div></div><div><b>S</b>face</div><div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="lab">Vue du jeu</div>
+      <div class="dirs" id="dirs"></div>
+      <div class="hint">Une même vue ne peut être choisie qu’une fois. Tu peux revenir en arrière.</div>
+    </div>
+
+    <div class="bar">
+      <button type="button" id="btnBack" disabled>◀ Précédent</button>
+      <button type="button" id="btnNext" class="primary" disabled>Suivant ▶</button>
+    </div>
+  </div>
+
+  <div id="done" class="hide">
+    <div class="card">
+      <div class="lab">Résultat</div>
+      <div class="list" id="resultList"></div>
+      <textarea id="out" readonly></textarea>
+      <div class="hint">
+        <b>Sauver</b> écrit le mapping pour le pack Mannequin (localStorage).
+        Dans le jeu : ⚙ SPRITE → PACK → Mannequin Idle, puis recharge.
+      </div>
+      <div class="bar">
+        <button type="button" id="btnRedo">↺ Recommencer</button>
+        <button type="button" id="btnCopy">📋 Copier</button>
+        <button type="button" id="btnSave" class="ok">💾 Sauver pour le jeu</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Ok</div>
+
+<script>
+/** Fichiers source dans l’ordre des rangées de Idle.png (0..7) */
+const FILES = [
+  "south.png",
+  "south-east.png",
+  "east.png",
+  "north-east.png",
+  "north.png",
+  "north-west.png",
+  "west.png",
+  "south-west.png",
+];
+
+/** Vues jeu = index logique Sprite (atan2 Δcol,Δrow) */
+const VUES = [
+  { i:0, id:"S",  short:"Face",      tip:"S · vers bas écran" },
+  { i:1, id:"SE", short:"¾ Face D",  tip:"SE" },
+  { i:2, id:"E",  short:"Profil D",  tip:"E · droite" },
+  { i:3, id:"NE", short:"¾ Dos D",   tip:"NE" },
+  { i:4, id:"N",  short:"Dos",       tip:"N · vers haut écran" },
+  { i:5, id:"NO", short:"¾ Dos G",   tip:"NO / NW" },
+  { i:6, id:"O",  short:"Profil G",  tip:"O · gauche" },
+  { i:7, id:"SO", short:"¾ Face G",  tip:"SO / SW" },
+];
+
+const LOCAL_ROT = "./src/rotations/";
+const LOCAL_SHEET = "./Idle.png";
+const CDN_BASE = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/strict-regen-idle-66c0/assets/packs/mannequin-idle/";
+const FRAME = 92;
+const STORE_KEY = "neuro.dirRow.mannequin";
+
+const imgs = new Array(8).fill(null);
+let sheet = null;
+/** answers[row] = game index 0..7 ou null */
+let answers = new Array(8).fill(null);
+let step = 0;
+
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const toastEl = document.getElementById("toast");
+
+function loadImg(urls){
+  return new Promise(resolve=>{
+    const tryNext = (i)=>{
+      if(i>=urls.length){ resolve(null); return; }
+      const im = new Image();
+      im.decoding = "async";
+      im.onload = ()=> resolve(im);
+      im.onerror = ()=> tryNext(i+1);
+      try{ im.crossOrigin = "anonymous"; }catch(_e){}
+      im.src = urls[i];
+    };
+    tryNext(0);
+  });
+}
+
+async function boot(){
+  sheet = await loadImg([LOCAL_SHEET, CDN_BASE+"Idle.png"]);
+  await Promise.all(FILES.map(async (f,i)=>{
+    imgs[i] = await loadImg([LOCAL_ROT+f, CDN_BASE+"src/rotations/"+f]);
+  }));
+  // fallback: découpe sheet si PNG individuels absents
+  if(sheet && imgs.some(x=>!x)){
+    for(let r=0;r<8;r++){
+      if(imgs[r]) continue;
+      const c = document.createElement("canvas");
+      c.width = FRAME; c.height = FRAME;
+      const x = c.getContext("2d");
+      x.drawImage(sheet, 0, r*FRAME, FRAME, FRAME, 0, 0, FRAME, FRAME);
+      imgs[r] = c;
+    }
+  }
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      const arr = JSON.parse(raw);
+      if(Array.isArray(arr) && arr.length===8){
+        // DIR_ROW[game]=row → invert to answers[row]=game
+        const inv = new Array(8).fill(null);
+        arr.forEach((row, game)=>{ if(row>=0 && row<8) inv[row]=game; });
+        if(inv.every(v=>v!==null)) answers = inv;
+      }
+    }
+  }catch(_e){}
+  buildDirs();
+  showStep();
+}
+
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  setTimeout(()=> toastEl.classList.remove("show"), 1600);
+}
+
+function usedGames(exceptRow){
+  const s = new Set();
+  answers.forEach((g,r)=>{ if(g!==null && r!==exceptRow) s.add(g); });
+  return s;
+}
+
+function buildDirs(){
+  const box = document.getElementById("dirs");
+  box.innerHTML = "";
+  VUES.forEach(v=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.i = String(v.i);
+    b.innerHTML = v.short + "<small>"+v.tip+"</small>";
+    b.onclick = ()=>{
+      answers[step] = v.i;
+      paintDirs();
+      document.getElementById("btnNext").disabled = false;
+      // auto-avance si pas déjà à la fin
+      if(step < 7){
+        // laisse voir le highlight
+        setTimeout(()=>{ if(answers[step]===v.i){ step++; showStep(); } }, 180);
+      }
+    };
+    box.appendChild(b);
+  });
+}
+
+function paintDirs(){
+  const used = usedGames(step);
+  document.querySelectorAll("#dirs button").forEach(b=>{
+    const i = +b.dataset.i;
+    b.classList.toggle("on", answers[step]===i);
+    b.classList.toggle("used", used.has(i));
+  });
+}
+
+function paintSprite(){
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const im = imgs[step];
+  if(!im) return;
+  const pad = 12;
+  const s = Math.min((cv.width-pad*2)/FRAME, (cv.height-pad*2)/FRAME);
+  const dw = FRAME*s, dh = FRAME*s;
+  const dx = (cv.width-dw)/2, dy = (cv.height-dh)/2;
+  if(im instanceof HTMLCanvasElement){
+    ctx.drawImage(im, dx, dy, dw, dh);
+  } else {
+    ctx.drawImage(im, 0, 0, im.naturalWidth||FRAME, im.naturalHeight||FRAME, dx, dy, dw, dh);
+  }
+}
+
+function showStep(){
+  document.getElementById("wizard").classList.remove("hide");
+  document.getElementById("done").classList.add("hide");
+  document.getElementById("stepN").textContent = String(step+1);
+  document.getElementById("fileLab").textContent = FILES[step].replace(".png","");
+  document.getElementById("fname").textContent = FILES[step];
+  document.getElementById("rowLab").textContent = String(step);
+  document.getElementById("prog").style.width = ((step)/8*100)+"%";
+  document.getElementById("btnBack").disabled = step===0;
+  document.getElementById("btnNext").disabled = answers[step]===null;
+  document.getElementById("btnNext").textContent = step===7 ? "Terminer ✓" : "Suivant ▶";
+  paintDirs();
+  paintSprite();
+}
+
+function dirRowFromAnswers(){
+  // answers[row]=gameIndex → DIR_ROW[gameIndex]=row
+  const dirRow = new Array(8).fill(-1);
+  answers.forEach((game, row)=>{
+    if(game!==null) dirRow[game] = row;
+  });
+  return dirRow;
+}
+
+function isComplete(){
+  const d = dirRowFromAnswers();
+  return d.every(v=>v>=0) && new Set(d).size===8;
+}
+
+function finish(){
+  if(!isComplete()){
+    toast("Il manque des vues — recommence");
+    return;
+  }
+  document.getElementById("wizard").classList.add("hide");
+  document.getElementById("done").classList.remove("hide");
+  document.getElementById("prog").style.width = "100%";
+
+  const dirRow = dirRowFromAnswers();
+  const list = document.getElementById("resultList");
+  list.innerHTML = "";
+  VUES.forEach(v=>{
+    const row = dirRow[v.i];
+    const div = document.createElement("div");
+    const c = document.createElement("canvas");
+    c.width = 40; c.height = 40;
+    const x = c.getContext("2d");
+    x.imageSmoothingEnabled = false;
+    const im = imgs[row];
+    if(im){
+      if(im instanceof HTMLCanvasElement) x.drawImage(im,0,0,40,40);
+      else x.drawImage(im,0,0,im.naturalWidth||FRAME,im.naturalHeight||FRAME,0,0,40,40);
+    }
+    div.appendChild(c);
+    const meta = document.createElement("div");
+    meta.innerHTML = `<b>${v.short}</b> (index ${v.i}) ← rangée ${row} · ${FILES[row]}`;
+    div.appendChild(meta);
+    list.appendChild(div);
+  });
+
+  const out = [
+    "PACK: mannequin (STRICT REGEN Idle)",
+    "DIR_ROW = ["+dirRow.join(", ")+"]",
+    "",
+    "Mapping (vue jeu → fichier / rangée):",
+    ...VUES.map(v=>{
+      const row = dirRow[v.i];
+      return `  ${v.i} ${v.short.padEnd(10)} → row ${row} ${FILES[row]}`;
+    }),
+    "",
+    "localStorage key: "+STORE_KEY,
+  ].join("\n");
+  document.getElementById("out").value = out;
+}
+
+document.getElementById("btnBack").onclick = ()=>{
+  if(step>0){ step--; showStep(); }
+};
+document.getElementById("btnNext").onclick = ()=>{
+  if(answers[step]===null) return;
+  if(step<7){ step++; showStep(); }
+  else finish();
+};
+document.getElementById("btnRedo").onclick = ()=>{
+  answers = new Array(8).fill(null);
+  step = 0;
+  showStep();
+};
+document.getElementById("btnCopy").onclick = async ()=>{
+  const t = document.getElementById("out").value;
+  try{
+    await navigator.clipboard.writeText(t);
+    toast("Copié — colle-moi ça dans le chat");
+  }catch(_e){
+    document.getElementById("out").select();
+    toast("Sélectionne et copie");
+  }
+};
+document.getElementById("btnSave").onclick = ()=>{
+  if(!isComplete()){ toast("Mapping incomplet"); return; }
+  const dirRow = dirRowFromAnswers();
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(dirRow));
+    // aussi neuro.dirRow pour compat planche, si pack mannequin actif
+    localStorage.setItem("neuro.spritePack", "mannequin");
+    toast("Sauvé — recharge le jeu (pack Mannequin)");
+  }catch(_e){
+    toast("localStorage bloqué — utilise Copier");
+  }
+};
+
+boot();
+</script>
+</body>
+</html>
