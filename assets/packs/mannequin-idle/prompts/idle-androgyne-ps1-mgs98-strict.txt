@@ -1,0 +1,40 @@
+STRICT REGEN — ZERO IMPROVISATION — ANDROGYNOUS BASE IDLE — PS1 1998.
+
+STYLE LOCK (match attached Metal Gear Solid PS1 references):
+- PlayStation 1 / 1998 low-poly 3D look, NOT modern 3D, NOT HD, NOT anime, NOT flat 2D cartoon
+- low polygon count, sharp angular blocky limbs and joints
+- low-resolution crunchy pixelated textures painted on flat polys
+- jagged aliased edges, slight PS1 affine texture warp feel
+- muted industrial palette (olive, steel grey, drab teal, desaturated skin)
+- flat/baked vertex-style shading, high contrast, NO smooth PBR, NO bloom, NO ray tracing
+- faces: simplified, features smudged/painted on texture (dark recessed eyes OK)
+
+CHARACTER (LOCKED):
+- Adult COMPLETELY ANDROGYNOUS humanoid (not male, not female)
+- Neutral athletic-slim tactical silhouette
+- NO pecs, NO breasts, NO six-pack, NO wide male shoulders, NO wide female hips, NO genitals
+- BALD — no hair, no beard, no mustache, no bushy eyebrows
+- Light/medium desaturated skin in PS1 texture style
+
+OUTFIT (base mannequin for layering later):
+- ONLY a tiny plain dark brief / underwear OR a plain dark sleeveless sneaking-suit base if tool refuses nude
+- bare or near-bare limbs preferred for base mannequin
+- NO bandana, NO gun, NO pouches, NO armor plates, NO hat, NO hair
+- NO modern fashion, NO bright colors
+
+CAMERA / TECH (LOCKED — NEURO-CORE game):
+- low top-down isometric (~30°, tactical iso 2:1)
+- 8 directions exactly: South, SE, East, NE, North, NW, West, SW
+- frame size 92x92 (or 96x96 if tool requires)
+- transparent background
+- pivot: feet near bottom-center of every frame
+- identical scale / footprint in ALL 8 directions
+
+POSE: neutral standing idle, soft A-pose / arms slightly away, weight on both feet.
+NO walk, NO run, NO jump, NO combat pose.
+
+ACCEPTANCE:
+- reads as PS1 1998 Metal Gear-like low-poly + crunchy textures
+- androgynous bald base
+- 8 correct iso directions, consistent size
+Any modern HD / anime / muscular male / sexy female / wrong angle = FAIL.
