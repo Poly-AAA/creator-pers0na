@@ -6982,7 +6982,7 @@ const CharCreator = {
     if(CharCreator._cache.has(key)) return CharCreator._cache.get(key);
     const p = new Promise((resolve)=>{
       const rel = `spritesheets/${folder}/${anim}.png`;
-      const urls = [CharCreator.PACK_LOCAL+rel, CharCreator.PACK_CDN+rel];
+      const urls = [CharCreator.PACK_CDN+rel, CharCreator.PACK_LOCAL+rel];
       const im = new Image();
       try{ im.crossOrigin = "anonymous"; }catch(_e){}
       let i = 0;
