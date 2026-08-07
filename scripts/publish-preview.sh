@@ -10,12 +10,14 @@ mkdir -p "$OUT" "$OUT/js" "$ROOT/docs/previews" "$ROOT/docs/previews/js"
 cp "$ROOT/character-creator-fantasy.html" "$OUT/creator.html"
 cp "$ROOT/fantasy-cc-layout-editor.html" "$OUT/editor.html"
 cp "$ROOT/fantasy-combat.html" "$OUT/fantasy-combat.html"
+cp "$ROOT/fantasy-dir-calibrate.html" "$OUT/fantasy-dir-calibrate.html"
 cp "$ROOT/js/fantasy-combat-bridge.js" "$OUT/js/fantasy-combat-bridge.js"
 # Même noms que le repo pour les liens Créateur ↔ Combat
 cp "$ROOT/character-creator-fantasy.html" "$OUT/character-creator-fantasy.html"
 cp "$ROOT/character-creator-fantasy.html" "$ROOT/docs/previews/creator.html"
 cp "$ROOT/fantasy-cc-layout-editor.html" "$ROOT/docs/previews/editor.html"
 cp "$ROOT/fantasy-combat.html" "$ROOT/docs/previews/fantasy-combat.html"
+cp "$ROOT/fantasy-dir-calibrate.html" "$ROOT/docs/previews/fantasy-dir-calibrate.html"
 cp "$ROOT/js/fantasy-combat-bridge.js" "$ROOT/docs/previews/js/fantasy-combat-bridge.js"
 cp "$ROOT/character-creator-fantasy.html" "$ROOT/docs/previews/character-creator-fantasy.html"
 
@@ -26,6 +28,7 @@ cat > "$OUT/index.html" <<'EOF'
 <h1>Previews</h1>
 <p><a href="creator.html">Créateur</a></p>
 <p><a href="fantasy-combat.html">Combat</a></p>
+<p><a href="fantasy-dir-calibrate.html">Calibrage directions</a></p>
 <p><a href="editor.html">Éditeur placement</a></p>
 </body></html>
 EOF
@@ -107,12 +110,14 @@ fi
 verify_url "$BASE/editor.html" "Placement"
 verify_url "$BASE/creator.html" "Créateur"
 verify_url "$BASE/fantasy-combat.html" "Combat Fantasy"
+verify_url "$BASE/fantasy-dir-calibrate.html" "Calibrage directions"
 verify_url "$BASE/character-creator-fantasy.html" "Créateur"
 
 echo
 echo "EDITOR=$BASE/editor.html"
 echo "CREATOR=$BASE/creator.html"
 echo "COMBAT=$BASE/fantasy-combat.html"
+echo "DIRS=$BASE/fantasy-dir-calibrate.html"
 echo "INDEX=$BASE/"
 
 # Fallback links (repo) — only print SHA; caller should verify htmlpreview separately after push
@@ -121,4 +126,5 @@ if [[ -n "$SHA" ]]; then
   echo "HTMLPREVIEW_EDITOR=https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/${SHA}/docs/previews/editor.html"
   echo "HTMLPREVIEW_CREATOR=https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/${SHA}/docs/previews/creator.html"
   echo "HTMLPREVIEW_COMBAT=https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/${SHA}/docs/previews/fantasy-combat.html"
+  echo "HTMLPREVIEW_DIRS=https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/${SHA}/docs/previews/fantasy-dir-calibrate.html"
 fi
