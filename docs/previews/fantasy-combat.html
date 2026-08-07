@@ -186,30 +186,27 @@
   const KEY_LOOK = "neuro.fantasyLook";
   const KEY_DIR = "neuro.fantasyDirRow";
 
-  /* Iso Neuro : +c = SE écran, +r = SW écran — même maths que le jeu */
+  /* Iso Neuro : +c = SE écran, +r = SW écran */
   const GRID = 10;
   const TILE_W = 56, TILE_H = 28;
   const cam = { ox:0, oy:0, sc:1 };
 
+  /*
+   * Sheet fantasy-cc : mapping ligne→direction écran (calibrable).
+   * Face iso : atan2(sx, -sy) avec sx=dc-dr, sy=dc+dr.
+   */
   const DIR_LABEL = ["N","NE","E","SE","S","SW","W","NW"];
-  /* map[sheetRow] = direction écran 0..7 — calibrable */
   let DIR_ROW = [0,1,2,3,4,5,6,7];
   try{
     const raw = localStorage.getItem(KEY_DIR);
-    if(raw){
-      const a = JSON.parse(raw);
-      if(Array.isArray(a) && a.length===8) DIR_ROW = a.map(n=>n&7);
-    }
+    if(raw){ const a=JSON.parse(raw); if(Array.isArray(a)&&a.length===8) DIR_ROW=a.map(n=>n&7); }
   }catch(_e){}
-
-  /** Index logique écran (0=N…7=NW) → ligne sheet */
-  function sheetRowForFacing(facing){
-    const f = facing&7;
+  function sheetRowForDir(dir){
+    const f=dir&7;
     for(let r=0;r<8;r++) if(DIR_ROW[r]===f) return r;
     return f;
   }
-  /** Pas iso → direction écran (N=0 horaire) */
-  function facingFromIsoDelta(dc, dr){
+  function dirFromIsoDelta(dc, dr){
     if(!dc && !dr) return null;
     const sx = dc - dr, sy = dc + dr;
     let i = Math.round(Math.atan2(sx, -sy) / (Math.PI/4));
@@ -226,23 +223,23 @@
   };
 
   const SPELLS = [
-    { id:"punch", name:"Coup brut", cost:2, range:1, aoe:0, dmg:[8,12], anim:"Attack2", cat:"atk", type:"damage" },
-    { id:"monofil", name:"Lame spectrale", cost:3, range:1, aoe:0, dmg:[14,18], anim:"Attack3", cat:"atk", type:"damage" },
-    { id:"arc", name:"Éclair runique", cost:3, range:4, aoe:0, dmg:[10,15], anim:"Attack1", cat:"atk", type:"damage" },
-    { id:"surchauffe", name:"Brasier", cost:4, range:3, aoe:1, dmg:[16,22], anim:"Attack5", cat:"atk", type:"damage" },
-    { id:"impact_cinetique", name:"Frappe du titan", cost:4, range:1, aoe:0, dmg:[18,24], anim:"Attack3", cat:"atk", type:"damage" },
-    { id:"dash", name:"Charge", cost:3, range:2, aoe:0, dmg:[12,16], anim:"AttackRun", cat:"atk", type:"damage" },
-    { id:"mine", name:"Rune piégée", cost:3, range:2, aoe:0, dmg:[10,14], anim:"Kick", cat:"atk", type:"damage" },
-    { id:"tir_magnetique", name:"Flèche runique", cost:3, range:5, aoe:0, dmg:[12,16], anim:"Attack1", cat:"atk", type:"damage" },
-    { id:"bombe_thermique", name:"Orbe de feu", cost:4, range:4, aoe:1, dmg:[14,20], anim:"Attack3", cat:"atk", type:"damage" },
-    { id:"impulsion_emp", name:"Décharge", cost:3, range:3, aoe:1, dmg:[8,12], anim:"Attack5", cat:"atk", type:"damage" },
-    { id:"sniper", name:"Œil de faucon", cost:4, range:6, aoe:0, dmg:[16,22], anim:"Attack1", cat:"atk", type:"damage" },
-    { id:"gravite", name:"Poussée", cost:3, range:3, aoe:1, dmg:[10,14], anim:"Special1", cat:"atk", type:"damage" },
-    { id:"parasite", name:"Maléfice", cost:3, range:2, aoe:0, dmg:[8,12], anim:"Attack3", cat:"atk", type:"damage" },
-    { id:"bouclier", name:"Égide", cost:2, range:0, aoe:0, dmg:[0,0], heal:[8,12], anim:"Special1", cat:"def", type:"shield" },
-    { id:"armure_nanites", name:"Bouclier sacré", cost:3, range:0, aoe:0, dmg:[0,0], heal:[12,16], anim:"Special1", cat:"def", type:"shield" },
-    { id:"nanites", name:"Soin de lumière", cost:3, range:0, aoe:0, dmg:[0,0], heal:[14,20], anim:"Special1", cat:"sup", type:"heal" },
-    { id:"reconstruction", name:"Bénédiction", cost:4, range:0, aoe:0, dmg:[0,0], heal:[22,28], anim:"Special1", cat:"sup", type:"heal" },
+    { id:"punch", name:"Coup brut", cost:2, range:1, aoe:0, dmg:[8,12], anim:"Attack2", cat:"atk" },
+    { id:"monofil", name:"Lame spectrale", cost:3, range:1, aoe:0, dmg:[14,18], anim:"Attack3", cat:"atk" },
+    { id:"arc", name:"Éclair runique", cost:3, range:4, aoe:0, dmg:[10,15], anim:"Attack1", cat:"atk" },
+    { id:"surchauffe", name:"Brasier", cost:4, range:3, aoe:1, dmg:[16,22], anim:"Attack5", cat:"atk" },
+    { id:"impact_cinetique", name:"Frappe du titan", cost:4, range:1, aoe:0, dmg:[18,24], anim:"Attack3", cat:"atk" },
+    { id:"dash", name:"Charge", cost:3, range:2, aoe:0, dmg:[12,16], anim:"AttackRun", cat:"atk" },
+    { id:"mine", name:"Rune piégée", cost:3, range:2, aoe:0, dmg:[10,14], anim:"Kick", cat:"atk" },
+    { id:"tir_magnetique", name:"Flèche runique", cost:3, range:5, aoe:0, dmg:[12,16], anim:"Attack1", cat:"atk" },
+    { id:"bombe_thermique", name:"Orbe de feu", cost:4, range:4, aoe:1, dmg:[14,20], anim:"Attack3", cat:"atk" },
+    { id:"impulsion_emp", name:"Décharge", cost:3, range:3, aoe:1, dmg:[8,12], anim:"Attack5", cat:"atk" },
+    { id:"sniper", name:"Œil de faucon", cost:4, range:6, aoe:0, dmg:[16,22], anim:"Attack1", cat:"atk" },
+    { id:"gravite", name:"Poussée", cost:3, range:3, aoe:1, dmg:[10,14], anim:"Special1", cat:"atk" },
+    { id:"parasite", name:"Maléfice", cost:3, range:2, aoe:0, dmg:[8,12], anim:"Attack3", cat:"atk" },
+    { id:"bouclier", name:"Égide", cost:2, range:0, aoe:0, dmg:[0,0], heal:[8,12], anim:"Special1", cat:"def" },
+    { id:"armure_nanites", name:"Bouclier sacré", cost:3, range:0, aoe:0, dmg:[0,0], heal:[12,16], anim:"Special1", cat:"def" },
+    { id:"nanites", name:"Soin de lumière", cost:3, range:0, aoe:0, dmg:[0,0], heal:[14,20], anim:"Special1", cat:"sup" },
+    { id:"reconstruction", name:"Bénédiction", cost:4, range:0, aoe:0, dmg:[0,0], heal:[22,28], anim:"Special1", cat:"sup" },
   ];
   function spellById(id){ return SPELLS.find(s=>s.id===id) || null; }
 
@@ -256,7 +253,6 @@
   let catalog = null;
   let weaponAfterShieldRows = [true,true,true,false,false,false,false,true];
   let backpackInFrontRows = [true,false,false,false,false,true,true,true];
-  let moveDist = {};
 
   const lookState = {
     look: null, colors: Object.assign({}, DEFAULT_COLORS),
@@ -266,8 +262,8 @@
   const G = {
     turn:"player",
     cat:"atk",
-    player:{ c:2, r:5, facing:3, pv:100, pvMax:100, pa:6, paMax:6, pm:3, pmMax:3, anim:"Idle", frame:0, t0:0, flash:0, alive:true, shield:0 },
-    enemy:{ c:7, r:4, facing:7, pv:40, pvMax:40, pa:4, pm:2, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit" },
+    player:{ c:2, r:5, dir:3, pv:100, pvMax:100, pa:6, paMax:6, pm:3, pmMax:3, anim:"Idle", frame:0, t0:0, flash:0, alive:true, shield:0 },
+    enemy:{ c:7, r:4, dir:7, pv:40, pvMax:40, pa:4, pm:2, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit" },
     armed: null,
     moves: new Set(),
     range: new Set(),
@@ -275,11 +271,9 @@
     aoe: new Set(),
     combo: 0,
     hover: null,
-    busy: false,
   };
 
   function setStatus(t){ el("status").textContent = t; }
-  function setHint(t){ el("spellHint").textContent = t; }
   function hud(){
     el("hudPv").textContent = G.player.pv+"/"+G.player.pvMax;
     el("hudPa").textContent = G.player.pa+"/"+G.player.paMax;
@@ -289,7 +283,7 @@
     el("chipPm").classList.toggle("low", G.player.pm<=1);
     el("chipPm").classList.toggle("zero", G.player.pm<=0);
     el("comboFill").style.width = Math.min(100, G.combo)+"%";
-    el("btnEnd").disabled = G.turn!=="player" || G.busy;
+    el("btnEnd").disabled = G.turn!=="player";
   }
 
   function loadLook(){
@@ -388,19 +382,26 @@
   }
 
   function toScreen(c, r){
-    return { x: cam.ox + (c - r) * (TILE_W/2), y: cam.oy + (c + r) * (TILE_H/2) };
+    return {
+      x: cam.ox + (c - r) * (TILE_W/2),
+      y: cam.oy + (c + r) * (TILE_H/2)
+    };
   }
   function toTile(px, py){
     const x = (px - cam.ox) / (TILE_W/2);
     const y = (py - cam.oy) / (TILE_H/2);
-    return { c: Math.floor((x + y) / 2), r: Math.floor((y - x) / 2) };
+    const c = Math.floor((x + y) / 2);
+    const r = Math.floor((y - x) / 2);
+    return { c, r };
   }
   function fit(){
     const host = canvas.parentElement.getBoundingClientRect();
     const w = Math.max(200, Math.round(host.width));
     const h = Math.max(200, Math.round(host.height));
     if(canvas.width!==w || canvas.height!==h){ canvas.width=w; canvas.height=h; }
-    const sc = Math.min(w / (GRID * TILE_W + 40), h / (GRID * TILE_H + 80), 1.35);
+    const gridW = GRID * TILE_W;
+    const gridH = GRID * TILE_H;
+    const sc = Math.min(w / (gridW + 40), h / (gridH + 80), 1.35);
     cam.sc = sc;
     cam.ox = w/(2*sc);
     cam.oy = h/(2*sc) - (GRID*TILE_H)/2 + 18;
@@ -413,95 +414,54 @@
     if(G.enemy.alive && skip!=="enemy" && G.enemy.c===c && G.enemy.r===r) return "enemy";
     return null;
   }
-  function chebyshev(a,b){ return Math.max(Math.abs(a.c-b.c), Math.abs(a.r-b.r)); }
-  function manhattan(a,b){ return Math.abs(a.c-b.c)+Math.abs(a.r-b.r); }
+  function dist(a,b){ return Math.max(Math.abs(a.c-b.c), Math.abs(a.r-b.r)); }
 
-  /* BFS PM — comme Grid.reachable Neuro */
-  function reachable(start, maxSteps, skip){
-    const dist = {};
-    const startK = key(start.c, start.r);
-    dist[startK] = 0;
-    const q = [{c:start.c, r:start.r}];
-    const out = [];
-    const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+  function recomputeMoves(){
+    G.moves.clear();
+    if(G.turn!=="player" || G.player.pm<=0 || G.armed) return;
+    /* BFS PM (comme Neuro) */
+    const distM = {};
+    const sk = key(G.player.c, G.player.r);
+    distM[sk]=0;
+    const q=[{c:G.player.c,r:G.player.r}];
+    const dirs=[[0,-1],[1,0],[0,1],[-1,0]];
     while(q.length){
-      const cur = q.shift();
-      const d = dist[key(cur.c,cur.r)];
-      if(d >= maxSteps) continue;
+      const cur=q.shift();
+      const d=distM[key(cur.c,cur.r)];
+      if(d>=G.player.pm) continue;
       for(const [dc,dr] of dirs){
-        const nc = cur.c+dc, nr = cur.r+dr;
+        const nc=cur.c+dc, nr=cur.r+dr;
         if(!inBounds(nc,nr)) continue;
-        const k = key(nc,nr);
-        if(k in dist) continue;
-        if(occupied(nc,nr,skip)) continue;
-        dist[k] = d+1;
-        out.push({c:nc, r:nr, d:d+1});
-        q.push({c:nc, r:nr});
+        const k=key(nc,nr);
+        if(k in distM) continue;
+        if(occupied(nc,nr,"player")) continue;
+        distM[k]=d+1;
+        G.moves.add(k);
+        q.push({c:nc,r:nr});
       }
     }
-    return { tiles: out, dist };
   }
-
-  function pathTo(start, goal, maxSteps, skip){
-    const { dist } = reachable(start, maxSteps, skip);
-    const gk = key(goal.c, goal.r);
-    if(!(gk in dist)) return null;
-    const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
-    const path = [{c:goal.c, r:goal.r}];
-    let c=goal.c, r=goal.r;
-    while(c!==start.c || r!==start.r){
-      let found=false;
-      for(const [dc,dr] of dirs){
-        const pc=c-dc, pr=r-dr;
-        const pk=key(pc,pr);
-        if(pk in dist && dist[pk]===dist[key(c,r)]-1){
-          c=pc; r=pr; path.unshift({c,r}); found=true; break;
-        }
-      }
-      if(!found) return null;
-    }
-    return path;
-  }
-
-  function areaCells(sp, tc, tr){
-    const out=[];
-    const rad = sp.aoe|0;
-    for(let c=tc-rad;c<=tc+rad;c++) for(let r=tr-rad;r<=tr+rad;r++){
-      if(!inBounds(c,r)) continue;
-      if(chebyshev({c,r},{c:tc,r:tr})<=rad) out.push({c,r});
-    }
-    return out;
-  }
-
-  function recomputeHighlights(){
-    G.moves.clear(); G.range.clear(); G.targets.clear(); G.aoe.clear();
-    moveDist = {};
-    if(G.turn!=="player" || !G.player.alive) return;
-
-    if(G.armed){
-      const sp = spellById(G.armed); if(!sp) return;
-      if(sp.type==="heal" || sp.type==="shield"){
-        G.targets.add(key(G.player.c, G.player.r));
-        G.range.add(key(G.player.c, G.player.r));
-        return;
-      }
-      for(let c=0;c<GRID;c++) for(let r=0;r<GRID;r++){
-        if(chebyshev(G.player,{c,r}) <= sp.range) G.range.add(key(c,r));
-      }
-      if(G.enemy.alive && G.range.has(key(G.enemy.c, G.enemy.r))){
-        G.targets.add(key(G.enemy.c, G.enemy.r));
-        const focus = (G.hover && G.range.has(key(G.hover.c,G.hover.r))) ? G.hover : G.enemy;
-        for(const cell of areaCells(sp, focus.c, focus.r)) G.aoe.add(key(cell.c, cell.r));
-      } else if(G.hover && G.range.has(key(G.hover.c, G.hover.r))){
-        for(const cell of areaCells(sp, G.hover.c, G.hover.r)) G.aoe.add(key(cell.c, cell.r));
-      }
+  function recomputeTargets(){
+    G.targets.clear(); G.range.clear(); G.aoe.clear();
+    const sp = spellById(G.armed);
+    if(!sp || G.turn!=="player") return;
+    if(sp.cat==="def" || sp.cat==="sup"){
+      G.targets.add(key(G.player.c, G.player.r));
+      G.range.add(key(G.player.c, G.player.r));
       return;
     }
-
-    if(G.player.pm>0){
-      const reach = reachable(G.player, G.player.pm, "player");
-      moveDist = reach.dist;
-      for(const t of reach.tiles) G.moves.add(key(t.c,t.r));
+    for(let c=0;c<GRID;c++) for(let r=0;r<GRID;r++){
+      if(dist(G.player,{c,r})<=sp.range) G.range.add(key(c,r));
+    }
+    if(!G.enemy.alive) return;
+    if(G.range.has(key(G.enemy.c, G.enemy.r))){
+      G.targets.add(key(G.enemy.c, G.enemy.r));
+      const focus = (G.hover && G.range.has(key(G.hover.c,G.hover.r))) ? G.hover : G.enemy;
+      const rad = sp.aoe|0;
+      for(let c=focus.c-rad;c<=focus.c+rad;c++) for(let r=focus.r-rad;r<=focus.r+rad;r++){
+        if(!inBounds(c,r)) continue;
+        if(dist(focus,{c,r})<=rad) G.aoe.add(key(c,r));
+      }
     }
   }
 
@@ -509,15 +469,14 @@
     ent.anim = anim; ent.frame = 0; ent.t0 = performance.now();
   }
   function faceToward(ent, tc, tr){
-    const f = facingFromIsoDelta(tc-ent.c, tr-ent.r);
-    if(f!=null) ent.facing = f;
+    const d = dirFromIsoDelta(tc-ent.c, tr-ent.r);
+    if(d!=null) ent.dir = d;
   }
 
   function tryStep(dc, dr){
-    if(G.busy || G.turn!=="player" || !G.player.alive) return;
+    if(G.turn!=="player" || !G.player.alive) return;
     if(G.armed){
-      /* avec sort armé : les flèches ne bougent pas (comme Neuro) */
-      setHint("Sort armé · centre = lancer");
+      /* avec sort armé : cycle cible / self — pour MVP, pas de déplacement */
       return;
     }
     if(G.player.pm<=0){ setStatus("Plus de PM"); return; }
@@ -526,41 +485,19 @@
     faceToward(G.player, c, r);
     G.player.c=c; G.player.r=r; G.player.pm-=1;
     playAnim(G.player, "Walk");
-    recomputeHighlights(); hud();
-    setStatus("Dir "+DIR_LABEL[G.player.facing]+" · −1 PM");
-    setTimeout(()=>{ if(G.player.anim==="Walk") playAnim(G.player,"Idle"); }, 320);
-  }
-
-  function tryMoveTo(c, r){
-    if(G.busy || G.turn!=="player" || G.armed) return;
-    if(!G.moves.has(key(c,r))) return;
-    const path = pathTo(G.player, {c,r}, G.player.pm, "player");
-    if(!path || path.length<2) return;
-    G.busy = true; hud();
-    let i = 1;
-    const step = ()=>{
-      if(i>=path.length){
-        G.busy=false; playAnim(G.player,"Idle");
-        recomputeHighlights(); renderSpells(); hud();
-        return;
-      }
-      const n = path[i++];
-      faceToward(G.player, n.c, n.r);
-      G.player.c=n.c; G.player.r=n.r; G.player.pm-=1;
-      playAnim(G.player, path.length>3 ? "Run" : "Walk");
-      recomputeHighlights(); hud();
-      setTimeout(step, 220);
-    };
-    step();
+    recomputeMoves(); recomputeTargets(); hud();
+    setStatus("Dir "+DIR_LABEL[G.player.dir]+" · −1 PM");
+    setTimeout(()=>{ if(G.player.anim==="Walk") playAnim(G.player,"Idle"); }, 380);
   }
 
   function roll(arr){ return arr[0] + Math.floor(Math.random()*(arr[1]-arr[0]+1)); }
 
-  function doCast(sp, tc, tr){
-    if(G.busy) return false;
-    if(G.player.pa < sp.cost){ setStatus("Pas assez de PA"); return false; }
+  function tryCastAt(c, r){
+    if(G.turn!=="player" || !G.armed) return;
+    const sp = spellById(G.armed); if(!sp) return;
+    if(G.player.pa < sp.cost){ setStatus("Pas assez de PA"); return; }
 
-    if(sp.type==="heal" || sp.type==="shield"){
+    if(sp.cat==="def" || sp.cat==="sup"){
       G.player.pa -= sp.cost;
       playAnim(G.player, sp.anim||"Special1");
       if(sp.heal){
@@ -573,15 +510,15 @@
       }
       G.combo = Math.min(100, G.combo + 18);
       G.armed=null;
-      recomputeHighlights(); renderSpells(); hud();
+      recomputeMoves(); recomputeTargets(); renderSpells(); hud();
       setTimeout(()=>playAnim(G.player,"Idle"), 650);
-      return true;
+      return;
     }
 
-    if(!G.enemy.alive || G.enemy.c!==tc || G.enemy.r!==tr){ setStatus("Pas de cible"); return false; }
-    if(chebyshev(G.player, G.enemy) > sp.range){ setStatus("Hors de portée"); return false; }
+    if(!G.enemy.alive || G.enemy.c!==c || G.enemy.r!==r){ setStatus("Pas de cible"); return; }
+    if(dist(G.player, G.enemy) > sp.range){ setStatus("Hors de portée"); return; }
 
-    faceToward(G.player, tc, tr);
+    faceToward(G.player, c, r);
     let anim = sp.anim;
     try{
       if(typeof FantasyBridge!=="undefined"){
@@ -593,75 +530,34 @@
 
     G.player.pa -= sp.cost;
     playAnim(G.player, anim);
-    let total = 0;
-    for(const cell of areaCells(sp, tc, tr)){
-      if(G.enemy.alive && G.enemy.c===cell.c && G.enemy.r===cell.r){
-        const dmg = roll(sp.dmg);
-        total += dmg;
-        G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
-        G.enemy.flash = performance.now()+180;
-        faceToward(G.enemy, G.player.c, G.player.r);
-        playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
-      }
-    }
+    const dmg = roll(sp.dmg);
+    G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
+    G.enemy.flash = performance.now()+180;
+    faceToward(G.enemy, G.player.c, G.player.r);
+    playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
     G.combo = Math.min(100, G.combo + 22);
-    setStatus(sp.name+" → "+total+" · "+DIR_LABEL[G.player.facing]);
+    setStatus(sp.name+" → "+dmg+" · "+DIR_LABEL[G.player.dir]);
     if(G.enemy.pv<=0){ G.enemy.alive=false; setStatus("Victoire"); }
     G.armed=null;
-    recomputeHighlights(); renderSpells(); hud();
+    recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     setTimeout(()=>{ if(G.player.anim!=="Die") playAnim(G.player,"Idle"); }, 700);
-    return true;
-  }
-
-  /** Comme Neuro : 1er appui arme + lance auto si 1 cible valide */
-  function armSpell(id){
-    if(G.turn!=="player" || G.busy || !G.player.alive) return;
-    const sp = spellById(id); if(!sp) return;
-    if(G.player.pa < sp.cost){ setStatus("PA insuffisants"); return; }
-
-    if(G.armed === id){
-      /* 2ᵉ appui = lancer / désarmer */
-      if(sp.type==="heal"||sp.type==="shield"){ doCast(sp, G.player.c, G.player.r); return; }
-      if(G.enemy.alive && G.targets.has(key(G.enemy.c,G.enemy.r))){
-        doCast(sp, G.enemy.c, G.enemy.r); return;
-      }
-      G.armed=null; recomputeHighlights(); renderSpells();
-      setHint("Déplacement · cases vertes = PM");
-      setStatus("Sort désélectionné");
-      return;
-    }
-
-    G.armed = id;
-    recomputeHighlights();
-    renderSpells();
-
-    /* Attaque auto si cible déjà à portée */
-    if(sp.type==="heal"||sp.type==="shield"){
-      doCast(sp, G.player.c, G.player.r);
-      return;
-    }
-    if(G.enemy.alive && G.targets.has(key(G.enemy.c, G.enemy.r))){
-      doCast(sp, G.enemy.c, G.enemy.r);
-      return;
-    }
-    setHint(sp.name+" armé · aucune cible · tape une case / centre");
-    setStatus("Portée "+sp.range+(sp.aoe?" · AoE"+sp.aoe:""));
   }
 
   function castArmed(){
-    if(!G.armed){ setHint("Tape un sort pour attaquer"); return; }
-    const sp = spellById(G.armed); if(!sp) return;
-    if(sp.type==="heal"||sp.type==="shield"){ doCast(sp, G.player.c, G.player.r); return; }
-    if(G.enemy.alive && chebyshev(G.player,G.enemy)<=sp.range){
-      doCast(sp, G.enemy.c, G.enemy.r);
+    if(!G.armed){ setStatus("Choisis un sort"); return; }
+    const sp = spellById(G.armed);
+    if(!sp) return;
+    if(sp.cat==="def" || sp.cat==="sup"){ tryCastAt(G.player.c, G.player.r); return; }
+    if(G.enemy.alive && G.targets.has(key(G.enemy.c, G.enemy.r))){
+      tryCastAt(G.enemy.c, G.enemy.r);
     } else setStatus("Cible hors portée");
   }
 
   function endTurn(){
-    if(G.turn!=="player" || G.busy) return;
+    if(G.turn!=="player") return;
     G.armed=null; G.turn="enemy";
     G.combo = Math.max(0, G.combo - 12);
-    recomputeHighlights(); renderSpells(); hud();
+    recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     setStatus("Tour ennemi…");
     setTimeout(enemyTurn, 420);
   }
@@ -669,28 +565,25 @@
   function enemyTurn(){
     if(!G.enemy.alive){ G.turn="player"; beginPlayerTurn(); return; }
     const e=G.enemy, p=G.player;
-    const path = (()=>{
-      /* approche : se rapprocher jusqu'à dist 1 */
-      const reach = reachable(e, e.pm, "enemy");
-      const all = [{c:e.c,r:e.r,d:0}].concat(reach.tiles);
-      let best=all[0], bd=manhattan(best,p);
-      for(const t of all){
-        const d=manhattan(t,p);
-        if(d<bd && !(t.c===p.c&&t.r===p.r)){ bd=d; best=t; }
+    let steps=e.pm, nc=e.c, nr=e.r;
+    while(steps>0 && dist({c:nc,r:nr},p)>1){
+      const opts=[];
+      if(nc!==p.c) opts.push({c:nc+Math.sign(p.c-nc), r:nr});
+      if(nr!==p.r) opts.push({c:nc, r:nr+Math.sign(p.r-nr)});
+      let moved=false;
+      for(const o of opts){
+        if(!inBounds(o.c,o.r) || occupied(o.c,o.r,"enemy")) continue;
+        faceToward(e, o.c, o.r);
+        nc=o.c; nr=o.r; steps--; moved=true; break;
       }
-      if(best.c===e.c && best.r===e.r) return null;
-      return pathTo(e, best, e.pm, "enemy");
-    })();
-    if(path && path.length>1){
-      for(let i=1;i<path.length;i++){
-        faceToward(e, path[i].c, path[i].r);
-        e.c=path[i].c; e.r=path[i].r;
-      }
-      playAnim(e,"Walk");
+      if(!moved) break;
+    }
+    if(nc!==e.c || nr!==e.r){
+      e.c=nc; e.r=nr; playAnim(e,"Walk");
       setTimeout(()=>playAnim(e,"Idle"), 360);
     }
     setTimeout(()=>{
-      if(e.alive && chebyshev(e,p)<=1){
+      if(e.alive && dist(e,p)<=1){
         faceToward(e, p.c, p.r);
         playAnim(e,"Attack1");
         let dmg = 6+Math.floor(Math.random()*5);
@@ -709,8 +602,7 @@
     G.player.pa = G.player.paMax;
     G.player.pm = G.player.pmMax;
     G.armed=null;
-    recomputeHighlights(); renderSpells(); hud();
-    setHint("Cases vertes = PM · sort = attaque auto si cible");
+    recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     setStatus("Ton tour");
   }
 
@@ -724,6 +616,7 @@
         weaponSpell = FantasyBridge.resolveSpellId(ent);
       }
     }catch(_e){}
+
     const baseByCat = {
       atk: ["punch","monofil","arc","surchauffe"],
       def: ["bouclier","armure_nanites"],
@@ -743,8 +636,22 @@
       b.type="button";
       b.className = G.armed===sp.id ? "on" : "";
       b.textContent = name+" ·"+sp.cost;
-      b.disabled = G.turn!=="player" || G.busy || G.player.pa<sp.cost;
-      b.onclick=()=> armSpell(sp.id);
+      b.disabled = G.turn!=="player" || G.player.pa<sp.cost;
+      b.onclick=()=>{
+        if(G.armed===sp.id){
+          /* 2ᵉ appui = lancer si possible, sinon désarme */
+          if(sp.cat==="def"||sp.cat==="sup"){ tryCastAt(G.player.c, G.player.r); return; }
+          if(G.enemy.alive && dist(G.player,G.enemy)<=sp.range){ tryCastAt(G.enemy.c, G.enemy.r); return; }
+          G.armed=null; recomputeMoves(); recomputeTargets(); renderSpells();
+          setStatus("Déplacement"); return;
+        }
+        G.armed = sp.id;
+        recomputeMoves(); recomputeTargets(); renderSpells();
+        /* attaque auto si cible à portée */
+        if(sp.cat==="def"||sp.cat==="sup"){ tryCastAt(G.player.c, G.player.r); return; }
+        if(G.enemy.alive && dist(G.player,G.enemy)<=sp.range){ tryCastAt(G.enemy.c, G.enemy.r); return; }
+        setStatus(name+" armé · hors portée");
+      };
       host.appendChild(b);
     });
   }
@@ -765,7 +672,7 @@
 
   function drawEntity(ent, isEnemy){
     if(!ent.alive && ent.anim!=="Die") return;
-    const row = sheetRowForFacing(ent.facing|0);
+    const row = sheetRowForDir(ent.dir|0);
     const anim = ent.anim||"Idle";
     const elapsed = (performance.now()-(ent.t0||0))/1000;
     let col = Math.floor(elapsed*FPS);
@@ -799,17 +706,6 @@
       }
       ctx.restore();
     }
-    /* contour cible */
-    if(!isEnemy && G.armed){ /* self heal highlight handled via tiles */ }
-    if(isEnemy && G.targets.has(key(ent.c,ent.r))){
-      const t = performance.now()/1000;
-      ctx.save();
-      ctx.globalAlpha = 0.45 + Math.sin(t*6)*0.25;
-      ctx.strokeStyle = G.aoe.has(key(ent.c,ent.r)) ? "#8a3030" : "#6a4a8a";
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.ellipse(s.x, s.y-18, 16, 22, 0,0,Math.PI*2); ctx.stroke();
-      ctx.restore();
-    }
     const pct = ent.pv/ent.pvMax;
     const bw=26, bh=3, bx=s.x-bw/2, by=dy+10;
     ctx.fillStyle="rgba(0,0,0,.22)"; ctx.fillRect(bx-1,by-1,bw+2,bh+2);
@@ -824,6 +720,7 @@
     ctx.clearRect(0,0,W,H);
     ctx.fillStyle="#d8ddd4";
     ctx.fillRect(0,0,W,H);
+
     ctx.save();
     ctx.scale(cam.sc, cam.sc);
 
@@ -837,7 +734,7 @@
       tileDiamond(t.c, t.r, fill, "rgba(80,80,70,0.12)");
       const k=key(t.c,t.r);
       if(G.moves.has(k)){
-        tileDiamond(t.c, t.r, "rgba(47,111,78,0.30)", "rgba(47,111,78,0.5)");
+        tileDiamond(t.c, t.r, "rgba(47,111,78,0.28)", "rgba(47,111,78,0.45)");
       }
       if(G.range.has(k) && G.armed){
         tileDiamond(t.c, t.r, "rgba(90,70,140,0.22)", "rgba(90,70,140,0.4)");
@@ -858,6 +755,7 @@
     if(G.player.alive || G.player.anim==="Die") ents.push({e:G.player, enemy:false});
     ents.sort((a,b)=> (a.e.c+a.e.r)-(b.e.c+b.e.r) || a.e.c-b.e.c);
     for(const o of ents) drawEntity(o.e, o.enemy);
+
     ctx.restore();
   }
 
@@ -872,21 +770,17 @@
   }
 
   function onTap(e){
-    if(G.turn!=="player" || !G.player.alive || G.busy) return;
+    if(G.turn!=="player" || !G.player.alive) return;
     const {x,y}=pointer(e);
     const cell=toTile(x,y);
     if(!inBounds(cell.c,cell.r)) return;
-    if(G.armed){
-      const sp = spellById(G.armed);
-      if(!sp) return;
-      if(sp.type==="heal"||sp.type==="shield"){ doCast(sp, G.player.c, G.player.r); return; }
-      if(G.enemy.alive && cell.c===G.enemy.c && cell.r===G.enemy.r){
-        doCast(sp, cell.c, cell.r); return;
-      }
-      setStatus("Cible invalide");
+    if(G.armed){ tryCastAt(cell.c, cell.r); return; }
+    /* tape une case PM accessible (1 pas via croix sinon) */
+    if(G.moves.has(key(cell.c,cell.r))){
+      const dc=Math.sign(cell.c-G.player.c), dr=Math.sign(cell.r-G.player.r);
+      if(Math.abs(cell.c-G.player.c)+Math.abs(cell.r-G.player.r)===1) tryStep(dc,dr);
       return;
     }
-    tryMoveTo(cell.c, cell.r);
   }
 
   function warm(){
@@ -911,7 +805,7 @@
       btn.onclick=()=>{
         G.cat = btn.dataset.cat;
         document.querySelectorAll(".cat").forEach(b=>b.classList.toggle("on", b===btn));
-        G.armed=null; recomputeHighlights(); renderSpells();
+        G.armed=null; recomputeTargets(); renderSpells();
         setStatus(G.cat==="atk"?"Attaque":G.cat==="def"?"Défense":"Soutien");
       };
     });
@@ -943,6 +837,7 @@
     beginPlayerTurn();
     renderSpells(); hud();
     bindPad();
+    setStatus("Iso · croix = axes map");
 
     canvas.addEventListener("click", onTap);
     canvas.addEventListener("touchend", (e)=>{
@@ -953,7 +848,7 @@
     canvas.addEventListener("mousemove", (e)=>{
       const {x,y}=pointer(e); const t=toTile(x,y);
       G.hover = inBounds(t.c,t.r) ? t : null;
-      if(G.armed) recomputeHighlights();
+      if(G.armed) recomputeTargets();
     });
     el("btnEnd").onclick=endTurn;
     window.addEventListener("resize", fit);
