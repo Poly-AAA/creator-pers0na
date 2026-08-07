@@ -185,6 +185,7 @@
   const FW=128, FH=128, COLS=15, FPS=14;
   const KEY_LOOK = "neuro.fantasyLook";
   const KEY_DIR = "neuro.fantasyDirRow";
+  const KEY_DIR_SHEETS = "neuro.fantasyDirRow.sheets";
 
   /* Iso Neuro : +c = SE écran, +r = SW écran */
   const GRID = 10;
@@ -192,18 +193,36 @@
   const cam = { ox:0, oy:0, sc:1 };
 
   /*
-   * Sheet fantasy-cc : mapping ligne→direction écran (calibrable).
+   * Sheet fantasy-cc : mapping ligne→direction écran (calibrable par action).
    * Face iso : atan2(sx, -sy) avec sx=dc-dr, sy=dc+dr.
    */
   const DIR_LABEL = ["N","NE","E","SE","S","SW","W","NW"];
   let DIR_ROW = [0,1,2,3,4,5,6,7];
+  let DIR_SHEETS = {};
   try{
     const raw = localStorage.getItem(KEY_DIR);
     if(raw){ const a=JSON.parse(raw); if(Array.isArray(a)&&a.length===8) DIR_ROW=a.map(n=>n&7); }
+    const sheets = localStorage.getItem(KEY_DIR_SHEETS);
+    if(sheets){
+      const o=JSON.parse(sheets);
+      if(o&&typeof o==="object"){
+        for(const k of Object.keys(o)){
+          if(Array.isArray(o[k])&&o[k].length===8) DIR_SHEETS[k]=o[k].map(n=>n&7);
+        }
+      }
+    }
   }catch(_e){}
-  function sheetRowForDir(dir){
+  function dirMapForAnim(anim){
+    if(anim && DIR_SHEETS[anim]) return DIR_SHEETS[anim];
+    /* fallback : famille d’anim */
+    if(anim && /^Attack|^Kick|^Special/i.test(anim) && DIR_SHEETS.Attack1) return DIR_SHEETS.Attack1;
+    if(anim && /^(Walk|Run|Strafe|Crouch)/i.test(anim) && DIR_SHEETS.Walk) return DIR_SHEETS.Walk;
+    return DIR_ROW;
+  }
+  function sheetRowForDir(dir, anim){
+    const m = dirMapForAnim(anim);
     const f=dir&7;
-    for(let r=0;r<8;r++) if(DIR_ROW[r]===f) return r;
+    for(let r=0;r<8;r++) if(m[r]===f) return r;
     return f;
   }
   function dirFromIsoDelta(dc, dr){
