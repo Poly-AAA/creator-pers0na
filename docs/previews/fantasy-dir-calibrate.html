@@ -442,11 +442,12 @@
 
   renderAnims();
   loadAnim(anim);
-  /* preload */
   ANIMS.forEach(a=>loadAnim(a));
-  sync();
+  try{ sync(); }catch(e){ el("status").textContent="Erreur sync: "+e.message; }
+  try{ refreshExport(); }catch(_e){}
   requestAnimationFrame(drawMain);
 })();
 </script>
+<noscript><p style="padding:16px;font:16px Helvetica">Active JavaScript pour calibrer. Export JSON en bas de page.</p></noscript>
 </body>
 </html>
