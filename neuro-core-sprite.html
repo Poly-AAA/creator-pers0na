@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>GB·NEURO CORE</title>
+<script src="js/fantasy-combat-bridge.js"></script>
 <style>
 /* =====================================================================
    NEURO CORE — V3.3.3 (fix ennemis PV0 invincibles)
@@ -2212,6 +2213,13 @@ const START_EQUIPPED = ["punch","arc","surchauffe","nanites"];
 // nombre de slots équipés selon le combat (Départ 4 ; +1 aux combats 10/20/35)
 function slotsForFight(n){ return 4 + (n>=10?1:0) + (n>=20?1:0) + (n>=35?1:0); }
 
+/* Fantasy : noms/écoles + pont armes → sorts (js/fantasy-combat-bridge.js) */
+try{
+  if(typeof FantasyBridge !== "undefined"){
+    FantasyBridge.applySpellSkin(SPELL_DEFS, typeof SCHOOL_COLOR!=="undefined"?SCHOOL_COLOR:null);
+  }
+}catch(_e){}
+
 // gestion de l'équipement (slots) — réutilise State
 const Loadout = {
   equippedDefs(){
@@ -3993,9 +4001,13 @@ const Spells = {
   },
 
   // évolutions d'un sort pour un palier donné : 5/10 = arbre authoré ; au-delà = génération infinie
+  // Fantasy : 3 choix décorés style vs efficacité (meilleure stats = anim basique)
   evoChoices(def, tier){
-    if(EVO_TREE[def.id] && EVO_TREE[def.id][tier]) return EVO_TREE[def.id][tier];
-    return Spells.genEvoChoices(def, tier);
+    let list = (EVO_TREE[def.id] && EVO_TREE[def.id][tier]) ? EVO_TREE[def.id][tier] : Spells.genEvoChoices(def, tier);
+    if(typeof FantasyBridge !== "undefined" && FantasyBridge.decorateEvoChoices){
+      list = FantasyBridge.decorateEvoChoices(list);
+    }
+    return list;
   },
   // V1.3 — évolutions génériques : magnitude en suite de Fibonacci (graduelle puis accélérée),
   //  pool riche PAR TYPE de sort, et 3 choix tirés aléatoirement pour plus de variété.
@@ -6211,9 +6223,22 @@ const Combat = {
     if(freeUse === "tp"){ caster._usedFreeTp = true; UI.log("you","🌀 Téléportation gratuite (Condensateur)."); }
     else if(freeUse === "first"){ caster._usedFreeSpell = true; UI.log("you","✨ Premier sort gratuit du combat."); }
     if(caster.isPlayer) MetaProgress.noteCast(def.id, def.school);   // V0.95 — statistiques : sorts utilisés / favori
-    // Sprite : coup de poing → Attack2 (melee) ; autres dégâts → Attack1 (shoot)
-    if(caster.isPlayer && typeof Sprite !== "undefined" && Sprite.use(caster) && def.type === "damage"){
-      Sprite.play(caster, def.id === "punch" ? "melee" : "shoot");
+    // Sprite / Fantasy : anim liée à l’arme + évolutions (spectacle)
+    if(caster.isPlayer && typeof Sprite !== "undefined" && Sprite.use(caster)){
+      const stAnim = Spells.state(caster, def.id);
+      let fantAnim = null;
+      if(typeof FantasyBridge !== "undefined"){
+        fantAnim = FantasyBridge.castAnimFor(def, stAnim);
+        caster._fantasyCastAnim = fantAnim;
+        if(stAnim && stAnim.evo && stAnim.evo.fx) caster._fantasyCastFx = stAnim.evo.fx;
+        else caster._fantasyCastFx = null;
+      }
+      if(def.type === "damage" || def.type === "heal" || def.type === "shield" || def.type === "summon"){
+        const key = (typeof FantasyBridge !== "undefined")
+          ? FantasyBridge.toSpriteKey(fantAnim)
+          : (def.id === "punch" ? "melee" : "shoot");
+        Sprite.play(caster, key);
+      }
     }
     // V1.9c — caractéristiques par usage (permanent, très lent)
     if(caster.isPlayer){
@@ -6973,6 +6998,73 @@ const CharCreator = {
     if(!c || c === "#ffffff" || c === "#FFFFFF") return null;
     return c;
   },
+  /** Look fantasy sauvé utilisable en combat (A1). */
+  hasCombatLook(){
+    try{
+      if(CharCreator.look && CharCreator.look.body) return true;
+      const raw = localStorage.getItem(CharCreator.KEY_FANTASY);
+      if(!raw) return false;
+      const o = JSON.parse(raw);
+      return !!(o && o.look && (o.look.body || o.look.head));
+    }catch(_e){ return false; }
+  },
+  /** Map état Sprite → sheet fantasy-cc. */
+  combatAnimFor(spriteState, entity){
+    if(entity && entity._fantasyCastAnim) return entity._fantasyCastAnim;
+    const map = {
+      idle:"Idle", walk:"Walk", run:"Run",
+      melee:"Attack2", shoot:"Attack1", hurt:"TakeDamage", die:"Die"
+    };
+    return map[spriteState] || "Idle";
+  },
+  /**
+   * Dessine le perso composé (calques fantasy) en combat.
+   * Retourne true si au moins une couche dessinée.
+   */
+  drawCombat(drawCtx, e, cx, gy, flash){
+    if(!CharCreator.look) CharCreator.load();
+    const anim = CharCreator.combatAnimFor(Sprite.state(e), e);
+    const dir = (typeof Sprite !== "undefined" && Sprite.dirIndex) ? Sprite.dirIndex(e) : (e._dir||0);
+    const row = (CharCreator.DIR_ROW && CharCreator.DIR_ROW[dir]) != null ? CharCreator.DIR_ROW[dir] : dir;
+    const col = (typeof Sprite !== "undefined" && Sprite.frameIndex)
+      ? Math.min(Sprite.frameIndex(e, Sprite.state(e)) % CharCreator.COLS, CharCreator.COLS-1)
+      : 0;
+    const scale = 1.55;
+    const dw = CharCreator.FW * scale, dh = CharCreator.FH * scale;
+    const foot = 100;
+    const dx = cx - dw/2;
+    const dy = gy - foot * scale;
+    let layers = CharCreator.layersForRow(row);
+    /* FX d’évolution temporaire (spectacle) */
+    if(e && e._fantasyCastFx){
+      layers = layers.concat([{ folder:e._fantasyCastFx, tint:null, alpha:0.95 }]);
+    }
+    let drawn = 0;
+    const sm = drawCtx.imageSmoothingEnabled;
+    drawCtx.imageSmoothingEnabled = false;
+    for(const L of layers){
+      if(!L.folder) continue;
+      let img = CharCreator.getImg(L.folder, anim);
+      if(!img){ CharCreator.loadImg(L.folder, anim); continue; }
+      try{
+        CharCreator.tintDraw(drawCtx, img, col*CharCreator.FW, row*CharCreator.FH, CharCreator.FW, CharCreator.FH, dx, dy, dw, dh, L.tint, L.alpha);
+        drawn++;
+      }catch(_e){}
+    }
+    if(flash && drawn){
+      drawCtx.save();
+      drawCtx.globalCompositeOperation = "lighter";
+      drawCtx.globalAlpha = 0.45;
+      for(const L of layers){
+        const img = CharCreator.getImg(L.folder, anim);
+        if(!img) continue;
+        try{ drawCtx.drawImage(img, col*CharCreator.FW, row*CharCreator.FH, CharCreator.FW, CharCreator.FH, dx, dy, dw, dh); }catch(_e){}
+      }
+      drawCtx.restore();
+    }
+    drawCtx.imageSmoothingEnabled = sm;
+    return drawn > 0;
+  },
   cssFilter(){
     const fx = CharCreator.label("effect");
     let hue = 0, sat = 1, bri = 1, contrast = 1;
@@ -7060,10 +7152,16 @@ const CharCreator = {
     };
     try{ localStorage.setItem(CharCreator.KEY_FANTASY, JSON.stringify(payload)); }catch(_e){}
     try{ localStorage.setItem(CharCreator.KEY, JSON.stringify(payload.look)); }catch(_e){}
+    try{
+      if(typeof FantasyBridge !== "undefined") FantasyBridge.syncWeaponSpell();
+      CharCreator.warmCombatSheets();
+    }catch(_e){}
   },
 
   loadImg(folder, anim){
     const key = folder + "/" + anim;
+    if(!CharCreator._imgs) CharCreator._imgs = new Map();
+    if(CharCreator._imgs.has(key)) return Promise.resolve(CharCreator._imgs.get(key));
     if(CharCreator._cache.has(key)) return CharCreator._cache.get(key);
     const p = new Promise((resolve)=>{
       const rel = `spritesheets/${folder}/${anim}.png`;
@@ -7074,7 +7172,7 @@ const CharCreator = {
       const next = ()=>{
         if(i >= urls.length){ resolve(null); return; }
         const src = urls[i++];
-        im.onload = ()=> resolve(im);
+        im.onload = ()=>{ CharCreator._imgs.set(key, im); resolve(im); };
         im.onerror = ()=> next();
         im.src = src;
       };
@@ -7083,6 +7181,23 @@ const CharCreator = {
     CharCreator._cache.set(key, p);
     return p;
   },
+  getImg(folder, anim){
+    if(!CharCreator._imgs) CharCreator._imgs = new Map();
+    return CharCreator._imgs.get(folder + "/" + anim) || null;
+  },
+  /** Précharge Idle/Walk/Run/Attack pour le look actuel (combat). */
+  warmCombatSheets(){
+    if(!CharCreator.hasCombatLook()) return;
+    CharCreator.load();
+    CharCreator.ensureCatalog().then(()=>{
+      const anims = ["Idle","Walk","Run","Attack1","Attack2","Attack3","Attack4","TakeDamage","Die","Special1","Kick"];
+      const layers = CharCreator.layersForRow(0);
+      for(const L of layers){
+        if(!L.folder) continue;
+        for(const a of anims) CharCreator.loadImg(L.folder, a);
+      }
+    });
+  },
 
   layersForRow(row){
     const L = [];
@@ -7090,7 +7205,9 @@ const CharCreator = {
     L.push({ folder: shadow, tint: null, alpha: 1 });
     const bodies = CharCreator.bodies && CharCreator.bodies.length ? CharCreator.bodies : [{folder: CharCreator.look && CharCreator.look.body, opacity:1}];
     for(const b of bodies){
-      if(b && b.folder) L.push({ folder:b.folder, tint: CharCreator.tintFor("body"), alpha: Math.max(0, Math.min(1, +b.opacity||1)) });
+      if(!b || !b.folder) continue;
+      const tint = (b.color && b.color!=="#ffffff" && b.color!=="#FFFFFF") ? b.color : CharCreator.tintFor("body");
+      L.push({ folder:b.folder, tint, alpha: Math.max(0, Math.min(1, +b.opacity||1)) });
     }
     for(const id of ["shoes","legs","chest","belt","gloves"]){
       const f = CharCreator.folder(id); if(f) L.push({ folder:f, tint: CharCreator.tintFor(id), alpha:1 });
@@ -7187,7 +7304,7 @@ const CharCreator = {
     CharCreator.renderAnims();
     CharCreator.selectZone(CharCreator._zoneId || "head");
     CharCreator.syncSummary();
-  },,
+  },
   selectZone(id){
     CharCreator._zoneId = id;
     const stack = UI.el("charBodyStack");
@@ -7197,7 +7314,7 @@ const CharCreator = {
     CharCreator.renderSwatches();
     CharCreator.renderBodies();
     CharCreator.layoutCallouts();
-  },,
+  },
   renderZones(){
     const bar = UI.el("charZoneBar"); if(!bar) return;
     bar.innerHTML = "";
@@ -7219,7 +7336,7 @@ const CharCreator = {
       b.onclick = ()=>{ CharCreator._anim = a; CharCreator._frame = 0; CharCreator._dirty = true; CharCreator.renderAnims(); CharCreator.syncSummary(); };
       rail.appendChild(b);
     });
-  },,
+  },
   shortOpt(name){
     if(!name || name==="None") return "Aucun";
     return name.replace(/^(Head|Chest|Legs|Shoes|Belt|Hands|Weapon|Shield|Backpack|Melee|Bow|Staff|Mount|Effect|Slash)_?/i,"") || name;
@@ -7254,7 +7371,7 @@ const CharCreator = {
       b.onclick = ()=>{ CharCreator.look[CharCreator._zoneId] = name; CharCreator._dirty = true; CharCreator.renderOpts(); CharCreator.syncSummary(); };
       rail.appendChild(b);
     });
-  },,
+  },
   renderMiscOpts(sid){
     const rail = UI.el("charOptRail"); if(!rail) return;
     [...rail.querySelectorAll("[data-misc-opt]")].forEach(n=>n.remove());
@@ -7268,7 +7385,7 @@ const CharCreator = {
       b.onclick = ()=>{ CharCreator.look[sid] = name; CharCreator._dirty = true; CharCreator.renderMiscOpts(sid); CharCreator.syncSummary(); };
       rail.appendChild(b);
     });
-  },,
+  },
   renderSwatches(){
     const host = UI.el("charSwatches"); if(!host) return;
     host.innerHTML = "";
@@ -7389,7 +7506,7 @@ const CharCreator = {
       btn.onclick = ()=> CharCreator.selectZone(c.id);
       host.appendChild(btn);
     });
-  },,
+  },
   syncSummary(){
     const el = UI.el("charSummary"); if(!el) return;
     el.textContent = [CharCreator.label("body"), CharCreator.label("head"), CharCreator.label("chest"), CharCreator.label("weapon")].join(" · ")
@@ -7463,7 +7580,7 @@ const CharCreator = {
       catch(_e){ try{ cx.globalAlpha=layers[i].alpha||1; cx.drawImage(im, col*CharCreator.FW, row*CharCreator.FH, CharCreator.FW, CharCreator.FH, dx, dy, dw, dh); cx.globalAlpha=1; }catch(__e){} }
     }
     CharCreator.layoutCallouts();
-  },,
+  },
   randomize(){
     CharCreator.look = CharCreator.defaultLook();
     CharCreator.colors = CharCreator.defaultColors();
@@ -7852,6 +7969,12 @@ const Sprite = {
 
   /* cx = centre de la case, gy = ligne de sol (pivot au pied) */
   draw(e, cx, gy, flash){
+    /* A1 — joueur avec look fantasy : compose les calques du créateur */
+    if(e && e.isPlayer && typeof CharCreator !== "undefined" && CharCreator.hasCombatLook()){
+      try{
+        if(CharCreator.drawCombat(ctx, e, cx, gy, flash)) return true;
+      }catch(_e){}
+    }
     const name = Sprite.state(e);
     const A = Sprite.ANIM[name];
     const img = Sprite.imgs[A.sheet] || (name === "run" ? Sprite.imgs.walk : null)
@@ -8838,18 +8961,19 @@ const Progression = {
     const choices = Spells.evoChoices(def, tier);
     const cards = document.getElementById("evoCards"); cards.innerHTML = "";
     document.getElementById("evoTitle").textContent = def.name + " — Évolution anticipée (Niv " + tier + ")";
-    document.getElementById("evoSub").textContent = "Choisis une évolution permanente (" + def.school + ")";
+    document.getElementById("evoSub").textContent = "Efficacité ↔ Style — la plus forte a l’anim la plus simple";
     choices.forEach(ev=>{
       const div = document.createElement("div");
       div.className = "card kind-combat";
-      div.innerHTML = '<div class="ico">✦</div><div class="ct">'+ev.name+'</div><div class="cd">'+ev.d+'</div>';
+      const ico = ev.spectacle===3 ? "✦✦✦" : ev.spectacle===2 ? "✦✦" : "⚡";
+      div.innerHTML = '<div class="ico">'+ico+'</div><div class="ct">'+ev.name+'</div><div class="cd">'+ev.d+'</div>';
       div.onclick = ()=>{
         ev.apply(st);
         if(!st.evoTiers) st.evoTiers = []; if(!st.evoTiers.includes(tier)) st.evoTiers.push(tier);
         st.evoPending = (st.evoPending||[]).filter(t => t !== tier);
         st.evoChoice = st.evoChoice || {}; st.evoChoice[tier] = ev.name;
         MetaProgress.save();
-        UI.log("sys","✦ Évolution anticipée : "+def.name+" → "+ev.name);
+        UI.log("sys","✦ Évolution anticipée : "+def.name+" → "+ev.name+(ev.anim?" ["+ev.anim+"]":""));
         Progression.showChange(def.name, "Évolution → "+ev.name);
         UI.hide("evoOverlay");
         Progression.afterRewardPick();
@@ -8997,17 +9121,18 @@ const Progression = {
     const cards = document.getElementById("evoCards");
     cards.innerHTML = "";
     document.getElementById("evoTitle").textContent = def.name + " — Évolution Niv " + tier;
-    document.getElementById("evoSub").textContent = "Choisis une évolution permanente (" + def.school + ")";
+    document.getElementById("evoSub").textContent = "Efficacité ↔ Style (" + def.school + ") — la plus forte a l’anim la plus simple";
     choices.forEach(ev=>{
       const div = document.createElement("div");
       div.className = "card kind-combat";
-      div.innerHTML = '<div class="ico">✦</div><div class="ct">'+ev.name+'</div><div class="cd">'+ev.d+'</div>';
+      const ico = ev.spectacle===3 ? "✦✦✦" : ev.spectacle===2 ? "✦✦" : "⚡";
+      div.innerHTML = '<div class="ico">'+ico+'</div><div class="ct">'+ev.name+'</div><div class="cd">'+ev.d+'</div>';
       div.onclick = ()=>{
         ev.apply(st);
         st.evoPending = (st.evoPending||[]).filter(t => t !== tier);
         if(!st.evoTiers.includes(tier)) st.evoTiers.push(tier);
         st.evoChoice = st.evoChoice || {}; st.evoChoice[tier] = ev.name;
-        UI.log("sys", "✦ Évolution : " + def.name + " → " + ev.name);
+        UI.log("sys", "✦ Évolution : " + def.name + " → " + ev.name + (ev.anim?" ["+ev.anim+"]":""));
         MetaProgress.save();                 // évolution permanente
         UI.hide("evoOverlay");
         Progression.nextEvolution();         // évolution suivante, ou récompense
@@ -11989,6 +12114,13 @@ function newRun(){
   }
   hoverTile=null; hoverEnemy=null; armedSkill=null;
   Render.layout();
+  try{
+    if(typeof CharCreator !== "undefined"){
+      CharCreator.load();
+      CharCreator.warmCombatSheets();
+    }
+    if(typeof FantasyBridge !== "undefined") FantasyBridge.syncWeaponSpell();
+  }catch(_e){}
   Combat.startFight();
 }
 
