@@ -262,6 +262,7 @@
   const G = {
     turn:"player",
     cat:"atk",
+    busy: false,
     player:{ c:2, r:5, dir:3, pv:100, pvMax:100, pa:6, paMax:6, pm:3, pmMax:3, anim:"Idle", frame:0, t0:0, flash:0, alive:true, shield:0 },
     enemy:{ c:7, r:4, dir:7, pv:40, pvMax:40, pa:4, pm:2, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit" },
     armed: null,
@@ -273,6 +274,35 @@
     hover: null,
   };
 
+  const MOVE_ANIMS = ["Walk","Run","RunBackwards","StrafeLeft","StrafeRight","CrouchRun"];
+  const ATK_ANIMS = ["Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","AttackRun","AttackRun2","Kick","Special1"];
+
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function weaponFolder(){
+    try{
+      if(typeof FantasyBridge!=="undefined") return FantasyBridge.currentWeaponFolder();
+    }catch(_e){}
+    return (lookState.look && lookState.look.weapon) || "None";
+  }
+  function weaponPreferredAnim(){
+    try{
+      if(typeof FantasyBridge!=="undefined"){
+        const ent = FantasyBridge.weaponEntry(weaponFolder());
+        if(ent && ent.anim) return ent.anim;
+      }
+    }catch(_e){}
+    return null;
+  }
+  function randomMoveAnim(){ return pick(MOVE_ANIMS); }
+  function randomAttackAnim(){
+    const pref = weaponPreferredAnim();
+    const pool = ATK_ANIMS.slice();
+    if(pref && !pool.includes(pref)) pool.push(pref);
+    /* biais léger vers l’anim d’arme */
+    if(pref && Math.random()<0.45) return pref;
+    return pick(pool);
+  }
+
   function setStatus(t){ el("status").textContent = t; }
   function hud(){
     el("hudPv").textContent = G.player.pv+"/"+G.player.pvMax;
@@ -283,7 +313,7 @@
     el("chipPm").classList.toggle("low", G.player.pm<=1);
     el("chipPm").classList.toggle("zero", G.player.pm<=0);
     el("comboFill").style.width = Math.min(100, G.combo)+"%";
-    el("btnEnd").disabled = G.turn!=="player";
+    el("btnEnd").disabled = G.turn!=="player" || G.busy;
   }
 
   function loadLook(){
@@ -474,60 +504,115 @@
   }
 
   function tryStep(dc, dr){
-    if(G.turn!=="player" || !G.player.alive) return;
-    if(G.armed){
-      /* avec sort armé : cycle cible / self — pour MVP, pas de déplacement */
-      return;
-    }
+    if(G.busy || G.turn!=="player" || !G.player.alive) return;
+    if(G.armed) return;
     if(G.player.pm<=0){ setStatus("Plus de PM"); return; }
     const c = G.player.c+dc, r = G.player.r+dr;
     if(!inBounds(c,r) || occupied(c,r,"player")){ setStatus("Case bloquée"); return; }
     faceToward(G.player, c, r);
     G.player.c=c; G.player.r=r; G.player.pm-=1;
-    playAnim(G.player, "Walk");
+    playAnim(G.player, randomMoveAnim());
     recomputeMoves(); recomputeTargets(); hud();
     setStatus("Dir "+DIR_LABEL[G.player.dir]+" · −1 PM");
-    setTimeout(()=>{ if(G.player.anim==="Walk") playAnim(G.player,"Idle"); }, 380);
+    setTimeout(()=>{
+      if(MOVE_ANIMS.includes(G.player.anim)) playAnim(G.player,"Idle");
+    }, 380);
   }
 
   function roll(arr){ return arr[0] + Math.floor(Math.random()*(arr[1]-arr[0]+1)); }
 
-  function tryCastAt(c, r){
-    if(G.turn!=="player" || !G.armed) return;
-    const sp = spellById(G.armed); if(!sp) return;
-    if(G.player.pa < sp.cost){ setStatus("Pas assez de PA"); return; }
-
-    if(sp.cat==="def" || sp.cat==="sup"){
-      G.player.pa -= sp.cost;
-      playAnim(G.player, sp.anim||"Special1");
-      if(sp.heal){
-        const h = roll(sp.heal);
-        G.player.pv = Math.min(G.player.pvMax, G.player.pv + h);
-        setStatus(sp.name+" +"+h+" PV");
-      } else {
-        G.player.shield = (G.player.shield||0) + 8;
-        setStatus(sp.name+" · bouclier");
+  /** Chemin BFS jusqu’à une case à portée du sort vers l’ennemi */
+  function pathIntoSpellRange(sp){
+    if(!G.enemy.alive) return null;
+    const maxSteps = G.player.pm;
+    const distM = {};
+    const prev = {};
+    const sk = key(G.player.c, G.player.r);
+    distM[sk]=0; prev[sk]=null;
+    const q=[{c:G.player.c,r:G.player.r}];
+    const dirs=[[0,-1],[1,0],[0,1],[-1,0]];
+    let goal=null;
+    while(q.length){
+      const cur=q.shift();
+      if(dist(cur, G.enemy) <= sp.range){ goal=cur; break; }
+      const d=distM[key(cur.c,cur.r)];
+      if(d>=maxSteps) continue;
+      for(const [dc,dr] of dirs){
+        const nc=cur.c+dc, nr=cur.r+dr;
+        if(!inBounds(nc,nr)) continue;
+        const k=key(nc,nr);
+        if(k in distM) continue;
+        if(occupied(nc,nr,"player")) continue;
+        distM[k]=d+1; prev[k]=key(cur.c,cur.r);
+        q.push({c:nc,r:nr});
       }
-      G.combo = Math.min(100, G.combo + 18);
-      G.armed=null;
-      recomputeMoves(); recomputeTargets(); renderSpells(); hud();
-      setTimeout(()=>playAnim(G.player,"Idle"), 650);
-      return;
     }
-
-    if(!G.enemy.alive || G.enemy.c!==c || G.enemy.r!==r){ setStatus("Pas de cible"); return; }
-    if(dist(G.player, G.enemy) > sp.range){ setStatus("Hors de portée"); return; }
-
-    faceToward(G.player, c, r);
-    let anim = sp.anim;
-    try{
-      if(typeof FantasyBridge!=="undefined"){
-        const w = FantasyBridge.currentWeaponFolder();
-        const ent = FantasyBridge.weaponEntry(w);
-        if(ent && FantasyBridge.resolveSpellId(ent)===sp.id && ent.anim) anim = ent.anim;
+    if(!goal){
+      /* se rapprocher au max */
+      let best=null, bd=1e9;
+      for(const k of Object.keys(distM)){
+        const [c,r]=k.split(",").map(Number);
+        const d=dist({c,r}, G.enemy);
+        if(d<bd){ bd=d; best={c,r}; }
       }
-    }catch(_e){}
+      goal=best;
+    }
+    if(!goal || (goal.c===G.player.c && goal.r===G.player.r)) return [];
+    const path=[];
+    let k=key(goal.c,goal.r);
+    while(k){
+      const [c,r]=k.split(",").map(Number);
+      path.unshift({c,r});
+      k=prev[k];
+    }
+    return path; /* inclut départ */
+  }
 
+  function approachThen(sp, onReady){
+    const path = pathIntoSpellRange(sp);
+    if(!path || path.length<2){ onReady(); return; }
+    G.busy=true; hud();
+    let i=1;
+    const step=()=>{
+      if(i>=path.length || G.player.pm<=0){
+        G.busy=false; playAnim(G.player,"Idle");
+        recomputeMoves(); recomputeTargets(); hud();
+        onReady(); return;
+      }
+      const n=path[i++];
+      faceToward(G.player, n.c, n.r);
+      G.player.c=n.c; G.player.r=n.r; G.player.pm-=1;
+      playAnim(G.player, randomMoveAnim());
+      recomputeMoves(); recomputeTargets(); hud();
+      setTimeout(step, 240);
+    };
+    step();
+  }
+
+  function finishCastSelf(sp){
+    G.player.pa -= sp.cost;
+    playAnim(G.player, sp.anim||"Special1");
+    if(sp.heal){
+      const h = roll(sp.heal);
+      G.player.pv = Math.min(G.player.pvMax, G.player.pv + h);
+      if(sp.cat==="def") G.player.shield = (G.player.shield||0) + Math.floor(h/2);
+      setStatus(sp.name+(sp.cat==="def"?" · défense":"")+" +"+h+" PV");
+    } else {
+      G.player.shield = (G.player.shield||0) + 8;
+      setStatus(sp.name+" · bouclier");
+    }
+    G.combo = Math.min(100, G.combo + 18);
+    G.armed=null;
+    recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+    setTimeout(()=>playAnim(G.player,"Idle"), 650);
+  }
+
+  function finishCastEnemy(sp){
+    if(!G.enemy.alive){ setStatus("Plus de cible"); return; }
+    if(dist(G.player, G.enemy) > sp.range){ setStatus("Toujours hors portée"); return; }
+    if(G.player.pa < sp.cost){ setStatus("Pas assez de PA"); return; }
+    faceToward(G.player, G.enemy.c, G.enemy.r);
+    const anim = randomAttackAnim();
     G.player.pa -= sp.cost;
     playAnim(G.player, anim);
     const dmg = roll(sp.dmg);
@@ -536,25 +621,113 @@
     faceToward(G.enemy, G.player.c, G.player.r);
     playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
     G.combo = Math.min(100, G.combo + 22);
-    setStatus(sp.name+" → "+dmg+" · "+DIR_LABEL[G.player.dir]);
+    setStatus(sp.name+" → "+dmg+" · "+anim);
     if(G.enemy.pv<=0){ G.enemy.alive=false; setStatus("Victoire"); }
     G.armed=null;
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     setTimeout(()=>{ if(G.player.anim!=="Die") playAnim(G.player,"Idle"); }, 700);
   }
 
+  function tryCastAt(c, r){
+    if(G.busy || G.turn!=="player" || !G.armed) return;
+    const sp = spellById(G.armed); if(!sp) return;
+    if(G.player.pa < sp.cost){ setStatus("Pas assez de PA"); return; }
+
+    if(sp.cat==="def" || sp.cat==="sup"){
+      finishCastSelf(sp);
+      return;
+    }
+
+    if(!G.enemy.alive || G.enemy.c!==c || G.enemy.r!==r){ setStatus("Pas de cible"); return; }
+    if(dist(G.player, G.enemy) > sp.range){
+      /* approche avec PM puis attaque */
+      approachThen(sp, ()=> finishCastEnemy(sp));
+      return;
+    }
+    finishCastEnemy(sp);
+  }
+
+  /** Attaque auto : sort d’arme (ou 1er atk) + approche PM + anims aléatoires */
+  function autoAttack(){
+    if(G.busy || G.turn!=="player" || !G.player.alive || !G.enemy.alive) return;
+    let id = null;
+    try{
+      if(typeof FantasyBridge!=="undefined"){
+        id = FantasyBridge.resolveSpellId(FantasyBridge.weaponEntry(weaponFolder()));
+      }
+    }catch(_e){}
+    const pool = ["punch","monofil","arc","surchauffe"];
+    if(!id || !spellById(id)) id = pool[0];
+    let sp = spellById(id);
+    if(!sp || G.player.pa < sp.cost){
+      sp = pool.map(spellById).find(s=>s && G.player.pa>=s.cost);
+    }
+    if(!sp){ setStatus("Pas assez de PA"); return; }
+    G.armed = sp.id;
+    G.cat = "atk";
+    document.querySelectorAll(".cat").forEach(b=>b.classList.toggle("on", b.dataset.cat==="atk"));
+    recomputeMoves(); recomputeTargets(); renderSpells();
+    if(dist(G.player, G.enemy) > sp.range){
+      approachThen(sp, ()=> finishCastEnemy(sp));
+    } else {
+      finishCastEnemy(sp);
+    }
+  }
+
+  /** IA Défense — reste sur place, sort le plus adapté */
+  function aiDefense(){
+    if(G.busy || G.turn!=="player" || !G.player.alive) return;
+    const opts = ["bouclier","armure_nanites"].map(spellById).filter(s=>s && G.player.pa>=s.cost);
+    if(!opts.length){ setStatus("Défense : pas de PA"); return; }
+    const hp = G.player.pv / G.player.pvMax;
+    let sp;
+    if(hp < 0.45 || (G.enemy.alive && dist(G.player,G.enemy)<=2)){
+      /* danger → plus gros bouclier/soin déf */
+      sp = opts.sort((a,b)=> (b.heal?b.heal[1]:0)-(a.heal?a.heal[1]:0) || b.cost-a.cost)[0];
+    } else {
+      /* calme → le moins cher */
+      sp = opts.sort((a,b)=> a.cost-b.cost)[0];
+    }
+    G.armed = sp.id; G.cat="def";
+    document.querySelectorAll(".cat").forEach(b=>b.classList.toggle("on", b.dataset.cat==="def"));
+    renderSpells();
+    finishCastSelf(sp);
+  }
+
+  /** IA Soutien — reste sur place, meilleur soin */
+  function aiSupport(){
+    if(G.busy || G.turn!=="player" || !G.player.alive) return;
+    const opts = ["nanites","reconstruction"].map(spellById).filter(s=>s && G.player.pa>=s.cost);
+    if(!opts.length){ setStatus("Soutien : pas de PA"); return; }
+    const missing = G.player.pvMax - G.player.pv;
+    let sp;
+    if(missing >= 18){
+      sp = opts.sort((a,b)=> (b.heal?b.heal[1]:0)-(a.heal?a.heal[1]:0))[0];
+    } else if(missing <= 0){
+      setStatus("PV pleins"); return;
+    } else {
+      sp = opts.sort((a,b)=> a.cost-b.cost)[0];
+    }
+    G.armed = sp.id; G.cat="sup";
+    document.querySelectorAll(".cat").forEach(b=>b.classList.toggle("on", b.dataset.cat==="sup"));
+    renderSpells();
+    finishCastSelf(sp);
+  }
+
   function castArmed(){
-    if(!G.armed){ setStatus("Choisis un sort"); return; }
+    if(G.busy) return;
+    if(!G.armed){ autoAttack(); return; }
     const sp = spellById(G.armed);
     if(!sp) return;
     if(sp.cat==="def" || sp.cat==="sup"){ tryCastAt(G.player.c, G.player.r); return; }
-    if(G.enemy.alive && G.targets.has(key(G.enemy.c, G.enemy.r))){
-      tryCastAt(G.enemy.c, G.enemy.r);
+    if(G.enemy.alive){
+      if(dist(G.player, G.enemy) > sp.range) approachThen(sp, ()=> finishCastEnemy(sp));
+      else tryCastAt(G.enemy.c, G.enemy.r);
     } else setStatus("Cible hors portée");
   }
 
   function endTurn(){
-    if(G.turn!=="player") return;
+    if(G.turn!=="player" || G.busy) return;
     G.armed=null; G.turn="enemy";
     G.combo = Math.max(0, G.combo - 12);
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
@@ -608,26 +781,39 @@
 
   function renderSpells(){
     const host = el("spellList"); host.innerHTML="";
+    if(G.cat!=="atk"){
+      const note = document.createElement("p");
+      note.className = "hint";
+      note.style.margin="0";
+      note.textContent = G.cat==="def"
+        ? "Défense : IA choisit le sort adapté (sur place)"
+        : "Soutien : IA choisit le meilleur soin (sur place)";
+      host.appendChild(note);
+      return;
+    }
+
     let weaponSpell = null;
     try{
       if(typeof FantasyBridge!=="undefined"){
-        const w = FantasyBridge.currentWeaponFolder();
-        const ent = FantasyBridge.weaponEntry(w);
-        weaponSpell = FantasyBridge.resolveSpellId(ent);
+        weaponSpell = FantasyBridge.resolveSpellId(FantasyBridge.weaponEntry(weaponFolder()));
       }
     }catch(_e){}
 
-    const baseByCat = {
-      atk: ["punch","monofil","arc","surchauffe"],
-      def: ["bouclier","armure_nanites"],
-      sup: ["nanites","reconstruction"],
-    };
-    let ids = (baseByCat[G.cat]||[]).slice();
-    if(G.cat==="atk" && weaponSpell){
+    let ids = ["punch","monofil","arc","surchauffe"];
+    if(weaponSpell){
       if(!ids.includes(weaponSpell)) ids.unshift(weaponSpell);
       else { ids.splice(ids.indexOf(weaponSpell),1); ids.unshift(weaponSpell); }
     }
     ids = ids.slice(0,4);
+
+    /* bouton Auto en premier */
+    const auto = document.createElement("button");
+    auto.type="button";
+    auto.textContent = "Auto · approche";
+    auto.disabled = G.turn!=="player" || G.busy || !G.enemy.alive;
+    auto.onclick=()=> autoAttack();
+    host.appendChild(auto);
+
     ids.forEach(id=>{
       const sp = spellById(id); if(!sp) return;
       const skin = (typeof FantasyBridge!=="undefined" && FantasyBridge.SPELL_SKIN[sp.id]) || null;
@@ -636,21 +822,24 @@
       b.type="button";
       b.className = G.armed===sp.id ? "on" : "";
       b.textContent = name+" ·"+sp.cost;
-      b.disabled = G.turn!=="player" || G.player.pa<sp.cost;
+      b.disabled = G.turn!=="player" || G.busy || G.player.pa<sp.cost;
       b.onclick=()=>{
+        if(G.busy) return;
         if(G.armed===sp.id){
-          /* 2ᵉ appui = lancer si possible, sinon désarme */
-          if(sp.cat==="def"||sp.cat==="sup"){ tryCastAt(G.player.c, G.player.r); return; }
-          if(G.enemy.alive && dist(G.player,G.enemy)<=sp.range){ tryCastAt(G.enemy.c, G.enemy.r); return; }
-          G.armed=null; recomputeMoves(); recomputeTargets(); renderSpells();
-          setStatus("Déplacement"); return;
+          if(G.enemy.alive){
+            if(dist(G.player,G.enemy)>sp.range) approachThen(sp, ()=> finishCastEnemy(sp));
+            else tryCastAt(G.enemy.c, G.enemy.r);
+          }
+          return;
         }
         G.armed = sp.id;
         recomputeMoves(); recomputeTargets(); renderSpells();
-        /* attaque auto si cible à portée */
-        if(sp.cat==="def"||sp.cat==="sup"){ tryCastAt(G.player.c, G.player.r); return; }
-        if(G.enemy.alive && dist(G.player,G.enemy)<=sp.range){ tryCastAt(G.enemy.c, G.enemy.r); return; }
-        setStatus(name+" armé · hors portée");
+        if(G.enemy.alive && dist(G.player,G.enemy)<=sp.range){
+          tryCastAt(G.enemy.c, G.enemy.r);
+        } else if(G.enemy.alive){
+          /* approche auto puis cast */
+          approachThen(sp, ()=> finishCastEnemy(sp));
+        } else setStatus(name+" armé");
       };
       host.appendChild(b);
     });
@@ -676,7 +865,7 @@
     const anim = ent.anim||"Idle";
     const elapsed = (performance.now()-(ent.t0||0))/1000;
     let col = Math.floor(elapsed*FPS);
-    if(anim==="Idle"||anim==="Walk"||anim==="Run") col = col % COLS;
+    if(anim==="Idle"||anim==="Walk"||anim==="Run"||anim==="RunBackwards"||anim==="StrafeLeft"||anim==="StrafeRight"||anim==="CrouchRun") col = col % COLS;
     else col = Math.min(col, COLS-1);
     const s = toScreen(ent.c, ent.r);
     const scale = 1.15;
@@ -770,7 +959,7 @@
   }
 
   function onTap(e){
-    if(G.turn!=="player" || !G.player.alive) return;
+    if(G.busy || G.turn!=="player" || !G.player.alive) return;
     const {x,y}=pointer(e);
     const cell=toTile(x,y);
     if(!inBounds(cell.c,cell.r)) return;
@@ -780,7 +969,7 @@
   }
 
   function warm(){
-    const anims=["Idle","Walk","Run","Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","AttackRun","TakeDamage","Die","Special1","Kick"];
+    const anims=["Idle","Walk","Run","RunBackwards","StrafeLeft","StrafeRight","CrouchRun","Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","AttackRun","AttackRun2","TakeDamage","Die","Special1","Kick"];
     for(const L of layersForRow(3)) for(const a of anims) loadImg(L.folder,a);
     for(const f of ["NakedBody","Head3","Melee2"]) for(const a of anims) loadImg(f,a);
   }
@@ -788,6 +977,7 @@
   function bindPad(){
     el("dpad").querySelectorAll("button").forEach(btn=>{
       const fire=()=>{
+        if(G.busy) return;
         const d=btn.dataset.dir;
         if(d==="c"){ castArmed(); return; }
         const v=PAD_VEC[d]; if(!v) return;
@@ -799,10 +989,15 @@
     });
     document.querySelectorAll(".cat").forEach(btn=>{
       btn.onclick=()=>{
-        G.cat = btn.dataset.cat;
+        if(G.busy || G.turn!=="player") return;
+        const cat = btn.dataset.cat;
+        G.cat = cat;
         document.querySelectorAll(".cat").forEach(b=>b.classList.toggle("on", b===btn));
-        G.armed=null; recomputeTargets(); renderSpells();
-        setStatus(G.cat==="atk"?"Attaque":G.cat==="def"?"Défense":"Soutien");
+        G.armed=null;
+        if(cat==="def"){ renderSpells(); aiDefense(); return; }
+        if(cat==="sup"){ renderSpells(); aiSupport(); return; }
+        recomputeMoves(); recomputeTargets(); renderSpells();
+        setStatus("Attaque · 4 sorts + Auto");
       };
     });
   }
