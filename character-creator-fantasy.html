@@ -37,10 +37,10 @@
     flex:1;min-width:0;text-align:center;font-size:12px;font-weight:600;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
-  .swatches{display:flex;flex-wrap:wrap;gap:6px}
-  .sw{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;
-    box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)}
-  .sw.on{border-color:var(--sel)}
+  .swatches{display:flex;flex-wrap:wrap;gap:3px}
+  .sw{width:16px;height:16px;border-radius:50%;border:1.5px solid transparent;cursor:pointer;padding:0;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+  .sw.on{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
   .sw.bw{box-shadow:inset 0 0 0 1px #999}
   .btn{
     width:100%;min-height:40px;border:1px solid var(--line);background:var(--card);color:var(--ink);
@@ -132,8 +132,8 @@
     <div class="sec">
       <span class="ttl">Taille</span>
       <div class="size-row">
-        <input type="range" id="charSize" min="45" max="95" value="86" step="1"/>
-        <span id="charSizeVal">86%</span>
+        <input type="range" id="charSize" min="55" max="110" value="98" step="1"/>
+        <span id="charSizeVal">98%</span>
       </div>
     </div>
     <div class="sec">
@@ -187,13 +187,13 @@
 
   /* Layout épuré : perso haut, ombre, rot dessous ; zones à droite tête→pieds ; menu à gauche */
   const LAY = {
-    char:{ xPct:42, yPct:42, sizePct:0.82 },
-    shadow:{ xPct:42, yPct:58, wPct:0.42, hPct:0.06, opacity:0.06 },
+    char:{ xPct:40, yPct:40, sizePct:0.98 },
+    shadow:{ xPct:40, yPct:60, wPct:0.55, hPct:0.085, opacity:0.07 },
     zonesLab:{
       head:"Tête", chest:"Torse", backpack:"Sac", body:"Corps",
       legs:"Jambes", shoes:"Chauss.", weapon:"Extra",
     },
-    rot:{ yPct:78, gapPct:18, size:48 } // sous le perso, centrées sur x char
+    rot:{ yPct:82, gapPct:20, size:48 } // sous le perso, centrées sur x char
   };
 
   /* Ordre anatomique haut → bas */
@@ -219,7 +219,7 @@
     anim:"Idle", dir:0, fps:14,
     zoneId:"head", _miscFocus:"weapon",
     lastEdited:null,
-    charSizePct: 0.82,
+    charSizePct: 0.98,
     cache:new Map(), raf:0, frame:0, lastT:0,
     drawing:false, dirty:true, drawRect:null,
   };
@@ -594,7 +594,7 @@
 
     const sizeEl=el("charSize");
     if(sizeEl) sizeEl.oninput=()=>{
-      state.charSizePct=Math.max(0.45, Math.min(0.95, (+sizeEl.value)/100));
+      state.charSizePct=Math.max(0.55, Math.min(1.10, (+sizeEl.value)/100));
       syncSizeUI(); state.dirty=true;
     };
     el("advH").oninput=syncAdv; el("advS").oninput=syncAdv; el("advL").oninput=syncAdv;
@@ -660,7 +660,11 @@
             state.bodies=[{folder:o.look.body, opacity:1, color:state.colors.body||DEFAULT_COLORS.body}];
           }
           if(o.anim) state.anim=o.anim;
-          if(typeof o.charSizePct==="number") state.charSizePct=Math.max(0.45, Math.min(0.95, o.charSizePct));
+          if(typeof o.charSizePct==="number"){
+            let p=Math.max(0.55, Math.min(1.10, o.charSizePct));
+            if(p<0.90) p=LAY.char.sizePct; /* anciennes valeurs trop petites */
+            state.charSizePct=p;
+          }
         }
       }
     }catch(_e){}
