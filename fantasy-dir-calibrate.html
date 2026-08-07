@@ -149,6 +149,16 @@
     <div class="map" id="mapOut"></div>
   </div>
 
+  <div class="card">
+    <div class="lab">5 · Export / coller (si le lien saute)</div>
+    <textarea id="exportBox" readonly rows="8" style="width:100%;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--sel);font:11px/1.4 ui-monospace,Menlo,monospace;padding:10px;resize:vertical"></textarea>
+    <div class="bar" style="margin-top:8px">
+      <button type="button" class="primary" id="btnCopy">Copier JSON</button>
+      <button type="button" id="btnImport">Coller / Importer</button>
+    </div>
+    <textarea id="importBox" rows="3" placeholder="Colle ici un JSON de calibrage puis Importer" style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:11px/1.4 ui-monospace,Menlo,monospace;padding:10px;resize:vertical"></textarea>
+  </div>
+
   <div class="bar">
     <button type="button" id="btnCopyWalk">Copier Walk → toutes</button>
     <button type="button" class="primary" id="btnSave">Sauver</button>
@@ -254,6 +264,53 @@
     return seen.size===8; /* chaque direction utilisée une fois = calibrage complet */
   }
 
+  function persist(silent){
+    try{
+      localStorage.setItem(KEY_SHEETS, JSON.stringify(sheets));
+      localStorage.setItem(KEY, JSON.stringify(sheets.Walk||defaultMap()));
+    }catch(_e){}
+    refreshExport();
+    if(!silent) el("status").textContent="Sauvé local + JSON à jour";
+  }
+
+  function refreshExport(){
+    const payload = {
+      pack: "fantasy-cc",
+      key: KEY,
+      sheetsKey: KEY_SHEETS,
+      labels: LABELS,
+      walk: sheets.Walk || defaultMap(),
+      sheets: sheets,
+      note: "Ligne sheet → direction écran (0=N … 7=NW)"
+    };
+    el("exportBox").value = JSON.stringify(payload, null, 2);
+  }
+
+  function applyImported(obj){
+    if(!obj) return false;
+    if(obj.sheets && typeof obj.sheets==="object"){
+      for(const k of Object.keys(obj.sheets)){
+        if(Array.isArray(obj.sheets[k]) && obj.sheets[k].length===8)
+          sheets[k]=obj.sheets[k].map(n=>n&7);
+      }
+      persist(true);
+      return true;
+    }
+    if(Array.isArray(obj.walk) && obj.walk.length===8){
+      const m=obj.walk.map(n=>n&7);
+      ANIMS.forEach(a=> sheets[a]=m.slice());
+      persist(true);
+      return true;
+    }
+    if(Array.isArray(obj) && obj.length===8){
+      const m=obj.map(n=>n&7);
+      ANIMS.forEach(a=> sheets[a]=m.slice());
+      persist(true);
+      return true;
+    }
+    return false;
+  }
+
   function sync(){
     el("animLab").textContent=anim;
     el("mapAnim").textContent=anim;
@@ -268,6 +325,7 @@
     });
     renderAnims();
     renderMap();
+    refreshExport();
     el("status").textContent=anim+" · ligne "+row+" = "+LABELS[facing];
   }
 
@@ -325,9 +383,10 @@
   document.querySelectorAll("#dirs button").forEach(b=>{
     b.onclick=()=>{
       setMap(row, +b.dataset.dir);
+      persist(true);
       sync();
       if(row<7){ row++; sync(); }
-      else el("status").textContent=anim+" terminé · change d’action ou Sauver";
+      else el("status").textContent=anim+" terminé · change d’action ou Copier JSON";
     };
   });
 
@@ -335,7 +394,7 @@
     btn.addEventListener("pointerdown", (e)=>{
       e.preventDefault();
       const d=btn.dataset.dir;
-      if(d==="c"){ /* replay attack-ish */ return; }
+      if(d==="c"){ return; }
       const v=PAD_VEC[d]; if(!v) return;
       const f=facingFromIso(v.dc,v.dr);
       if(f!=null) testFacing=f;
@@ -346,17 +405,39 @@
   el("btnCopyWalk").onclick=()=>{
     const m=(sheets.Walk||defaultMap()).slice();
     ANIMS.forEach(a=>{ if(a!=="Walk") sheets[a]=m.slice(); });
+    persist(true);
     sync();
     el("status").textContent="Walk copié sur toutes les actions";
   };
 
-  el("btnSave").onclick=()=>{
+  el("btnSave").onclick=()=> persist(false);
+
+  el("btnCopy").onclick=async ()=>{
+    refreshExport();
+    const txt = el("exportBox").value;
     try{
-      localStorage.setItem(KEY_SHEETS, JSON.stringify(sheets));
-      /* fallback global = Walk */
-      localStorage.setItem(KEY, JSON.stringify(sheets.Walk||defaultMap()));
-    }catch(_e){}
-    el("status").textContent="Sauvé · combat lit neuro.fantasyDirRow.sheets";
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(txt);
+        el("status").textContent="JSON copié — envoie-le moi ou colle-le après reload";
+      } else {
+        el("exportBox").focus(); el("exportBox").select();
+        document.execCommand("copy");
+        el("status").textContent="JSON sélectionné — copie manuelle";
+      }
+    }catch(_e){
+      el("exportBox").focus(); el("exportBox").select();
+      el("status").textContent="Sélectionne le JSON et copie (appui long)";
+    }
+  };
+
+  el("btnImport").onclick=()=>{
+    const raw = (el("importBox").value||"").trim();
+    if(!raw){ el("status").textContent="Colle un JSON d’abord"; return; }
+    try{
+      const obj = JSON.parse(raw);
+      if(applyImported(obj)){ sync(); el("status").textContent="Import OK · sauvé"; }
+      else el("status").textContent="JSON non reconnu";
+    }catch(_e){ el("status").textContent="JSON invalide"; }
   };
 
   renderAnims();
