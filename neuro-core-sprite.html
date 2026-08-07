@@ -6920,7 +6920,8 @@ const CharCreator = {
   PACK_LOCAL: "assets/packs/fantasy-cc/",
   PACK_CDN: "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/",
   FW: 128, FH: 128, COLS: 15,
-  DIR_ROW: [0,1,2,3,4,5,6,7],
+  /* Neuro dirIndex (atan2(dc,dr), 0=S) → row sheet fantasy (0=N horaire) */
+  DIR_ROW: [4,3,2,1,0,7,6,5],
   weaponAfterShieldRows: [true,true,true,false,false,false,false,true],
   backpackInFrontRows: [true,false,false,false,false,true,true,true],
   DEFAULT_COLORS: {
