@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
+<title>Combat Fantasy</title>
+<script src="js/fantasy-combat-bridge.js"></script>
+<style>
+  :root{
+    --bg:#ecece8; --bg2:#f5f5f2; --ink:#555552; --ink2:#8e8e8a;
+    --line:#c6c6c2; --line2:#dcdcd8; --card:#fafaf8; --tap:48px;
+    --sel:#3d3d3a; --soft:#f0f0ec; --side:138px;
+    --ok:#2f6f4e; --warn:#8a5a2b; --bad:#8a3030;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font:15px/1.35 Helvetica,Arial,sans-serif;overflow:hidden;overscroll-behavior:none}
+  .app{height:100%;height:100dvh;max-width:430px;margin:0 auto;display:flex;flex-direction:row;
+    background:linear-gradient(180deg,var(--bg2),var(--bg) 60%,#e2e2de)}
+
+  .dock{
+    width:var(--side);flex-shrink:0;display:flex;flex-direction:column;gap:8px;
+    padding:10px 8px calc(10px + env(safe-area-inset-bottom));
+    background:rgba(250,250,248,.96);border-right:1px solid var(--line2);
+    overflow:auto;min-height:0;
+  }
+  .dock .sec{display:flex;flex-direction:column;gap:6px}
+  .dock .ttl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+  .stat{display:flex;justify-content:space-between;font-size:13px;font-weight:600}
+  .stat b{font-weight:700;color:var(--sel)}
+  .btn{
+    width:100%;min-height:40px;border:1px solid var(--line);background:var(--card);color:var(--ink);
+    border-radius:10px;font-size:12px;cursor:pointer;padding:6px 4px;
+  }
+  .btn.primary{background:var(--sel);color:#fff;border-color:var(--sel)}
+  .btn.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .btn.on{background:var(--sel);color:#fff}
+  .btn:disabled{opacity:.4}
+  .spell-list{display:flex;flex-direction:column;gap:4px}
+  .status{font-size:10px;color:var(--ink2);text-align:center;line-height:1.3}
+  .hint{font-size:10px;color:var(--ink2);line-height:1.3;margin:0}
+
+  .stage{flex:1;min-width:0;min-height:0;position:relative;overflow:hidden}
+  canvas#arena{position:absolute;inset:0;width:100%;height:100%;touch-action:none;image-rendering:pixelated}
+
+  .float-bar{
+    position:absolute;left:8px;right:8px;bottom:10px;z-index:5;
+    display:flex;gap:8px;align-items:center;justify-content:center;
+    pointer-events:none;
+  }
+  .float-bar .btn{pointer-events:auto;width:auto;min-width:72px;padding:0 14px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="dock">
+    <div class="sec">
+      <span class="ttl">Combat</span>
+      <div class="stat"><span>PV</span><b id="hudPv">—</b></div>
+      <div class="stat"><span>PA</span><b id="hudPa">—</b></div>
+      <div class="stat"><span>PM</span><b id="hudPm">—</b></div>
+    </div>
+    <div class="sec">
+      <span class="ttl">Sort</span>
+      <div class="spell-list" id="spellList"></div>
+      <p class="hint" id="spellHint">Touche une case pour bouger ou attaquer.</p>
+    </div>
+    <div class="sec">
+      <span class="ttl">Tour</span>
+      <button type="button" class="btn ok" id="btnEnd">Fin de tour</button>
+      <button type="button" class="btn" id="btnIdle">Idle</button>
+    </div>
+    <div class="sec" style="margin-top:auto">
+      <a class="btn" id="btnCreator" href="character-creator-fantasy.html" style="display:block;text-align:center;text-decoration:none;line-height:40px">Créateur</a>
+      <div class="status" id="status">…</div>
+    </div>
+  </aside>
+  <section class="stage">
+    <canvas id="arena" width="300" height="520" aria-label="Arène"></canvas>
+    <div class="float-bar">
+      <button type="button" class="btn" id="btnCancel">Annuler</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const BASE_LOCAL = "assets/packs/fantasy-cc/";
+  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
+  const FW=128, FH=128, COLS=15, FPS=14;
+  const KEY_LOOK = "neuro.fantasyLook";
+
+  /*
+   * Sheet fantasy-cc : row = direction écran.
+   * Confirmé par backpackInFrontRows [T,F,F,F,F,T,T,T] → dos visible en 0,5,6,7
+   * donc row0=N (dos), puis horaire NE,E,SE,S,SW,W,NW.
+   * (≠ Neuro Core : là-bas atan2(dc,dr) + DIR_ROW différent — on n’utilise PAS Neuro.)
+   *
+   * Grille : +c = Est (droite), +r = Sud (bas de l’écran).
+   */
+  const DIR_LABEL = ["N","NE","E","SE","S","SW","W","NW"];
+  /** Table explicite dc,dr → row sheet (évite ambiguïté atan2). */
+  const DIR_DELTA = {
+    "0,-1":0, "1,-1":1, "1,0":2, "1,1":3,
+    "0,1":4, "-1,1":5, "-1,0":6, "-1,-1":7
+  };
+  function dirFromDelta(dc, dr){
+    if(!dc && !dr) return null;
+    const sx = Math.sign(dc), sy = Math.sign(dr);
+    const hit = DIR_DELTA[sx+","+sy];
+    if(hit != null) return hit;
+    /* diagonale / float : snap 45° avec Nord = 0 horaire */
+    let i = Math.round(Math.atan2(dc, -dr) / (Math.PI/4));
+    if(i < 0) i += 8;
+    return i & 7;
+  }
+
+  const GRID = 12;           /* plus grande taille déjà confortable en mobile */
+  const TILE = 36;           /* case top-down (pas iso Neuro) — directions lisibles */
+  const ORIGIN = { x:0, y:0 };
+
+  const DEFAULT_COLORS = {
+    body:"#d4a574", shoes:"#3a3230", legs:"#3e4f63", chest:"#5b7c99",
+    belt:"#8b6914", gloves:"#6a5a4e", offhand:"#6b8f71", weapon:"#9aa8b8",
+    backpack:"#7a5c3a", head:"#e0b878", slash:"#e8590c", effect:"#5ec8ff", mount:"#8a7060",
+  };
+
+  /* Sorts de base + stubs pour sorts d’armes (noms via FantasyBridge) */
+  const SPELLS = [
+    { id:"punch", name:"Coup brut", cost:2, range:1, dmg:[8,12], anim:"Attack2" },
+    { id:"monofil", name:"Lame spectrale", cost:3, range:1, dmg:[14,18], anim:"Attack3" },
+    { id:"arc", name:"Éclair runique", cost:3, range:4, dmg:[10,15], anim:"Attack1" },
+    { id:"surchauffe", name:"Brasier", cost:4, range:3, dmg:[16,22], anim:"Attack5" },
+    { id:"impact_cinetique", name:"Frappe du titan", cost:4, range:1, dmg:[18,24], anim:"Attack3" },
+    { id:"dash", name:"Charge du sanglier", cost:3, range:2, dmg:[12,16], anim:"AttackRun" },
+    { id:"mine", name:"Rune piégée", cost:3, range:2, dmg:[10,14], anim:"Kick" },
+    { id:"tir_magnetique", name:"Flèche runique", cost:3, range:5, dmg:[12,16], anim:"Attack1" },
+    { id:"bombe_thermique", name:"Orbe de feu", cost:4, range:4, dmg:[14,20], anim:"Attack3" },
+    { id:"impulsion_emp", name:"Décharge scramble", cost:3, range:3, dmg:[8,12], anim:"Attack5" },
+    { id:"sniper", name:"Œil de faucon", cost:4, range:6, dmg:[16,22], anim:"Attack1" },
+    { id:"gravite", name:"Poussée tellurique", cost:3, range:3, dmg:[10,14], anim:"Special1" },
+    { id:"parasite", name:"Maléfice", cost:3, range:2, dmg:[8,12], anim:"Attack3" },
+  ];
+  function spellById(id){ return SPELLS.find(s=>s.id===id) || null; }
+
+  const el = (id)=> document.getElementById(id);
+  const canvas = el("arena");
+  const ctx = canvas.getContext("2d");
+  const tintCv = document.createElement("canvas");
+  const tintCx = tintCv.getContext("2d");
+
+  const cache = new Map(); /* key -> Image */
+  const cacheP = new Map();
+
+  let catalog = null;
+  let weaponAfterShieldRows = [true,true,true,false,false,false,false,true];
+  let backpackInFrontRows = [true,false,false,false,false,true,true,true];
+
+  const lookState = {
+    look: null, colors: Object.assign({}, DEFAULT_COLORS),
+    bodies: [{folder:"NakedBody", opacity:1, color:"#d4a574"}],
+  };
+
+  const G = {
+    turn:"player",
+    player:{ c:2, r:6, dir:4, pv:100, pvMax:100, pa:6, paMax:6, pm:3, pmMax:3, anim:"Idle", frame:0, t0:0, flash:0, alive:true },
+    enemy:{ c:9, r:5, dir:6, pv:40, pvMax:40, pa:4, pm:2, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit" },
+    armed: null,
+    moves: new Set(),
+    targets: new Set(),
+    log: "",
+    hover: null,
+  };
+
+  function setStatus(t){ el("status").textContent = t; }
+  function hud(){
+    el("hudPv").textContent = G.player.pv+"/"+G.player.pvMax;
+    el("hudPa").textContent = G.player.pa+"/"+G.player.paMax;
+    el("hudPm").textContent = G.player.pm+"/"+G.player.pmMax;
+  }
+
+  function loadLook(){
+    try{
+      const raw = localStorage.getItem(KEY_LOOK);
+      if(!raw) return false;
+      const o = JSON.parse(raw);
+      if(!o || !o.look) return false;
+      lookState.look = o.look;
+      if(o.colors) lookState.colors = Object.assign({}, DEFAULT_COLORS, o.colors);
+      if(o.bodies && o.bodies.length) lookState.bodies = o.bodies;
+      else if(o.look.body) lookState.bodies = [{folder:o.look.body, opacity:1, color:lookState.colors.body}];
+      return true;
+    }catch(_e){ return false; }
+  }
+
+  function defaultLook(){
+    lookState.look = {
+      body:"NakedBody", chest:"Chest1", legs:"Legs1", shoes:"Shoes1",
+      head:"Head1", weapon:"Melee1", offhand:"Shield1",
+      belt:"None", gloves:"None", backpack:"None", slash:"None", effect:"None", mount:"None"
+    };
+    lookState.bodies = [{folder:"NakedBody", opacity:1, color:"#d4a574"}];
+    lookState.colors = Object.assign({}, DEFAULT_COLORS);
+  }
+
+  function folder(id){
+    if(id==="body") return null;
+    const v = lookState.look && lookState.look[id];
+    return (!v || v==="None") ? null : v;
+  }
+  function tint(id){
+    const c = lookState.colors[id];
+    if(!c || c==="#ffffff" || c==="#FFFFFF") return null;
+    return c;
+  }
+
+  function loadImg(folderName, anim){
+    const key = folderName+"/"+anim;
+    if(cache.has(key)) return Promise.resolve(cache.get(key));
+    if(cacheP.has(key)) return cacheP.get(key);
+    const p = new Promise((resolve)=>{
+      const rel = `spritesheets/${folderName}/${anim}.png`;
+      const urls = [BASE_CDN+rel, BASE_LOCAL+rel];
+      const im = new Image(); try{ im.crossOrigin="anonymous"; }catch(_e){}
+      let i=0;
+      const next=()=>{
+        if(i>=urls.length){ resolve(null); return; }
+        im.onload=()=>{ cache.set(key, im); resolve(im); };
+        im.onerror=()=>next();
+        im.src=urls[i++];
+      };
+      next();
+    });
+    cacheP.set(key, p);
+    return p;
+  }
+  function getImg(folderName, anim){ return cache.get(folderName+"/"+anim)||null; }
+
+  function layersForRow(row){
+    const L=[];
+    L.push({folder:(catalog&&catalog.shadowFolder)||"Shadow", tint:null, alpha:1});
+    for(const b of lookState.bodies){
+      if(!b||!b.folder) continue;
+      const t = (b.color && b.color!=="#ffffff") ? b.color : tint("body");
+      L.push({folder:b.folder, tint:t, alpha:Math.max(0,Math.min(1,+b.opacity||1))});
+    }
+    for(const id of ["shoes","legs","chest","belt","gloves"]){
+      const f=folder(id); if(f) L.push({folder:f, tint:tint(id), alpha:1});
+    }
+    const shield=folder("offhand"), weapon=folder("weapon"), bag=folder("backpack");
+    const wAfter=!!weaponAfterShieldRows[row|0], bagFront=!!backpackInFrontRows[row|0];
+    const mid=[];
+    if(wAfter){ if(shield) mid.push({folder:shield,tint:tint("offhand"),alpha:1}); if(weapon) mid.push({folder:weapon,tint:tint("weapon"),alpha:1}); }
+    else { if(weapon) mid.push({folder:weapon,tint:tint("weapon"),alpha:1}); if(shield) mid.push({folder:shield,tint:tint("offhand"),alpha:1}); }
+    if(bag){ const item={folder:bag,tint:tint("backpack"),alpha:1}; if(bagFront) mid.push(item); else mid.unshift(item); }
+    L.push(...mid);
+    for(const id of ["head","slash","effect"]){ const f=folder(id); if(f) L.push({folder:f,tint:tint(id),alpha:1}); }
+    const mount=folder("mount"); if(mount) L.unshift({folder:mount,tint:tint("mount"),alpha:1});
+    return L.filter(x=>x.folder);
+  }
+
+  function tintDraw(img,sx,sy,sw,sh,dx,dy,dw,dh,tintHex,alpha){
+    const a=(alpha==null)?1:alpha;
+    ctx.save(); ctx.globalAlpha=a;
+    if(!tintHex){ ctx.drawImage(img,sx,sy,sw,sh,dx,dy,dw,dh); ctx.restore(); return; }
+    const tw=Math.max(1,Math.round(dw)), th=Math.max(1,Math.round(dh));
+    if(tintCv.width!==tw) tintCv.width=tw;
+    if(tintCv.height!==th) tintCv.height=th;
+    const t=tintCx;
+    t.setTransform(1,0,0,1,0,0); t.globalCompositeOperation="source-over"; t.globalAlpha=1;
+    t.clearRect(0,0,tw,th); t.imageSmoothingEnabled=false;
+    t.drawImage(img,sx,sy,sw,sh,0,0,tw,th);
+    t.globalCompositeOperation="multiply"; t.fillStyle=tintHex; t.fillRect(0,0,tw,th);
+    t.globalCompositeOperation="destination-in"; t.drawImage(img,sx,sy,sw,sh,0,0,tw,th);
+    t.globalCompositeOperation="source-over";
+    ctx.drawImage(tintCv,dx,dy); ctx.restore();
+  }
+
+  function fit(){
+    const r = canvas.parentElement.getBoundingClientRect();
+    const w = Math.max(200, Math.round(r.width));
+    const h = Math.max(200, Math.round(r.height));
+    if(canvas.width!==w || canvas.height!==h){ canvas.width=w; canvas.height=h; }
+    ORIGIN.x = Math.round((w - GRID*TILE)/2);
+    ORIGIN.y = Math.round((h - GRID*TILE)/2 + 8);
+  }
+
+  function cellAt(x,y){
+    const c = Math.floor((x-ORIGIN.x)/TILE);
+    const r = Math.floor((y-ORIGIN.y)/TILE);
+    if(c<0||r<0||c>=GRID||r>=GRID) return null;
+    return {c,r};
+  }
+  function cellCenter(c,r){
+    return { x: ORIGIN.x + c*TILE + TILE/2, y: ORIGIN.y + r*TILE + TILE/2 };
+  }
+  function key(c,r){ return c+","+r; }
+  function occupied(c,r, skip){
+    if(G.player.alive && !(skip==="player") && G.player.c===c && G.player.r===r) return "player";
+    if(G.enemy.alive && !(skip==="enemy") && G.enemy.c===c && G.enemy.r===r) return "enemy";
+    return null;
+  }
+
+  function dist(a,b){ return Math.max(Math.abs(a.c-b.c), Math.abs(a.r-b.r)); } /* Chebyshev */
+
+  function recomputeMoves(){
+    G.moves.clear();
+    if(G.turn!=="player" || G.player.pm<=0) return;
+    const pm = G.player.pm;
+    for(let c=0;c<GRID;c++) for(let r=0;r<GRID;r++){
+      const d = Math.abs(c-G.player.c)+Math.abs(r-G.player.r); /* Manhattan PM */
+      if(d>0 && d<=pm && !occupied(c,r,"player")) G.moves.add(key(c,r));
+    }
+  }
+  function recomputeTargets(){
+    G.targets.clear();
+    const sp = spellById(G.armed);
+    if(!sp || G.turn!=="player") return;
+    if(!G.enemy.alive) return;
+    if(dist(G.player, G.enemy) <= sp.range) G.targets.add(key(G.enemy.c, G.enemy.r));
+  }
+
+  function playAnim(ent, anim){
+    ent.anim = anim;
+    ent.frame = 0;
+    ent.t0 = performance.now();
+  }
+
+  function faceToward(ent, tc, tr){
+    const d = dirFromDelta(tc-ent.c, tr-ent.r);
+    if(d!=null) ent.dir = d;
+  }
+
+  function tryMove(c,r){
+    if(G.turn!=="player") return;
+    if(!G.moves.has(key(c,r))) return;
+    const cost = Math.abs(c-G.player.c)+Math.abs(r-G.player.r);
+    if(cost>G.player.pm) return;
+    faceToward(G.player, c, r);
+    G.player.c=c; G.player.r=r; G.player.pm-=cost;
+    playAnim(G.player, cost>=2 ? "Run" : "Walk");
+    G.armed=null;
+    recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+    setStatus("Dir "+DIR_LABEL[G.player.dir]+" · −"+cost+" PM");
+    setTimeout(()=>{ if(G.player.anim==="Walk"||G.player.anim==="Run") playAnim(G.player,"Idle"); }, 480);
+  }
+
+  function roll(dmg){ return dmg[0] + Math.floor(Math.random()*(dmg[1]-dmg[0]+1)); }
+
+  function tryCast(c,r){
+    if(G.turn!=="player" || !G.armed) return;
+    const sp = spellById(G.armed); if(!sp) return;
+    if(G.player.pa < sp.cost){ setStatus("Pas assez de PA"); return; }
+    if(!G.enemy.alive || G.enemy.c!==c || G.enemy.r!==r) return;
+    if(dist(G.player, G.enemy) > sp.range){ setStatus("Hors de portée"); return; }
+
+    /* face la cible AVANT l’anim (sheet row = dir) */
+    faceToward(G.player, c, r);
+
+    /* anim d’arme / bridge */
+    let anim = sp.anim;
+    try{
+      if(typeof FantasyBridge!=="undefined"){
+        const w = FantasyBridge.currentWeaponFolder();
+        const ent = FantasyBridge.weaponEntry(w);
+        if(ent && FantasyBridge.resolveSpellId(ent)===sp.id && ent.anim) anim = ent.anim;
+      }
+    }catch(_e){}
+
+    G.player.pa -= sp.cost;
+    playAnim(G.player, anim);
+    const dmg = roll(sp.dmg);
+    G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
+    G.enemy.flash = performance.now()+180;
+    faceToward(G.enemy, G.player.c, G.player.r);
+    playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
+    setStatus(sp.name+" → "+dmg+" dmg · "+DIR_LABEL[G.player.dir]);
+    if(G.enemy.pv<=0){ G.enemy.alive=false; setStatus("Victoire"); }
+    G.armed=null;
+    recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+    setTimeout(()=>{ if(G.player.anim!=="Idle" && G.player.anim!=="Die") playAnim(G.player,"Idle"); }, 700);
+  }
+
+  function endTurn(){
+    if(G.turn!=="player") return;
+    G.armed=null;
+    G.turn="enemy";
+    recomputeMoves(); recomputeTargets(); renderSpells();
+    setStatus("Tour ennemi…");
+    setTimeout(enemyTurn, 420);
+  }
+
+  function enemyTurn(){
+    if(!G.enemy.alive){ G.turn="player"; beginPlayerTurn(); return; }
+    const e=G.enemy, p=G.player;
+    /* approche Manhattan */
+    let dc = Math.sign(p.c-e.c), dr = Math.sign(p.r-e.r);
+    if(dist(e,p)>1){
+      let nc=e.c, nr=e.r, steps=e.pm;
+      while(steps>0 && dist({c:nc,r:nr},p)>1){
+        const opts=[];
+        if(nc!==p.c) opts.push({c:nc+Math.sign(p.c-nc), r:nr});
+        if(nr!==p.r) opts.push({c:nc, r:nr+Math.sign(p.r-nr)});
+        let moved=false;
+        for(const o of opts){
+          if(o.c<0||o.r<0||o.c>=GRID||o.r>=GRID) continue;
+          if(occupied(o.c,o.r,"enemy")) continue;
+          faceToward(e, o.c, o.r);
+          nc=o.c; nr=o.r; steps--; moved=true; break;
+        }
+        if(!moved) break;
+      }
+      if(nc!==e.c || nr!==e.r){
+        e.c=nc; e.r=nr;
+        playAnim(e,"Walk");
+        setTimeout(()=>playAnim(e,"Idle"), 400);
+      }
+    }
+    setTimeout(()=>{
+      if(e.alive && dist(e,p)<=1){
+        faceToward(e, p.c, p.r);
+        playAnim(e,"Attack1");
+        const dmg = 6+Math.floor(Math.random()*5);
+        p.pv = Math.max(0, p.pv-dmg);
+        p.flash = performance.now()+180;
+        setStatus("Bandit → "+dmg+" dmg");
+        hud();
+        if(p.pv<=0){ p.alive=false; playAnim(p,"Die"); setStatus("Défaite"); G.turn="over"; return; }
+      }
+      setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 500);
+    }, 450);
+  }
+
+  function beginPlayerTurn(){
+    G.player.pa = G.player.paMax;
+    G.player.pm = G.player.pmMax;
+    G.armed=null;
+    recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+    setStatus("Ton tour");
+  }
+
+  function renderSpells(){
+    const host = el("spellList"); host.innerHTML="";
+    const BASE_IDS = ["punch","monofil","arc","surchauffe"];
+    let weaponSpell = null, weaponFolder = "None", weaponAnim = null;
+    try{
+      if(typeof FantasyBridge!=="undefined"){
+        weaponFolder = FantasyBridge.currentWeaponFolder();
+        const ent = FantasyBridge.weaponEntry(weaponFolder);
+        weaponSpell = FantasyBridge.resolveSpellId(ent);
+        weaponAnim = ent && ent.anim;
+      }
+    }catch(_e){}
+    const ids = BASE_IDS.slice();
+    if(weaponSpell && !ids.includes(weaponSpell)) ids.unshift(weaponSpell);
+    else if(weaponSpell){ ids.splice(ids.indexOf(weaponSpell),1); ids.unshift(weaponSpell); }
+    const wSp = spellById(weaponSpell);
+    const wName = (typeof FantasyBridge!=="undefined" && FantasyBridge.SPELL_SKIN[weaponSpell])
+      ? FantasyBridge.SPELL_SKIN[weaponSpell].name
+      : (wSp && wSp.name) || weaponSpell;
+    el("spellHint").textContent = "Arme "+weaponFolder+" → "+(wName||"—")+(weaponAnim?" · "+weaponAnim:"");
+    ids.forEach(id=>{
+      const sp = spellById(id); if(!sp) return;
+      const skin = (typeof FantasyBridge!=="undefined" && FantasyBridge.SPELL_SKIN[sp.id]) || null;
+      const name = skin ? skin.name : sp.name;
+      const b = document.createElement("button");
+      b.type="button"; b.className="btn"+(G.armed===sp.id?" on":"");
+      b.textContent = name+" ("+sp.cost+")";
+      b.disabled = G.turn!=="player" || G.player.pa<sp.cost;
+      b.onclick=()=>{
+        if(G.armed===sp.id){ G.armed=null; }
+        else { G.armed=sp.id; }
+        recomputeTargets(); renderSpells();
+        setStatus(G.armed ? name+" · "+DIR_LABEL[G.player.dir] : "Déplacement");
+      };
+      host.appendChild(b);
+    });
+  }
+
+  function drawEntity(ent, isEnemy){
+    if(!ent.alive && ent.anim!=="Die") return;
+    const row = ent.dir|0;
+    const anim = ent.anim||"Idle";
+    const cols = COLS;
+    const elapsed = (performance.now()-(ent.t0||0))/1000;
+    let col = Math.floor(elapsed*FPS);
+    if(anim==="Idle"||anim==="Walk"||anim==="Run") col = col % cols;
+    else col = Math.min(col, cols-1);
+    const {x,y} = cellCenter(ent.c, ent.r);
+    const scale = 1.35;
+    const dw=FW*scale, dh=FH*scale;
+    const foot = 96;
+    const dx=x-dw/2, dy=y - foot*scale + TILE*0.35;
+
+    /* ombre case */
+    ctx.fillStyle="rgba(0,0,0,0.12)";
+    ctx.beginPath(); ctx.ellipse(x, y+TILE*0.28, TILE*0.38, TILE*0.16, 0,0,Math.PI*2); ctx.fill();
+
+    const layers = isEnemy
+      ? [{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}]
+      : layersForRow(row);
+
+    ctx.imageSmoothingEnabled=false;
+    let drawn=0;
+    for(const L of layers){
+      const im = getImg(L.folder, anim) || getImg(L.folder, "Idle");
+      if(!im){ loadImg(L.folder, anim); loadImg(L.folder,"Idle"); continue; }
+      try{
+        tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, L.alpha);
+        drawn++;
+      }catch(_e){}
+    }
+    if(ent.flash && performance.now()<ent.flash){
+      ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=0.5;
+      for(const L of layers){
+        const im=getImg(L.folder,anim)||getImg(L.folder,"Idle");
+        if(!im) continue;
+        try{ ctx.drawImage(im,col*FW,row*FH,FW,FH,dx,dy,dw,dh); }catch(_e){}
+      }
+      ctx.restore();
+    }
+    /* barre PV */
+    const pct = ent.pv/ent.pvMax;
+    const bw=28, bh=4, bx=x-bw/2, by=dy+8;
+    ctx.fillStyle="rgba(0,0,0,.25)"; ctx.fillRect(bx-1,by-1,bw+2,bh+2);
+    ctx.fillStyle = isEnemy ? "#8a3030" : "#2f6f4e";
+    ctx.fillRect(bx, by, bw*pct, bh);
+  }
+
+  function draw(){
+    fit();
+    const W=canvas.width, H=canvas.height;
+    ctx.clearRect(0,0,W,H);
+    /* fond scné */
+    ctx.fillStyle="#e6e6e2";
+    ctx.fillRect(0,0,W,H);
+
+    for(let r=0;r<GRID;r++) for(let c=0;c<GRID;c++){
+      const x=ORIGIN.x+c*TILE, y=ORIGIN.y+r*TILE;
+      ctx.fillStyle = ((c+r)&1) ? "#f0f0ec" : "#e8e8e4";
+      ctx.fillRect(x,y,TILE,TILE);
+      ctx.strokeStyle="rgba(0,0,0,0.04)";
+      ctx.strokeRect(x+0.5,y+0.5,TILE-1,TILE-1);
+      const k=key(c,r);
+      if(G.moves.has(k)){
+        ctx.fillStyle="rgba(47,111,78,0.22)";
+        ctx.fillRect(x+2,y+2,TILE-4,TILE-4);
+      }
+      if(G.targets.has(k)){
+        ctx.fillStyle="rgba(138,48,48,0.28)";
+        ctx.fillRect(x+2,y+2,TILE-4,TILE-4);
+      }
+      if(G.hover && G.hover.c===c && G.hover.r===r){
+        ctx.strokeStyle="rgba(61,61,58,0.55)";
+        ctx.lineWidth=2; ctx.strokeRect(x+2,y+2,TILE-4,TILE-4); ctx.lineWidth=1;
+      }
+    }
+
+    /* profondeur : bas de l’écran devant */
+    const ents = [];
+    if(G.enemy.alive || G.enemy.anim==="Die") ents.push({e:G.enemy, enemy:true});
+    if(G.player.alive || G.player.anim==="Die") ents.push({e:G.player, enemy:false});
+    ents.sort((a,b)=> a.e.r-b.e.r || a.e.c-b.e.c);
+    for(const o of ents) drawEntity(o.e, o.enemy);
+  }
+
+  function loop(){ draw(); requestAnimationFrame(loop); }
+
+  function pointer(e){
+    const rect = canvas.getBoundingClientRect();
+    const p = e.touches ? e.touches[0] : e;
+    const x = (p.clientX-rect.left) * (canvas.width/rect.width);
+    const y = (p.clientY-rect.top) * (canvas.height/rect.height);
+    return {x,y};
+  }
+
+  function onTap(e){
+    if(G.turn!=="player" || !G.player.alive) return;
+    const {x,y}=pointer(e);
+    const cell=cellAt(x,y); if(!cell) return;
+    if(G.armed){ tryCast(cell.c, cell.r); return; }
+    tryMove(cell.c, cell.r);
+  }
+
+  function warm(){
+    const anims=["Idle","Walk","Run","Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","AttackRun","AttackRun2","TakeDamage","Die","Special1","Kick"];
+    const layers=layersForRow(4);
+    for(const L of layers) for(const a of anims) loadImg(L.folder,a);
+    /* ennemi */
+    for(const f of ["NakedBody","Head3","Melee2"]) for(const a of anims) loadImg(f,a);
+  }
+
+  async function boot(){
+    setStatus("Chargement…");
+    if(!loadLook()) defaultLook();
+    try{
+      for(const u of [BASE_CDN+"catalog.json", BASE_LOCAL+"catalog.json"]){
+        const r=await fetch(u,{cache:"no-store",mode:"cors"});
+        if(r.ok){ catalog=await r.json(); break; }
+      }
+    }catch(_e){}
+    if(catalog){
+      if(catalog.weaponAfterShieldRows) weaponAfterShieldRows=catalog.weaponAfterShieldRows;
+      if(catalog.backpackInFrontRows) backpackInFrontRows=catalog.backpackInFrontRows;
+    }
+    /* applique skin fantasy sur noms locaux */
+    try{
+      if(typeof FantasyBridge!=="undefined"){
+        SPELLS.forEach(sp=>{
+          const sk=FantasyBridge.SPELL_SKIN[sp.id];
+          if(sk){ sp.name=sk.name; }
+        });
+        FantasyBridge.syncWeaponSpell();
+      }
+    }catch(_e){}
+
+    warm();
+    beginPlayerTurn();
+    renderSpells(); hud();
+    setStatus("Prêt · dir sheet N→NW");
+
+    canvas.addEventListener("click", onTap);
+    canvas.addEventListener("touchend", (e)=>{ e.preventDefault(); onTap(e.changedTouches[0]?{clientX:e.changedTouches[0].clientX,clientY:e.changedTouches[0].clientY,touches:null}:e); }, {passive:false});
+    canvas.addEventListener("mousemove", (e)=>{
+      const {x,y}=pointer(e); G.hover=cellAt(x,y);
+    });
+    el("btnEnd").onclick=endTurn;
+    el("btnIdle").onclick=()=>playAnim(G.player,"Idle");
+    el("btnCancel").onclick=()=>{ G.armed=null; recomputeTargets(); renderSpells(); setStatus("Déplacement"); };
+    window.addEventListener("resize", fit);
+    loop();
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
