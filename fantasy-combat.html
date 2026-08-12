@@ -328,14 +328,23 @@
     }catch(_e){}
     return (lookState.look && lookState.look.weapon) || "None";
   }
-  function weaponPreferredAnim(){
+  function weaponLoadout(){
     try{
-      if(typeof FantasyBridge!=="undefined"){
-        const ent = FantasyBridge.weaponEntry(weaponFolder());
-        if(ent && ent.anim) return ent.anim;
-      }
+      if(typeof FantasyBridge!=="undefined") return FantasyBridge.loadoutForWeapon(weaponFolder());
     }catch(_e){}
     return null;
+  }
+  function weaponPreferredAnim(){
+    const L = weaponLoadout();
+    return (L && L.anim) || null;
+  }
+  function weaponAttackIds(){
+    const L = weaponLoadout();
+    if(L && L.attacks && L.attacks.length) return L.attacks.slice();
+    try{
+      if(typeof FantasyBridge!=="undefined") return FantasyBridge.attackIdsForWeapon(weaponFolder());
+    }catch(_e){}
+    return ["punch","monofil","arc","surchauffe"];
   }
   function randomMoveAnim(){ return pick(MOVE_ANIMS); }
   function randomAttackAnim(){
@@ -695,20 +704,14 @@
     finishCastEnemy(sp);
   }
 
-  /** Attaque auto : sort d’arme (ou 1er atk) + approche PM + anims aléatoires */
+  /** Attaque auto : sort signature d’archétype + approche PM + anims */
   function autoAttack(){
     if(G.busy || G.turn!=="player" || !G.player.alive || !G.enemy.alive) return;
-    let id = null;
-    try{
-      if(typeof FantasyBridge!=="undefined"){
-        id = FantasyBridge.resolveSpellId(FantasyBridge.weaponEntry(weaponFolder()));
-      }
-    }catch(_e){}
-    const pool = ["punch","monofil","arc","surchauffe"];
-    if(!id || !spellById(id)) id = pool[0];
+    const ids = weaponAttackIds();
+    let id = ids[0] || "punch";
     let sp = spellById(id);
     if(!sp || G.player.pa < sp.cost){
-      sp = pool.map(spellById).find(s=>s && G.player.pa>=s.cost);
+      sp = ids.map(spellById).find(s=>s && G.player.pa>=s.cost);
     }
     if(!sp){ setStatus("Pas assez de PA"); return; }
     G.armed = sp.id;
@@ -841,19 +844,9 @@
       return;
     }
 
-    let weaponSpell = null;
-    try{
-      if(typeof FantasyBridge!=="undefined"){
-        weaponSpell = FantasyBridge.resolveSpellId(FantasyBridge.weaponEntry(weaponFolder()));
-      }
-    }catch(_e){}
-
-    let ids = ["punch","monofil","arc","surchauffe"];
-    if(weaponSpell){
-      if(!ids.includes(weaponSpell)) ids.unshift(weaponSpell);
-      else { ids.splice(ids.indexOf(weaponSpell),1); ids.unshift(weaponSpell); }
-    }
-    ids = ids.slice(0,4);
+    /* Kit stable archétype → [signature + effets pool] */
+    let ids = weaponAttackIds().filter(id=>!!spellById(id)).slice(0,4);
+    if(!ids.length) ids = ["punch","monofil","arc","surchauffe"];
 
     /* bouton Auto en premier */
     const auto = document.createElement("button");
@@ -1089,7 +1082,14 @@
     beginPlayerTurn();
     renderSpells(); hud();
     bindPad();
-    setStatus("Iso · croix = axes map");
+    {
+      const L = weaponLoadout();
+      if(L){
+        const sig = spellById(L.baseSpell);
+        const sigName = sig ? sig.name : L.baseSpell;
+        setStatus(L.label+" · "+sigName+" ("+weaponFolder()+")");
+      } else setStatus("Iso · croix = axes map");
+    }
 
     canvas.addEventListener("click", onTap);
     canvas.addEventListener("touchend", (e)=>{

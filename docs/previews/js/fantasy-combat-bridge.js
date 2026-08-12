@@ -1,6 +1,11 @@
 /**
- * Pont Fantasy — sorts thématisés + 1 sort/anim par arme + FX d’évolution
- * (style vs efficacité : meilleur power = anim basique, pire power = anim spectacle)
+ * Pont Fantasy — archétypes d’armes + pools d’effets stables
+ *
+ * Modèle :
+ *  1. Archétypes fixes (école, portée type, anims, pool d’effets)
+ *  2. Chaque sprite d’arme → 1 archétype
+ *  3. Effets tirés dans le pool (seed = folder) — même arme = même kit
+ *  4. Évo = choix joueur (efficace vs spectacle), pas un 2ᵉ RNG
  */
 (function (global) {
   "use strict";
@@ -48,47 +53,226 @@
   };
 
   /**
-   * Chaque arme fantasy-cc → sort + anim de cast de base.
-   * Anim names = sheets fantasy-cc (Attack1…, Kick, Special1…).
+   * Archétypes : identité fixe + pool d’effets contrôlé.
+   * base = sort signature (toujours en slot 1)
+   * pool = effets secondaires possibles (tirage stable)
    */
-  const WEAPON_SPELL = {
-    None: { spell: "punch", anim: "Attack2" },
-    Melee1: { spell: "punch", anim: "Attack1" },
-    Melee2: { spell: "monofil", anim: "Attack2" },
-    Melee3: { spell: "impact_cinetique", anim: "Attack3" },
-    Melee4: { spell: "dash", anim: "AttackRun" },
-    Melee5: { spell: "punch", anim: "Attack4" },
-    Melee6: { spell: "monofil", anim: "Attack5" },
-    Melee7: { spell: "impact_cinetique", anim: "Attack6" },
-    Melee8: { spell: "mine", anim: "Kick" },
-    Melee9: { spell: "punch", anim: "Attack1" },
-    Melee10: { spell: "monofil", anim: "Attack2" },
-    Melee11: { spell: "dash", anim: "AttackRun2" },
-    Melee12: { spell: "impact_cinetique", anim: "Attack3" },
-    Melee13: { spell: "punch", anim: "Special1" },
-    Melee14: { spell: "monofil", anim: "Attack4" },
-    Melee15: { spell: "punch", anim: "Kick" },
-    Melee16: { spell: "punch", anim: "Attack5" },
-    Melee17: { spell: "monofil", anim: "Attack6" },
-    Melee18: { spell: "impact_cinetique", anim: "Attack1" },
-    Melee19: { spell: "dash", anim: "AttackRun" },
-    Melee20: { spell: "mine", anim: "Attack2" },
-    Melee21: { spell: "punch", anim: "Attack3" },
-    Melee22: { spell: "monofil", anim: "Special1" },
-    Melee23: { spell: "impact_cinetique", anim: "Attack4" },
-    Melee24: { spell: "punch", anim: "Attack5" },
-    Melee25: { spell: "monofil", anim: "Attack6" },
-    Ranged1: { spell: "tir_magnetique", anim: "Attack1" },
-    Ranged2: { spell: "arc", anim: "Attack2" },
-    Ranged3: { spell: "bombe_thermique", anim: "Attack3" },
-    Ranged4: { spell: "tir_magnetique", anim: "Attack4" },
-    Ranged5: { spell: "impulsion_emp", anim: "Attack5" },
-    Ranged6: { spell: "arc", anim: "Attack6" },
-    Ranged7: { spell: "sniper", anim: "Attack1" },
-    Magic1: { spell: "gravite", anim: "Special1" },
-    Magic2: { spell: "parasite", anim: "Attack3" },
-    Magic3: { spell: "surchauffe", anim: "Attack5" },
+  const ARCHETYPES = {
+    bare: {
+      id: "bare",
+      label: "Mains nues",
+      school: "Force",
+      base: "punch",
+      pool: ["punch", "dash", "mine"],
+      anims: ["Attack2", "Kick", "Attack1"],
+    },
+    blade: {
+      id: "blade",
+      label: "Lame courte",
+      school: "Force",
+      base: "monofil",
+      pool: ["punch", "monofil", "dash", "mine"],
+      anims: ["Attack1", "Attack2", "Attack4", "Special1"],
+    },
+    greatblade: {
+      id: "greatblade",
+      label: "Grande arme",
+      school: "Force",
+      base: "impact_cinetique",
+      pool: ["impact_cinetique", "punch", "monofil", "dash"],
+      anims: ["Attack3", "Attack5", "Attack6", "Special1"],
+    },
+    polearm: {
+      id: "polearm",
+      label: "Arme d’hast",
+      school: "Force",
+      base: "dash",
+      pool: ["dash", "monofil", "impact_cinetique", "mine"],
+      anims: ["AttackRun", "AttackRun2", "Attack3", "Kick"],
+    },
+    trapper: {
+      id: "trapper",
+      label: "Piégeur",
+      school: "Force",
+      base: "mine",
+      pool: ["mine", "punch", "monofil", "dash"],
+      anims: ["Kick", "Attack2", "Attack4", "Special1"],
+    },
+    bow: {
+      id: "bow",
+      label: "Arc",
+      school: "Force",
+      base: "tir_magnetique",
+      pool: ["tir_magnetique", "arc", "sniper", "mine"],
+      anims: ["Attack1", "Attack2", "Attack4"],
+    },
+    storm: {
+      id: "storm",
+      label: "Foudre",
+      school: "Foudre",
+      base: "arc",
+      pool: ["arc", "impulsion_emp", "tir_magnetique", "gravite"],
+      anims: ["Attack2", "Attack5", "Attack6", "Special1"],
+    },
+    fire: {
+      id: "fire",
+      label: "Feu",
+      school: "Feu",
+      base: "surchauffe",
+      pool: ["surchauffe", "bombe_thermique", "arc", "impact_cinetique"],
+      anims: ["Attack3", "Attack5", "Special1"],
+    },
+    arcane: {
+      id: "arcane",
+      label: "Arcane",
+      school: "Arcane",
+      base: "gravite",
+      pool: ["gravite", "arc", "parasite", "bombe_thermique"],
+      anims: ["Special1", "Attack3", "Attack5"],
+    },
+    shadow: {
+      id: "shadow",
+      label: "Ombre",
+      school: "Ombre",
+      base: "parasite",
+      pool: ["parasite", "monofil", "gravite", "mine"],
+      anims: ["Attack3", "Special1", "Attack6"],
+    },
+    marksman: {
+      id: "marksman",
+      label: "Tireur",
+      school: "Lumière",
+      base: "sniper",
+      pool: ["sniper", "tir_magnetique", "impulsion_emp", "arc"],
+      anims: ["Attack1", "Attack4", "Attack5"],
+    },
   };
+
+  /** Sprite d’arme → archétype (figé, pas de génération d’équipement). */
+  const WEAPON_ARCHETYPE = {
+    None: "bare",
+    Melee1: "blade",
+    Melee2: "blade",
+    Melee3: "greatblade",
+    Melee4: "polearm",
+    Melee5: "blade",
+    Melee6: "blade",
+    Melee7: "greatblade",
+    Melee8: "trapper",
+    Melee9: "blade",
+    Melee10: "blade",
+    Melee11: "polearm",
+    Melee12: "greatblade",
+    Melee13: "blade",
+    Melee14: "blade",
+    Melee15: "trapper",
+    Melee16: "blade",
+    Melee17: "blade",
+    Melee18: "greatblade",
+    Melee19: "polearm",
+    Melee20: "trapper",
+    Melee21: "blade",
+    Melee22: "blade",
+    Melee23: "greatblade",
+    Melee24: "blade",
+    Melee25: "blade",
+    Ranged1: "bow",
+    Ranged2: "storm",
+    Ranged3: "fire",
+    Ranged4: "bow",
+    Ranged5: "storm",
+    Ranged6: "storm",
+    Ranged7: "marksman",
+    Magic1: "arcane",
+    Magic2: "shadow",
+    Magic3: "fire",
+  };
+
+  function hashStr(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  function pickStable(arr, seed, salt) {
+    if (!arr || !arr.length) return null;
+    return arr[hashStr(String(seed) + ":" + String(salt)) % arr.length];
+  }
+
+  function uniqueStable(pool, seed, count, reserved) {
+    const out = [];
+    const used = new Set(reserved || []);
+    let i = 0;
+    let guard = 0;
+    while (out.length < count && guard < pool.length * 4) {
+      const id = pickStable(pool, seed, "fx" + i);
+      i++;
+      guard++;
+      if (!id || used.has(id)) continue;
+      used.add(id);
+      out.push(id);
+    }
+    /* complète si pool trop petit / collisions */
+    for (const id of pool) {
+      if (out.length >= count) break;
+      if (used.has(id)) continue;
+      used.add(id);
+      out.push(id);
+    }
+    return out;
+  }
+
+  function archetypeFor(folder) {
+    const id = WEAPON_ARCHETYPE[folder] || WEAPON_ARCHETYPE.None;
+    return ARCHETYPES[id] || ARCHETYPES.bare;
+  }
+
+  /**
+   * Kit stable pour une arme :
+   * - baseSpell = signature d’archétype
+   * - attacks = [base, …effets du pool] (max 4, déterministe)
+   * - anim = anim préférée
+   */
+  function loadoutForWeapon(folder) {
+    const f = folder || "None";
+    const arch = archetypeFor(f);
+    const base = arch.base;
+    const extras = uniqueStable(arch.pool, f, 3, [base]);
+    const attacks = [base].concat(extras).slice(0, 4);
+    const anim = pickStable(arch.anims, f, "anim") || arch.anims[0] || "Attack1";
+    return {
+      folder: f,
+      archetype: arch.id,
+      label: arch.label,
+      school: arch.school,
+      baseSpell: base,
+      attacks,
+      anim,
+    };
+  }
+
+  /** Compat : ancienne forme { spell, anim }. */
+  function weaponEntry(folder) {
+    const L = loadoutForWeapon(folder);
+    return {
+      spell: L.baseSpell,
+      anim: L.anim,
+      archetype: L.archetype,
+      label: L.label,
+      school: L.school,
+      attacks: L.attacks.slice(),
+    };
+  }
+
+  /** Table legacy dérivée (debug / inspect). */
+  const WEAPON_SPELL = {};
+  Object.keys(WEAPON_ARCHETYPE).forEach((folder) => {
+    const e = weaponEntry(folder);
+    WEAPON_SPELL[folder] = { spell: e.spell, anim: e.anim };
+  });
 
   /** Anims d’évolution : index 0 = spectacle basique, 2 = meilleur spectacle (stats inverses). */
   const EVO_SPECTACLE_ANIMS = ["Attack1", "Attack3", "Special1"];
@@ -122,10 +306,6 @@
     }
   }
 
-  function weaponEntry(folder) {
-    return WEAPON_SPELL[folder] || WEAPON_SPELL.None;
-  }
-
   function currentWeaponFolder() {
     try {
       const CC = global.CharCreator;
@@ -139,6 +319,10 @@
     return "None";
   }
 
+  function attackIdsForWeapon(folder) {
+    return loadoutForWeapon(folder || currentWeaponFolder()).attacks.slice();
+  }
+
   /** Débloque + équipe le sort lié à l’arme du look (A1 suite). */
   function syncWeaponSpell() {
     const folder = currentWeaponFolder();
@@ -146,18 +330,19 @@
     const spellId = resolveSpellId(entry);
     const Loadout = global.Loadout;
     const State = global.State;
-    if (!Loadout || !State) return { folder, spellId, anim: entry.anim };
+    if (!Loadout || !State) return { folder, spellId, anim: entry.anim, loadout: loadoutForWeapon(folder) };
     try {
       Loadout.unlock(spellId);
       if (!Loadout.isEquipped(spellId) && Loadout.canEquipMore()) Loadout.equip(spellId);
       else if (!Loadout.isEquipped(spellId) && State.equipped && State.equipped.length) {
-        /* remplace le 1er slot si plein */
         State.equipped[0] = spellId;
       }
       State._weaponSpell = spellId;
       State._weaponAnim = entry.anim || "Attack1";
+      State._weaponArchetype = entry.archetype;
+      State._weaponAttacks = entry.attacks;
     } catch (_e) {}
-    return { folder, spellId, anim: entry.anim };
+    return { folder, spellId, anim: entry.anim, loadout: loadoutForWeapon(folder) };
   }
 
   /**
@@ -219,8 +404,13 @@
   global.FantasyBridge = {
     SCHOOL_FANTASY,
     SPELL_SKIN,
+    ARCHETYPES,
+    WEAPON_ARCHETYPE,
     WEAPON_SPELL,
     applySpellSkin,
+    archetypeFor,
+    loadoutForWeapon,
+    attackIdsForWeapon,
     weaponEntry,
     currentWeaponFolder,
     syncWeaponSpell,
