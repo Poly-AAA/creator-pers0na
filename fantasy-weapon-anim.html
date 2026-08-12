@@ -236,16 +236,44 @@
     return "Special1";
   }
 
+  /* Même calibrage que le bridge — base officielle */
+  const BAKED = {
+    weapon: {
+      Melee1:"Attack1",Melee2:"Attack1",Melee3:"Attack1",Melee4:"Attack1",Melee5:"Attack1",
+      Melee6:"Attack1",Melee7:"Attack1",Melee8:"Attack1",Melee9:"Attack1",Melee10:"Kick",
+      Melee11:"Attack1",Melee12:"Attack1",Melee13:"Attack1",Melee14:"Attack1",Melee15:"Attack1",
+      Melee16:"Attack1",Melee17:"Attack1",Melee18:"Attack1",Melee19:"Attack1",Melee20:"Attack1",
+      Melee21:"Attack1",Melee22:"Attack1",Melee23:"Attack1",Melee24:"Attack1",Melee25:"Attack1",
+      Ranged1:"Attack3",Ranged2:"AttackRun2",Ranged3:"Attack3",Ranged4:"Attack3",
+      Ranged5:"Attack1",Ranged6:"Attack3",Ranged7:"Attack3",
+      Magic1:"Attack5",Magic2:"Attack6",Magic3:"Attack5"
+    },
+    offhand: {
+      Offhand1:"Taunt",Offhand2:"Attack5",
+      Shield1:"Attack5",Shield2:"Attack5",Shield3:"Attack5",Shield4:"Attack5",
+      Shield5:"Attack5",Shield6:"Attack5",Shield7:"Attack5"
+    },
+    backpack: {
+      Bag1:"Special1",Bag2:"Special1",Bag3:"Attack3",Bag4:"Attack4",
+      Bag5:"Attack4",Bag6:"Special1",Bag8:"Attack4"
+    }
+  };
+
   function loadSaved(){
+    map.weapon = Object.assign({}, BAKED.weapon);
+    map.offhand = Object.assign({}, BAKED.offhand);
+    map.backpack = Object.assign({}, BAKED.backpack);
     try{
       const raw = localStorage.getItem(KEY);
       if(raw){
         const o = JSON.parse(raw);
         if(o && typeof o==="object"){
-          map.weapon = Object.assign({}, o.weapon||{});
-          map.offhand = Object.assign({}, o.offhand||{});
-          map.backpack = Object.assign({}, o.backpack||{});
+          Object.assign(map.weapon, o.weapon||{});
+          Object.assign(map.offhand, o.offhand||{});
+          Object.assign(map.backpack, o.backpack||{});
         }
+      } else {
+        persist();
       }
     }catch(_e){}
   }

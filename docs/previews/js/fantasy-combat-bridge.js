@@ -239,28 +239,89 @@
   const WEAPON_ANIM_KEY = "neuro.fantasyWeaponAnim";
   const WEAPON_ANIM_VER = "weapon-anim-2026-08-12";
 
+  /** Calibrage validé (base) — localStorage peut surcharger pièce par pièce. */
+  const BAKED_WEAPON_ANIM = {
+    ver: WEAPON_ANIM_VER,
+    weapon: {
+      Melee1: "Attack1", Melee2: "Attack1", Melee3: "Attack1", Melee4: "Attack1",
+      Melee5: "Attack1", Melee6: "Attack1", Melee7: "Attack1", Melee8: "Attack1",
+      Melee9: "Attack1", Melee10: "Kick", Melee11: "Attack1", Melee12: "Attack1",
+      Melee13: "Attack1", Melee14: "Attack1", Melee15: "Attack1", Melee16: "Attack1",
+      Melee17: "Attack1", Melee18: "Attack1", Melee19: "Attack1", Melee20: "Attack1",
+      Melee21: "Attack1", Melee22: "Attack1", Melee23: "Attack1", Melee24: "Attack1",
+      Melee25: "Attack1",
+      Ranged1: "Attack3", Ranged2: "AttackRun2", Ranged3: "Attack3", Ranged4: "Attack3",
+      Ranged5: "Attack1", Ranged6: "Attack3", Ranged7: "Attack3",
+      Magic1: "Attack5", Magic2: "Attack6", Magic3: "Attack5",
+    },
+    offhand: {
+      Offhand1: "Taunt", Offhand2: "Attack5",
+      Shield1: "Attack5", Shield2: "Attack5", Shield3: "Attack5", Shield4: "Attack5",
+      Shield5: "Attack5", Shield6: "Attack5", Shield7: "Attack5",
+    },
+    backpack: {
+      Bag1: "Special1", Bag2: "Special1", Bag3: "Attack3", Bag4: "Attack4",
+      Bag5: "Attack4", Bag6: "Special1", Bag8: "Attack4",
+    },
+  };
+
+  function cloneAnimMap(src) {
+    return {
+      ver: (src && src.ver) || WEAPON_ANIM_VER,
+      weapon: Object.assign({}, (src && src.weapon) || {}),
+      offhand: Object.assign({}, (src && src.offhand) || {}),
+      backpack: Object.assign({}, (src && src.backpack) || {}),
+    };
+  }
+
+  /** Baked ∪ localStorage (local gagne). */
   function readWeaponAnimMap() {
+    const out = cloneAnimMap(BAKED_WEAPON_ANIM);
     try {
       const raw = localStorage.getItem(WEAPON_ANIM_KEY);
       if (raw) {
         const o = JSON.parse(raw);
-        if (o && typeof o === "object") return o;
+        if (o && typeof o === "object") {
+          Object.assign(out.weapon, o.weapon || {});
+          Object.assign(out.offhand, o.offhand || {});
+          Object.assign(out.backpack, o.backpack || {});
+          if (o.ver) out.ver = o.ver;
+        }
       }
     } catch (_e) {}
-    return null;
+    return out;
+  }
+
+  /** Installe le calibrage validé si absent / ancienne version. */
+  function ensureWeaponAnimMap() {
+    try {
+      const ver = localStorage.getItem(WEAPON_ANIM_KEY + ".ver") || localStorage.getItem("neuro.fantasyWeaponAnim.ver");
+      const raw = localStorage.getItem(WEAPON_ANIM_KEY);
+      if (ver === WEAPON_ANIM_VER && raw) return readWeaponAnimMap();
+      const payload = cloneAnimMap(BAKED_WEAPON_ANIM);
+      localStorage.setItem(WEAPON_ANIM_KEY, JSON.stringify(payload));
+      localStorage.setItem(WEAPON_ANIM_KEY + ".ver", WEAPON_ANIM_VER);
+      localStorage.setItem("neuro.fantasyWeaponAnim.ver", WEAPON_ANIM_VER);
+      return payload;
+    } catch (_e) {
+      return cloneAnimMap(BAKED_WEAPON_ANIM);
+    }
   }
 
   function suggestGearAnim(slot, folder) {
     const name = folder || "None";
+    const baked = BAKED_WEAPON_ANIM[slot] && BAKED_WEAPON_ANIM[slot][name];
+    if (baked) return baked;
     if (slot === "weapon") {
-      if (/^Ranged/i.test(name)) return "Attack1";
-      if (/^Magic/i.test(name)) return "Special1";
-      return "Attack2";
+      if (/^Ranged/i.test(name)) return "Attack3";
+      if (/^Magic/i.test(name)) return "Attack5";
+      return "Attack1";
     }
+    if (slot === "offhand") return "Attack5";
     return "Special1";
   }
 
-  /** Anim de cast choisie dans fantasy-weapon-anim.html (sinon suggestion). */
+  /** Anim de cast : mapping validé (baked / local) sinon suggestion. */
   function animForGear(slot, folder) {
     if (!folder || folder === "None") return suggestGearAnim(slot, folder);
     const m = readWeaponAnimMap();
@@ -455,6 +516,7 @@
     WEAPON_SPELL,
     WEAPON_ANIM_KEY,
     WEAPON_ANIM_VER,
+    BAKED_WEAPON_ANIM,
     applySpellSkin,
     archetypeFor,
     loadoutForWeapon,
@@ -463,6 +525,7 @@
     animForGear,
     suggestGearAnim,
     readWeaponAnimMap,
+    ensureWeaponAnimMap,
     currentWeaponFolder,
     syncWeaponSpell,
     decorateEvoChoices,

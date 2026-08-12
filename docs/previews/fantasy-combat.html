@@ -1070,6 +1070,7 @@
     }
     try{
       if(typeof FantasyBridge!=="undefined"){
+        if(FantasyBridge.ensureWeaponAnimMap) FantasyBridge.ensureWeaponAnimMap();
         SPELLS.forEach(sp=>{
           const sk=FantasyBridge.SPELL_SKIN[sp.id];
           if(sk) sp.name=sk.name;
