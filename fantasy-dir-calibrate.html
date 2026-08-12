@@ -172,6 +172,8 @@
   "use strict";
   const KEY = "neuro.fantasyDirRow";
   const KEY_SHEETS = "neuro.fantasyDirRow.sheets";
+  const KEY_VER = "neuro.fantasyDirRow.ver";
+  const DIR_CAL_VER = "cal-2026-08-12";
   const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
   const BASE_LOCAL = "assets/packs/fantasy-cc/";
   const FW=128, FH=128, COLS=15;
@@ -179,7 +181,8 @@
   const ANIMS = ["Walk","Run","Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","AttackRun","Kick","Special1","Idle"];
   const PAD_VEC = { u:{dc:0,dr:-1}, r:{dc:1,dr:0}, d:{dc:0,dr:1}, l:{dc:-1,dr:0} };
 
-  function defaultMap(){ return [0,1,2,3,4,5,6,7]; }
+  /* Calibrage validé (ligne → face écran) */
+  function defaultMap(){ return [2,3,4,5,6,7,0,1]; }
   let sheets = {};
   ANIMS.forEach(a=> sheets[a]=defaultMap());
   let anim = "Walk", row = 0, frame = 0, lastT = 0;
@@ -187,23 +190,30 @@
   let testFacing = 4; /* S */
 
   try{
-    const raw = localStorage.getItem(KEY_SHEETS);
-    if(raw){
-      const o = JSON.parse(raw);
-      if(o && typeof o==="object"){
-        for(const k of Object.keys(o)){
-          if(Array.isArray(o[k]) && o[k].length===8) sheets[k]=o[k].map(n=>n&7);
+    const ver = localStorage.getItem(KEY_VER);
+    if(ver === DIR_CAL_VER){
+      const raw = localStorage.getItem(KEY_SHEETS);
+      if(raw){
+        const o = JSON.parse(raw);
+        if(o && typeof o==="object"){
+          for(const k of Object.keys(o)){
+            if(Array.isArray(o[k]) && o[k].length===8) sheets[k]=o[k].map(n=>n&7);
+          }
+        }
+      } else {
+        const one = localStorage.getItem(KEY);
+        if(one){
+          const a = JSON.parse(one);
+          if(Array.isArray(a)&&a.length===8){
+            const m=a.map(n=>n&7);
+            ANIMS.forEach(x=> sheets[x]=m.slice());
+          }
         }
       }
     } else {
-      const one = localStorage.getItem(KEY);
-      if(one){
-        const a = JSON.parse(one);
-        if(Array.isArray(a)&&a.length===8){
-          const m=a.map(n=>n&7);
-          ANIMS.forEach(x=> sheets[x]=m.slice());
-        }
-      }
+      localStorage.setItem(KEY, JSON.stringify(defaultMap()));
+      localStorage.setItem(KEY_SHEETS, JSON.stringify(sheets));
+      localStorage.setItem(KEY_VER, DIR_CAL_VER);
     }
   }catch(_e){}
 
@@ -268,6 +278,7 @@
     try{
       localStorage.setItem(KEY_SHEETS, JSON.stringify(sheets));
       localStorage.setItem(KEY, JSON.stringify(sheets.Walk||defaultMap()));
+      localStorage.setItem(KEY_VER, DIR_CAL_VER);
     }catch(_e){}
     refreshExport();
     if(!silent) el("status").textContent="Sauvé local + JSON à jour";

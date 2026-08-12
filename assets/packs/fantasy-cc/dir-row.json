@@ -1,0 +1,28 @@
+{
+  "pack": "fantasy-cc",
+  "ver": "cal-2026-08-12",
+  "key": "neuro.fantasyDirRow",
+  "sheetsKey": "neuro.fantasyDirRow.sheets",
+  "labels": ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
+  "note": "Ligne sheet → direction écran (0=N … 7=NW). Calibré utilisateur.",
+  "walk": [2, 3, 4, 5, 6, 7, 0, 1],
+  "sheets": {
+    "Walk": [2, 3, 4, 5, 6, 7, 0, 1],
+    "Run": [2, 3, 4, 5, 6, 7, 0, 1],
+    "RunBackwards": [2, 3, 4, 5, 6, 7, 0, 1],
+    "StrafeLeft": [2, 3, 4, 5, 6, 7, 0, 1],
+    "StrafeRight": [2, 3, 4, 5, 6, 7, 0, 1],
+    "CrouchRun": [2, 3, 4, 5, 6, 7, 0, 1],
+    "Attack1": [2, 3, 4, 5, 6, 7, 0, 1],
+    "Attack2": [2, 3, 4, 5, 6, 7, 0, 1],
+    "Attack3": [2, 3, 4, 5, 6, 7, 0, 1],
+    "Attack4": [2, 3, 4, 5, 6, 7, 0, 1],
+    "Attack5": [2, 3, 4, 5, 6, 7, 0, 1],
+    "Attack6": [2, 3, 4, 5, 6, 7, 0, 1],
+    "AttackRun": [2, 3, 4, 5, 6, 7, 0, 1],
+    "AttackRun2": [2, 3, 4, 5, 6, 7, 0, 1],
+    "Kick": [2, 3, 4, 5, 6, 7, 0, 1],
+    "Special1": [2, 3, 4, 5, 6, 7, 0, 1],
+    "Idle": [2, 3, 4, 5, 6, 7, 0, 1]
+  }
+}

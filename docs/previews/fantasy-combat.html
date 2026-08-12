@@ -186,6 +186,21 @@
   const KEY_LOOK = "neuro.fantasyLook";
   const KEY_DIR = "neuro.fantasyDirRow";
   const KEY_DIR_SHEETS = "neuro.fantasyDirRow.sheets";
+  const KEY_DIR_VER = "neuro.fantasyDirRow.ver";
+  const DIR_CAL_VER = "cal-2026-08-12";
+  /* Calibrage utilisateur : ligne sheet → face écran (0=N…7=NW) */
+  const DEFAULT_DIR_ROW = [2,3,4,5,6,7,0,1];
+  const DEFAULT_DIR_SHEETS = {
+    Walk:DEFAULT_DIR_ROW.slice(), Run:DEFAULT_DIR_ROW.slice(),
+    RunBackwards:DEFAULT_DIR_ROW.slice(), StrafeLeft:DEFAULT_DIR_ROW.slice(),
+    StrafeRight:DEFAULT_DIR_ROW.slice(), CrouchRun:DEFAULT_DIR_ROW.slice(),
+    Attack1:DEFAULT_DIR_ROW.slice(), Attack2:DEFAULT_DIR_ROW.slice(),
+    Attack3:DEFAULT_DIR_ROW.slice(), Attack4:DEFAULT_DIR_ROW.slice(),
+    Attack5:DEFAULT_DIR_ROW.slice(), Attack6:DEFAULT_DIR_ROW.slice(),
+    AttackRun:DEFAULT_DIR_ROW.slice(), AttackRun2:DEFAULT_DIR_ROW.slice(),
+    Kick:DEFAULT_DIR_ROW.slice(), Special1:DEFAULT_DIR_ROW.slice(),
+    Idle:DEFAULT_DIR_ROW.slice()
+  };
 
   /* Iso Neuro : +c = SE écran, +r = SW écran */
   const GRID = 10;
@@ -197,19 +212,29 @@
    * Face iso : atan2(sx, -sy) avec sx=dc-dr, sy=dc+dr.
    */
   const DIR_LABEL = ["N","NE","E","SE","S","SW","W","NW"];
-  let DIR_ROW = [0,1,2,3,4,5,6,7];
-  let DIR_SHEETS = {};
+  let DIR_ROW = DEFAULT_DIR_ROW.slice();
+  let DIR_SHEETS = Object.assign({}, DEFAULT_DIR_SHEETS);
   try{
-    const raw = localStorage.getItem(KEY_DIR);
-    if(raw){ const a=JSON.parse(raw); if(Array.isArray(a)&&a.length===8) DIR_ROW=a.map(n=>n&7); }
-    const sheets = localStorage.getItem(KEY_DIR_SHEETS);
-    if(sheets){
-      const o=JSON.parse(sheets);
-      if(o&&typeof o==="object"){
-        for(const k of Object.keys(o)){
-          if(Array.isArray(o[k])&&o[k].length===8) DIR_SHEETS[k]=o[k].map(n=>n&7);
+    const ver = localStorage.getItem(KEY_DIR_VER);
+    if(ver === DIR_CAL_VER){
+      const raw = localStorage.getItem(KEY_DIR);
+      if(raw){ const a=JSON.parse(raw); if(Array.isArray(a)&&a.length===8) DIR_ROW=a.map(n=>n&7); }
+      const sheets = localStorage.getItem(KEY_DIR_SHEETS);
+      if(sheets){
+        const o=JSON.parse(sheets);
+        if(o&&typeof o==="object"){
+          for(const k of Object.keys(o)){
+            if(Array.isArray(o[k])&&o[k].length===8) DIR_SHEETS[k]=o[k].map(n=>n&7);
+          }
         }
       }
+    } else {
+      /* force calibrage validé (écrase ancien mapping identité) */
+      localStorage.setItem(KEY_DIR, JSON.stringify(DEFAULT_DIR_ROW));
+      localStorage.setItem(KEY_DIR_SHEETS, JSON.stringify(DEFAULT_DIR_SHEETS));
+      localStorage.setItem(KEY_DIR_VER, DIR_CAL_VER);
+      DIR_ROW = DEFAULT_DIR_ROW.slice();
+      DIR_SHEETS = Object.assign({}, DEFAULT_DIR_SHEETS);
     }
   }catch(_e){}
   function dirMapForAnim(anim){
@@ -880,7 +905,7 @@
 
   function drawEntity(ent, isEnemy){
     if(!ent.alive && ent.anim!=="Die") return;
-    const row = sheetRowForDir(ent.dir|0);
+    const row = sheetRowForDir(ent.dir|0, anim);
     const anim = ent.anim||"Idle";
     const elapsed = (performance.now()-(ent.t0||0))/1000;
     let col = Math.floor(elapsed*FPS);
