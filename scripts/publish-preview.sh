@@ -102,23 +102,71 @@ else
   done
 fi
 
-if [[ -z "$BASE" ]]; then
-  echo "ERROR: no tunnel URL" >&2
-  exit 1
+CF_OK=0
+if [[ -n "$BASE" ]]; then
+  if verify_url "$BASE/creator.html" "Créateur" \
+    && verify_url "$BASE/fantasy-combat.html" "Combat Fantasy" \
+    && verify_url "$BASE/fantasy-dir-calibrate.html" "Calibrage directions"; then
+    CF_OK=1
+    echo
+    echo "EDITOR=$BASE/editor.html"
+    echo "CREATOR=$BASE/creator.html"
+    echo "COMBAT=$BASE/fantasy-combat.html"
+    echo "DIRS=$BASE/fantasy-dir-calibrate.html"
+    echo "INDEX=$BASE/"
+  else
+    echo "WARN: Cloudflare tunnel registered but not reachable — using Litterbox" >&2
+  fi
+else
+  echo "WARN: no Cloudflare tunnel URL — using Litterbox" >&2
 fi
 
-verify_url "$BASE/editor.html" "Placement"
-verify_url "$BASE/creator.html" "Créateur"
-verify_url "$BASE/fantasy-combat.html" "Combat Fantasy"
-verify_url "$BASE/fantasy-dir-calibrate.html" "Calibrage directions"
-verify_url "$BASE/character-creator-fantasy.html" "Créateur"
+# Litterbox fallback (Cursor mobile): inline bridge so combat works without /js/
+litter_upload() {
+  local file="$1"
+  curl -sS --max-time 120 \
+    -F "reqtype=fileupload" -F "time=72h" -F "fileToUpload=@${file}" \
+    https://litterbox.catbox.moe/resources/internals/api.php
+}
+
+python3 - "$OUT" <<'PY'
+from pathlib import Path
+import re, sys
+out = Path(sys.argv[1])
+combat = (out / "fantasy-combat.html").read_text()
+bridge = (out / "js" / "fantasy-combat-bridge.js").read_text()
+pat = re.compile(
+    r'<script[^>]*src=["\'][^"\']*fantasy-combat-bridge\.js["\'][^>]*>\s*</script>',
+    re.I,
+)
+inline = f"<script>\n{bridge}\n</script>"
+stand = pat.sub(inline, combat, count=1)
+if stand == combat:
+    stand = combat.replace("</head>", inline + "\n</head>", 1)
+Path("/tmp/fcc-combat-standalone.html").write_text(stand)
+Path("/tmp/fcc-creator-litter.html").write_text((out / "creator.html").read_text())
+Path("/tmp/fcc-dirs-litter.html").write_text((out / "fantasy-dir-calibrate.html").read_text())
+print("standalone ready", len(stand))
+PY
+
+LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html)"
+LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html)"
+LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html)"
+
+verify_url "$LIT_COMBAT" "fantasy" || { echo "ERROR: litter combat failed" >&2; exit 1; }
+verify_url "$LIT_DIRS" "dir" || { echo "ERROR: litter dirs failed" >&2; exit 1; }
+verify_url "$LIT_CREATOR" "" || { echo "ERROR: litter creator failed" >&2; exit 1; }
 
 echo
-echo "EDITOR=$BASE/editor.html"
-echo "CREATOR=$BASE/creator.html"
-echo "COMBAT=$BASE/fantasy-combat.html"
-echo "DIRS=$BASE/fantasy-dir-calibrate.html"
-echo "INDEX=$BASE/"
+echo "LITTER_COMBAT=$LIT_COMBAT"
+echo "LITTER_DIRS=$LIT_DIRS"
+echo "LITTER_CREATOR=$LIT_CREATOR"
+# Prefer Litterbox for mobile when CF is down
+if [[ "$CF_OK" -ne 1 ]]; then
+  echo "COMBAT=$LIT_COMBAT"
+  echo "DIRS=$LIT_DIRS"
+  echo "CREATOR=$LIT_CREATOR"
+fi
 
 # Fallback links (repo) — only print SHA; caller should verify htmlpreview separately after push
 SHA="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
