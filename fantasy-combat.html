@@ -919,9 +919,9 @@
     const s = toScreen(ent.c, ent.r);
     const scale = 1.15;
     const dw=FW*scale, dh=FH*scale;
-    /* Pied réel ~y90 dans le frame 128 (beaucoup de marge vide) — coller au sol iso */
-    const FOOT_Y = 90;
-    const GROUND = 10; /* sous le centre du losange, vers la pointe S */
+    /* Pied réel ~y86–90 dans le frame 128 — coller fort au sol iso */
+    const FOOT_Y = 86;
+    const GROUND = 14; /* pointe basse du losange (hh≈14) */
     const dx=s.x-dw/2, dy=s.y + GROUND - FOOT_Y*scale;
     const groundY = s.y + GROUND;
 
