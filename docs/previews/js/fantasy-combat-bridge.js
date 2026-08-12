@@ -415,6 +415,127 @@
     return loadoutForWeapon(folder || currentWeaponFolder()).attacks.slice();
   }
 
+  function currentLook() {
+    try {
+      const CC = global.CharCreator;
+      if (CC && CC.look) return CC.look;
+      const raw = localStorage.getItem("neuro.fantasyLook");
+      if (raw) {
+        const o = JSON.parse(raw);
+        if (o && o.look) return o.look;
+      }
+    } catch (_e) {}
+    return {};
+  }
+
+  const OFFHAND_SPELL = {
+    None: null,
+    Offhand1: "bouclier",
+    Offhand2: "armure_nanites",
+    Shield1: "bouclier",
+    Shield2: "bouclier",
+    Shield3: "armure_nanites",
+    Shield4: "bouclier",
+    Shield5: "armure_nanites",
+    Shield6: "bouclier",
+    Shield7: "armure_nanites",
+  };
+
+  const BACKPACK_SPELL = {
+    None: null,
+    Bag1: "nanites",
+    Bag2: "reconstruction",
+    Bag3: "gravite",
+    Bag4: "mine",
+    Bag5: "dash",
+    Bag6: "nanites",
+    Bag8: "parasite",
+  };
+
+  const HERO_SPELL_POOL = ["dash", "mine", "parasite", "arc", "punch", "bouclier"];
+  const BONUS_A_POOL = ["mine", "impulsion_emp", "tir_magnetique", "monofil"];
+  const BONUS_B_POOL = ["surchauffe", "bombe_thermique", "gravite", "nanites"];
+
+  function lookSeed(look) {
+    const L = look || {};
+    return [L.head || "", L.body || "", L.chest || "", L.weapon || "", L.offhand || "", L.backpack || ""].join("|");
+  }
+
+  /**
+   * Barre de 6 sorts (plus de cats Défense/Soutien/Attaque) :
+   * 1 Arme · 2 Gauche · 3 Perso · 4 Dos · 5 Bonus · 6 Bonus
+   * Évo / effets cumulables = étape suivante.
+   */
+  function buildSpellBar(look) {
+    const L = look || currentLook();
+    const weapon = L.weapon && L.weapon !== "None" ? L.weapon : "None";
+    const offhand = L.offhand && L.offhand !== "None" ? L.offhand : "None";
+    const bag = L.backpack && L.backpack !== "None" ? L.backpack : "None";
+    const seed = lookSeed(L);
+    const wLoad = loadoutForWeapon(weapon);
+
+    const slots = [
+      {
+        slot: "weapon",
+        label: "Arme",
+        spellId: weapon === "None" ? "punch" : wLoad.baseSpell,
+        anim: animForGear("weapon", weapon),
+        source: weapon,
+        locked: false,
+      },
+      {
+        slot: "offhand",
+        label: "Gauche",
+        spellId: OFFHAND_SPELL[offhand] || null,
+        anim: animForGear("offhand", offhand),
+        source: offhand,
+        locked: offhand === "None",
+      },
+      {
+        slot: "hero",
+        label: "Perso",
+        spellId: pickStable(HERO_SPELL_POOL, seed, "hero"),
+        anim: "Special1",
+        source: "hero",
+        locked: false,
+      },
+      {
+        slot: "backpack",
+        label: "Dos",
+        spellId: BACKPACK_SPELL[bag] || null,
+        anim: animForGear("backpack", bag),
+        source: bag,
+        locked: bag === "None",
+      },
+      {
+        slot: "bonusA",
+        label: "Bonus",
+        spellId: pickStable(BONUS_A_POOL, seed, "bonusA"),
+        anim: pickStable(["Attack2", "Attack4", "Kick"], seed, "bonusAanim"),
+        source: "bonusA",
+        locked: false,
+      },
+      {
+        slot: "bonusB",
+        label: "Bonus",
+        spellId: pickStable(BONUS_B_POOL, seed, "bonusB"),
+        anim: pickStable(["Special1", "Attack5", "Attack3"], seed, "bonusBanim"),
+        source: "bonusB",
+        locked: false,
+      },
+    ];
+    return slots;
+  }
+
+  function isSelfSpellId(spellId) {
+    return (
+      spellId === "bouclier" ||
+      spellId === "armure_nanites" ||
+      spellId === "nanites" ||
+      spellId === "reconstruction"
+    );
+  }
+
   /** Débloque + équipe le sort lié à l’arme du look (A1 suite). */
   function syncWeaponSpell() {
     const folder = currentWeaponFolder();
@@ -527,6 +648,11 @@
     readWeaponAnimMap,
     ensureWeaponAnimMap,
     currentWeaponFolder,
+    currentLook,
+    buildSpellBar,
+    isSelfSpellId,
+    OFFHAND_SPELL,
+    BACKPACK_SPELL,
     syncWeaponSpell,
     decorateEvoChoices,
     castAnimFor,

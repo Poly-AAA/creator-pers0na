@@ -77,11 +77,12 @@
     transition:width .25s ease;
   }
   .controls{
-    display:grid;grid-template-columns:1fr 1.15fr;gap:12px;align-items:center;
+    display:grid;grid-template-columns:118px 1fr;gap:10px;align-items:start;
   }
+  .dpad-wrap{width:118px;height:118px;margin:0}
 
   /* Croix iso 45° (comme Neuro) */
-  .dpad-wrap{width:132px;height:132px;margin:0 auto;position:relative}
+  .dpad-wrap{position:relative}
   .dpad{
     width:100%;height:100%;position:relative;
     transform:rotate(45deg);
@@ -103,30 +104,22 @@
   }
   .dpad .glyph{transform:rotate(-45deg);display:block;line-height:1}
 
-  .cats{
-    display:flex;flex-direction:column;gap:8px;align-items:stretch;
-  }
-  .cat-row{display:flex;gap:8px;justify-content:space-between}
-  .cat{
-    flex:1;aspect-ratio:1;max-width:72px;margin:0 auto;width:100%;
-    border-radius:50%;border:1.5px solid var(--line);background:var(--card);
-    color:var(--ink);font-size:10px;letter-spacing:.04em;text-transform:uppercase;
-    font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;
-    text-align:center;padding:6px;line-height:1.15;
-  }
-  .cat.def{background:#e8eef4;border-color:#b8c6d4;color:var(--def)}
-  .cat.sup{background:var(--sup);border-color:#d8d0c4;color:#6a5a48}
-  .cat.atk{background:#f3e8e8;border-color:#d4b0b0;color:var(--atk)}
-  .cat.on{box-shadow:inset 0 0 0 2px var(--sel);transform:scale(1.04)}
+  .spell-pane{display:flex;flex-direction:column;gap:6px;min-width:0}
   .spells{
-    display:flex;flex-wrap:wrap;gap:6px;min-height:36px;
+    display:grid;grid-template-columns:1fr 1fr;gap:6px;min-height:36px;
   }
   .spells button{
-    flex:1;min-width:42%;min-height:36px;border-radius:10px;border:1px solid var(--line);
-    background:var(--soft);color:var(--ink);font-size:11px;cursor:pointer;padding:4px 6px;
+    min-height:52px;border-radius:12px;border:1px solid var(--line);
+    background:var(--soft);color:var(--ink);font-size:11px;cursor:pointer;
+    padding:6px 7px;text-align:left;line-height:1.15;display:flex;flex-direction:column;gap:2px;
+  }
+  .spells button small{
+    font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:700;
   }
   .spells button.on{background:var(--sel);color:#fff;border-color:var(--sel)}
-  .spells button:disabled{opacity:.4}
+  .spells button.on small{color:#cfcfc8}
+  .spells button:disabled{opacity:.38}
+  .spells button.lock{opacity:.45;font-style:normal}
   .status{font-size:10px;color:var(--ink2);text-align:center;min-height:1.2em}
 </style>
 </head>
@@ -165,13 +158,8 @@
           <button type="button" class="d" data-dir="d" aria-label="Iso SW"><span class="glyph">▼</span></button>
         </div>
       </div>
-      <div class="cats">
-        <div class="cat-row">
-          <button type="button" class="cat def" data-cat="def">Défense</button>
-          <button type="button" class="cat sup" data-cat="sup">Soutien</button>
-          <button type="button" class="cat atk on" data-cat="atk">Attaque</button>
-        </div>
-        <div class="spells" id="spellList"></div>
+      <div class="spell-pane">
+        <div class="spells" id="spellList" aria-label="Sorts équipés"></div>
       </div>
     </div>
     <div class="status" id="status">…</div>
@@ -306,11 +294,12 @@
 
   const G = {
     turn:"player",
-    cat:"atk",
     busy: false,
     player:{ c:2, r:5, dir:3, pv:100, pvMax:100, pa:6, paMax:6, pm:3, pmMax:3, anim:"Idle", frame:0, t0:0, flash:0, alive:true, shield:0 },
     enemy:{ c:7, r:4, dir:7, pv:40, pvMax:40, pa:4, pm:2, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit" },
     armed: null,
+    armedSlot: null,
+    spellBar: [],
     moves: new Set(),
     range: new Set(),
     targets: new Set(),
@@ -339,21 +328,31 @@
     const L = weaponLoadout();
     return (L && L.anim) || null;
   }
-  function weaponAttackIds(){
-    const L = weaponLoadout();
-    if(L && L.attacks && L.attacks.length) return L.attacks.slice();
+  function refreshSpellBar(){
     try{
-      if(typeof FantasyBridge!=="undefined") return FantasyBridge.attackIdsForWeapon(weaponFolder());
+      if(typeof FantasyBridge!=="undefined" && FantasyBridge.buildSpellBar){
+        G.spellBar = FantasyBridge.buildSpellBar(lookState.look || FantasyBridge.currentLook());
+        return G.spellBar;
+      }
     }catch(_e){}
-    return ["punch","monofil","arc","surchauffe"];
+    G.spellBar = [];
+    return G.spellBar;
   }
-  function randomMoveAnim(){ return pick(MOVE_ANIMS); }
-  function randomAttackAnim(){
-    /* Toujours l’anim assignée à l’arme (plus de lame sur un arc) */
+  function isSelfSpell(sp){
+    if(!sp) return false;
+    if(sp.heal || sp.range===0 || sp.cat==="def" || sp.cat==="sup") return true;
+    try{
+      if(typeof FantasyBridge!=="undefined" && FantasyBridge.isSelfSpellId) return FantasyBridge.isSelfSpellId(sp.id);
+    }catch(_e){}
+    return false;
+  }
+  function animForArmed(sp){
+    if(G.armedSlot && G.armedSlot.anim) return G.armedSlot.anim;
     const pref = weaponPreferredAnim();
     if(pref) return pref;
-    return pick(ATK_ANIMS);
+    return (sp && sp.anim) || "Attack1";
   }
+  function randomMoveAnim(){ return pick(MOVE_ANIMS); }
 
   function setStatus(t){ el("status").textContent = t; }
   function hud(){
@@ -531,7 +530,7 @@
     G.targets.clear(); G.range.clear(); G.aoe.clear();
     const sp = spellById(G.armed);
     if(!sp || G.turn!=="player") return;
-    if(sp.cat==="def" || sp.cat==="sup"){
+    if(isSelfSpell(sp)){
       G.targets.add(key(G.player.c, G.player.r));
       G.range.add(key(G.player.c, G.player.r));
       return;
@@ -647,18 +646,19 @@
 
   function finishCastSelf(sp){
     G.player.pa -= sp.cost;
-    playAnim(G.player, sp.anim||"Special1");
+    const anim = animForArmed(sp);
+    playAnim(G.player, anim);
     if(sp.heal){
       const h = roll(sp.heal);
       G.player.pv = Math.min(G.player.pvMax, G.player.pv + h);
-      if(sp.cat==="def") G.player.shield = (G.player.shield||0) + Math.floor(h/2);
-      setStatus(sp.name+(sp.cat==="def"?" · défense":"")+" +"+h+" PV");
+      if(sp.id==="bouclier" || sp.id==="armure_nanites") G.player.shield = (G.player.shield||0) + Math.floor(h/2);
+      setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" +"+h+" PV");
     } else {
       G.player.shield = (G.player.shield||0) + 8;
-      setStatus(sp.name+" · bouclier");
+      setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" · bouclier");
     }
     G.combo = Math.min(100, G.combo + 18);
-    G.armed=null;
+    G.armed=null; G.armedSlot=null;
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     setTimeout(()=>playAnim(G.player,"Idle"), 650);
   }
@@ -668,18 +668,18 @@
     if(dist(G.player, G.enemy) > sp.range){ setStatus("Toujours hors portée"); return; }
     if(G.player.pa < sp.cost){ setStatus("Pas assez de PA"); return; }
     faceToward(G.player, G.enemy.c, G.enemy.r);
-    const anim = randomAttackAnim();
+    const anim = animForArmed(sp);
     G.player.pa -= sp.cost;
     playAnim(G.player, anim);
-    const dmg = roll(sp.dmg);
+    const dmg = roll(sp.dmg || [6,10]);
     G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
     G.enemy.flash = performance.now()+180;
     faceToward(G.enemy, G.player.c, G.player.r);
     playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
     G.combo = Math.min(100, G.combo + 22);
-    setStatus(sp.name+" → "+dmg+" · "+anim);
+    setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" → "+dmg);
     if(G.enemy.pv<=0){ G.enemy.alive=false; setStatus("Victoire"); }
-    G.armed=null;
+    G.armed=null; G.armedSlot=null;
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     setTimeout(()=>{ if(G.player.anim!=="Die") playAnim(G.player,"Idle"); }, 700);
   }
@@ -689,79 +689,46 @@
     const sp = spellById(G.armed); if(!sp) return;
     if(G.player.pa < sp.cost){ setStatus("Pas assez de PA"); return; }
 
-    if(sp.cat==="def" || sp.cat==="sup"){
+    if(isSelfSpell(sp)){
       finishCastSelf(sp);
       return;
     }
 
     if(!G.enemy.alive || G.enemy.c!==c || G.enemy.r!==r){ setStatus("Pas de cible"); return; }
     if(dist(G.player, G.enemy) > sp.range){
-      /* approche avec PM puis attaque */
       approachThen(sp, ()=> finishCastEnemy(sp));
       return;
     }
     finishCastEnemy(sp);
   }
 
-  /** Attaque auto : sort signature d’archétype + approche PM + anims */
-  function autoAttack(){
-    if(G.busy || G.turn!=="player" || !G.player.alive || !G.enemy.alive) return;
-    const ids = weaponAttackIds();
-    let id = ids[0] || "punch";
-    let sp = spellById(id);
-    if(!sp || G.player.pa < sp.cost){
-      sp = ids.map(spellById).find(s=>s && G.player.pa>=s.cost);
-    }
-    if(!sp){ setStatus("Pas assez de PA"); return; }
+  function armSlot(slot){
+    if(!slot || slot.locked || !slot.spellId) return;
+    const sp = spellById(slot.spellId);
+    if(!sp) return;
     G.armed = sp.id;
-    G.cat = "atk";
-    document.querySelectorAll(".cat").forEach(b=>b.classList.toggle("on", b.dataset.cat==="atk"));
+    G.armedSlot = slot;
     recomputeMoves(); recomputeTargets(); renderSpells();
-    if(dist(G.player, G.enemy) > sp.range){
+    if(isSelfSpell(sp)){
+      tryCastAt(G.player.c, G.player.r);
+      return;
+    }
+    if(G.enemy.alive && dist(G.player,G.enemy)<=sp.range){
+      tryCastAt(G.enemy.c, G.enemy.r);
+    } else if(G.enemy.alive){
       approachThen(sp, ()=> finishCastEnemy(sp));
-    } else {
-      finishCastEnemy(sp);
-    }
+    } else setStatus(sp.name+" armé");
   }
 
-  /** IA Défense — reste sur place, sort le plus adapté */
-  function aiDefense(){
+  /** Centre dpad : sort armé, sinon sort d’arme */
+  function autoAttack(){
     if(G.busy || G.turn!=="player" || !G.player.alive) return;
-    const opts = ["bouclier","armure_nanites"].map(spellById).filter(s=>s && G.player.pa>=s.cost);
-    if(!opts.length){ setStatus("Défense : pas de PA"); return; }
-    const hp = G.player.pv / G.player.pvMax;
-    let sp;
-    if(hp < 0.45 || (G.enemy.alive && dist(G.player,G.enemy)<=2)){
-      /* danger → plus gros bouclier/soin déf */
-      sp = opts.sort((a,b)=> (b.heal?b.heal[1]:0)-(a.heal?a.heal[1]:0) || b.cost-a.cost)[0];
-    } else {
-      /* calme → le moins cher */
-      sp = opts.sort((a,b)=> a.cost-b.cost)[0];
-    }
-    G.armed = sp.id; G.cat="def";
-    document.querySelectorAll(".cat").forEach(b=>b.classList.toggle("on", b.dataset.cat==="def"));
-    renderSpells();
-    finishCastSelf(sp);
-  }
-
-  /** IA Soutien — reste sur place, meilleur soin */
-  function aiSupport(){
-    if(G.busy || G.turn!=="player" || !G.player.alive) return;
-    const opts = ["nanites","reconstruction"].map(spellById).filter(s=>s && G.player.pa>=s.cost);
-    if(!opts.length){ setStatus("Soutien : pas de PA"); return; }
-    const missing = G.player.pvMax - G.player.pv;
-    let sp;
-    if(missing >= 18){
-      sp = opts.sort((a,b)=> (b.heal?b.heal[1]:0)-(a.heal?a.heal[1]:0))[0];
-    } else if(missing <= 0){
-      setStatus("PV pleins"); return;
-    } else {
-      sp = opts.sort((a,b)=> a.cost-b.cost)[0];
-    }
-    G.armed = sp.id; G.cat="sup";
-    document.querySelectorAll(".cat").forEach(b=>b.classList.toggle("on", b.dataset.cat==="sup"));
-    renderSpells();
-    finishCastSelf(sp);
+    if(G.armed){ castArmed(); return; }
+    const bar = G.spellBar.length ? G.spellBar : refreshSpellBar();
+    const slot = bar.find(s=>!s.locked && s.spellId && spellById(s.spellId) && G.player.pa>=spellById(s.spellId).cost)
+      || bar.find(s=>!s.locked && s.spellId);
+    if(!slot){ setStatus("Aucun sort"); return; }
+    armSlot(slot);
   }
 
   function castArmed(){
@@ -769,7 +736,7 @@
     if(!G.armed){ autoAttack(); return; }
     const sp = spellById(G.armed);
     if(!sp) return;
-    if(sp.cat==="def" || sp.cat==="sup"){ tryCastAt(G.player.c, G.player.r); return; }
+    if(isSelfSpell(sp)){ tryCastAt(G.player.c, G.player.r); return; }
     if(G.enemy.alive){
       if(dist(G.player, G.enemy) > sp.range) approachThen(sp, ()=> finishCastEnemy(sp));
       else tryCastAt(G.enemy.c, G.enemy.r);
@@ -778,7 +745,7 @@
 
   function endTurn(){
     if(G.turn!=="player" || G.busy) return;
-    G.armed=null; G.turn="enemy";
+    G.armed=null; G.armedSlot=null; G.turn="enemy";
     G.combo = Math.max(0, G.combo - 12);
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     setStatus("Tour ennemi…");
@@ -825,63 +792,43 @@
     G.busy = false;
     G.player.pa = G.player.paMax;
     G.player.pm = G.player.pmMax;
-    G.armed=null;
+    G.armed=null; G.armedSlot=null;
+    refreshSpellBar();
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
-    setStatus("Ton tour");
+    setStatus("Ton tour · 6 sorts");
   }
 
   function renderSpells(){
     const host = el("spellList"); host.innerHTML="";
-    if(G.cat!=="atk"){
-      const note = document.createElement("p");
-      note.className = "hint";
-      note.style.margin="0";
-      note.textContent = G.cat==="def"
-        ? "Défense : IA choisit le sort adapté (sur place)"
-        : "Soutien : IA choisit le meilleur soin (sur place)";
-      host.appendChild(note);
-      return;
-    }
-
-    /* Kit stable archétype → [signature + effets pool] */
-    let ids = weaponAttackIds().filter(id=>!!spellById(id)).slice(0,4);
-    if(!ids.length) ids = ["punch","monofil","arc","surchauffe"];
-
-    /* bouton Auto en premier */
-    const auto = document.createElement("button");
-    auto.type="button";
-    auto.textContent = "Auto · approche";
-    auto.disabled = G.turn!=="player" || G.busy || !G.enemy.alive;
-    auto.onclick=()=> autoAttack();
-    host.appendChild(auto);
-
-    ids.forEach(id=>{
-      const sp = spellById(id); if(!sp) return;
-      const skin = (typeof FantasyBridge!=="undefined" && FantasyBridge.SPELL_SKIN[sp.id]) || null;
-      const name = skin ? skin.name : sp.name;
+    const bar = G.spellBar.length ? G.spellBar : refreshSpellBar();
+    bar.forEach(slot=>{
       const b = document.createElement("button");
       b.type="button";
-      b.className = G.armed===sp.id ? "on" : "";
-      b.textContent = name+" ·"+sp.cost;
-      b.disabled = G.turn!=="player" || G.busy || G.player.pa<sp.cost;
-      b.onclick=()=>{
-        if(G.busy) return;
-        if(G.armed===sp.id){
-          if(G.enemy.alive){
-            if(dist(G.player,G.enemy)>sp.range) approachThen(sp, ()=> finishCastEnemy(sp));
-            else tryCastAt(G.enemy.c, G.enemy.r);
+      const sp = slot.spellId ? spellById(slot.spellId) : null;
+      const skin = (sp && typeof FantasyBridge!=="undefined" && FantasyBridge.SPELL_SKIN[sp.id]) || null;
+      const name = sp ? (skin ? skin.name : sp.name) : "Vide";
+      const lab = document.createElement("small");
+      lab.textContent = slot.label;
+      b.appendChild(lab);
+      const line = document.createElement("span");
+      if(slot.locked || !sp){
+        line.textContent = "—";
+        b.className = "lock";
+        b.disabled = true;
+      } else {
+        line.textContent = name+" ·"+sp.cost;
+        b.className = (G.armed===sp.id && G.armedSlot && G.armedSlot.slot===slot.slot) ? "on" : "";
+        b.disabled = G.turn!=="player" || G.busy || G.player.pa<sp.cost;
+        b.onclick=()=>{
+          if(G.busy || G.turn!=="player") return;
+          if(G.armed===sp.id && G.armedSlot && G.armedSlot.slot===slot.slot){
+            castArmed();
+            return;
           }
-          return;
-        }
-        G.armed = sp.id;
-        recomputeMoves(); recomputeTargets(); renderSpells();
-        if(G.enemy.alive && dist(G.player,G.enemy)<=sp.range){
-          tryCastAt(G.enemy.c, G.enemy.r);
-        } else if(G.enemy.alive){
-          /* approche auto puis cast */
-          approachThen(sp, ()=> finishCastEnemy(sp));
-        } else setStatus(name+" armé");
-      };
+          armSlot(slot);
+        };
+      }
+      b.appendChild(line);
       host.appendChild(b);
     });
   }
@@ -1040,19 +987,6 @@
       btn.addEventListener("pointerup", ()=>btn.classList.remove("on"));
       btn.addEventListener("pointerleave", ()=>btn.classList.remove("on"));
     });
-    document.querySelectorAll(".cat").forEach(btn=>{
-      btn.onclick=()=>{
-        if(G.busy || G.turn!=="player") return;
-        const cat = btn.dataset.cat;
-        G.cat = cat;
-        document.querySelectorAll(".cat").forEach(b=>b.classList.toggle("on", b===btn));
-        G.armed=null;
-        if(cat==="def"){ renderSpells(); aiDefense(); return; }
-        if(cat==="sup"){ renderSpells(); aiSupport(); return; }
-        recomputeMoves(); recomputeTargets(); renderSpells();
-        setStatus("Attaque · 4 sorts + Auto");
-      };
-    });
   }
 
   async function boot(){
@@ -1079,21 +1013,17 @@
     }catch(_e){}
 
     warm();
+    refreshSpellBar();
     beginPlayerTurn();
     renderSpells(); hud();
     bindPad();
     {
-      const L = weaponLoadout();
-      if(L){
-        const sig = spellById(L.baseSpell);
-        const sigName = sig ? sig.name : L.baseSpell;
-        let confirmed = false;
-        try{
-          const m = FantasyBridge.readWeaponAnimMap();
-          confirmed = !!(m && m.weapon && m.weapon[weaponFolder()]);
-        }catch(_e){}
-        setStatus(weaponFolder()+" · "+L.anim+(confirmed?"":" (suggestion)")+" · "+sigName);
-      } else setStatus("Iso · croix = axes map");
+      const bar = G.spellBar || [];
+      const names = bar.filter(s=>!s.locked && s.spellId).map(s=>{
+        const sp=spellById(s.spellId);
+        return s.label+":"+(sp?sp.name:s.spellId);
+      });
+      setStatus(names.slice(0,3).join(" · ") || "6 sorts prêts");
     }
 
     canvas.addEventListener("click", onTap);
