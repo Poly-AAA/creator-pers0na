@@ -11,6 +11,7 @@ cp "$ROOT/character-creator-fantasy.html" "$OUT/creator.html"
 cp "$ROOT/fantasy-cc-layout-editor.html" "$OUT/editor.html"
 cp "$ROOT/fantasy-combat.html" "$OUT/fantasy-combat.html"
 cp "$ROOT/fantasy-dir-calibrate.html" "$OUT/fantasy-dir-calibrate.html"
+cp "$ROOT/fantasy-weapon-anim.html" "$OUT/fantasy-weapon-anim.html"
 cp "$ROOT/js/fantasy-combat-bridge.js" "$OUT/js/fantasy-combat-bridge.js"
 # Même noms que le repo pour les liens Créateur ↔ Combat
 cp "$ROOT/character-creator-fantasy.html" "$OUT/character-creator-fantasy.html"
@@ -18,6 +19,7 @@ cp "$ROOT/character-creator-fantasy.html" "$ROOT/docs/previews/creator.html"
 cp "$ROOT/fantasy-cc-layout-editor.html" "$ROOT/docs/previews/editor.html"
 cp "$ROOT/fantasy-combat.html" "$ROOT/docs/previews/fantasy-combat.html"
 cp "$ROOT/fantasy-dir-calibrate.html" "$ROOT/docs/previews/fantasy-dir-calibrate.html"
+cp "$ROOT/fantasy-weapon-anim.html" "$ROOT/docs/previews/fantasy-weapon-anim.html"
 cp "$ROOT/js/fantasy-combat-bridge.js" "$ROOT/docs/previews/js/fantasy-combat-bridge.js"
 cp "$ROOT/character-creator-fantasy.html" "$ROOT/docs/previews/character-creator-fantasy.html"
 
@@ -28,6 +30,7 @@ cat > "$OUT/index.html" <<'EOF'
 <h1>Previews</h1>
 <p><a href="creator.html">Créateur</a></p>
 <p><a href="fantasy-combat.html">Combat</a></p>
+<p><a href="fantasy-weapon-anim.html">Anim par équipement</a></p>
 <p><a href="fantasy-dir-calibrate.html">Calibrage directions</a></p>
 <p><a href="editor.html">Éditeur placement</a></p>
 </body></html>
@@ -146,6 +149,7 @@ if stand == combat:
 Path("/tmp/fcc-combat-standalone.html").write_text(stand)
 Path("/tmp/fcc-creator-litter.html").write_text((out / "creator.html").read_text())
 Path("/tmp/fcc-dirs-litter.html").write_text((out / "fantasy-dir-calibrate.html").read_text())
+Path("/tmp/fcc-weapon-anim-litter.html").write_text((out / "fantasy-weapon-anim.html").read_text())
 print("standalone ready", len(stand))
 PY
 
@@ -153,19 +157,64 @@ LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html)"
 LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html)"
 LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html)"
 
+# Rewrite relative Combat link so Litterbox Anims → Combat works
+python3 - "$LIT_COMBAT" <<'PY'
+from pathlib import Path
+import sys
+combat = sys.argv[1]
+p = Path("/tmp/fcc-weapon-anim-litter.html")
+t = p.read_text()
+t = t.replace('href="fantasy-combat.html"', f'href="{combat}"')
+p.write_text(t)
+print("rewrote combat href ->", combat)
+PY
+
+LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html)"
+
 verify_url "$LIT_COMBAT" "fantasy" || { echo "ERROR: litter combat failed" >&2; exit 1; }
 verify_url "$LIT_DIRS" "dir" || { echo "ERROR: litter dirs failed" >&2; exit 1; }
 verify_url "$LIT_CREATOR" "" || { echo "ERROR: litter creator failed" >&2; exit 1; }
+verify_url "$LIT_ANIMS" "Anim" || { echo "ERROR: litter weapon-anim failed" >&2; exit 1; }
+
+# 2ᵉ passe : Combat Litterbox → lien Anims absolu
+python3 - "$LIT_ANIMS" <<'PY'
+from pathlib import Path
+import sys
+anims = sys.argv[1]
+p = Path("/tmp/fcc-combat-standalone.html")
+t = p.read_text()
+t = t.replace('href="fantasy-weapon-anim.html"', f'href="{anims}"')
+p.write_text(t)
+print("rewrote anims href in combat ->", anims)
+PY
+LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html)"
+verify_url "$LIT_COMBAT" "fantasy" || { echo "ERROR: litter combat reupload failed" >&2; exit 1; }
+# Anims page pointe encore vers le 1er combat — republier Anims avec le combat final
+python3 - "$LIT_COMBAT" <<'PY'
+from pathlib import Path
+import sys, re
+combat = sys.argv[1]
+p = Path("/tmp/fcc-weapon-anim-litter.html")
+t = p.read_text()
+t = re.sub(r'href="https://litter\.catbox\.moe/[^"]+"', f'href="{combat}"', t, count=1)
+t = t.replace('href="fantasy-combat.html"', f'href="{combat}"')
+p.write_text(t)
+print("rewrote final combat href in anims ->", combat)
+PY
+LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html)"
+verify_url "$LIT_ANIMS" "Anim" || { echo "ERROR: litter weapon-anim reupload failed" >&2; exit 1; }
 
 echo
 echo "LITTER_COMBAT=$LIT_COMBAT"
 echo "LITTER_DIRS=$LIT_DIRS"
 echo "LITTER_CREATOR=$LIT_CREATOR"
+echo "LITTER_ANIMS=$LIT_ANIMS"
 # Prefer Litterbox for mobile when CF is down
 if [[ "$CF_OK" -ne 1 ]]; then
   echo "COMBAT=$LIT_COMBAT"
   echo "DIRS=$LIT_DIRS"
   echo "CREATOR=$LIT_CREATOR"
+  echo "ANIMS=$LIT_ANIMS"
 fi
 
 # Fallback links (repo) — only print SHA; caller should verify htmlpreview separately after push
@@ -175,4 +224,5 @@ if [[ -n "$SHA" ]]; then
   echo "HTMLPREVIEW_CREATOR=https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/${SHA}/docs/previews/creator.html"
   echo "HTMLPREVIEW_COMBAT=https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/${SHA}/docs/previews/fantasy-combat.html"
   echo "HTMLPREVIEW_DIRS=https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/${SHA}/docs/previews/fantasy-dir-calibrate.html"
+  echo "HTMLPREVIEW_ANIMS=https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/${SHA}/docs/previews/fantasy-weapon-anim.html"
 fi

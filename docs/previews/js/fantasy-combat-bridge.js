@@ -232,17 +232,49 @@
 
   /**
    * Kit stable pour une arme :
-   * - baseSpell = signature d’archétype
-   * - attacks = [base, …effets du pool] (max 4, déterministe)
-   * - anim = anim préférée
+   * - baseSpell = signature d’archétype (provisoire — sorts hors-arme après)
+   * - attacks = [base, …effets du pool]
+   * - anim = CHOIX utilisateur (fantasy-weapon-anim.html) sinon suggestion
    */
+  const WEAPON_ANIM_KEY = "neuro.fantasyWeaponAnim";
+  const WEAPON_ANIM_VER = "weapon-anim-2026-08-12";
+
+  function readWeaponAnimMap() {
+    try {
+      const raw = localStorage.getItem(WEAPON_ANIM_KEY);
+      if (raw) {
+        const o = JSON.parse(raw);
+        if (o && typeof o === "object") return o;
+      }
+    } catch (_e) {}
+    return null;
+  }
+
+  function suggestGearAnim(slot, folder) {
+    const name = folder || "None";
+    if (slot === "weapon") {
+      if (/^Ranged/i.test(name)) return "Attack1";
+      if (/^Magic/i.test(name)) return "Special1";
+      return "Attack2";
+    }
+    return "Special1";
+  }
+
+  /** Anim de cast choisie dans fantasy-weapon-anim.html (sinon suggestion). */
+  function animForGear(slot, folder) {
+    if (!folder || folder === "None") return suggestGearAnim(slot, folder);
+    const m = readWeaponAnimMap();
+    if (m && m[slot] && m[slot][folder]) return m[slot][folder];
+    return suggestGearAnim(slot, folder);
+  }
+
   function loadoutForWeapon(folder) {
     const f = folder || "None";
     const arch = archetypeFor(f);
     const base = arch.base;
     const extras = uniqueStable(arch.pool, f, 3, [base]);
     const attacks = [base].concat(extras).slice(0, 4);
-    const anim = pickStable(arch.anims, f, "anim") || arch.anims[0] || "Attack1";
+    const anim = animForGear("weapon", f) || pickStable(arch.anims, f, "anim") || arch.anims[0] || "Attack1";
     return {
       folder: f,
       archetype: arch.id,
@@ -254,7 +286,6 @@
     };
   }
 
-  /** Compat : ancienne forme { spell, anim }. */
   function weaponEntry(folder) {
     const L = loadoutForWeapon(folder);
     return {
@@ -381,14 +412,29 @@
     });
   }
 
-  /** Anim sheet fantasy pour un sort (évo > arme > défaut type). */
+  /** Anim sheet fantasy pour un sort (évo > anim équipement > défaut). */
   function castAnimFor(def, st) {
     if (st && st.evo && st.evo.anim) return st.evo.anim;
     const State = global.State;
+    const folder = currentWeaponFolder();
+    const entry = weaponEntry(folder);
+    if (entry && def && (def.id === entry.spell || (entry.attacks && entry.attacks.indexOf(def.id) >= 0))) {
+      return entry.anim || animForGear("weapon", folder);
+    }
     if (State && State._weaponSpell === (def && def.id) && State._weaponAnim) return State._weaponAnim;
     if (!def) return "Attack1";
-    if (def.id === "punch") return "Attack2";
-    if (def.type === "heal" || def.type === "shield") return "Special1";
+    if (def.id === "punch") return animForGear("weapon", folder);
+    if (def.type === "heal" || def.type === "shield" || def.cat === "def" || def.cat === "sup") {
+      let off = "None";
+      try {
+        const raw = localStorage.getItem("neuro.fantasyLook");
+        if (raw) {
+          const o = JSON.parse(raw);
+          if (o && o.look && o.look.offhand) off = o.look.offhand;
+        }
+      } catch (_e) {}
+      return animForGear("offhand", off);
+    }
     if (def.range > 2) return "Attack1";
     return "Attack3";
   }
@@ -407,11 +453,16 @@
     ARCHETYPES,
     WEAPON_ARCHETYPE,
     WEAPON_SPELL,
+    WEAPON_ANIM_KEY,
+    WEAPON_ANIM_VER,
     applySpellSkin,
     archetypeFor,
     loadoutForWeapon,
     attackIdsForWeapon,
     weaponEntry,
+    animForGear,
+    suggestGearAnim,
+    readWeaponAnimMap,
     currentWeaponFolder,
     syncWeaponSpell,
     decorateEvoChoices,

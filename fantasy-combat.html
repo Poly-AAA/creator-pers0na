@@ -140,6 +140,7 @@
         <div class="chip" id="chipPm"><span>PM</span><b id="hudPm">—</b></div>
       </div>
       <div style="display:flex;gap:6px;pointer-events:auto">
+        <a class="link-cc" href="fantasy-weapon-anim.html">Anims</a>
         <a class="link-cc" href="fantasy-dir-calibrate.html">Dirs</a>
         <a class="link-cc" href="character-creator-fantasy.html">Créateur</a>
       </div>
@@ -348,12 +349,10 @@
   }
   function randomMoveAnim(){ return pick(MOVE_ANIMS); }
   function randomAttackAnim(){
+    /* Toujours l’anim assignée à l’arme (plus de lame sur un arc) */
     const pref = weaponPreferredAnim();
-    const pool = ATK_ANIMS.slice();
-    if(pref && !pool.includes(pref)) pool.push(pref);
-    /* biais léger vers l’anim d’arme */
-    if(pref && Math.random()<0.45) return pref;
-    return pick(pool);
+    if(pref) return pref;
+    return pick(ATK_ANIMS);
   }
 
   function setStatus(t){ el("status").textContent = t; }
@@ -1087,7 +1086,12 @@
       if(L){
         const sig = spellById(L.baseSpell);
         const sigName = sig ? sig.name : L.baseSpell;
-        setStatus(L.label+" · "+sigName+" ("+weaponFolder()+")");
+        let confirmed = false;
+        try{
+          const m = FantasyBridge.readWeaponAnimMap();
+          confirmed = !!(m && m.weapon && m.weapon[weaponFolder()]);
+        }catch(_e){}
+        setStatus(weaponFolder()+" · "+L.anim+(confirmed?"":" (suggestion)")+" · "+sigName);
       } else setStatus("Iso · croix = axes map");
     }
 

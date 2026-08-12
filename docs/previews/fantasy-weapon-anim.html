@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
+<title>Anim par équipement</title>
+<style>
+  :root{
+    --bg:#ecece8; --bg2:#f5f5f2; --ink:#555552; --ink2:#8e8e8a;
+    --line:#c6c6c2; --line2:#dcdcd8; --card:#fafaf8; --sel:#3d3d3a; --soft:#f0f0ec;
+    --ok:#2f6f4e; --accent:#5b7c99;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+    font:15px/1.35 Helvetica,Arial,sans-serif}
+  .app{max-width:390px;margin:0 auto;min-height:100dvh;padding:12px 12px calc(18px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,var(--bg2),var(--bg));display:flex;flex-direction:column;gap:10px}
+  h1{margin:0;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--sel)}
+  .sub{margin:0;font-size:12px;color:var(--ink2);line-height:1.4}
+  .sub b{color:var(--ink)}
+  .card{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:12px}
+  .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px}
+  .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .tabs button{
+    min-height:42px;border-radius:10px;border:1px solid var(--line);background:var(--soft);
+    color:var(--ink);font-size:12px;font-weight:700;cursor:pointer;
+  }
+  .tabs button.on{background:var(--sel);color:#fff;border-color:var(--sel)}
+  .progress{height:8px;border-radius:999px;background:var(--soft);border:1px solid var(--line2);overflow:hidden;margin-bottom:8px}
+  .progress>i{display:block;height:100%;width:0%;background:var(--accent);transition:width .2s}
+  .items{display:flex;flex-wrap:wrap;gap:6px;max-height:120px;overflow:auto}
+  .items button{
+    min-height:34px;padding:6px 9px;border-radius:10px;border:1px solid var(--line);
+    background:var(--soft);color:var(--ink);font-size:11px;font-weight:600;cursor:pointer;
+  }
+  .items button.on{background:var(--sel);color:#fff;border-color:var(--sel)}
+  .items button.done{box-shadow:inset 0 0 0 1.5px var(--ok)}
+  #stage{width:100%;aspect-ratio:1;border-radius:12px;border:1px solid var(--line);background:#e2e2de;display:block;image-rendering:pixelated}
+  .anims{display:flex;flex-wrap:wrap;gap:6px}
+  .anims button{
+    min-height:40px;padding:7px 10px;border-radius:10px;border:1px solid var(--line);
+    background:var(--soft);color:var(--ink);font-size:11px;font-weight:700;cursor:pointer;
+  }
+  .anims button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .anims button.pick{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .row-nav{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .row-nav button{
+    flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--soft);
+    color:var(--sel);font-size:18px;cursor:pointer;
+  }
+  .row-nav .val{min-width:88px;text-align:center;font-weight:700;font-size:13px;color:var(--sel)}
+  .bar{display:flex;gap:8px;flex-wrap:wrap}
+  .bar a,.bar button{
+    flex:1;min-width:100px;min-height:44px;border-radius:10px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);font-size:12px;text-decoration:none;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:600;
+  }
+  .bar .primary{background:var(--sel);color:#fff;border-color:var(--sel)}
+  .bar .ok{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .status{font-size:11px;color:var(--ink2);text-align:center;min-height:1.2em}
+  .q{font-size:14px;font-weight:700;color:var(--sel);margin:0 0 8px;line-height:1.35}
+  .q span{color:var(--accent)}
+  textarea{
+    width:100%;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--sel);
+    font:11px/1.4 ui-monospace,Menlo,monospace;padding:10px;resize:vertical;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Anim par équipement</h1>
+  <p class="sub">Choisis <b>une anim de cast</b> pour chaque pièce. Ex. arc → tir, lame → entaille, bouclier → parade. Les sorts viennent après.</p>
+
+  <div class="card">
+    <div class="lab">1 · Slot</div>
+    <div class="tabs" id="tabs">
+      <button type="button" data-slot="weapon" class="on">Arme</button>
+      <button type="button" data-slot="offhand">Bouclier</button>
+      <button type="button" data-slot="backpack">Dos</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="lab">2 · Pièce · <span id="doneLab">0/0</span></div>
+    <div class="progress"><i id="prog"></i></div>
+    <div class="items" id="itemList"></div>
+  </div>
+
+  <div class="card">
+    <p class="q">Anim pour <span id="itemLab">—</span> ?</p>
+    <canvas id="stage" width="384" height="384"></canvas>
+    <div class="row-nav">
+      <button type="button" id="dirPrev">‹</button>
+      <div class="val" id="dirLab">SE</div>
+      <button type="button" id="dirNext">›</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="lab">3 · Tape l’anim qui correspond (puis Suivant)</div>
+    <div class="anims" id="animList"></div>
+  </div>
+
+  <div class="card">
+    <div class="lab">4 · Export / coller</div>
+    <textarea id="exportBox" readonly rows="7"></textarea>
+    <div class="bar" style="margin-top:8px">
+      <button type="button" class="primary" id="btnCopy">Copier JSON</button>
+      <button type="button" id="btnImport">Importer</button>
+    </div>
+    <textarea id="importBox" rows="3" placeholder="Colle un JSON puis Importer" style="margin-top:8px;background:var(--card);color:var(--ink)"></textarea>
+  </div>
+
+  <div class="bar">
+    <button type="button" id="btnClear">Effacer pièce</button>
+    <button type="button" id="btnNext">Suivant ›</button>
+    <button type="button" class="primary" id="btnSave">Sauver</button>
+    <a class="ok" href="fantasy-combat.html">Combat</a>
+  </div>
+  <div class="status" id="status">Choisis une pièce, teste les anims, valide celle qui va bien.</div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const KEY = "neuro.fantasyWeaponAnim";
+  const KEY_VER = "neuro.fantasyWeaponAnim.ver";
+  const VER = "weapon-anim-2026-08-12";
+  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
+  const BASE_LOCAL = "assets/packs/fantasy-cc/";
+  const FW=128, FH=128, COLS=15, FPS=12;
+  const DIR_LABEL = ["N","NE","E","SE","S","SW","W","NW"];
+  /* Ligne sheet → face écran (calibrage validé) */
+  const DIR_ROW = [2,3,4,5,6,7,0,1];
+  const CAST_ANIMS = ["Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","AttackRun","AttackRun2","Kick","Special1","Taunt"];
+
+  const DEFAULT_COLORS = {
+    body:"#d4a574", shoes:"#5c4030", legs:"#4a5a6a", chest:"#6b5b4a",
+    belt:"#8b6914", gloves:"#6a5a4e", offhand:"#6b8f71", weapon:"#9aa8b8",
+    backpack:"#7a5c3a", head:"#e0b878",
+  };
+
+  let catalog = null;
+  let slot = "weapon";
+  let folder = "Melee1";
+  let previewAnim = "Attack1";
+  let dir = 3; /* SE */
+  let frame = 0, lastT = 0;
+  let map = { weapon:{}, offhand:{}, backpack:{} };
+  let look = null;
+  let colors = Object.assign({}, DEFAULT_COLORS);
+  let weaponAfterShieldRows = [true,true,true,false,false,false,false,true];
+  let backpackInFrontRows = [true,false,false,false,false,true,true,true];
+
+  const canvas = document.getElementById("stage");
+  const ctx = canvas.getContext("2d");
+  const tintCv = document.createElement("canvas");
+  const tintCx = tintCv.getContext("2d");
+  const imgCache = new Map();
+  const el = (id)=> document.getElementById(id);
+
+  function suggestAnim(slotId, name){
+    if(slotId==="weapon"){
+      if(/^Ranged/i.test(name)) return "Attack1";
+      if(/^Magic/i.test(name)) return "Special1";
+      if(/^Melee/i.test(name)) return "Attack2";
+      return "Attack2";
+    }
+    if(slotId==="offhand") return "Special1";
+    if(slotId==="backpack") return "Special1";
+    return "Attack1";
+  }
+
+  function loadSaved(){
+    try{
+      const ver = localStorage.getItem(KEY_VER);
+      const raw = localStorage.getItem(KEY);
+      if(raw){
+        const o = JSON.parse(raw);
+        if(o && typeof o==="object"){
+          map.weapon = Object.assign({}, o.weapon||{});
+          map.offhand = Object.assign({}, o.offhand||{});
+          map.backpack = Object.assign({}, o.backpack||{});
+        }
+      }
+      if(ver !== VER && !raw){ /* first visit ok */ }
+    }catch(_e){}
+  }
+
+  function persist(){
+    const payload = { ver: VER, weapon: map.weapon, offhand: map.offhand, backpack: map.backpack };
+    localStorage.setItem(KEY, JSON.stringify(payload));
+    localStorage.setItem(KEY_VER, VER);
+    el("exportBox").value = JSON.stringify(payload, null, 2);
+  }
+
+  function loadLook(){
+    try{
+      const raw = localStorage.getItem("neuro.fantasyLook");
+      if(raw){
+        const o = JSON.parse(raw);
+        if(o && o.look){ look = o.look; if(o.colors) colors = Object.assign({}, DEFAULT_COLORS, o.colors); return; }
+      }
+    }catch(_e){}
+    look = {
+      body:"NakedBody", shoes:"Shoes1", legs:"Legs1", chest:"Chest1",
+      belt:"None", gloves:"None", head:"Head1",
+      weapon:"Melee1", offhand:"Shield1", backpack:"Bag1",
+      slash:"None", effect:"None", mount:"None",
+    };
+  }
+
+  function foldersFor(slotId){
+    if(!catalog) return [];
+    const s = (catalog.slots||[]).find(x=>x.id===slotId);
+    return ((s && s.folders)||[]).filter(f=>f && f!=="None");
+  }
+
+  function assigned(slotId, name){
+    return !!(map[slotId] && map[slotId][name]);
+  }
+
+  function currentAnim(){
+    return (map[slot] && map[slot][folder]) || suggestAnim(slot, folder);
+  }
+
+  function loadImg(fold, anim){
+    const key = fold+"/"+anim;
+    if(imgCache.has(key)) return imgCache.get(key);
+    const im = new Image();
+    im.decoding = "async";
+    const rel = "spritesheets/"+fold+"/"+anim+".png";
+    let i = 0;
+    const urls = [BASE_CDN+rel, BASE_LOCAL+rel];
+    const tryNext = ()=>{
+      if(i>=urls.length){ imgCache.set(key, null); return; }
+      im.src = urls[i++];
+    };
+    im.onload = ()=> imgCache.set(key, im);
+    im.onerror = tryNext;
+    try{ im.crossOrigin = "anonymous"; }catch(_e){}
+    tryNext();
+    imgCache.set(key, im);
+    return im;
+  }
+
+  function tintDraw(im, sx,sy,sw,sh, dx,dy,dw,dh, tint, alpha){
+    if(!tint){
+      ctx.globalAlpha = alpha==null?1:alpha;
+      ctx.drawImage(im,sx,sy,sw,sh,dx,dy,dw,dh);
+      ctx.globalAlpha = 1;
+      return;
+    }
+    tintCv.width = dw; tintCv.height = dh;
+    tintCx.clearRect(0,0,dw,dh);
+    tintCx.imageSmoothingEnabled = false;
+    tintCx.drawImage(im,sx,sy,sw,sh,0,0,dw,dh);
+    tintCx.globalCompositeOperation = "source-atop";
+    tintCx.fillStyle = tint;
+    tintCx.fillRect(0,0,dw,dh);
+    tintCx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = alpha==null?1:alpha;
+    ctx.drawImage(tintCv, dx, dy);
+    ctx.globalAlpha = 1;
+  }
+
+  function layersForPreview(sheetRow){
+    const L = [];
+    L.push({folder: (catalog && catalog.shadowFolder)||"Shadow", tint:null, alpha:1});
+    L.push({folder: look.body||"NakedBody", tint: colors.body||null, alpha:1});
+    for(const id of ["shoes","legs","chest","belt","gloves"]){
+      const f = look[id]; if(f && f!=="None") L.push({folder:f, tint:colors[id]||null, alpha:1});
+    }
+    const shield = (slot==="offhand" ? folder : look.offhand);
+    const weapon = (slot==="weapon" ? folder : look.weapon);
+    const bag = (slot==="backpack" ? folder : look.backpack);
+    const wAfter = !!(weaponAfterShieldRows[sheetRow|0]);
+    const bagFront = !!(backpackInFrontRows[sheetRow|0]);
+    const mid = [];
+    if(wAfter){
+      if(shield && shield!=="None") mid.push({folder:shield, tint:colors.offhand||null, alpha:1});
+      if(weapon && weapon!=="None") mid.push({folder:weapon, tint:colors.weapon||null, alpha:1});
+    } else {
+      if(weapon && weapon!=="None") mid.push({folder:weapon, tint:colors.weapon||null, alpha:1});
+      if(shield && shield!=="None") mid.push({folder:shield, tint:colors.offhand||null, alpha:1});
+    }
+    if(bag && bag!=="None"){
+      const item = {folder:bag, tint:colors.backpack||null, alpha:1};
+      if(bagFront) mid.push(item); else mid.unshift(item);
+    }
+    L.push(...mid);
+    if(look.head && look.head!=="None") L.push({folder:look.head, tint:colors.head||null, alpha:1});
+    return L;
+  }
+
+  function sheetRowForDir(d){
+    const i = DIR_ROW.indexOf(d&7);
+    return i>=0 ? i : (d&7);
+  }
+
+  function draw(){
+    const now = performance.now();
+    if(now - lastT > 1000/FPS){ frame = (frame+1)%COLS; lastT = now; }
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = "#e2e2de";
+    ctx.fillRect(0,0,W,H);
+    const anim = previewAnim;
+    const row = sheetRowForDir(dir);
+    const scale = 2.2;
+    const dw = FW*scale, dh = FH*scale;
+    const FOOT_Y = 88;
+    const dx = (W-dw)/2, dy = H*0.62 - FOOT_Y*scale;
+    const layers = layersForPreview(row);
+    ctx.imageSmoothingEnabled = false;
+    let drawn = 0;
+    for(const L of layers){
+      const im = loadImg(L.folder, anim) || loadImg(L.folder, "Idle");
+      if(!im || !im.complete || !im.naturalWidth) continue;
+      try{
+        tintDraw(im, frame*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, L.alpha);
+        drawn++;
+      }catch(_e){}
+    }
+    if(!drawn){
+      ctx.fillStyle = "#8a8a84";
+      ctx.font = "14px Helvetica";
+      ctx.textAlign = "center";
+      ctx.fillText("Chargement…", W/2, H/2);
+    }
+    /* marque sol centre */
+    ctx.strokeStyle = "rgba(91,124,153,.55)";
+    ctx.beginPath();
+    ctx.ellipse(W/2, H*0.62, 28, 10, 0, 0, Math.PI*2);
+    ctx.stroke();
+    requestAnimationFrame(draw);
+  }
+
+  function sync(){
+    const list = foldersFor(slot);
+    if(!list.includes(folder)) folder = list[0] || "None";
+    const host = el("itemList");
+    host.innerHTML = "";
+    list.forEach(name=>{
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = name;
+      b.className = (name===folder?"on":"") + (assigned(slot,name)?" done":"");
+      b.onclick = ()=>{
+        folder = name;
+        previewAnim = currentAnim();
+        sync();
+      };
+      host.appendChild(b);
+    });
+
+    const done = list.filter(n=>assigned(slot,n)).length;
+    el("doneLab").textContent = done+"/"+list.length;
+    el("prog").style.width = (list.length? (100*done/list.length):0) + "%";
+    el("itemLab").textContent = folder;
+    el("dirLab").textContent = DIR_LABEL[dir&7];
+
+    const ah = el("animList");
+    ah.innerHTML = "";
+    const picked = map[slot][folder] || null;
+    CAST_ANIMS.forEach(a=>{
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = a;
+      let cls = "";
+      if(a===previewAnim) cls += " on";
+      if(picked===a) cls += " pick";
+      b.className = cls.trim();
+      b.onclick = ()=>{
+        previewAnim = a;
+        map[slot][folder] = a;
+        persist();
+        el("status").textContent = folder+" → "+a+" · sauvé";
+        sync();
+      };
+      ah.appendChild(b);
+    });
+
+    el("exportBox").value = JSON.stringify({ ver: VER, weapon: map.weapon, offhand: map.offhand, backpack: map.backpack }, null, 2);
+    if(!picked){
+      el("status").textContent = "Suggestion "+suggestAnim(slot,folder)+" — teste et valide en tapant l’anim";
+    }
+  }
+
+  function nextItem(){
+    const list = foldersFor(slot);
+    const i = list.indexOf(folder);
+    if(i<0) return;
+    if(!map[slot][folder]) map[slot][folder] = previewAnim;
+    persist();
+    folder = list[(i+1)%list.length];
+    previewAnim = currentAnim();
+    sync();
+  }
+
+  document.querySelectorAll("#tabs button").forEach(b=>{
+    b.onclick = ()=>{
+      document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on");
+      slot = b.dataset.slot;
+      const list = foldersFor(slot);
+      folder = list.find(n=>!assigned(slot,n)) || list[0] || folder;
+      previewAnim = currentAnim();
+      sync();
+    };
+  });
+  el("dirPrev").onclick = ()=>{ dir = (dir+7)&7; sync(); };
+  el("dirNext").onclick = ()=>{ dir = (dir+1)&7; sync(); };
+  el("btnNext").onclick = nextItem;
+  el("btnSave").onclick = ()=>{ persist(); el("status").textContent = "Sauvé localement · JSON prêt à coller"; };
+  el("btnClear").onclick = ()=>{
+    delete map[slot][folder];
+    previewAnim = suggestAnim(slot, folder);
+    persist();
+    sync();
+    el("status").textContent = folder+" effacé";
+  };
+  el("btnCopy").onclick = async ()=>{
+    persist();
+    try{
+      await navigator.clipboard.writeText(el("exportBox").value);
+      el("status").textContent = "JSON copié";
+    }catch(_e){
+      el("exportBox").select();
+      el("status").textContent = "Sélectionne / copie le JSON";
+    }
+  };
+  el("btnImport").onclick = ()=>{
+    try{
+      const o = JSON.parse(el("importBox").value.trim());
+      if(!o || typeof o!=="object") throw new Error("bad");
+      map.weapon = Object.assign({}, o.weapon||{});
+      map.offhand = Object.assign({}, o.offhand||{});
+      map.backpack = Object.assign({}, o.backpack||{});
+      persist();
+      sync();
+      el("status").textContent = "Import OK";
+    }catch(_e){
+      el("status").textContent = "JSON invalide";
+    }
+  };
+
+  async function boot(){
+    loadSaved();
+    loadLook();
+    try{
+      for(const u of [BASE_CDN+"catalog.json", BASE_LOCAL+"catalog.json"]){
+        const r = await fetch(u, {cache:"no-store", mode:"cors"});
+        if(r.ok){ catalog = await r.json(); break; }
+      }
+    }catch(_e){}
+    if(catalog){
+      if(catalog.weaponAfterShieldRows) weaponAfterShieldRows = catalog.weaponAfterShieldRows;
+      if(catalog.backpackInFrontRows) backpackInFrontRows = catalog.backpackInFrontRows;
+    }
+    const list = foldersFor(slot);
+    folder = list.find(n=>!assigned(slot,n)) || list[0] || "Melee1";
+    previewAnim = currentAnim();
+    /* précharge look weapon if present */
+    if(look && look.weapon && look.weapon!=="None" && slot==="weapon" && list.includes(look.weapon)){
+      folder = look.weapon;
+      previewAnim = currentAnim();
+    }
+    sync();
+    draw();
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
