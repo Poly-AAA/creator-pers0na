@@ -400,15 +400,19 @@
     const p = new Promise((resolve)=>{
       const rel = `spritesheets/${folderName}/${anim}.png`;
       const urls = [BASE_CDN+rel, BASE_LOCAL+rel];
-      const im = new Image(); try{ im.crossOrigin="anonymous"; }catch(_e){}
-      let i=0;
-      const next=()=>{
-        if(i>=urls.length){ resolve(null); return; }
+      let i=0, useCors=true;
+      const tryOne=()=>{
+        if(i>=urls.length){
+          if(useCors){ useCors=false; i=0; tryOne(); return; }
+          resolve(null); return;
+        }
+        const im = new Image();
+        if(useCors){ try{ im.crossOrigin="anonymous"; }catch(_e){} }
         im.onload=()=>{ cache.set(key, im); resolve(im); };
-        im.onerror=()=>next();
+        im.onerror=()=>{ i++; tryOne(); };
         im.src=urls[i++];
       };
-      next();
+      tryOne();
     });
     cacheP.set(key, p);
     return p;
@@ -816,6 +820,7 @@
   }
 
   function beginPlayerTurn(){
+    G.busy = false;
     G.player.pa = G.player.paMax;
     G.player.pm = G.player.pmMax;
     G.armed=null;
@@ -905,8 +910,8 @@
 
   function drawEntity(ent, isEnemy){
     if(!ent.alive && ent.anim!=="Die") return;
-    const row = sheetRowForDir(ent.dir|0, anim);
     const anim = ent.anim||"Idle";
+    const row = sheetRowForDir(ent.dir|0, anim);
     const elapsed = (performance.now()-(ent.t0||0))/1000;
     let col = Math.floor(elapsed*FPS);
     if(anim==="Idle"||anim==="Walk"||anim==="Run"||anim==="RunBackwards"||anim==="StrafeLeft"||anim==="StrafeRight"||anim==="CrouchRun") col = col % COLS;
@@ -925,10 +930,18 @@
       : layersForRow(row);
 
     ctx.imageSmoothingEnabled=false;
+    let drawn=0;
     for(const L of layers){
       const im = getImg(L.folder, anim) || getImg(L.folder, "Idle");
       if(!im){ loadImg(L.folder, anim); loadImg(L.folder,"Idle"); continue; }
-      try{ tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, L.alpha); }catch(_e){}
+      try{ tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, L.alpha); drawn++; }catch(_e){}
+    }
+    /* fallback visible si sprites pas encore chargés */
+    if(!drawn){
+      ctx.fillStyle = isEnemy ? "#8a5050" : "#3d6a8a";
+      ctx.beginPath(); ctx.ellipse(s.x, s.y-18, 12, 18, 0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = isEnemy ? "#c07070" : "#d4a574";
+      ctx.beginPath(); ctx.arc(s.x, s.y-34, 8, 0, Math.PI*2); ctx.fill();
     }
     if(ent.flash && performance.now()<ent.flash){
       ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=0.45;
@@ -943,7 +956,7 @@
     const bw=26, bh=3, bx=s.x-bw/2, by=dy+10;
     ctx.fillStyle="rgba(0,0,0,.22)"; ctx.fillRect(bx-1,by-1,bw+2,bh+2);
     ctx.fillStyle = isEnemy ? "#8a3030" : "#2f6f4e";
-    ctx.fillRect(bx, by, bw*pct, bh);
+    ctx.fillRect(bx, by, bw*Math.max(0,pct), bh);
   }
 
   function draw(){
