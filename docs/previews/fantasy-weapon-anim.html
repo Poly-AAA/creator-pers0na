@@ -3,121 +3,151 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
-<title>Anim par équipement</title>
+<title>Choisir l’anim — une pièce à la fois</title>
 <style>
   :root{
-    --bg:#ecece8; --bg2:#f5f5f2; --ink:#555552; --ink2:#8e8e8a;
-    --line:#c6c6c2; --line2:#dcdcd8; --card:#fafaf8; --sel:#3d3d3a; --soft:#f0f0ec;
-    --ok:#2f6f4e; --accent:#5b7c99;
+    --bg:#e8ebe4; --bg2:#f3f5f0; --ink:#3a3f38; --ink2:#7a8076;
+    --line:#c5cbc0; --line2:#d7ddd2; --card:#fbfcf9; --sel:#2f3530; --soft:#eef1ea;
+    --ok:#2f6f4e; --accent:#4a6d82; --warn:#8a5a2a;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
-    font:15px/1.35 Helvetica,Arial,sans-serif}
-  .app{max-width:390px;margin:0 auto;min-height:100dvh;padding:12px 12px calc(18px + env(safe-area-inset-bottom));
-    background:linear-gradient(180deg,var(--bg2),var(--bg));display:flex;flex-direction:column;gap:10px}
-  h1{margin:0;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--sel)}
-  .sub{margin:0;font-size:12px;color:var(--ink2);line-height:1.4}
-  .sub b{color:var(--ink)}
-  .card{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:12px}
-  .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px}
-  .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-  .tabs button{
-    min-height:42px;border-radius:10px;border:1px solid var(--line);background:var(--soft);
-    color:var(--ink);font-size:12px;font-weight:700;cursor:pointer;
+    font:16px/1.4 "Avenir Next",Avenir,Helvetica,Arial,sans-serif}
+  .app{max-width:390px;margin:0 auto;min-height:100dvh;padding:14px 14px calc(20px + env(safe-area-inset-bottom));
+    background:linear-gradient(165deg,#f7f8f4 0%,var(--bg) 45%,#e4e8df 100%);
+    display:flex;flex-direction:column;gap:12px}
+  h1{margin:0;font-size:22px;letter-spacing:-.02em;color:var(--sel);font-weight:800}
+  .sub{margin:0;font-size:14px;color:var(--ink2)}
+  .card{background:var(--card);border:1px solid var(--line2);border-radius:18px;padding:14px;
+    box-shadow:0 10px 28px rgba(47,53,48,.05)}
+  .lab{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin:0 0 8px;font-weight:700}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .steps button{
+    min-height:48px;border-radius:14px;border:1px solid var(--line);background:var(--soft);
+    color:var(--ink);font-size:13px;font-weight:800;cursor:pointer;line-height:1.15;padding:8px 6px;
   }
-  .tabs button.on{background:var(--sel);color:#fff;border-color:var(--sel)}
-  .progress{height:8px;border-radius:999px;background:var(--soft);border:1px solid var(--line2);overflow:hidden;margin-bottom:8px}
+  .steps button small{display:block;font-weight:600;color:var(--ink2);font-size:10px;margin-top:2px}
+  .steps button.on{background:var(--sel);color:#fff;border-color:var(--sel)}
+  .steps button.on small{color:#cfd5cb}
+  .hero-name{
+    margin:0;font-size:28px;line-height:1.1;font-weight:800;color:var(--sel);letter-spacing:-.03em;
+  }
+  .hero-name em{font-style:normal;color:var(--accent)}
+  .meta{margin:6px 0 0;font-size:13px;color:var(--ink2)}
+  .meta b{color:var(--ink)}
+  .badge{
+    display:inline-block;margin-top:8px;padding:5px 10px;border-radius:999px;
+    background:var(--soft);border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--ink);
+  }
+  .badge.ok{background:#e5f2ea;border-color:#b7d7c4;color:var(--ok)}
+  .badge.warn{background:#f7efe4;border-color:#e2c9a4;color:var(--warn)}
+  .progress{height:10px;border-radius:999px;background:var(--soft);border:1px solid var(--line2);overflow:hidden;margin-top:10px}
   .progress>i{display:block;height:100%;width:0%;background:var(--accent);transition:width .2s}
-  .items{display:flex;flex-wrap:wrap;gap:6px;max-height:120px;overflow:auto}
-  .items button{
-    min-height:34px;padding:6px 9px;border-radius:10px;border:1px solid var(--line);
-    background:var(--soft);color:var(--ink);font-size:11px;font-weight:600;cursor:pointer;
+  #stage{
+    width:100%;aspect-ratio:1;border-radius:16px;border:1px solid var(--line);
+    background:radial-gradient(circle at 50% 62%,#f4f6f1 0%,#dfe4d8 70%);
+    display:block;image-rendering:pixelated;
   }
-  .items button.on{background:var(--sel);color:#fff;border-color:var(--sel)}
-  .items button.done{box-shadow:inset 0 0 0 1.5px var(--ok)}
-  #stage{width:100%;aspect-ratio:1;border-radius:12px;border:1px solid var(--line);background:#e2e2de;display:block;image-rendering:pixelated}
-  .anims{display:flex;flex-wrap:wrap;gap:6px}
+  .nav{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:8px;margin-top:10px}
+  .nav button{
+    min-height:52px;border-radius:14px;border:1px solid var(--line);background:var(--soft);
+    color:var(--sel);font-size:15px;font-weight:800;cursor:pointer;
+  }
+  .nav .mid{background:var(--card);font-size:13px;line-height:1.2}
+  .nav .mid b{display:block;font-size:15px}
+  .hint{margin:10px 0 0;font-size:14px;color:var(--ink);font-weight:700}
+  .hint span{color:var(--accent)}
+  .anims{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
   .anims button{
-    min-height:40px;padding:7px 10px;border-radius:10px;border:1px solid var(--line);
-    background:var(--soft);color:var(--ink);font-size:11px;font-weight:700;cursor:pointer;
+    min-height:48px;border-radius:14px;border:1px solid var(--line);background:var(--soft);
+    color:var(--ink);font-size:12px;font-weight:800;cursor:pointer;padding:8px 4px;
   }
-  .anims button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .anims button.on{outline:2px solid var(--accent);outline-offset:1px}
   .anims button.pick{background:var(--ok);color:#fff;border-color:var(--ok)}
-  .row-nav{display:flex;gap:8px;align-items:center;margin-top:10px}
-  .row-nav button{
-    flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--soft);
-    color:var(--sel);font-size:18px;cursor:pointer;
+  .filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .filters button{
+    min-height:36px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);
+    background:var(--soft);color:var(--ink);font-size:12px;font-weight:700;cursor:pointer;
   }
-  .row-nav .val{min-width:88px;text-align:center;font-weight:700;font-size:13px;color:var(--sel)}
+  .filters button.on{background:var(--sel);color:#fff;border-color:var(--sel)}
   .bar{display:flex;gap:8px;flex-wrap:wrap}
   .bar a,.bar button{
-    flex:1;min-width:100px;min-height:44px;border-radius:10px;border:1px solid var(--line);
-    background:var(--card);color:var(--ink);font-size:12px;text-decoration:none;
-    display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:600;
+    flex:1;min-width:110px;min-height:48px;border-radius:14px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);font-size:13px;text-decoration:none;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700;
   }
   .bar .primary{background:var(--sel);color:#fff;border-color:var(--sel)}
   .bar .ok{background:var(--ok);color:#fff;border-color:var(--ok)}
-  .status{font-size:11px;color:var(--ink2);text-align:center;min-height:1.2em}
-  .q{font-size:14px;font-weight:700;color:var(--sel);margin:0 0 8px;line-height:1.35}
-  .q span{color:var(--accent)}
+  .status{font-size:12px;color:var(--ink2);text-align:center;min-height:1.2em}
+  details{border-top:1px solid var(--line2);margin-top:10px;padding-top:10px}
+  details summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--ink2)}
   textarea{
-    width:100%;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--sel);
+    width:100%;margin-top:8px;border:1px solid var(--line);border-radius:12px;background:var(--soft);color:var(--sel);
     font:11px/1.4 ui-monospace,Menlo,monospace;padding:10px;resize:vertical;
+  }
+  .solo{
+    margin:0 0 8px;padding:8px 10px;border-radius:12px;background:#eef4f8;border:1px solid #c9d7e2;
+    font-size:13px;color:#355065;font-weight:600;
   }
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>Anim par équipement</h1>
-  <p class="sub">Choisis <b>une anim de cast</b> pour chaque pièce. Ex. arc → tir, lame → entaille, bouclier → parade. Les sorts viennent après.</p>
+  <div>
+    <h1>Une pièce = une anim</h1>
+    <p class="sub">On regarde <b>une seule main à la fois</b>. Pas de combo bizarre gauche/droite.</p>
+  </div>
 
   <div class="card">
-    <div class="lab">1 · Slot</div>
-    <div class="tabs" id="tabs">
-      <button type="button" data-slot="weapon" class="on">Arme</button>
-      <button type="button" data-slot="offhand">Bouclier</button>
-      <button type="button" data-slot="backpack">Dos</button>
+    <p class="lab">Étape</p>
+    <div class="steps" id="steps">
+      <button type="button" data-slot="weapon" class="on">1 · Droite<small>Arme</small></button>
+      <button type="button" data-slot="offhand">2 · Gauche<small>Bouclier</small></button>
+      <button type="button" data-slot="backpack">3 · Dos<small>Sac / ailes</small></button>
     </div>
   </div>
 
   <div class="card">
-    <div class="lab">2 · Pièce · <span id="doneLab">0/0</span></div>
+    <p class="lab">Pièce actuelle</p>
+    <p class="hero-name" id="heroName">—</p>
+    <p class="meta" id="metaLine">—</p>
+    <span class="badge warn" id="badge">Pas encore choisi</span>
     <div class="progress"><i id="prog"></i></div>
-    <div class="items" id="itemList"></div>
   </div>
 
   <div class="card">
-    <p class="q">Anim pour <span id="itemLab">—</span> ?</p>
+    <p class="solo" id="soloHint">Aperçu : corps + cette pièce seulement (l’autre main est masquée).</p>
     <canvas id="stage" width="384" height="384"></canvas>
-    <div class="row-nav">
-      <button type="button" id="dirPrev">‹</button>
-      <div class="val" id="dirLab">SE</div>
-      <button type="button" id="dirNext">›</button>
+    <div class="nav">
+      <button type="button" id="btnPrev">‹ Avant</button>
+      <button type="button" class="mid" id="btnDir">Tourner<br/><b id="dirLab">SE</b></button>
+      <button type="button" id="btnNextPiece">Après ›</button>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="lab">3 · Tape l’anim qui correspond (puis Suivant)</div>
+    <p class="hint">Quelle anim ressemble à un vrai geste pour <span id="hintName">cette pièce</span> ?</p>
+    <div class="filters" id="filters" hidden></div>
     <div class="anims" id="animList"></div>
   </div>
 
-  <div class="card">
-    <div class="lab">4 · Export / coller</div>
-    <textarea id="exportBox" readonly rows="7"></textarea>
-    <div class="bar" style="margin-top:8px">
-      <button type="button" class="primary" id="btnCopy">Copier JSON</button>
-      <button type="button" id="btnImport">Importer</button>
-    </div>
-    <textarea id="importBox" rows="3" placeholder="Colle un JSON puis Importer" style="margin-top:8px;background:var(--card);color:var(--ink)"></textarea>
-  </div>
-
   <div class="bar">
-    <button type="button" id="btnClear">Effacer pièce</button>
-    <button type="button" id="btnNext">Suivant ›</button>
-    <button type="button" class="primary" id="btnSave">Sauver</button>
+    <button type="button" id="btnSkip">Passer</button>
+    <button type="button" class="primary" id="btnValidate">Valider → suivante</button>
     <a class="ok" href="fantasy-combat.html">Combat</a>
   </div>
-  <div class="status" id="status">Choisis une pièce, teste les anims, valide celle qui va bien.</div>
+  <div class="status" id="status">Choisis l’anim qui colle, puis Valider.</div>
+
+  <div class="card">
+    <details>
+      <summary>Liste / export (si besoin)</summary>
+      <div class="filters" id="typeFilters" style="margin-top:10px"></div>
+      <div id="miniList" style="display:flex;flex-wrap:wrap;gap:6px;max-height:140px;overflow:auto"></div>
+      <textarea id="exportBox" readonly rows="6"></textarea>
+      <div class="bar" style="margin-top:8px">
+        <button type="button" id="btnCopy">Copier JSON</button>
+        <button type="button" id="btnImport">Importer</button>
+      </div>
+      <textarea id="importBox" rows="3" placeholder="Colle un JSON puis Importer" style="background:var(--card);color:var(--ink)"></textarea>
+    </details>
+  </div>
 </div>
 
 <script>
@@ -128,29 +158,67 @@
   const VER = "weapon-anim-2026-08-12";
   const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
   const BASE_LOCAL = "assets/packs/fantasy-cc/";
-  const FW=128, FH=128, COLS=15, FPS=12;
+  const FW=128, FH=128, COLS=15, FPS=11;
   const DIR_LABEL = ["N","NE","E","SE","S","SW","W","NW"];
-  /* Ligne sheet → face écran (calibrage validé) */
   const DIR_ROW = [2,3,4,5,6,7,0,1];
   const CAST_ANIMS = ["Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","AttackRun","AttackRun2","Kick","Special1","Taunt"];
 
-  const DEFAULT_COLORS = {
-    body:"#d4a574", shoes:"#5c4030", legs:"#4a5a6a", chest:"#6b5b4a",
-    belt:"#8b6914", gloves:"#6a5a4e", offhand:"#6b8f71", weapon:"#9aa8b8",
-    backpack:"#7a5c3a", head:"#e0b878",
+  const SLOT_META = {
+    weapon: {
+      title: "Main droite",
+      solo: "Tu ne vois QUE l’arme (pas de bouclier). Une arme = une anim.",
+      empty: "Aucune arme",
+    },
+    offhand: {
+      title: "Main gauche",
+      solo: "Tu ne vois QUE le bouclier / objet gauche (pas d’arme droite).",
+      empty: "Aucun objet gauche",
+    },
+    backpack: {
+      title: "Dos",
+      solo: "Tu ne vois QUE le sac / ailes / dos (mains vides).",
+      empty: "Aucun objet de dos",
+    },
   };
+
+  function prettyName(folder){
+    if(!folder || folder==="None") return "Rien";
+    const m = folder.match(/^(Melee|Ranged|Magic|Shield|Offhand|Bag|Bow|Staff)(\d+)$/i);
+    if(!m) return folder;
+    const kind = m[1].toLowerCase();
+    const n = m[2];
+    const labels = {
+      melee: "Arme de mêlée",
+      ranged: "Arc / tir",
+      magic: "Bâton magique",
+      shield: "Bouclier",
+      offhand: "Main gauche",
+      bag: "Sac / dos",
+      bow: "Arc",
+      staff: "Bâton",
+    };
+    return (labels[kind]||m[1]) + " n°" + n;
+  }
+
+  function typeOf(folder){
+    if(/^Melee/i.test(folder)) return "melee";
+    if(/^Ranged/i.test(folder)) return "ranged";
+    if(/^Magic/i.test(folder)) return "magic";
+    if(/^Shield/i.test(folder)) return "shield";
+    if(/^Offhand/i.test(folder)) return "offhand";
+    if(/^Bag/i.test(folder)) return "bag";
+    return "other";
+  }
 
   let catalog = null;
   let slot = "weapon";
-  let folder = "Melee1";
+  let folder = null;
+  let typeFilter = "all";
   let previewAnim = "Attack1";
-  let dir = 3; /* SE */
+  let dir = 3;
   let frame = 0, lastT = 0;
   let map = { weapon:{}, offhand:{}, backpack:{} };
-  let look = null;
-  let colors = Object.assign({}, DEFAULT_COLORS);
-  let weaponAfterShieldRows = [true,true,true,false,false,false,false,true];
-  let backpackInFrontRows = [true,false,false,false,false,true,true,true];
+  let look = { body:"NakedBody", head:"Head1", shoes:"Shoes1", legs:"Legs1", chest:"Chest1" };
 
   const canvas = document.getElementById("stage");
   const ctx = canvas.getContext("2d");
@@ -163,17 +231,13 @@
     if(slotId==="weapon"){
       if(/^Ranged/i.test(name)) return "Attack1";
       if(/^Magic/i.test(name)) return "Special1";
-      if(/^Melee/i.test(name)) return "Attack2";
       return "Attack2";
     }
-    if(slotId==="offhand") return "Special1";
-    if(slotId==="backpack") return "Special1";
-    return "Attack1";
+    return "Special1";
   }
 
   function loadSaved(){
     try{
-      const ver = localStorage.getItem(KEY_VER);
       const raw = localStorage.getItem(KEY);
       if(raw){
         const o = JSON.parse(raw);
@@ -183,7 +247,6 @@
           map.backpack = Object.assign({}, o.backpack||{});
         }
       }
-      if(ver !== VER && !raw){ /* first visit ok */ }
     }catch(_e){}
   }
 
@@ -199,15 +262,11 @@
       const raw = localStorage.getItem("neuro.fantasyLook");
       if(raw){
         const o = JSON.parse(raw);
-        if(o && o.look){ look = o.look; if(o.colors) colors = Object.assign({}, DEFAULT_COLORS, o.colors); return; }
+        if(o && o.look){
+          look = Object.assign({}, look, o.look);
+        }
       }
     }catch(_e){}
-    look = {
-      body:"NakedBody", shoes:"Shoes1", legs:"Legs1", chest:"Chest1",
-      belt:"None", gloves:"None", head:"Head1",
-      weapon:"Melee1", offhand:"Shield1", backpack:"Bag1",
-      slash:"None", effect:"None", mount:"None",
-    };
   }
 
   function foldersFor(slotId){
@@ -216,8 +275,14 @@
     return ((s && s.folders)||[]).filter(f=>f && f!=="None");
   }
 
-  function assigned(slotId, name){
-    return !!(map[slotId] && map[slotId][name]);
+  function visibleFolders(){
+    const all = foldersFor(slot);
+    if(slot!=="weapon" || typeFilter==="all") return all;
+    return all.filter(f=> typeOf(f)===typeFilter);
+  }
+
+  function assigned(name){
+    return !!(map[slot] && map[slot][name]);
   }
 
   function currentAnim(){
@@ -234,10 +299,10 @@
     const urls = [BASE_CDN+rel, BASE_LOCAL+rel];
     const tryNext = ()=>{
       if(i>=urls.length){ imgCache.set(key, null); return; }
+      im.onerror = tryNext;
       im.src = urls[i++];
     };
     im.onload = ()=> imgCache.set(key, im);
-    im.onerror = tryNext;
     try{ im.crossOrigin = "anonymous"; }catch(_e){}
     tryNext();
     imgCache.set(key, im);
@@ -264,32 +329,18 @@
     ctx.globalAlpha = 1;
   }
 
-  function layersForPreview(sheetRow){
+  /* Une seule pièce d’équipement + corps simple — jamais les 2 mains ensemble */
+  function layersSolo(){
     const L = [];
-    L.push({folder: (catalog && catalog.shadowFolder)||"Shadow", tint:null, alpha:1});
-    L.push({folder: look.body||"NakedBody", tint: colors.body||null, alpha:1});
-    for(const id of ["shoes","legs","chest","belt","gloves"]){
-      const f = look[id]; if(f && f!=="None") L.push({folder:f, tint:colors[id]||null, alpha:1});
+    L.push({folder:"Shadow", tint:null, alpha:1});
+    L.push({folder: look.body||"NakedBody", tint:"#d4a574", alpha:1});
+    if(look.shoes && look.shoes!=="None") L.push({folder:look.shoes, tint:"#5c4030", alpha:1});
+    if(look.legs && look.legs!=="None") L.push({folder:look.legs, tint:"#4a5a6a", alpha:1});
+    if(look.chest && look.chest!=="None") L.push({folder:look.chest, tint:"#6b5b4a", alpha:1});
+    if(folder && folder!=="None"){
+      L.push({folder: folder, tint: null, alpha:1});
     }
-    const shield = (slot==="offhand" ? folder : look.offhand);
-    const weapon = (slot==="weapon" ? folder : look.weapon);
-    const bag = (slot==="backpack" ? folder : look.backpack);
-    const wAfter = !!(weaponAfterShieldRows[sheetRow|0]);
-    const bagFront = !!(backpackInFrontRows[sheetRow|0]);
-    const mid = [];
-    if(wAfter){
-      if(shield && shield!=="None") mid.push({folder:shield, tint:colors.offhand||null, alpha:1});
-      if(weapon && weapon!=="None") mid.push({folder:weapon, tint:colors.weapon||null, alpha:1});
-    } else {
-      if(weapon && weapon!=="None") mid.push({folder:weapon, tint:colors.weapon||null, alpha:1});
-      if(shield && shield!=="None") mid.push({folder:shield, tint:colors.offhand||null, alpha:1});
-    }
-    if(bag && bag!=="None"){
-      const item = {folder:bag, tint:colors.backpack||null, alpha:1};
-      if(bagFront) mid.push(item); else mid.unshift(item);
-    }
-    L.push(...mid);
-    if(look.head && look.head!=="None") L.push({folder:look.head, tint:colors.head||null, alpha:1});
+    if(look.head && look.head!=="None") L.push({folder:look.head, tint:"#e0b878", alpha:1});
     return L;
   }
 
@@ -303,18 +354,15 @@
     if(now - lastT > 1000/FPS){ frame = (frame+1)%COLS; lastT = now; }
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0,0,W,H);
-    ctx.fillStyle = "#e2e2de";
-    ctx.fillRect(0,0,W,H);
     const anim = previewAnim;
     const row = sheetRowForDir(dir);
-    const scale = 2.2;
+    const scale = 2.35;
     const dw = FW*scale, dh = FH*scale;
     const FOOT_Y = 88;
-    const dx = (W-dw)/2, dy = H*0.62 - FOOT_Y*scale;
-    const layers = layersForPreview(row);
+    const dx = (W-dw)/2, dy = H*0.64 - FOOT_Y*scale;
     ctx.imageSmoothingEnabled = false;
     let drawn = 0;
-    for(const L of layers){
+    for(const L of layersSolo()){
       const im = loadImg(L.folder, anim) || loadImg(L.folder, "Idle");
       if(!im || !im.complete || !im.naturalWidth) continue;
       try{
@@ -322,43 +370,81 @@
         drawn++;
       }catch(_e){}
     }
+    /* étiquette visuelle sur le canvas */
+    ctx.fillStyle = "rgba(47,53,48,.82)";
+    roundRect(ctx, 16, 16, W-32, 54, 12);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.font = "700 18px Avenir Next, Helvetica, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(prettyName(folder), 28, 40);
+    ctx.font = "600 12px Avenir Next, Helvetica, sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,.75)";
+    ctx.fillText(SLOT_META[slot].title + " · " + (folder||"—") + " · " + anim, 28, 58);
     if(!drawn){
-      ctx.fillStyle = "#8a8a84";
+      ctx.fillStyle = "#7a8076";
       ctx.font = "14px Helvetica";
       ctx.textAlign = "center";
-      ctx.fillText("Chargement…", W/2, H/2);
+      ctx.fillText("Chargement du sprite…", W/2, H/2);
     }
-    /* marque sol centre */
-    ctx.strokeStyle = "rgba(91,124,153,.55)";
-    ctx.beginPath();
-    ctx.ellipse(W/2, H*0.62, 28, 10, 0, 0, Math.PI*2);
-    ctx.stroke();
     requestAnimationFrame(draw);
   }
 
-  function sync(){
-    const list = foldersFor(slot);
-    if(!list.includes(folder)) folder = list[0] || "None";
-    const host = el("itemList");
-    host.innerHTML = "";
-    list.forEach(name=>{
-      const b = document.createElement("button");
-      b.type = "button";
-      b.textContent = name;
-      b.className = (name===folder?"on":"") + (assigned(slot,name)?" done":"");
-      b.onclick = ()=>{
-        folder = name;
-        previewAnim = currentAnim();
-        sync();
-      };
-      host.appendChild(b);
-    });
+  function roundRect(c,x,y,w,h,r){
+    c.beginPath();
+    c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r);
+    c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+  }
 
-    const done = list.filter(n=>assigned(slot,n)).length;
-    el("doneLab").textContent = done+"/"+list.length;
-    el("prog").style.width = (list.length? (100*done/list.length):0) + "%";
-    el("itemLab").textContent = folder;
+  function setFolder(name, keepAnim){
+    folder = name;
+    previewAnim = keepAnim ? previewAnim : currentAnim();
+    /* précharge la pièce */
+    CAST_ANIMS.forEach(a=> loadImg(folder, a));
+    sync();
+  }
+
+  function sync(){
+    const list = visibleFolders();
+    if(!list.length){
+      el("heroName").textContent = SLOT_META[slot].empty;
+      el("status").textContent = "Rien à calibrer ici.";
+      return;
+    }
+    if(!list.includes(folder)) setFolder(list[0], false);
+
+    const all = foldersFor(slot);
+    const done = all.filter(n=>assigned(n)).length;
+    const idx = list.indexOf(folder)+1;
+
+    el("heroName").innerHTML = prettyName(folder) + " <em>"+folder+"</em>";
+    el("metaLine").innerHTML = SLOT_META[slot].title + " · pièce <b>"+idx+"/"+list.length+"</b> · validées <b>"+done+"/"+all.length+"</b>";
+    el("hintName").textContent = prettyName(folder);
+    el("soloHint").textContent = SLOT_META[slot].solo;
     el("dirLab").textContent = DIR_LABEL[dir&7];
+    el("prog").style.width = (all.length? (100*done/all.length):0) + "%";
+
+    const badge = el("badge");
+    if(assigned(folder)){
+      badge.className = "badge ok";
+      badge.textContent = "Validé · " + map[slot][folder];
+    } else {
+      badge.className = "badge warn";
+      badge.textContent = "Pas encore choisi · suggestion " + suggestAnim(slot, folder);
+    }
+
+    /* filtres armes */
+    const ff = el("typeFilters");
+    ff.innerHTML = "";
+    if(slot==="weapon"){
+      [["all","Toutes"],["melee","Mêlée"],["ranged","Tir"],["magic","Magie"]].forEach(([id,lab])=>{
+        const b=document.createElement("button");
+        b.type="button"; b.textContent=lab;
+        b.className = typeFilter===id ? "on":"";
+        b.onclick=()=>{ typeFilter=id; const v=visibleFolders(); setFolder(v[0]||folder,false); };
+        ff.appendChild(b);
+      });
+    }
 
     const ah = el("animList");
     ah.innerHTML = "";
@@ -366,60 +452,93 @@
     CAST_ANIMS.forEach(a=>{
       const b = document.createElement("button");
       b.type = "button";
-      b.textContent = a;
+      b.textContent = ({
+        Attack1:"Atk 1", Attack2:"Atk 2", Attack3:"Atk 3", Attack4:"Atk 4",
+        Attack5:"Atk 5", Attack6:"Atk 6", AttackRun:"Course 1", AttackRun2:"Course 2",
+        Kick:"Kick", Special1:"Spécial", Taunt:"Provocation"
+      })[a] || a;
       let cls = "";
       if(a===previewAnim) cls += " on";
       if(picked===a) cls += " pick";
       b.className = cls.trim();
       b.onclick = ()=>{
         previewAnim = a;
-        map[slot][folder] = a;
-        persist();
-        el("status").textContent = folder+" → "+a+" · sauvé";
         sync();
+        el("status").textContent = "Aperçu "+a+" — appuie Valider si c’est le bon geste";
       };
       ah.appendChild(b);
     });
 
+    /* mini liste */
+    const ml = el("miniList");
+    ml.innerHTML = "";
+    list.forEach(name=>{
+      const b = document.createElement("button");
+      b.type="button";
+      b.textContent = name;
+      b.style.cssText = "min-height:34px;padding:6px 9px;border-radius:10px;border:1px solid var(--line);background:"+(name===folder?"var(--sel)":"var(--soft)")+";color:"+(name===folder?"#fff":"var(--ink)")+";font-size:11px;font-weight:700;cursor:pointer;"+(assigned(name)?"box-shadow:inset 0 0 0 1.5px var(--ok);":"");
+      b.onclick=()=> setFolder(name,false);
+      ml.appendChild(b);
+    });
+
     el("exportBox").value = JSON.stringify({ ver: VER, weapon: map.weapon, offhand: map.offhand, backpack: map.backpack }, null, 2);
-    if(!picked){
-      el("status").textContent = "Suggestion "+suggestAnim(slot,folder)+" — teste et valide en tapant l’anim";
+  }
+
+  function goRelative(delta){
+    const list = visibleFolders();
+    if(!list.length) return;
+    let i = list.indexOf(folder);
+    if(i<0) i=0;
+    i = (i + delta + list.length) % list.length;
+    setFolder(list[i], false);
+  }
+
+  function validateAndNext(){
+    if(!folder) return;
+    map[slot][folder] = previewAnim;
+    persist();
+    el("status").textContent = prettyName(folder)+" → "+previewAnim+" ✓";
+    const list = visibleFolders();
+    const i = list.indexOf(folder);
+    const nextUndone = list.find((n,idx)=> idx>i && !assigned(n)) || list.find(n=>!assigned(n));
+    if(nextUndone && nextUndone!==folder){
+      setFolder(nextUndone, false);
+    } else {
+      /* slot terminé ? */
+      const all = foldersFor(slot);
+      if(all.every(n=>assigned(n))){
+        const order = ["weapon","offhand","backpack"];
+        const ni = order.indexOf(slot);
+        if(ni>=0 && ni<order.length-1){
+          setSlot(order[ni+1]);
+          el("status").textContent = "Étape suivante : "+SLOT_META[order[ni+1]].title;
+          return;
+        }
+        el("status").textContent = "Tout est validé · Copie le JSON si tu veux";
+      }
+      sync();
     }
   }
 
-  function nextItem(){
-    const list = foldersFor(slot);
-    const i = list.indexOf(folder);
-    if(i<0) return;
-    if(!map[slot][folder]) map[slot][folder] = previewAnim;
-    persist();
-    folder = list[(i+1)%list.length];
-    previewAnim = currentAnim();
-    sync();
+  function setSlot(next){
+    slot = next;
+    typeFilter = "all";
+    document.querySelectorAll("#steps button").forEach(b=>{
+      b.classList.toggle("on", b.dataset.slot===slot);
+    });
+    const list = visibleFolders();
+    const firstUndone = list.find(n=>!assigned(n)) || list[0];
+    setFolder(firstUndone, false);
   }
 
-  document.querySelectorAll("#tabs button").forEach(b=>{
-    b.onclick = ()=>{
-      document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("on"));
-      b.classList.add("on");
-      slot = b.dataset.slot;
-      const list = foldersFor(slot);
-      folder = list.find(n=>!assigned(slot,n)) || list[0] || folder;
-      previewAnim = currentAnim();
-      sync();
-    };
+  document.querySelectorAll("#steps button").forEach(b=>{
+    b.onclick = ()=> setSlot(b.dataset.slot);
   });
-  el("dirPrev").onclick = ()=>{ dir = (dir+7)&7; sync(); };
-  el("dirNext").onclick = ()=>{ dir = (dir+1)&7; sync(); };
-  el("btnNext").onclick = nextItem;
-  el("btnSave").onclick = ()=>{ persist(); el("status").textContent = "Sauvé localement · JSON prêt à coller"; };
-  el("btnClear").onclick = ()=>{
-    delete map[slot][folder];
-    previewAnim = suggestAnim(slot, folder);
-    persist();
-    sync();
-    el("status").textContent = folder+" effacé";
-  };
+  el("btnPrev").onclick = ()=> goRelative(-1);
+  el("btnNextPiece").onclick = ()=> goRelative(1);
+  el("btnDir").onclick = ()=>{ dir = (dir+1)&7; sync(); };
+  el("btnValidate").onclick = validateAndNext;
+  el("btnSkip").onclick = ()=> goRelative(1);
   el("btnCopy").onclick = async ()=>{
     persist();
     try{
@@ -433,7 +552,6 @@
   el("btnImport").onclick = ()=>{
     try{
       const o = JSON.parse(el("importBox").value.trim());
-      if(!o || typeof o!=="object") throw new Error("bad");
       map.weapon = Object.assign({}, o.weapon||{});
       map.offhand = Object.assign({}, o.offhand||{});
       map.backpack = Object.assign({}, o.backpack||{});
@@ -454,18 +572,14 @@
         if(r.ok){ catalog = await r.json(); break; }
       }
     }catch(_e){}
-    if(catalog){
-      if(catalog.weaponAfterShieldRows) weaponAfterShieldRows = catalog.weaponAfterShieldRows;
-      if(catalog.backpackInFrontRows) backpackInFrontRows = catalog.backpackInFrontRows;
+    const list = foldersFor("weapon");
+    /* démarre sur l’arme du créateur si possible */
+    let start = list.find(n=>!assigned(n));
+    if(look.weapon && look.weapon!=="None" && list.includes(look.weapon)){
+      start = look.weapon;
     }
-    const list = foldersFor(slot);
-    folder = list.find(n=>!assigned(slot,n)) || list[0] || "Melee1";
+    folder = start || list[0] || "Melee1";
     previewAnim = currentAnim();
-    /* précharge look weapon if present */
-    if(look && look.weapon && look.weapon!=="None" && slot==="weapon" && list.includes(look.weapon)){
-      folder = look.weapon;
-      previewAnim = currentAnim();
-    }
     sync();
     draw();
   }
