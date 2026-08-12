@@ -919,9 +919,10 @@
     const s = toScreen(ent.c, ent.r);
     const scale = 1.15;
     const dw=FW*scale, dh=FH*scale;
-    /* Pied réel ~y86–90 dans le frame 128 — coller fort au sol iso */
-    const FOOT_Y = 86;
-    const GROUND = 14; /* pointe basse du losange (hh≈14) */
+    /* Pied ~y88 dans le frame 128 — planté au CENTRE du losange (s.y),
+       pas à la pointe basse (s.y+hh) qui est la jonction de 4 cases. */
+    const FOOT_Y = 88;
+    const GROUND = 0;
     const dx=s.x-dw/2, dy=s.y + GROUND - FOOT_Y*scale;
     const groundY = s.y + GROUND;
 
