@@ -79,10 +79,8 @@
   .controls{
     display:grid;grid-template-columns:118px 1fr;gap:10px;align-items:start;
   }
-  .dpad-wrap{width:118px;height:118px;margin:0}
-
   /* Croix iso 45° (comme Neuro) */
-  .dpad-wrap{position:relative}
+  .dpad-wrap{width:118px;height:118px;margin:0;position:relative}
   .dpad{
     width:100%;height:100%;position:relative;
     transform:rotate(45deg);
@@ -121,6 +119,28 @@
   .spells button:disabled{opacity:.38}
   .spells button.lock{opacity:.45;font-style:normal}
   .status{font-size:10px;color:var(--ink2);text-align:center;min-height:1.2em}
+
+  /* Évo overlay */
+  .evo-ov{
+    position:fixed;inset:0;z-index:40;background:rgba(40,42,38,.55);
+    display:none;align-items:flex-end;justify-content:center;padding:12px;
+  }
+  .evo-ov.on{display:flex}
+  .evo-card{
+    width:100%;max-width:390px;background:var(--card);border:1px solid var(--line);
+    border-radius:18px 18px 12px 12px;padding:14px;box-shadow:0 -8px 28px rgba(0,0,0,.12);
+  }
+  .evo-card h2{margin:0 0 4px;font-size:15px;color:var(--sel)}
+  .evo-card .sub{margin:0 0 10px;font-size:12px;color:var(--ink2)}
+  .evo-opts{display:flex;flex-direction:column;gap:8px}
+  .evo-opts button{
+    text-align:left;border:1px solid var(--line);background:var(--soft);border-radius:12px;
+    padding:10px 12px;cursor:pointer;color:var(--ink);
+  }
+  .evo-opts button b{display:block;font-size:13px;color:var(--sel);margin-bottom:2px}
+  .evo-opts button span{font-size:11px;color:var(--ink2)}
+  .evo-opts button:active{background:var(--sel);color:#fff}
+  .evo-opts button:active span{color:#cfcfc8}
 </style>
 </head>
 <body>
@@ -164,6 +184,14 @@
     </div>
     <div class="status" id="status">…</div>
   </section>
+</div>
+
+<div class="evo-ov" id="evoOv" aria-hidden="true">
+  <div class="evo-card">
+    <h2 id="evoTitle">Évolution</h2>
+    <p class="sub" id="evoSub">Choisis 1 effet (cumulable · max 2 paliers)</p>
+    <div class="evo-opts" id="evoOpts"></div>
+  </div>
 </div>
 
 <script>
@@ -256,25 +284,51 @@
   };
 
   const SPELLS = [
-    { id:"punch", name:"Coup brut", cost:2, range:1, aoe:0, dmg:[8,12], anim:"Attack2", cat:"atk" },
-    { id:"monofil", name:"Lame spectrale", cost:3, range:1, aoe:0, dmg:[14,18], anim:"Attack3", cat:"atk" },
-    { id:"arc", name:"Éclair runique", cost:3, range:4, aoe:0, dmg:[10,15], anim:"Attack1", cat:"atk" },
-    { id:"surchauffe", name:"Brasier", cost:4, range:3, aoe:1, dmg:[16,22], anim:"Attack5", cat:"atk" },
-    { id:"impact_cinetique", name:"Frappe du titan", cost:4, range:1, aoe:0, dmg:[18,24], anim:"Attack3", cat:"atk" },
-    { id:"dash", name:"Charge", cost:3, range:2, aoe:0, dmg:[12,16], anim:"AttackRun", cat:"atk" },
-    { id:"mine", name:"Rune piégée", cost:3, range:2, aoe:0, dmg:[10,14], anim:"Kick", cat:"atk" },
-    { id:"tir_magnetique", name:"Flèche runique", cost:3, range:5, aoe:0, dmg:[12,16], anim:"Attack1", cat:"atk" },
-    { id:"bombe_thermique", name:"Orbe de feu", cost:4, range:4, aoe:1, dmg:[14,20], anim:"Attack3", cat:"atk" },
-    { id:"impulsion_emp", name:"Décharge", cost:3, range:3, aoe:1, dmg:[8,12], anim:"Attack5", cat:"atk" },
-    { id:"sniper", name:"Œil de faucon", cost:4, range:6, aoe:0, dmg:[16,22], anim:"Attack1", cat:"atk" },
-    { id:"gravite", name:"Poussée", cost:3, range:3, aoe:1, dmg:[10,14], anim:"Special1", cat:"atk" },
-    { id:"parasite", name:"Maléfice", cost:3, range:2, aoe:0, dmg:[8,12], anim:"Attack3", cat:"atk" },
-    { id:"bouclier", name:"Égide", cost:2, range:0, aoe:0, dmg:[0,0], heal:[8,12], anim:"Special1", cat:"def" },
-    { id:"armure_nanites", name:"Bouclier sacré", cost:3, range:0, aoe:0, dmg:[0,0], heal:[12,16], anim:"Special1", cat:"def" },
-    { id:"nanites", name:"Soin de lumière", cost:3, range:0, aoe:0, dmg:[0,0], heal:[14,20], anim:"Special1", cat:"sup" },
-    { id:"reconstruction", name:"Bénédiction", cost:4, range:0, aoe:0, dmg:[0,0], heal:[22,28], anim:"Special1", cat:"sup" },
+    { id:"punch", name:"Coup brut", cost:2, range:1, aoe:0, dmg:[8,12], anim:"Attack2", type:"damage" },
+    { id:"monofil", name:"Lame spectrale", cost:3, range:1, aoe:0, dmg:[14,18], anim:"Attack3", type:"damage" },
+    { id:"arc", name:"Éclair runique", cost:3, range:4, aoe:0, dmg:[10,15], anim:"Attack1", type:"damage" },
+    { id:"surchauffe", name:"Brasier", cost:4, range:3, aoe:1, dmg:[16,22], anim:"Attack5", type:"damage" },
+    { id:"parasite", name:"Maléfice", cost:4, range:4, aoe:0, dmg:[12,18], anim:"Attack3", type:"damage", effect:"drainPA" },
+    { id:"gravite", name:"Poussée tellurique", cost:4, range:3, aoe:1, dmg:[8,12], anim:"Special1", type:"damage", effect:"push" },
+    { id:"nanites", name:"Soin de lumière", cost:4, range:0, aoe:0, heal:[15,15], anim:"Special1", type:"heal" },
+    { id:"drone", name:"Familier", cost:5, range:0, aoe:0, anim:"Special1", type:"summon" },
+    { id:"tir_magnetique", name:"Flèche runique", cost:3, range:6, aoe:0, dmg:[12,16], anim:"Attack1", type:"damage", effect:"push" },
+    { id:"impact_cinetique", name:"Frappe du titan", cost:4, range:2, aoe:0, dmg:[18,24], anim:"Attack3", type:"damage", effect:"push" },
+    { id:"bombe_thermique", name:"Orbe de feu", cost:5, range:5, aoe:1, dmg:[22,30], anim:"Attack3", type:"damage" },
+    { id:"lance_flammes", name:"Souffle de dragon", cost:4, range:3, aoe:0, dmg:[15,21], anim:"Attack5", type:"damage" },
+    { id:"impulsion_emp", name:"Décharge scramble", cost:4, range:5, aoe:1, dmg:[10,14], anim:"Attack5", type:"damage", effect:"drainPA" },
+    { id:"tempete_tesla", name:"Tempête céleste", cost:5, range:5, aoe:1, dmg:[18,26], anim:"Special1", type:"damage" },
+    { id:"piratage_neural", name:"Emprise mentale", cost:4, range:6, aoe:0, dmg:[10,15], anim:"Attack3", type:"damage", effect:"drainPA" },
+    { id:"rupture_synaptique", name:"Brisure d’âme", cost:4, range:4, aoe:0, dmg:[17,23], anim:"Attack6", type:"damage" },
+    { id:"compression", name:"Étreinte arcanique", cost:4, range:5, aoe:0, dmg:[12,16], anim:"Special1", type:"damage", effect:"push" },
+    { id:"distorsion", name:"Faille", cost:5, range:6, aoe:0, dmg:[14,18], anim:"Special1", type:"damage", effect:"push" },
+    { id:"armure_nanites", name:"Bouclier sacré", cost:4, range:0, aoe:0, heal:[22,22], anim:"Special1", type:"heal" },
+    { id:"reconstruction", name:"Bénédiction", cost:5, range:0, aoe:0, heal:[30,30], anim:"Special1", type:"heal" },
+    { id:"teleport", name:"Pas de brume", cost:3, range:0, aoe:0, anim:"Special1", type:"buff" },
+    { id:"dash", name:"Charge du sanglier", cost:2, range:4, aoe:0, dmg:[10,14], anim:"AttackRun", type:"damage" },
+    { id:"swap", name:"Échange de places", cost:3, range:5, aoe:0, anim:"Special1", type:"buff" },
+    { id:"gravjump", name:"Bond céleste", cost:4, range:0, aoe:0, anim:"Special1", type:"buff" },
+    { id:"mine", name:"Rune piégée", cost:2, range:2, aoe:0, dmg:[12,16], anim:"Kick", type:"damage" },
+    { id:"turret", name:"Totem de garde", cost:4, range:0, aoe:0, anim:"Special1", type:"summon" },
+    { id:"sniper", name:"Œil de faucon", cost:5, range:6, aoe:0, dmg:[16,22], anim:"Attack1", type:"damage" },
+    { id:"bouclier", name:"Égide", cost:3, range:0, aoe:0, heal:[8,12], anim:"Special1", type:"shield" },
+    { id:"overclock", name:"Ivresse de bataille", cost:2, range:0, aoe:0, anim:"Taunt", type:"buff" },
+    { id:"double", name:"Sosie", cost:3, range:0, aoe:0, anim:"Special1", type:"clone", dmg:[8,12] },
+    { id:"invisibilite", name:"Voile d’ombre", cost:3, range:0, aoe:0, anim:"Special1", type:"buff", invisTurns:2 },
   ];
   function spellById(id){ return SPELLS.find(s=>s.id===id) || null; }
+
+  const KEY_EVO = "neuro.fantasySpellEvo";
+  let spellEvo = {};
+  try{
+    const raw = localStorage.getItem(KEY_EVO);
+    if(raw) spellEvo = JSON.parse(raw) || {};
+  }catch(_e){}
+  function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
+  function evoState(id){
+    if(!spellEvo[id]) spellEvo[id] = { tiersTaken:0, evo:{} };
+    return spellEvo[id];
+  }
 
   const el = (id)=> document.getElementById(id);
   const canvas = el("arena");
@@ -295,8 +349,9 @@
   const G = {
     turn:"player",
     busy: false,
-    player:{ c:2, r:5, dir:3, pv:100, pvMax:100, pa:6, paMax:6, pm:3, pmMax:3, anim:"Idle", frame:0, t0:0, flash:0, alive:true, shield:0 },
+    player:{ c:2, r:5, dir:3, pv:100, pvMax:100, pa:6, paMax:6, pm:3, pmMax:3, anim:"Idle", frame:0, t0:0, flash:0, alive:true, shield:0, invis:0 },
     enemy:{ c:7, r:4, dir:7, pv:40, pvMax:40, pa:4, pm:2, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit" },
+    clone: null,
     armed: null,
     armedSlot: null,
     spellBar: [],
@@ -306,6 +361,7 @@
     aoe: new Set(),
     combo: 0,
     hover: null,
+    pendingEvo: null,
   };
 
   const MOVE_ANIMS = ["Walk","Run","RunBackwards","StrafeLeft","StrafeRight","CrouchRun"];
@@ -497,6 +553,7 @@
   function occupied(c,r, skip){
     if(G.player.alive && skip!=="player" && G.player.c===c && G.player.r===r) return "player";
     if(G.enemy.alive && skip!=="enemy" && G.enemy.c===c && G.enemy.r===r) return "enemy";
+    if(G.clone && G.clone.alive && skip!=="clone" && G.clone.c===c && G.clone.r===r) return "clone";
     return null;
   }
   function dist(a,b){ return Math.max(Math.abs(a.c-b.c), Math.abs(a.r-b.r)); }
@@ -648,19 +705,100 @@
     G.player.pa -= sp.cost;
     const anim = animForArmed(sp);
     playAnim(G.player, anim);
-    if(sp.heal){
-      const h = roll(sp.heal);
+    const st = evoState(sp.id);
+    const evo = st.evo || {};
+
+    if(sp.id==="double"){
+      spawnClone(sp, evo);
+      setStatus("Sosie invoqué");
+    } else if(sp.id==="invisibilite"){
+      const turns = 2 + (evo.invisTurns|0);
+      G.player.invis = Math.max(G.player.invis||0, turns);
+      if(evo.invisPm) G.player.pm = Math.min(G.player.pmMax+2, G.player.pm + (evo.invisPm|0));
+      setStatus("Voile d’ombre · "+G.player.invis+" tours");
+    } else if(sp.id==="overclock"){
+      G.player.pm = Math.min(G.player.pmMax+1, G.player.pm+1);
+      setStatus("Ivresse · +1 PM");
+    } else if(sp.heal){
+      let h = roll(sp.heal) + (evo.heal|0);
       G.player.pv = Math.min(G.player.pvMax, G.player.pv + h);
-      if(sp.id==="bouclier" || sp.id==="armure_nanites") G.player.shield = (G.player.shield||0) + Math.floor(h/2);
+      if(sp.id==="bouclier" || sp.id==="armure_nanites" || sp.type==="shield"){
+        G.player.shield = (G.player.shield||0) + Math.floor(h/2) + (evo.shield|0);
+      }
       setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" +"+h+" PV");
     } else {
-      G.player.shield = (G.player.shield||0) + 8;
-      setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" · bouclier");
+      G.player.shield = (G.player.shield||0) + 8 + (evo.shield|0);
+      setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name);
     }
     G.combo = Math.min(100, G.combo + 18);
     G.armed=null; G.armedSlot=null;
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     setTimeout(()=>playAnim(G.player,"Idle"), 650);
+  }
+
+  function spawnClone(sp, evo){
+    const p = G.player, e = G.enemy;
+    let c = p.c, r = p.r;
+    if(e.alive){
+      if(e.c !== p.c) c = p.c + Math.sign(e.c - p.c);
+      else if(e.r !== p.r) r = p.r + Math.sign(e.r - p.r);
+    }
+    if(!inBounds(c,r) || occupied(c,r,"player") || (e.alive && e.c===c && e.r===r)){
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      for(const [dc,dr] of dirs){
+        const nc=p.c+dc, nr=p.r+dr;
+        if(inBounds(nc,nr) && !occupied(nc,nr,"player") && !(e.alive && e.c===nc && e.r===nr)){
+          c=nc; r=nr; break;
+        }
+      }
+    }
+    faceToward(p, c, r);
+    G.clone = {
+      c, r, dir: p.dir, anim:"Run", frame:0, t0:performance.now(),
+      alive:true, alpha:0.42,
+      pm: 2 + (evo.clonePm|0),
+      dmg: [8 + (evo.cloneDmg|0), 12 + (evo.cloneDmg|0)],
+      stun: !!(evo.cloneStun),
+      hp: 1 + (evo.cloneHp|0),
+    };
+    playAnim(G.clone, "Run");
+  }
+
+  function tickClone(){
+    const cl = G.clone;
+    if(!cl || !cl.alive || !G.enemy.alive) return;
+    let steps = cl.pm|0;
+    while(steps-- > 0){
+      if(dist(cl, G.enemy) <= 1){
+        /* tacle */
+        faceToward(cl, G.enemy.c, G.enemy.r);
+        playAnim(cl, "AttackRun");
+        const dmg = roll(cl.dmg);
+        G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
+        G.enemy.flash = performance.now()+180;
+        playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
+        setStatus("Sosie tacle → "+dmg);
+        if(cl.stun){ /* retire 1 PA conceptuel au prochain tour ennemi via flag */ G.enemy._stunned = true; }
+        if(G.enemy.pv<=0){ G.enemy.alive=false; setStatus("Victoire · sosie"); offerEvo(); }
+        cl.alive = false; G.clone = null;
+        hud();
+        return;
+      }
+      const opts=[];
+      if(cl.c!==G.enemy.c) opts.push({c:cl.c+Math.sign(G.enemy.c-cl.c), r:cl.r});
+      if(cl.r!==G.enemy.r) opts.push({c:cl.c, r:cl.r+Math.sign(G.enemy.r-cl.r)});
+      let moved=false;
+      for(const o of opts){
+        if(!inBounds(o.c,o.r)) continue;
+        if(occupied(o.c,o.r,"player")) continue;
+        if(G.enemy.alive && G.enemy.c===o.c && G.enemy.r===o.r) continue;
+        faceToward(cl, o.c, o.r);
+        cl.c=o.c; cl.r=o.r;
+        playAnim(cl, "Run");
+        moved=true; break;
+      }
+      if(!moved) break;
+    }
   }
 
   function finishCastEnemy(sp){
@@ -669,16 +807,23 @@
     if(G.player.pa < sp.cost){ setStatus("Pas assez de PA"); return; }
     faceToward(G.player, G.enemy.c, G.enemy.r);
     const anim = animForArmed(sp);
+    const st = evoState(sp.id);
+    const evo = st.evo || {};
     G.player.pa -= sp.cost;
     playAnim(G.player, anim);
-    const dmg = roll(sp.dmg || [6,10]);
-    G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
+    let dmg = roll(sp.dmg || [6,10]) + (evo.dmg|0);
+    if(G.player.invis>0 && evo.invisBurst) dmg += evo.invisBurst|0;
+    const hits = 1 + (evo.hits|0);
+    let total = 0;
+    for(let i=0;i<hits;i++) total += dmg;
+    G.enemy.pv = Math.max(0, G.enemy.pv - total);
     G.enemy.flash = performance.now()+180;
     faceToward(G.enemy, G.player.c, G.player.r);
     playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
     G.combo = Math.min(100, G.combo + 22);
-    setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" → "+dmg);
-    if(G.enemy.pv<=0){ G.enemy.alive=false; setStatus("Victoire"); }
+    setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" → "+total);
+    if(G.player.invis>0) G.player.invis = 0; /* frappe sort du voile */
+    if(G.enemy.pv<=0){ G.enemy.alive=false; setStatus("Victoire"); offerEvo(); }
     G.armed=null; G.armedSlot=null;
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     setTimeout(()=>{ if(G.player.anim!=="Die") playAnim(G.player,"Idle"); }, 700);
@@ -747,7 +892,9 @@
     if(G.turn!=="player" || G.busy) return;
     G.armed=null; G.armedSlot=null; G.turn="enemy";
     G.combo = Math.max(0, G.combo - 12);
+    tickClone();
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+    if(!G.enemy.alive){ G.turn="player"; return; }
     setStatus("Tour ennemi…");
     setTimeout(enemyTurn, 420);
   }
@@ -755,6 +902,26 @@
   function enemyTurn(){
     if(!G.enemy.alive){ G.turn="player"; beginPlayerTurn(); return; }
     const e=G.enemy, p=G.player;
+    if(e._stunned){ e._stunned=false; setStatus("Bandit étourdi"); setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 380); return; }
+
+    /* Invisibilité : l’ennemi cherche au hasard, ne frappe pas */
+    if((p.invis|0) > 0){
+      let steps = e.pm;
+      while(steps-- > 0){
+        const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+        const o = dirs[Math.floor(Math.random()*dirs.length)];
+        const nc=e.c+o[0], nr=e.r+o[1];
+        if(!inBounds(nc,nr) || occupied(nc,nr,"enemy")) continue;
+        if(p.c===nc && p.r===nr) continue;
+        faceToward(e, nc, nr); e.c=nc; e.r=nr; playAnim(e,"Walk");
+      }
+      setTimeout(()=>{
+        setStatus("Voile · ennemi perdu");
+        setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 360);
+      }, 300);
+      return;
+    }
+
     let steps=e.pm, nc=e.c, nr=e.r;
     while(steps>0 && dist({c:nc,r:nr},p)>1){
       const opts=[];
@@ -773,7 +940,7 @@
       setTimeout(()=>playAnim(e,"Idle"), 360);
     }
     setTimeout(()=>{
-      if(e.alive && dist(e,p)<=1){
+      if(e.alive && dist(e,p)<=1 && !(p.invis>0)){
         faceToward(e, p.c, p.r);
         playAnim(e,"Attack1");
         let dmg = 6+Math.floor(Math.random()*5);
@@ -792,10 +959,51 @@
     G.busy = false;
     G.player.pa = G.player.paMax;
     G.player.pm = G.player.pmMax;
+    if(G.player.invis>0) G.player.invis -= 1;
     G.armed=null; G.armedSlot=null;
     refreshSpellBar();
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
-    setStatus("Ton tour · 6 sorts");
+    const invis = G.player.invis>0 ? " · voile "+G.player.invis : "";
+    setStatus("Ton tour"+invis);
+  }
+
+  function offerEvo(){
+    if(typeof FantasyBridge==="undefined" || !FantasyBridge.evoChoicesFor) return;
+    const bar = G.spellBar.length ? G.spellBar : refreshSpellBar();
+    const candidates = bar.filter(s=>s && s.spellId && !s.locked).map(s=>s.spellId);
+    /* préfère sorts avec arbre d’évo */
+    let pickId = candidates.find(id=>FantasyBridge.EVO_TREE && FantasyBridge.EVO_TREE[id]);
+    if(!pickId) pickId = candidates[0];
+    if(!pickId) return;
+    const st = evoState(pickId);
+    const tier = FantasyBridge.nextEvoTier(st);
+    if(tier==null) return;
+    const choices = FantasyBridge.evoChoicesFor(pickId, tier);
+    if(!choices || !choices.length) return;
+    G.pendingEvo = { spellId: pickId, tier, choices };
+    const sp = spellById(pickId);
+    el("evoTitle").textContent = "Évolution · "+(sp?sp.name:pickId);
+    el("evoSub").textContent = "Palier "+tier+"/"+FantasyBridge.EVO_MAX_TIERS+" · 1 choix · effets cumulables";
+    const host = el("evoOpts"); host.innerHTML="";
+    choices.forEach((ch, idx)=>{
+      const b = document.createElement("button");
+      b.type="button";
+      b.innerHTML = "<b>"+ch.name+"</b><span>"+ch.d+"</span>";
+      b.onclick=()=>{
+        try{ ch.apply(st); }catch(_e){}
+        st.tiersTaken = (st.tiersTaken|0) + 1;
+        if(ch.anim) st.evo.anim = ch.anim;
+        if(ch.fx) st.evo.fx = ch.fx;
+        saveEvo();
+        el("evoOv").classList.remove("on");
+        el("evoOv").setAttribute("aria-hidden","true");
+        G.pendingEvo = null;
+        setStatus((sp?sp.name:pickId)+" évolué · "+ch.name);
+      };
+      host.appendChild(b);
+    });
+    el("evoOv").classList.add("on");
+    el("evoOv").setAttribute("aria-hidden","false");
   }
 
   function renderSpells(){
@@ -847,7 +1055,8 @@
     return s;
   }
 
-  function drawEntity(ent, isEnemy){
+  function drawEntity(ent, isEnemy, opts){
+    opts = opts || {};
     if(!ent.alive && ent.anim!=="Die") return;
     const anim = ent.anim||"Idle";
     const row = sheetRowForDir(ent.dir|0, anim);
@@ -858,15 +1067,18 @@
     const s = toScreen(ent.c, ent.r);
     const scale = 1.15;
     const dw=FW*scale, dh=FH*scale;
-    /* Pied ~y88 dans le frame 128 — planté au CENTRE du losange (s.y),
-       pas à la pointe basse (s.y+hh) qui est la jonction de 4 cases. */
     const FOOT_Y = 88;
     const GROUND = 0;
     const dx=s.x-dw/2, dy=s.y + GROUND - FOOT_Y*scale;
     const groundY = s.y + GROUND;
+    let baseAlpha = opts.alpha != null ? opts.alpha : 1;
+    if(!isEnemy && !opts.clone && (G.player.invis|0)>0) baseAlpha *= 0.38;
 
+    ctx.save();
+    ctx.globalAlpha = Math.max(0.12, baseAlpha) * 0.9;
     ctx.fillStyle="rgba(40,40,38,0.16)";
     ctx.beginPath(); ctx.ellipse(s.x, groundY+2, 13, 5, 0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
 
     const layers = isEnemy
       ? [{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}]
@@ -877,17 +1089,18 @@
     for(const L of layers){
       const im = getImg(L.folder, anim) || getImg(L.folder, "Idle");
       if(!im){ loadImg(L.folder, anim); loadImg(L.folder,"Idle"); continue; }
-      try{ tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, L.alpha); drawn++; }catch(_e){}
+      try{ tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, (L.alpha||1)*baseAlpha); drawn++; }catch(_e){}
     }
-    /* fallback visible si sprites pas encore chargés */
     if(!drawn){
-      ctx.fillStyle = isEnemy ? "#8a5050" : "#3d6a8a";
+      ctx.save(); ctx.globalAlpha = baseAlpha;
+      ctx.fillStyle = isEnemy ? "#8a5050" : (opts.clone ? "#7a8a9a" : "#3d6a8a");
       ctx.beginPath(); ctx.ellipse(s.x, groundY-16, 11, 16, 0,0,Math.PI*2); ctx.fill();
       ctx.fillStyle = isEnemy ? "#c07070" : "#d4a574";
       ctx.beginPath(); ctx.arc(s.x, groundY-30, 7, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
     }
     if(ent.flash && performance.now()<ent.flash){
-      ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=0.45;
+      ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=0.45*baseAlpha;
       for(const L of layers){
         const im=getImg(L.folder,anim)||getImg(L.folder,"Idle");
         if(!im) continue;
@@ -895,11 +1108,13 @@
       }
       ctx.restore();
     }
-    const pct = ent.pv/ent.pvMax;
-    const bw=26, bh=3, bx=s.x-bw/2, by=dy+12;
-    ctx.fillStyle="rgba(0,0,0,.22)"; ctx.fillRect(bx-1,by-1,bw+2,bh+2);
-    ctx.fillStyle = isEnemy ? "#8a3030" : "#2f6f4e";
-    ctx.fillRect(bx, by, bw*Math.max(0,pct), bh);
+    if(ent.pvMax){
+      const pct = ent.pv/ent.pvMax;
+      const bw=26, bh=3, bx=s.x-bw/2, by=dy+12;
+      ctx.fillStyle="rgba(0,0,0,.22)"; ctx.fillRect(bx-1,by-1,bw+2,bh+2);
+      ctx.fillStyle = isEnemy ? "#8a3030" : "#2f6f4e";
+      ctx.fillRect(bx, by, bw*Math.max(0,pct), bh);
+    }
   }
 
   function draw(){
@@ -941,9 +1156,10 @@
 
     const ents=[];
     if(G.enemy.alive || G.enemy.anim==="Die") ents.push({e:G.enemy, enemy:true});
+    if(G.clone && G.clone.alive) ents.push({e:G.clone, enemy:false, clone:true});
     if(G.player.alive || G.player.anim==="Die") ents.push({e:G.player, enemy:false});
     ents.sort((a,b)=> (a.e.c+a.e.r)-(b.e.c+b.e.r) || a.e.c-b.e.c);
-    for(const o of ents) drawEntity(o.e, o.enemy);
+    for(const o of ents) drawEntity(o.e, o.enemy, o.clone ? {clone:true, alpha:o.e.alpha||0.42} : null);
 
     ctx.restore();
   }

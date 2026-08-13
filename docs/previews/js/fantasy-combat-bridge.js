@@ -50,6 +50,8 @@
     sniper: { name: "Œil de faucon", school: "Lumière", desc: "Familier tireur d’élite." },
     bouclier: { name: "Égide", school: "Lumière", desc: "Bouclier temporaire." },
     overclock: { name: "Ivresse de bataille", school: "Ombre", desc: "Bonus dégâts / mobilité." },
+    double: { name: "Sosie", school: "Arcane", desc: "Clone qui charge et tacle l’ennemi." },
+    invisibilite: { name: "Voile d’ombre", school: "Ombre", desc: "Devient invisible quelques tours." },
   };
 
   /**
@@ -452,9 +454,108 @@
     Bag8: "parasite",
   };
 
-  const HERO_SPELL_POOL = ["dash", "mine", "parasite", "arc", "punch", "bouclier"];
-  const BONUS_A_POOL = ["mine", "impulsion_emp", "tir_magnetique", "monofil"];
-  const BONUS_B_POOL = ["surchauffe", "bombe_thermique", "gravite", "nanites"];
+  const HERO_SPELL_POOL = ["dash", "mine", "parasite", "double", "invisibilite", "bouclier"];
+  const BONUS_A_POOL = ["mine", "impulsion_emp", "tir_magnetique", "double", "monofil"];
+  const BONUS_B_POOL = ["surchauffe", "bombe_thermique", "invisibilite", "nanites", "gravite"];
+
+  /** 2 paliers × 3 choix (1 pick / palier) = jusqu’à 2 effets cumulés + anim/FX. */
+  const EVO_MAX_TIERS = 2;
+  const EVO_CHOICES_PER_TIER = 3;
+  const EVO_TIER_LEVELS = [1, 2]; /* paliers fantasy simplifiés */
+
+  function evoAdd(st, field, n) {
+    if (!st.evo) st.evo = {};
+    st.evo[field] = (st.evo[field] || 0) + n;
+  }
+
+  /** Arbres d’évo (effets V1 adaptés + anim/FX via decorateEvoChoices). */
+  const EVO_TREE = {
+    punch: {
+      1: [
+        { name: "Brise-Os", d: "+4 dégâts.", apply: (st) => evoAdd(st, "dmg", 4) },
+        { name: "Boxeur", d: "+1 portée.", apply: (st) => evoAdd(st, "range", 1) },
+        { name: "Rapide", d: "-1 PA (min 1).", apply: (st) => evoAdd(st, "cost", -1) },
+      ],
+      2: [
+        { name: "Percutant", d: "Repousse +1.", apply: (st) => evoAdd(st, "push", 1) },
+        { name: "Double Impact", d: "Frappe 2 fois.", apply: (st) => evoAdd(st, "hits", 1) },
+        { name: "Uppercut", d: "+3 dégâts.", apply: (st) => evoAdd(st, "dmg", 3) },
+      ],
+    },
+    monofil: {
+      1: [
+        { name: "Hémorragie", d: "Ignore 50% rés.", apply: (st) => evoAdd(st, "pierce", 0.5) },
+        { name: "Chirurgical", d: "+15% crit.", apply: (st) => evoAdd(st, "crit", 0.15) },
+        { name: "Allonge", d: "+1 portée.", apply: (st) => evoAdd(st, "range", 1) },
+      ],
+      2: [
+        { name: "Déchirure", d: "Frappe 2 fois.", apply: (st) => evoAdd(st, "hits", 1) },
+        { name: "Lame instable", d: "+5 dégâts.", apply: (st) => evoAdd(st, "dmg", 5) },
+        { name: "Exécution", d: "Ignore rés.", apply: (st) => evoAdd(st, "pierce", 1) },
+      ],
+    },
+    double: {
+      1: [
+        { name: "Sosie agile", d: "Clone +1 PM.", apply: (st) => evoAdd(st, "clonePm", 1) },
+        { name: "Tacle lourd", d: "Clone +4 dégâts.", apply: (st) => evoAdd(st, "cloneDmg", 4) },
+        { name: "Économe", d: "-1 PA.", apply: (st) => evoAdd(st, "cost", -1) },
+      ],
+      2: [
+        { name: "Jumeau", d: "2 clones (1 max actif encore).", apply: (st) => evoAdd(st, "cloneHp", 10) },
+        { name: "Plaquage", d: "Tacle étourdit (−1 PA ennemi).", apply: (st) => evoAdd(st, "cloneStun", 1) },
+        { name: "Mirage", d: "Clone plus durable.", apply: (st) => evoAdd(st, "cloneHp", 20) },
+      ],
+    },
+    invisibilite: {
+      1: [
+        { name: "Voile long", d: "+1 tour d’invisibilité.", apply: (st) => evoAdd(st, "invisTurns", 1) },
+        { name: "Pas légers", d: "+1 PM sous voile.", apply: (st) => evoAdd(st, "invisPm", 1) },
+        { name: "Économe", d: "-1 PA.", apply: (st) => evoAdd(st, "cost", -1) },
+      ],
+      2: [
+        { name: "Assassin", d: "+6 dégâts à la sortie du voile.", apply: (st) => evoAdd(st, "invisBurst", 6) },
+        { name: "Brume", d: "+1 tour.", apply: (st) => evoAdd(st, "invisTurns", 1) },
+        { name: "Ombre vive", d: "+2 PM sous voile.", apply: (st) => evoAdd(st, "invisPm", 2) },
+      ],
+    },
+    bouclier: {
+      1: [
+        { name: "Renfort", d: "+8 soin/bouclier.", apply: (st) => evoAdd(st, "heal", 8) },
+        { name: "Économe", d: "-1 PA.", apply: (st) => evoAdd(st, "cost", -1) },
+        { name: "Durée", d: "+1 tour de bouclier.", apply: (st) => evoAdd(st, "shieldTurns", 1) },
+      ],
+      2: [
+        { name: "Égide sacrée", d: "+12 soin.", apply: (st) => evoAdd(st, "heal", 12) },
+        { name: "Riposte", d: "Renvoie 4 dégâts.", apply: (st) => evoAdd(st, "thorns", 4) },
+        { name: "Rempart", d: "+16 bouclier.", apply: (st) => evoAdd(st, "shield", 16) },
+      ],
+    },
+    nanites: {
+      1: [
+        { name: "Réparation", d: "+6 soin.", apply: (st) => evoAdd(st, "heal", 6) },
+        { name: "Diffusion", d: "+1 portée.", apply: (st) => evoAdd(st, "range", 1) },
+        { name: "Économe", d: "-1 PA.", apply: (st) => evoAdd(st, "cost", -1) },
+      ],
+      2: [
+        { name: "Régénération", d: "+12 soin.", apply: (st) => evoAdd(st, "heal", 12) },
+        { name: "Surcadence", d: "-1 PA, +5 soin.", apply: (st) => { evoAdd(st, "cost", -1); evoAdd(st, "heal", 5); } },
+        { name: "Bénédiction", d: "+8 soin, +1 portée.", apply: (st) => { evoAdd(st, "heal", 8); evoAdd(st, "range", 1); } },
+      ],
+    },
+  };
+
+  function evoChoicesFor(spellId, tier) {
+    const tree = EVO_TREE[spellId];
+    if (!tree || !tree[tier]) return [];
+    return decorateEvoChoices(tree[tier].slice(0, EVO_CHOICES_PER_TIER));
+  }
+
+  function nextEvoTier(spellState) {
+    const st = spellState || {};
+    const taken = (st.tiersTaken || 0) | 0;
+    if (taken >= EVO_MAX_TIERS) return null;
+    return EVO_TIER_LEVELS[taken];
+  }
 
   function lookSeed(look) {
     const L = look || {};
@@ -532,7 +633,10 @@
       spellId === "bouclier" ||
       spellId === "armure_nanites" ||
       spellId === "nanites" ||
-      spellId === "reconstruction"
+      spellId === "reconstruction" ||
+      spellId === "overclock" ||
+      spellId === "invisibilite" ||
+      spellId === "double"
     );
   }
 
@@ -655,6 +759,11 @@
     BACKPACK_SPELL,
     syncWeaponSpell,
     decorateEvoChoices,
+    evoChoicesFor,
+    nextEvoTier,
+    EVO_TREE,
+    EVO_MAX_TIERS,
+    EVO_CHOICES_PER_TIER,
     castAnimFor,
     toSpriteKey,
     resolveSpellId,
