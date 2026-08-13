@@ -702,11 +702,13 @@
   }
 
   function finishCastSelf(sp){
-    G.player.pa -= sp.cost;
-    const anim = animForArmed(sp);
-    playAnim(G.player, anim);
     const st = evoState(sp.id);
     const evo = st.evo || {};
+    const cost = Math.max(1, sp.cost + (evo.cost|0));
+    if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
+    G.player.pa -= cost;
+    const anim = (evo.anim) || animForArmed(sp);
+    playAnim(G.player, anim);
 
     if(sp.id==="double"){
       spawnClone(sp, evo);
@@ -803,13 +805,14 @@
 
   function finishCastEnemy(sp){
     if(!G.enemy.alive){ setStatus("Plus de cible"); return; }
-    if(dist(G.player, G.enemy) > sp.range){ setStatus("Toujours hors portée"); return; }
-    if(G.player.pa < sp.cost){ setStatus("Pas assez de PA"); return; }
-    faceToward(G.player, G.enemy.c, G.enemy.r);
-    const anim = animForArmed(sp);
+    if(dist(G.player, G.enemy) > sp.range + ((evoState(sp.id).evo||{}).range|0)){ setStatus("Toujours hors portée"); return; }
     const st = evoState(sp.id);
     const evo = st.evo || {};
-    G.player.pa -= sp.cost;
+    const cost = Math.max(1, sp.cost + (evo.cost|0));
+    if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
+    faceToward(G.player, G.enemy.c, G.enemy.r);
+    const anim = evo.anim || animForArmed(sp);
+    G.player.pa -= cost;
     playAnim(G.player, anim);
     let dmg = roll(sp.dmg || [6,10]) + (evo.dmg|0);
     if(G.player.invis>0 && evo.invisBurst) dmg += evo.invisBurst|0;
@@ -822,7 +825,7 @@
     playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
     G.combo = Math.min(100, G.combo + 22);
     setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" → "+total);
-    if(G.player.invis>0) G.player.invis = 0; /* frappe sort du voile */
+    if(G.player.invis>0) G.player.invis = 0;
     if(G.enemy.pv<=0){ G.enemy.alive=false; setStatus("Victoire"); offerEvo(); }
     G.armed=null; G.armedSlot=null;
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
