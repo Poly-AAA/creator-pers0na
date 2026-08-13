@@ -468,81 +468,149 @@
     st.evo[field] = (st.evo[field] || 0) + n;
   }
 
-  /** Arbres d’évo (effets V1 adaptés + anim/FX via decorateEvoChoices). */
+  /** Arbres d’évo : chaque choix = effet + anim + FX (cumul effets, dernière anim/FX gagne). */
   const EVO_TREE = {
     punch: {
       1: [
-        { name: "Brise-Os", d: "+4 dégâts.", apply: (st) => evoAdd(st, "dmg", 4) },
-        { name: "Boxeur", d: "+1 portée.", apply: (st) => evoAdd(st, "range", 1) },
-        { name: "Rapide", d: "-1 PA (min 1).", apply: (st) => evoAdd(st, "cost", -1) },
+        { name: "Brise-Os", d: "+4 dégâts.", anim: "Attack2", fx: null, apply: (st) => evoAdd(st, "dmg", 4) },
+        { name: "Boxeur", d: "+1 portée.", anim: "Attack1", fx: "Slash1", apply: (st) => evoAdd(st, "range", 1) },
+        { name: "Rapide", d: "-1 PA.", anim: "Kick", fx: null, apply: (st) => evoAdd(st, "cost", -1) },
       ],
       2: [
-        { name: "Percutant", d: "Repousse +1.", apply: (st) => evoAdd(st, "push", 1) },
-        { name: "Double Impact", d: "Frappe 2 fois.", apply: (st) => evoAdd(st, "hits", 1) },
-        { name: "Uppercut", d: "+3 dégâts.", apply: (st) => evoAdd(st, "dmg", 3) },
+        { name: "Percutant", d: "Repousse +1.", anim: "Attack3", fx: "Slash1", apply: (st) => evoAdd(st, "push", 1) },
+        { name: "Double Impact", d: "Frappe 2 fois.", anim: "Attack4", fx: "Slash2", apply: (st) => evoAdd(st, "hits", 1) },
+        { name: "Uppercut", d: "+3 dégâts.", anim: "Special1", fx: "Effect1", apply: (st) => evoAdd(st, "dmg", 3) },
       ],
     },
     monofil: {
       1: [
-        { name: "Hémorragie", d: "Ignore 50% rés.", apply: (st) => evoAdd(st, "pierce", 0.5) },
-        { name: "Chirurgical", d: "+15% crit.", apply: (st) => evoAdd(st, "crit", 0.15) },
-        { name: "Allonge", d: "+1 portée.", apply: (st) => evoAdd(st, "range", 1) },
+        { name: "Hémorragie", d: "Ignore 50% rés.", anim: "Attack3", fx: "Slash1", apply: (st) => evoAdd(st, "pierce", 0.5) },
+        { name: "Chirurgical", d: "+15% crit.", anim: "Attack2", fx: null, apply: (st) => evoAdd(st, "crit", 0.15) },
+        { name: "Allonge", d: "+1 portée.", anim: "Attack5", fx: "Slash2", apply: (st) => evoAdd(st, "range", 1) },
       ],
       2: [
-        { name: "Déchirure", d: "Frappe 2 fois.", apply: (st) => evoAdd(st, "hits", 1) },
-        { name: "Lame instable", d: "+5 dégâts.", apply: (st) => evoAdd(st, "dmg", 5) },
-        { name: "Exécution", d: "Ignore rés.", apply: (st) => evoAdd(st, "pierce", 1) },
+        { name: "Déchirure", d: "Frappe 2 fois.", anim: "Attack6", fx: "Slash2", apply: (st) => evoAdd(st, "hits", 1) },
+        { name: "Lame instable", d: "+5 dégâts.", anim: "Special1", fx: "Effect2", apply: (st) => evoAdd(st, "dmg", 5) },
+        { name: "Exécution", d: "Ignore rés.", anim: "Attack4", fx: "Effect3", apply: (st) => evoAdd(st, "pierce", 1) },
+      ],
+    },
+    arc: {
+      1: [
+        { name: "Chaîne", d: "+1 rebond (tag).", anim: "Attack1", fx: "Effect1", apply: (st) => evoAdd(st, "chain", 1) },
+        { name: "Économe", d: "-1 PA.", anim: "Attack2", fx: null, apply: (st) => evoAdd(st, "cost", -1) },
+        { name: "Saturation", d: "+2 dégâts.", anim: "Attack5", fx: "Effect2", apply: (st) => evoAdd(st, "dmg", 2) },
+      ],
+      2: [
+        { name: "Paralysie", d: "Drain PA.", anim: "Special1", fx: "Effect3", apply: (st) => evoAdd(st, "drain", 1) },
+        { name: "Conducteur", d: "+3 dégâts.", anim: "Attack6", fx: "Effect4", apply: (st) => evoAdd(st, "dmg", 3) },
+        { name: "Orage", d: "+1 AoE.", anim: "Attack3", fx: "Effect5", apply: (st) => evoAdd(st, "aoe", 1) },
+      ],
+    },
+    dash: {
+      1: [
+        { name: "Élan", d: "+2 portée.", anim: "AttackRun", fx: null, apply: (st) => evoAdd(st, "range", 2) },
+        { name: "Bélier", d: "+5 dégâts.", anim: "AttackRun2", fx: "Slash1", apply: (st) => evoAdd(st, "dmg", 5) },
+        { name: "Percussion", d: "Poussée +1.", anim: "Kick", fx: "Slash2", apply: (st) => evoAdd(st, "push", 1) },
+      ],
+      2: [
+        { name: "Transperçant", d: "+pierce.", anim: "AttackRun2", fx: "Effect1", apply: (st) => evoAdd(st, "pierce", 1) },
+        { name: "Onde de choc", d: "+1 AoE.", anim: "Special1", fx: "Effect3", apply: (st) => evoAdd(st, "aoe", 1) },
+        { name: "Relance", d: "+2 dégâts.", anim: "AttackRun", fx: "Slash2", apply: (st) => evoAdd(st, "dmg", 2) },
+      ],
+    },
+    mine: {
+      1: [
+        { name: "Charge", d: "+6 dégâts.", anim: "Kick", fx: "Effect1", apply: (st) => evoAdd(st, "dmg", 6) },
+        { name: "Capteur", d: "+1 portée.", anim: "Attack2", fx: null, apply: (st) => evoAdd(st, "range", 1) },
+        { name: "Économe", d: "-1 PA.", anim: "Attack1", fx: null, apply: (st) => evoAdd(st, "cost", -1) },
+      ],
+      2: [
+        { name: "Zone", d: "+1 AoE.", anim: "Special1", fx: "Effect2", apply: (st) => evoAdd(st, "aoe", 1) },
+        { name: "Aimant", d: "+push.", anim: "Attack4", fx: "Effect3", apply: (st) => evoAdd(st, "push", 1) },
+        { name: "Immobilise", d: "Tag stun.", anim: "Kick", fx: "Slash1", apply: (st) => evoAdd(st, "cloneStun", 1) },
+      ],
+    },
+    surchauffe: {
+      1: [
+        { name: "Brûlure", d: "+4 dégâts.", anim: "Attack5", fx: "Effect2", apply: (st) => evoAdd(st, "dmg", 4) },
+        { name: "Longue portée", d: "+1 portée.", anim: "Attack3", fx: "Effect1", apply: (st) => evoAdd(st, "range", 1) },
+        { name: "Économe", d: "-1 PA.", anim: "Attack2", fx: null, apply: (st) => evoAdd(st, "cost", -1) },
+      ],
+      2: [
+        { name: "Fusion", d: "+5 dégâts.", anim: "Special1", fx: "Effect4", apply: (st) => evoAdd(st, "dmg", 5) },
+        { name: "Fournaise", d: "+8 dégâts.", anim: "Attack6", fx: "Effect5", apply: (st) => evoAdd(st, "dmg", 8) },
+        { name: "Brasier élargi", d: "+1 AoE.", anim: "Attack5", fx: "Effect3", apply: (st) => evoAdd(st, "aoe", 1) },
+      ],
+    },
+    tir_magnetique: {
+      1: [
+        { name: "Précision", d: "+3 dégâts.", anim: "Attack1", fx: "Effect1", apply: (st) => evoAdd(st, "dmg", 3) },
+        { name: "Recul", d: "Push +1.", anim: "Attack3", fx: "Slash1", apply: (st) => evoAdd(st, "push", 1) },
+        { name: "Économe", d: "-1 PA.", anim: "Attack2", fx: null, apply: (st) => evoAdd(st, "cost", -1) },
+      ],
+      2: [
+        { name: "Perforant", d: "+pierce.", anim: "Attack4", fx: "Effect2", apply: (st) => evoAdd(st, "pierce", 1) },
+        { name: "Longue vue", d: "+1 portée.", anim: "Attack1", fx: "Effect3", apply: (st) => evoAdd(st, "range", 1) },
+        { name: "Salve", d: "2 hits.", anim: "Attack6", fx: "Slash2", apply: (st) => evoAdd(st, "hits", 1) },
       ],
     },
     double: {
       1: [
-        { name: "Sosie agile", d: "Clone +1 PM.", apply: (st) => evoAdd(st, "clonePm", 1) },
-        { name: "Tacle lourd", d: "Clone +4 dégâts.", apply: (st) => evoAdd(st, "cloneDmg", 4) },
-        { name: "Économe", d: "-1 PA.", apply: (st) => evoAdd(st, "cost", -1) },
+        { name: "Sosie agile", d: "Clone +1 PM.", anim: "Special1", fx: "Effect1", apply: (st) => evoAdd(st, "clonePm", 1) },
+        { name: "Tacle lourd", d: "Clone +4 dmg.", anim: "AttackRun", fx: "Slash1", apply: (st) => evoAdd(st, "cloneDmg", 4) },
+        { name: "Économe", d: "-1 PA.", anim: "Attack2", fx: null, apply: (st) => evoAdd(st, "cost", -1) },
       ],
       2: [
-        { name: "Jumeau", d: "2 clones (1 max actif encore).", apply: (st) => evoAdd(st, "cloneHp", 10) },
-        { name: "Plaquage", d: "Tacle étourdit (−1 PA ennemi).", apply: (st) => evoAdd(st, "cloneStun", 1) },
-        { name: "Mirage", d: "Clone plus durable.", apply: (st) => evoAdd(st, "cloneHp", 20) },
+        { name: "Jumeau", d: "Clone +HP.", anim: "Special1", fx: "Effect3", apply: (st) => evoAdd(st, "cloneHp", 10) },
+        { name: "Plaquage", d: "Tacle stun.", anim: "AttackRun2", fx: "Slash2", apply: (st) => evoAdd(st, "cloneStun", 1) },
+        { name: "Mirage", d: "Clone +HP.", anim: "Taunt", fx: "Effect5", apply: (st) => evoAdd(st, "cloneHp", 20) },
       ],
     },
     invisibilite: {
       1: [
-        { name: "Voile long", d: "+1 tour d’invisibilité.", apply: (st) => evoAdd(st, "invisTurns", 1) },
-        { name: "Pas légers", d: "+1 PM sous voile.", apply: (st) => evoAdd(st, "invisPm", 1) },
-        { name: "Économe", d: "-1 PA.", apply: (st) => evoAdd(st, "cost", -1) },
+        { name: "Voile long", d: "+1 tour.", anim: "Special1", fx: "Effect3", apply: (st) => evoAdd(st, "invisTurns", 1) },
+        { name: "Pas légers", d: "+1 PM sous voile.", anim: "Attack2", fx: "Effect1", apply: (st) => evoAdd(st, "invisPm", 1) },
+        { name: "Économe", d: "-1 PA.", anim: "Idle", fx: null, apply: (st) => evoAdd(st, "cost", -1) },
       ],
       2: [
-        { name: "Assassin", d: "+6 dégâts à la sortie du voile.", apply: (st) => evoAdd(st, "invisBurst", 6) },
-        { name: "Brume", d: "+1 tour.", apply: (st) => evoAdd(st, "invisTurns", 1) },
-        { name: "Ombre vive", d: "+2 PM sous voile.", apply: (st) => evoAdd(st, "invisPm", 2) },
+        { name: "Assassin", d: "+6 dmg sortie voile.", anim: "Attack4", fx: "Slash2", apply: (st) => evoAdd(st, "invisBurst", 6) },
+        { name: "Brume", d: "+1 tour.", anim: "Special1", fx: "Effect4", apply: (st) => evoAdd(st, "invisTurns", 1) },
+        { name: "Ombre vive", d: "+2 PM sous voile.", anim: "AttackRun", fx: "Effect5", apply: (st) => evoAdd(st, "invisPm", 2) },
       ],
     },
     bouclier: {
       1: [
-        { name: "Renfort", d: "+8 soin/bouclier.", apply: (st) => evoAdd(st, "heal", 8) },
-        { name: "Économe", d: "-1 PA.", apply: (st) => evoAdd(st, "cost", -1) },
-        { name: "Durée", d: "+1 tour de bouclier.", apply: (st) => evoAdd(st, "shieldTurns", 1) },
+        { name: "Renfort", d: "+8 soin.", anim: "Special1", fx: "Effect1", apply: (st) => evoAdd(st, "heal", 8) },
+        { name: "Économe", d: "-1 PA.", anim: "Attack5", fx: null, apply: (st) => evoAdd(st, "cost", -1) },
+        { name: "Durée", d: "+1 tour bouclier.", anim: "Taunt", fx: "Effect2", apply: (st) => evoAdd(st, "shieldTurns", 1) },
       ],
       2: [
-        { name: "Égide sacrée", d: "+12 soin.", apply: (st) => evoAdd(st, "heal", 12) },
-        { name: "Riposte", d: "Renvoie 4 dégâts.", apply: (st) => evoAdd(st, "thorns", 4) },
-        { name: "Rempart", d: "+16 bouclier.", apply: (st) => evoAdd(st, "shield", 16) },
+        { name: "Égide sacrée", d: "+12 soin.", anim: "Special1", fx: "Effect3", apply: (st) => evoAdd(st, "heal", 12) },
+        { name: "Riposte", d: "Thorns 4.", anim: "Attack3", fx: "Slash1", apply: (st) => evoAdd(st, "thorns", 4) },
+        { name: "Rempart", d: "+16 bouclier.", anim: "Attack5", fx: "Effect4", apply: (st) => evoAdd(st, "shield", 16) },
       ],
     },
     nanites: {
       1: [
-        { name: "Réparation", d: "+6 soin.", apply: (st) => evoAdd(st, "heal", 6) },
-        { name: "Diffusion", d: "+1 portée.", apply: (st) => evoAdd(st, "range", 1) },
-        { name: "Économe", d: "-1 PA.", apply: (st) => evoAdd(st, "cost", -1) },
+        { name: "Réparation", d: "+6 soin.", anim: "Special1", fx: "Effect1", apply: (st) => evoAdd(st, "heal", 6) },
+        { name: "Diffusion", d: "+1 portée.", anim: "Attack3", fx: "Effect2", apply: (st) => evoAdd(st, "range", 1) },
+        { name: "Économe", d: "-1 PA.", anim: "Attack1", fx: null, apply: (st) => evoAdd(st, "cost", -1) },
       ],
       2: [
-        { name: "Régénération", d: "+12 soin.", apply: (st) => evoAdd(st, "heal", 12) },
-        { name: "Surcadence", d: "-1 PA, +5 soin.", apply: (st) => { evoAdd(st, "cost", -1); evoAdd(st, "heal", 5); } },
-        { name: "Bénédiction", d: "+8 soin, +1 portée.", apply: (st) => { evoAdd(st, "heal", 8); evoAdd(st, "range", 1); } },
+        { name: "Régénération", d: "+12 soin.", anim: "Special1", fx: "Effect3", apply: (st) => evoAdd(st, "heal", 12) },
+        { name: "Surcadence", d: "-1 PA, +5 soin.", anim: "Attack5", fx: "Effect4", apply: (st) => { evoAdd(st, "cost", -1); evoAdd(st, "heal", 5); } },
+        { name: "Bénédiction", d: "+8 soin, +1 portée.", anim: "Taunt", fx: "Effect5", apply: (st) => { evoAdd(st, "heal", 8); evoAdd(st, "range", 1); } },
       ],
     },
   };
+  /* alias → mêmes arbres */
+  EVO_TREE.armure_nanites = EVO_TREE.bouclier;
+  EVO_TREE.reconstruction = EVO_TREE.nanites;
+  EVO_TREE.impact_cinetique = EVO_TREE.punch;
+  EVO_TREE.impulsion_emp = EVO_TREE.arc;
+  EVO_TREE.bombe_thermique = EVO_TREE.surchauffe;
+  EVO_TREE.gravite = EVO_TREE.dash;
+  EVO_TREE.parasite = EVO_TREE.monofil;
 
   function evoChoicesFor(spellId, tier) {
     const tree = EVO_TREE[spellId];
@@ -663,23 +731,21 @@
   }
 
   /**
-   * Enrichit les 3 choix d’évo :
-   * index 0 = meilleure efficacité (stats), spectacle 1 (anim basique)
-   * index 2 = moins bonne efficacité, spectacle 3 (belle anim)
+   * Enrichit les choix d’évo :
+   * - garde anim/fx du choix (sinon fallback spectacle index)
+   * - tag lisible Efficace / Équilibré / Style
    */
   function decorateEvoChoices(choices) {
     if (!choices || !choices.length) return choices;
     return choices.map((ev, i) => {
       const spectacle = Math.min(3, i + 1);
       const power = Math.max(1, 4 - spectacle);
-      const anim = EVO_SPECTACLE_ANIMS[spectacle - 1] || "Attack1";
-      const fx = EVO_SPECTACLE_FX[spectacle - 1];
-      const tag =
-        spectacle === 1
-          ? "⚡ Efficace · anim simple"
-          : spectacle === 2
-            ? "◆ Équilibré"
-            : "✦ Style · anim spectaculaire";
+      const anim = ev.anim || EVO_SPECTACLE_ANIMS[spectacle - 1] || "Attack1";
+      const fx = ev.fx !== undefined ? ev.fx : EVO_SPECTACLE_FX[spectacle - 1];
+      const style =
+        spectacle === 1 ? "Efficace" : spectacle === 2 ? "Équilibré" : "Spectacle";
+      const fxLab = fx ? " · FX " + fx : " · sans FX";
+      const tag = style + " · " + anim + fxLab;
       const baseApply = ev.apply;
       return Object.assign({}, ev, {
         spectacle,

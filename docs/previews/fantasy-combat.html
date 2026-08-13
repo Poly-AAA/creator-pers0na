@@ -153,6 +153,7 @@
         <div class="chip" id="chipPm"><span>PM</span><b id="hudPm">—</b></div>
       </div>
       <div style="display:flex;gap:6px;pointer-events:auto">
+        <a class="link-cc" href="#" id="btnEvo">Évo</a>
         <a class="link-cc" href="fantasy-weapon-anim.html">Anims</a>
         <a class="link-cc" href="fantasy-dir-calibrate.html">Dirs</a>
         <a class="link-cc" href="character-creator-fantasy.html">Créateur</a>
@@ -362,6 +363,7 @@
     combo: 0,
     hover: null,
     pendingEvo: null,
+    castFx: null, /* { slash, effect, until } */
   };
 
   const MOVE_ANIMS = ["Walk","Run","RunBackwards","StrafeLeft","StrafeRight","CrouchRun"];
@@ -403,10 +405,29 @@
     return false;
   }
   function animForArmed(sp){
+    if(sp && sp.id){
+      const st = evoState(sp.id);
+      if(st.evo && st.evo.anim) return st.evo.anim;
+    }
     if(G.armedSlot && G.armedSlot.anim) return G.armedSlot.anim;
     const pref = weaponPreferredAnim();
     if(pref) return pref;
     return (sp && sp.anim) || "Attack1";
+  }
+  function flashCastFx(sp){
+    if(!sp || !sp.id) return;
+    const st = evoState(sp.id);
+    const fx = st.evo && st.evo.fx;
+    if(!fx){ G.castFx = null; return; }
+    const isSlash = /^Slash/i.test(fx);
+    G.castFx = {
+      slash: isSlash ? fx : null,
+      effect: !isSlash ? fx : null,
+      until: performance.now() + 520,
+    };
+    /* précharge */
+    if(G.castFx.slash) loadImg(G.castFx.slash, (st.evo && st.evo.anim) || "Attack1");
+    if(G.castFx.effect) loadImg(G.castFx.effect, (st.evo && st.evo.anim) || "Special1");
   }
   function randomMoveAnim(){ return pick(MOVE_ANIMS); }
 
@@ -501,6 +522,13 @@
     if(bag){ const item={folder:bag,tint:tint("backpack"),alpha:1}; if(bagFront) mid.push(item); else mid.unshift(item); }
     L.push(...mid);
     for(const id of ["head","slash","effect"]){ const f=folder(id); if(f) L.push({folder:f,tint:tint(id),alpha:1}); }
+    /* FX d’évo temporaire au cast */
+    if(G.castFx && performance.now() < G.castFx.until){
+      if(G.castFx.slash) L.push({folder:G.castFx.slash, tint:tint("slash"), alpha:0.95});
+      if(G.castFx.effect) L.push({folder:G.castFx.effect, tint:tint("effect"), alpha:0.9});
+    } else if(G.castFx && performance.now() >= G.castFx.until){
+      G.castFx = null;
+    }
     const mount=folder("mount"); if(mount) L.unshift({folder:mount,tint:tint("mount"),alpha:1});
     return L.filter(x=>x.folder);
   }
@@ -708,6 +736,7 @@
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
     G.player.pa -= cost;
     const anim = (evo.anim) || animForArmed(sp);
+    flashCastFx(sp);
     playAnim(G.player, anim);
 
     if(sp.id==="double"){
@@ -813,6 +842,7 @@
     faceToward(G.player, G.enemy.c, G.enemy.r);
     const anim = evo.anim || animForArmed(sp);
     G.player.pa -= cost;
+    flashCastFx(sp);
     playAnim(G.player, anim);
     let dmg = roll(sp.dmg || [6,10]) + (evo.dmg|0);
     if(G.player.invis>0 && evo.invisBurst) dmg += evo.invisBurst|0;
@@ -970,38 +1000,47 @@
     setStatus("Ton tour"+invis);
   }
 
-  function offerEvo(){
+  function offerEvo(forceId){
     if(typeof FantasyBridge==="undefined" || !FantasyBridge.evoChoicesFor) return;
     const bar = G.spellBar.length ? G.spellBar : refreshSpellBar();
     const candidates = bar.filter(s=>s && s.spellId && !s.locked).map(s=>s.spellId);
-    /* préfère sorts avec arbre d’évo */
-    let pickId = candidates.find(id=>FantasyBridge.EVO_TREE && FantasyBridge.EVO_TREE[id]);
+    let pickId = forceId || null;
+    if(!pickId){
+      pickId = candidates.find(id=>{
+        if(!FantasyBridge.EVO_TREE || !FantasyBridge.EVO_TREE[id]) return false;
+        return FantasyBridge.nextEvoTier(evoState(id)) != null;
+      });
+    }
+    if(!pickId) pickId = candidates.find(id=>FantasyBridge.EVO_TREE && FantasyBridge.EVO_TREE[id]);
     if(!pickId) pickId = candidates[0];
-    if(!pickId) return;
+    if(!pickId){ setStatus("Aucun sort à évoluer"); return; }
     const st = evoState(pickId);
     const tier = FantasyBridge.nextEvoTier(st);
-    if(tier==null) return;
+    if(tier==null){ setStatus((spellById(pickId)||{}).name+" déjà max (2 paliers)"); return; }
     const choices = FantasyBridge.evoChoicesFor(pickId, tier);
     if(!choices || !choices.length) return;
     G.pendingEvo = { spellId: pickId, tier, choices };
     const sp = spellById(pickId);
     el("evoTitle").textContent = "Évolution · "+(sp?sp.name:pickId);
-    el("evoSub").textContent = "Palier "+tier+"/"+FantasyBridge.EVO_MAX_TIERS+" · 1 choix · effets cumulables";
+    el("evoSub").textContent = "Palier "+tier+"/"+FantasyBridge.EVO_MAX_TIERS+" · effet + anim + FX (cumul)";
     const host = el("evoOpts"); host.innerHTML="";
-    choices.forEach((ch, idx)=>{
+    choices.forEach((ch)=>{
       const b = document.createElement("button");
       b.type="button";
-      b.innerHTML = "<b>"+ch.name+"</b><span>"+ch.d+"</span>";
+      const fxLab = ch.fx ? ch.fx : "aucun";
+      b.innerHTML = "<b>"+ch.name+"</b><span>"+ch.d+"</span><span style=\"display:block;margin-top:4px;color:#5b7c99\">Anim "+(ch.anim||"?")+" · FX "+fxLab+"</span>";
       b.onclick=()=>{
         try{ ch.apply(st); }catch(_e){}
         st.tiersTaken = (st.tiersTaken|0) + 1;
+        if(!st.evo) st.evo = {};
         if(ch.anim) st.evo.anim = ch.anim;
-        if(ch.fx) st.evo.fx = ch.fx;
+        st.evo.fx = ch.fx || null;
         saveEvo();
         el("evoOv").classList.remove("on");
         el("evoOv").setAttribute("aria-hidden","true");
         G.pendingEvo = null;
-        setStatus((sp?sp.name:pickId)+" évolué · "+ch.name);
+        setStatus((sp?sp.name:pickId)+" → "+ch.name+" · "+ch.anim+(ch.fx?" +"+ch.fx:""));
+        renderSpells();
       };
       host.appendChild(b);
     });
@@ -1027,7 +1066,9 @@
         b.className = "lock";
         b.disabled = true;
       } else {
-        line.textContent = name+" ·"+sp.cost;
+        const st = evoState(sp.id);
+        const evoAnim = st.evo && st.evo.anim;
+        line.textContent = name+" ·"+sp.cost+(evoAnim?" ·"+evoAnim.replace("Attack","A"):"");
         b.className = (G.armed===sp.id && G.armedSlot && G.armedSlot.slot===slot.slot) ? "on" : "";
         b.disabled = G.turn!=="player" || G.busy || G.player.pa<sp.cost;
         b.onclick=()=>{
@@ -1257,6 +1298,15 @@
       if(G.armed) recomputeTargets();
     });
     el("btnEnd").onclick=endTurn;
+    const btnEvo = el("btnEvo");
+    if(btnEvo){
+      btnEvo.addEventListener("click", (e)=>{
+        e.preventDefault();
+        /* évolue le sort armé, sinon le 1er de la barre */
+        const id = (G.armedSlot && G.armedSlot.spellId) || G.armed || null;
+        offerEvo(id);
+      });
+    }
     window.addEventListener("resize", fit);
     loop();
   }
