@@ -154,9 +154,9 @@
       </div>
       <div style="display:flex;gap:6px;pointer-events:auto">
         <a class="link-cc" href="#" id="btnEvo">Évo</a>
-        <a class="link-cc" href="fantasy-weapon-anim.html">Anims</a>
-        <a class="link-cc" href="fantasy-dir-calibrate.html">Dirs</a>
-        <a class="link-cc" href="character-creator-fantasy.html">Créateur</a>
+        <a class="link-cc" data-fcc="anims" href="fantasy-weapon-anim.html">Anims</a>
+        <a class="link-cc" data-fcc="dirs" href="fantasy-dir-calibrate.html">Dirs</a>
+        <a class="link-cc" data-fcc="creator" href="character-creator-fantasy.html">Créateur</a>
       </div>
     </div>
     <canvas id="arena" width="390" height="480" aria-label="Arène isométrique"></canvas>
@@ -529,7 +529,9 @@
     opts = opts || {};
     if(G.awaitingNext && !opts.force) return;
     G.awaitingNext = false;
-    closeEvo();
+    try{ closeEvo(); }catch(_e){}
+    try{ if(!opts.keepLook) loadLook(); }catch(_e){}
+    lastLookSig = lookSig();
     G.clone = null;
     G.busy = false;
     G.armed = null; G.armedSlot = null;
@@ -549,9 +551,12 @@
     p.c = 2; p.r = 5; p.dir = 3;
     playAnim(p, "Idle");
 
-    G.enemy = makeEnemy(1);
-    warmFolders(G.enemy.layers.map(L=>L.folder));
-    const spellNames = G.enemy.spells.map(id=>{ const s=spellById(id); return s?s.name:id; }).join(" · ");
+    try{ G.enemy = makeEnemy(1); }catch(_e){
+      G.enemy = { c:7, r:4, dir:7, pv:36, pvMax:36, pa:4, paMax:4, pm:2, pmMax:2, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit", layers:[{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}], spells:["punch","arc"], weaponAnim:"Attack1" };
+    }
+    try{ warmFolders((G.enemy.layers||[]).map(L=>L.folder)); }catch(_e){}
+    try{ warm(); }catch(_e){}
+    const spellNames = (G.enemy.spells||[]).map(id=>{ const s=spellById(id); return s?s.name:id; }).join(" · ");
     setStatus("Combat "+G.fightN+" · "+G.enemy.name+" · "+spellNames);
     G.turn = "player";
     beginPlayerTurn();
@@ -591,17 +596,44 @@
     el("btnEnd").disabled = G.turn!=="player" || G.busy;
   }
 
+  function lookSig(){
+    try{ return JSON.stringify(lookState.look||{})+"|"+(lookState.bodies||[]).map(b=>b&&b.folder).join(","); }
+    catch(_e){ return ""; }
+  }
+  let lastLookSig = "";
+  function applyLookPayload(o){
+    if(!o || !o.look) return false;
+    lookState.look = o.look;
+    if(o.colors) lookState.colors = Object.assign({}, DEFAULT_COLORS, o.colors);
+    else lookState.colors = Object.assign({}, DEFAULT_COLORS);
+    if(o.bodies && o.bodies.length) lookState.bodies = o.bodies;
+    else if(o.look.body) lookState.bodies = [{folder:o.look.body, opacity:1, color:lookState.colors.body}];
+    return true;
+  }
+  function loadLookFromHash(){
+    try{
+      const h = (location.hash||"").replace(/^#/,"");
+      if(!h) return false;
+      const parts = h.split("&");
+      let packed = null;
+      for(const p of parts){
+        if(p.indexOf("fccLook=")===0) packed = p.slice(8);
+      }
+      if(!packed) return false;
+      const o = JSON.parse(decodeURIComponent(packed));
+      if(!applyLookPayload(o)) return false;
+      try{ localStorage.setItem(KEY_LOOK, JSON.stringify(o)); }catch(_e){}
+      try{ history.replaceState(null, "", location.pathname + location.search); }catch(_e){}
+      return true;
+    }catch(_e){ return false; }
+  }
   function loadLook(){
+    if(loadLookFromHash()) return true;
     try{
       const raw = localStorage.getItem(KEY_LOOK);
       if(!raw) return false;
       const o = JSON.parse(raw);
-      if(!o || !o.look) return false;
-      lookState.look = o.look;
-      if(o.colors) lookState.colors = Object.assign({}, DEFAULT_COLORS, o.colors);
-      if(o.bodies && o.bodies.length) lookState.bodies = o.bodies;
-      else if(o.look.body) lookState.bodies = [{folder:o.look.body, opacity:1, color:lookState.colors.body}];
-      return true;
+      return applyLookPayload(o);
     }catch(_e){ return false; }
   }
   function defaultLook(){
@@ -1449,6 +1481,7 @@
   async function boot(){
     setStatus("Chargement…");
     if(!loadLook()) defaultLook();
+    lastLookSig = lookSig();
     try{
       for(const u of [BASE_CDN+"catalog.json", BASE_LOCAL+"catalog.json"]){
         const r=await fetch(u,{cache:"no-store",mode:"cors"});
@@ -1520,9 +1553,32 @@
       });
     }
     window.addEventListener("resize", fit);
+    window.addEventListener("pageshow", (e)=>{
+      /* retour créateur (cache) : si le look a changé, relancer un combat */
+      if(!e.persisted) return;
+      try{ loadLook(); }catch(_e){}
+      const sig = lookSig();
+      if(sig && sig !== lastLookSig){
+        lastLookSig = sig;
+        startNextFight({ force:true, keepLook:true });
+      }
+    });
     loop();
   }
-  boot();
+  boot().catch(()=>{
+    try{ if(!lookState.look) defaultLook(); }catch(_e){}
+    try{
+      G.fightN = 1;
+      G.enemy = makeEnemy(1);
+      G.turn = "player";
+      beginPlayerTurn();
+      renderSpells(); hud();
+      loop();
+      setStatus("Combat relancé");
+    }catch(_e){
+      try{ setStatus("Erreur · tape Fin de tour"); }catch(_e2){}
+    }
+  });
 })();
 </script>
 </body>

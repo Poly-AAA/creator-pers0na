@@ -153,56 +153,103 @@ Path("/tmp/fcc-weapon-anim-litter.html").write_text((out / "fantasy-weapon-anim.
 print("standalone ready", len(stand))
 PY
 
+wire_fcc_nav() {
+  python3 - "$1" "$2" "$3" "$4" "$5" <<'PY'
+from pathlib import Path
+import re, sys
+path, combat, creator, anims, dirs = sys.argv[1:6]
+links = {
+    "combat": combat,
+    "creator": creator,
+    "anims": anims,
+    "dirs": dirs,
+}
+p = Path(path)
+t = p.read_text()
+for key, url in links.items():
+    if not url:
+        continue
+    t = re.sub(
+        rf'(data-fcc="{key}"[^>]*href=")[^"]*"',
+        rf'\1{url}"',
+        t,
+    )
+# Fallback relative hrefs (pages without data-fcc)
+if combat:
+    t = t.replace('href="fantasy-combat.html"', f'href="{combat}"')
+if creator:
+    t = t.replace('href="character-creator-fantasy.html"', f'href="{creator}"')
+    t = t.replace('href="creator.html"', f'href="{creator}"')
+if anims:
+    t = t.replace('href="fantasy-weapon-anim.html"', f'href="{anims}"')
+if dirs:
+    t = t.replace('href="fantasy-dir-calibrate.html"', f'href="{dirs}"')
+p.write_text(t)
+print("wired", path, "-> combat", combat)
+PY
+}
+
 LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html)"
 LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html)"
 LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html)"
-
-# Rewrite relative Combat link so Litterbox Anims → Combat works
-python3 - "$LIT_COMBAT" <<'PY'
-from pathlib import Path
-import sys
-combat = sys.argv[1]
-p = Path("/tmp/fcc-weapon-anim-litter.html")
-t = p.read_text()
-t = t.replace('href="fantasy-combat.html"', f'href="{combat}"')
-p.write_text(t)
-print("rewrote combat href ->", combat)
-PY
-
 LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html)"
+
+# Passe 1 : câbler les 4 pages entre elles
+wire_fcc_nav /tmp/fcc-combat-standalone.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+wire_fcc_nav /tmp/fcc-creator-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+wire_fcc_nav /tmp/fcc-dirs-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+wire_fcc_nav /tmp/fcc-weapon-anim-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+
+LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html)"
+LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html)"
+LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html)"
+LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html)"
+
+# Passe 2 : URLs finales (les uploads ont changé les slugs)
+wire_fcc_nav /tmp/fcc-combat-standalone.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+wire_fcc_nav /tmp/fcc-creator-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+wire_fcc_nav /tmp/fcc-dirs-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+wire_fcc_nav /tmp/fcc-weapon-anim-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+
+LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html)"
+LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html)"
+LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html)"
+LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html)"
+
+# Passe 3 : créateur + anims/dirs doivent pointer le combat FINAL
+wire_fcc_nav /tmp/fcc-creator-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+wire_fcc_nav /tmp/fcc-dirs-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+wire_fcc_nav /tmp/fcc-weapon-anim-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+wire_fcc_nav /tmp/fcc-combat-standalone.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+
+LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html)"
+LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html)"
+LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html)"
+LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html)"
+
+# Dernière rustine : créateur → combat final (combat vient d’être reuploadé)
+wire_fcc_nav /tmp/fcc-creator-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+wire_fcc_nav /tmp/fcc-weapon-anim-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+wire_fcc_nav /tmp/fcc-dirs-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html)"
+LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html)"
+LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html)"
 
 verify_url "$LIT_COMBAT" "fantasy" || { echo "ERROR: litter combat failed" >&2; exit 1; }
 verify_url "$LIT_DIRS" "dir" || { echo "ERROR: litter dirs failed" >&2; exit 1; }
 verify_url "$LIT_CREATOR" "" || { echo "ERROR: litter creator failed" >&2; exit 1; }
 verify_url "$LIT_ANIMS" "Anim" || { echo "ERROR: litter weapon-anim failed" >&2; exit 1; }
 
-# 2ᵉ passe : Combat Litterbox → lien Anims absolu
-python3 - "$LIT_ANIMS" <<'PY'
-from pathlib import Path
-import sys
-anims = sys.argv[1]
-p = Path("/tmp/fcc-combat-standalone.html")
-t = p.read_text()
-t = t.replace('href="fantasy-weapon-anim.html"', f'href="{anims}"')
-p.write_text(t)
-print("rewrote anims href in combat ->", anims)
+# Vérifier que le bouton Combat du créateur pointe bien le combat Litterbox
+python3 - "$LIT_CREATOR" "$LIT_COMBAT" <<'PY'
+import sys, urllib.request
+creator, combat = sys.argv[1], sys.argv[2]
+html = urllib.request.urlopen(creator, timeout=30).read().decode("utf-8", "replace")
+if combat not in html:
+    print("ERROR: creator Combat href is not the final combat URL", file=sys.stderr)
+    sys.exit(1)
+print("OK  creator→combat wired")
 PY
-LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html)"
-verify_url "$LIT_COMBAT" "fantasy" || { echo "ERROR: litter combat reupload failed" >&2; exit 1; }
-# Anims page pointe encore vers le 1er combat — republier Anims avec le combat final
-python3 - "$LIT_COMBAT" <<'PY'
-from pathlib import Path
-import sys, re
-combat = sys.argv[1]
-p = Path("/tmp/fcc-weapon-anim-litter.html")
-t = p.read_text()
-t = re.sub(r'href="https://litter\.catbox\.moe/[^"]+"', f'href="{combat}"', t, count=1)
-t = t.replace('href="fantasy-combat.html"', f'href="{combat}"')
-p.write_text(t)
-print("rewrote final combat href in anims ->", combat)
-PY
-LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html)"
-verify_url "$LIT_ANIMS" "Anim" || { echo "ERROR: litter weapon-anim reupload failed" >&2; exit 1; }
 
 echo
 echo "LITTER_COMBAT=$LIT_COMBAT"
