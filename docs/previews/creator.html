@@ -150,7 +150,7 @@
       <button type="button" class="btn" id="btnRandom">Aléatoire</button>
       <button type="button" class="btn" id="btnReset">Reset</button>
       <button type="button" class="btn primary" id="btnExport">Sauver</button>
-      <a class="btn ok" id="btnCombat" href="fantasy-combat.html" style="display:block;text-align:center;text-decoration:none;line-height:40px;background:#2f6f4e;color:#fff;border-color:#2f6f4e">Combat</a>
+      <a class="btn ok" id="btnCombat" data-fcc="combat" href="fantasy-combat.html" style="display:block;text-align:center;text-decoration:none;line-height:40px;background:#2f6f4e;color:#fff;border-color:#2f6f4e">Combat</a>
       <div class="status" id="status">Chargement…</div>
     </div>
   </aside>
@@ -623,17 +623,27 @@
       state.bodies=[{folder:bf[Math.floor(Math.random()*bf.length)]||"NakedBody", opacity:1, color:palette[Math.floor(Math.random()*palette.length)]}];
       state.bodyFocus=0; state.look.body=state.bodies[0].folder;
       state.dirty=true; syncSteppers(); renderSwatches(); renderBodies();
+      saveLookPayload();
     };
     el("btnReset").onclick=()=>{
       state.look=defaultLook(state.catalog); state.colors=defaultColors();
       state.bodies=[{folder:"NakedBody",opacity:1,color:DEFAULT_COLORS.body}];
       state.bodyFocus=0; state.lastEdited=null;
       state.dirty=true; syncSteppers(); renderSwatches(); renderBodies();
+      saveLookPayload();
     };
     function saveLookPayload(){
       const payload={pack:"fantasy-cc", look:state.look, colors:state.colors, bodies:state.bodies, fps:state.fps, anim:state.anim, dir:state.dir, charSizePct:state.charSizePct};
       try{ localStorage.setItem("neuro.fantasyLook", JSON.stringify(payload)); }catch(_e){}
       return payload;
+    }
+    function combatUrlWithLook(){
+      const payload=saveLookPayload();
+      const href=el("btnCombat").getAttribute("href")||"fantasy-combat.html";
+      let url;
+      try{ url=new URL(href, location.href); }catch(_e){ return href; }
+      try{ url.hash="fccLook="+encodeURIComponent(JSON.stringify(payload)); }catch(_e){}
+      return url.toString();
     }
     el("btnExport").onclick=()=>{
       const payload=saveLookPayload();
@@ -641,10 +651,12 @@
       a.download="fantasy-look.json"; a.click(); el("status").textContent="Look sauvé";
     };
     el("btnCombat").onclick=(ev)=>{
-      saveLookPayload();
+      ev.preventDefault();
       el("status").textContent="Look → combat";
-      /* laisser le navigateur suivre href */
+      location.href=combatUrlWithLook();
     };
+    document.addEventListener("visibilitychange", ()=>{ if(document.hidden) saveLookPayload(); });
+    window.addEventListener("pagehide", saveLookPayload);
     window.addEventListener("resize", ()=>{ state.dirty=true; layoutChrome(); });
   }
 
