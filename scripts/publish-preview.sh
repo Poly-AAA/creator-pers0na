@@ -70,68 +70,7 @@ verify_url() {
   rm -f "$tmp"
 }
 
-# Ensure local static server
-if ! curl -sI --max-time 2 "http://127.0.0.1:${PORT}/creator.html" | head -1 | grep -q 200; then
-  python3 -m http.server "$PORT" --directory "$OUT" >/tmp/fcc-http.log 2>&1 &
-  echo $! >/tmp/fcc-http.pid
-  sleep 0.6
-fi
-
-# Ensure cloudflared quick tunnel; reuse existing URL if alive
-TUNNEL_LOG=/tmp/fcc-tunnel.log
-BASE=""
-if [[ -f "$TUNNEL_LOG" ]]; then
-  BASE="$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$TUNNEL_LOG" | tail -1 || true)"
-fi
-if [[ -n "$BASE" ]] && curl -sI -L --max-time 15 -A "$UA" "$BASE/creator.html" | tr -d '\r' | grep -qi 'text/html'; then
-  echo "Reusing tunnel $BASE"
-else
-  if [[ ! -x /tmp/cloudflared ]]; then
-    curl -sL -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
-    chmod +x /tmp/cloudflared
-  fi
-  : >"$TUNNEL_LOG"
-  SESSION="fcc-tunnel"
-  tmux -f /exec-daemon/tmux.portal.conf has-session -t "=$SESSION" 2>/dev/null || \
-    tmux -f /exec-daemon/tmux.portal.conf new-session -d -s "$SESSION" -c /tmp -- "${SHELL:-zsh}" -l
-  tmux -f /exec-daemon/tmux.portal.conf send-keys -t "$SESSION:0.0" C-c
-  sleep 0.3
-  tmux -f /exec-daemon/tmux.portal.conf send-keys -t "$SESSION:0.0" \
-    "/tmp/cloudflared tunnel --url http://127.0.0.1:${PORT} 2>&1 | tee $TUNNEL_LOG" C-m
-  for i in $(seq 1 30); do
-    BASE="$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$TUNNEL_LOG" | tail -1 || true)"
-    [[ -n "$BASE" ]] && break
-    sleep 1
-  done
-fi
-
-CF_OK=0
-if [[ -n "$BASE" ]]; then
-  if verify_url "$BASE/creator.html" "Créateur" \
-    && verify_url "$BASE/fantasy-combat.html" "Combat Fantasy" \
-    && verify_url "$BASE/fantasy-dir-calibrate.html" "Calibrage directions"; then
-    CF_OK=1
-    echo
-    echo "EDITOR=$BASE/editor.html"
-    echo "CREATOR=$BASE/creator.html"
-    echo "COMBAT=$BASE/fantasy-combat.html"
-    echo "DIRS=$BASE/fantasy-dir-calibrate.html"
-    echo "INDEX=$BASE/"
-  else
-    echo "WARN: Cloudflare tunnel registered but not reachable — using Litterbox" >&2
-  fi
-else
-  echo "WARN: no Cloudflare tunnel URL — using Litterbox" >&2
-fi
-
-# Litterbox fallback (Cursor mobile): inline bridge so combat works without /js/
-litter_upload() {
-  local file="$1"
-  curl -sS --max-time 120 \
-    -F "reqtype=fileupload" -F "time=72h" -F "fileToUpload=@${file}" \
-    https://litterbox.catbox.moe/resources/internals/api.php
-}
-
+# Combat autonome (bridge inliné) — sert mieux sur tunnel mobile
 python3 - "$OUT" <<'PY'
 from pathlib import Path
 import re, sys
@@ -147,9 +86,7 @@ stand = pat.sub(inline, combat, count=1)
 if stand == combat:
     stand = combat.replace("</head>", inline + "\n</head>", 1)
 Path("/tmp/fcc-combat-standalone.html").write_text(stand)
-Path("/tmp/fcc-creator-litter.html").write_text((out / "creator.html").read_text())
-Path("/tmp/fcc-dirs-litter.html").write_text((out / "fantasy-dir-calibrate.html").read_text())
-Path("/tmp/fcc-weapon-anim-litter.html").write_text((out / "fantasy-weapon-anim.html").read_text())
+(out / "fantasy-combat.html").write_text(stand)
 print("standalone ready", len(stand))
 PY
 
@@ -174,7 +111,6 @@ for key, url in links.items():
         rf'\1{url}"',
         t,
     )
-# Fallback relative hrefs (pages without data-fcc)
 if combat:
     t = t.replace('href="fantasy-combat.html"', f'href="{combat}"')
 if creator:
@@ -185,83 +121,132 @@ if anims:
 if dirs:
     t = t.replace('href="fantasy-dir-calibrate.html"', f'href="{dirs}"')
 p.write_text(t)
-print("wired", path, "-> combat", combat)
+print("wired", path)
 PY
 }
 
-LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html)"
-LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html)"
-LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html)"
-LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html)"
+start_cloudflared_tunnel() {
+  if [[ ! -x /tmp/cloudflared ]]; then
+    curl -sL -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+    chmod +x /tmp/cloudflared
+  fi
+  pkill -f '/tmp/cloudflared tunnel --url' 2>/dev/null || true
+  sleep 0.5
+  : >"$TUNNEL_LOG"
+  SESSION="fcc-tunnel-v2"
+  tmux -f /exec-daemon/tmux.portal.conf kill-session -t "$SESSION" 2>/dev/null || true
+  tmux -f /exec-daemon/tmux.portal.conf new-session -d -s "$SESSION" -c /tmp -- \
+    "/tmp/cloudflared tunnel --url http://127.0.0.1:${PORT} --no-autoupdate 2>&1 | tee $TUNNEL_LOG"
+  local i url=""
+  for i in $(seq 1 45); do
+    url="$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$TUNNEL_LOG" | tail -1 || true)"
+    [[ -n "$url" ]] && break
+    sleep 1
+  done
+  echo "$url"
+}
 
-# Passe 1 : câbler les 4 pages entre elles
-wire_fcc_nav /tmp/fcc-combat-standalone.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
-wire_fcc_nav /tmp/fcc-creator-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
-wire_fcc_nav /tmp/fcc-dirs-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
-wire_fcc_nav /tmp/fcc-weapon-anim-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+tunnel_alive() {
+  local base="$1"
+  [[ -n "$base" ]] && verify_url "$base/fantasy-combat.html" "Combat Fantasy"
+}
 
-LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html)"
-LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html)"
-LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html)"
-LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html)"
+# Ensure local static server
+if ! curl -sI --max-time 2 "http://127.0.0.1:${PORT}/creator.html" | head -1 | grep -q 200; then
+  python3 -m http.server "$PORT" --directory "$OUT" >/tmp/fcc-http.log 2>&1 &
+  echo $! >/tmp/fcc-http.pid
+  sleep 0.6
+fi
 
-# Passe 2 : URLs finales (les uploads ont changé les slugs)
-wire_fcc_nav /tmp/fcc-combat-standalone.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
-wire_fcc_nav /tmp/fcc-creator-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
-wire_fcc_nav /tmp/fcc-dirs-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
-wire_fcc_nav /tmp/fcc-weapon-anim-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+# Ensure cloudflared quick tunnel (GET complet — évite les 530 « tunnel error »)
+TUNNEL_LOG=/tmp/fcc-tunnel.log
+BASE=""
+if [[ -f "$TUNNEL_LOG" ]]; then
+  BASE="$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$TUNNEL_LOG" | tail -1 || true)"
+fi
+if [[ -n "$BASE" ]] && tunnel_alive "$BASE"; then
+  echo "Reusing tunnel $BASE"
+else
+  echo "Starting fresh Cloudflare tunnel…" >&2
+  BASE="$(start_cloudflared_tunnel)"
+fi
+if [[ -z "$BASE" ]] || ! tunnel_alive "$BASE"; then
+  echo "WARN: Cloudflare tunnel unavailable" >&2
+  BASE=""
+fi
 
-LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html)"
-LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html)"
-LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html)"
-LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html)"
+CF_OK=0
+if [[ -n "$BASE" ]]; then
+  CREATOR_URL="$BASE/creator.html"
+  COMBAT_URL="$BASE/fantasy-combat.html"
+  ANIMS_URL="$BASE/fantasy-weapon-anim.html"
+  DIRS_URL="$BASE/fantasy-dir-calibrate.html"
+  wire_fcc_nav "$OUT/fantasy-combat.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
+  wire_fcc_nav "$OUT/creator.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
+  wire_fcc_nav "$OUT/character-creator-fantasy.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
+  wire_fcc_nav "$OUT/fantasy-weapon-anim.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
+  wire_fcc_nav "$OUT/fantasy-dir-calibrate.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
+  if verify_url "$CREATOR_URL" "combatUrlWithLook" \
+    && verify_url "$COMBAT_URL" "Combat Fantasy" \
+    && verify_url "$DIRS_URL" "Calibrage directions"; then
+    CF_OK=1
+    echo
+    echo "EDITOR=$BASE/editor.html"
+    echo "CREATOR=$CREATOR_URL"
+    echo "COMBAT=$COMBAT_URL"
+    echo "DIRS=$DIRS_URL"
+    echo "ANIMS=$ANIMS_URL"
+    echo "INDEX=$BASE/"
+  else
+    echo "WARN: Cloudflare tunnel registered but verify failed" >&2
+    CF_OK=0
+  fi
+fi
 
-# Passe 3 : créateur + anims/dirs doivent pointer le combat FINAL
-wire_fcc_nav /tmp/fcc-creator-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
-wire_fcc_nav /tmp/fcc-dirs-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
-wire_fcc_nav /tmp/fcc-weapon-anim-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
-wire_fcc_nav /tmp/fcc-combat-standalone.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
-
-LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html)"
-LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html)"
-LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html)"
-LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html)"
-
-# Dernière rustine : créateur → combat final (combat vient d’être reuploadé)
-wire_fcc_nav /tmp/fcc-creator-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
-wire_fcc_nav /tmp/fcc-weapon-anim-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
-wire_fcc_nav /tmp/fcc-dirs-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
-LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html)"
-LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html)"
-LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html)"
-
-verify_url "$LIT_COMBAT" "fantasy" || { echo "ERROR: litter combat failed" >&2; exit 1; }
-verify_url "$LIT_DIRS" "dir" || { echo "ERROR: litter dirs failed" >&2; exit 1; }
-verify_url "$LIT_CREATOR" "" || { echo "ERROR: litter creator failed" >&2; exit 1; }
-verify_url "$LIT_ANIMS" "Anim" || { echo "ERROR: litter weapon-anim failed" >&2; exit 1; }
-
-# Vérifier que le bouton Combat du créateur pointe bien le combat Litterbox
-python3 - "$LIT_CREATOR" "$LIT_COMBAT" <<'PY'
-import sys, urllib.request
-creator, combat = sys.argv[1], sys.argv[2]
-html = urllib.request.urlopen(creator, timeout=30).read().decode("utf-8", "replace")
-if combat not in html:
-    print("ERROR: creator Combat href is not the final combat URL", file=sys.stderr)
-    sys.exit(1)
-print("OK  creator→combat wired")
-PY
-
-echo
-echo "LITTER_COMBAT=$LIT_COMBAT"
-echo "LITTER_DIRS=$LIT_DIRS"
-echo "LITTER_CREATOR=$LIT_CREATOR"
-echo "LITTER_ANIMS=$LIT_ANIMS"
-# Prefer Litterbox for mobile when CF is down
+# Litterbox fallback (optionnel — souvent indisponible)
+LIT_OK=0
+LIT_COMBAT="" LIT_DIRS="" LIT_CREATOR="" LIT_ANIMS=""
 if [[ "$CF_OK" -ne 1 ]]; then
-  echo "COMBAT=$LIT_COMBAT"
-  echo "DIRS=$LIT_DIRS"
-  echo "CREATOR=$LIT_CREATOR"
-  echo "ANIMS=$LIT_ANIMS"
+  litter_upload() {
+    local file="$1" resp
+    resp="$(curl -sS --max-time 120 \
+      -F "reqtype=fileupload" -F "time=72h" -F "fileToUpload=@${file}" \
+      https://litterbox.catbox.moe/resources/internals/api.php 2>/dev/null || true)"
+    if [[ "$resp" == https://* ]]; then echo "$resp"; fi
+  }
+  cp "$OUT/creator.html" /tmp/fcc-creator-litter.html
+  cp "$OUT/fantasy-dir-calibrate.html" /tmp/fcc-dirs-litter.html
+  cp "$OUT/fantasy-weapon-anim.html" /tmp/fcc-weapon-anim-litter.html
+  LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html || true)"
+  LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html || true)"
+  LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html || true)"
+  LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html || true)"
+  if [[ "$LIT_COMBAT" == https://* ]] && verify_url "$LIT_COMBAT" "Combat Fantasy"; then
+    wire_fcc_nav /tmp/fcc-creator-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+    LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html || true)"
+    if [[ "$LIT_CREATOR" == https://* ]]; then LIT_OK=1; fi
+  fi
+  if [[ "$LIT_OK" -eq 1 ]]; then
+    echo
+    echo "LITTER_COMBAT=$LIT_COMBAT"
+    echo "LITTER_CREATOR=$LIT_CREATOR"
+    echo "COMBAT=$LIT_COMBAT"
+    echo "CREATOR=$LIT_CREATOR"
+  else
+    echo "WARN: Litterbox unavailable — use Cloudflare links only" >&2
+  fi
+fi
+
+if [[ "$CF_OK" -eq 1 ]]; then
+  echo "COMBAT=$COMBAT_URL"
+  echo "CREATOR=$CREATOR_URL"
+  echo "DIRS=$DIRS_URL"
+  echo "ANIMS=$ANIMS_URL"
+fi
+
+if [[ "$CF_OK" -ne 1 && "$LIT_OK" -ne 1 ]]; then
+  echo "ERROR: no verified preview URL (tunnel + litterbox failed)" >&2
+  exit 1
 fi
 
 # Fallback links (repo) — only print SHA; caller should verify htmlpreview separately after push
