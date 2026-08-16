@@ -403,6 +403,40 @@
   const ATK_ANIMS = ["Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","AttackRun","AttackRun2","Kick","Special1"];
   function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
   function randomMoveAnim(){ return pick(MOVE_ANIMS); }
+
+  const MOUNT_PM = { Mount1:1, Mount2:1, Mount3:2, Mount4:1, Mount5:2 };
+  function mountFolder(){
+    try{
+      if(typeof FantasyBridge!=="undefined" && FantasyBridge.currentMountFolder){
+        const m = FantasyBridge.currentMountFolder();
+        if(m && m!=="None") return m;
+      }
+    }catch(_e){}
+    const v = lookState.look && lookState.look.mount;
+    return (!v || v==="None") ? null : v;
+  }
+  function isPlayerMounted(){ return !!mountFolder(); }
+  function mountPmBonus(){
+    try{
+      if(typeof FantasyBridge!=="undefined" && FantasyBridge.mountPmBonus)
+        return FantasyBridge.mountPmBonus(mountFolder()||"None")|0;
+    }catch(_e){}
+    return MOUNT_PM[mountFolder()]|0;
+  }
+  function toRideAnim(anim){
+    try{
+      if(typeof FantasyBridge!=="undefined" && FantasyBridge.toRideAnim)
+        return FantasyBridge.toRideAnim(anim);
+    }catch(_e){}
+    if(!anim || anim==="Die" || anim==="TakeDamage") return anim;
+    if(anim==="Idle") return "RideIdle";
+    if(/Walk|Run|Strafe|Crouch/i.test(anim)) return "RideRun";
+    if(/AttackRun/i.test(anim)) return "RideRunAttack1";
+    if(/Attack|Kick|Special|Taunt/i.test(anim)) return "RideIdleAttack1";
+    return anim;
+  }
+  function playerBasePm(){ return 3 + mountPmBonus(); }
+
   function weaponFolder(){
     try{
       if(typeof FantasyBridge!=="undefined") return FantasyBridge.currentWeaponFolder();
@@ -494,7 +528,14 @@
     if(off && off!=="None") layers.push({folder:off, tint:null, alpha:1});
     layers.push({folder:weapon, tint:null, alpha:1});
     layers.push({folder:pick(ENEMY_HEADS), tint:null, alpha:1});
-    return { layers, weapon, weaponAnim: enemyWeaponAnim(weapon) };
+    let mount = null;
+    if(strategy==="skirmisher" || strategy==="sniper" || strategy==="bruiser"){
+      if(Math.random() < (strategy==="skirmisher" ? 0.55 : 0.28)){
+        mount = pick(["Mount1","Mount2","Mount3","Mount4","Mount5"]);
+        layers.unshift({folder:mount, tint:null, alpha:1});
+      }
+    }
+    return { layers, weapon, weaponAnim: enemyWeaponAnim(weapon), mount };
   }
 
   function pickEnemyStrategy(){
@@ -560,8 +601,8 @@
   }
 
   function warmFolders(folders){
-    /* léger : Idle + moves + 1–2 atks — le reste en lazy load */
-    const anims=["Idle","Walk","Run","TakeDamage","Die"];
+    /* léger : Idle + moves + ride — le reste en lazy load */
+    const anims=["Idle","Walk","Run","TakeDamage","Die","RideIdle","RideRun"];
     for(const f of folders){
       if(!f) continue;
       for(const a of anims) loadImg(f, a);
@@ -596,13 +637,14 @@
       c: spot.c, r: Math.max(0, Math.min(GRID-1, spot.r)), dir:7,
       pv, pvMax:pv,
       pa:4, paMax:4 + Math.min(2, Math.floor((G.fightN-1)/2)),
-      pm: strategy==="skirmisher" || strategy==="sniper" ? 5 : 4,
-      pmMax: strategy==="skirmisher" || strategy==="sniper" ? 5 : 4,
+      pm: (strategy==="skirmisher" || strategy==="sniper" ? 5 : 4) + (look.mount ? 1 : 0),
+      pmMax: (strategy==="skirmisher" || strategy==="sniper" ? 5 : 4) + (look.mount ? 1 : 0),
       anim:"Idle", frame:0, t0:0, flash:0, alive:true,
       name, strategy, profile,
       layers: look.layers,
       spells,
       weaponAnim: look.weaponAnim,
+      mount: look.mount || null,
       _stunned:false,
       lastSeen: null,
       shield:0
@@ -639,8 +681,9 @@
     p.shield = 0;
     p.invis = 0;
     p.c = 2; p.r = Math.floor(GRID/2); p.dir = 3;
-    playAnim(p, "Idle");
     cam.fx = p.c; cam.fy = p.r;
+    p.pmMax = playerBasePm();
+    playAnim(p, "Idle");
 
     try{ G.enemy = makeEnemy(1); }catch(_e){
       G.enemy = { c:GRID-3, r:Math.max(1,Math.floor(GRID/2)-1), dir:7, pv:55, pvMax:55, pa:4, paMax:4, pm:4, pmMax:4, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit", strategy:"bruiser", profile:strategyProfile("bruiser",["punch"]), layers:[{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}], spells:["punch","monofil"], weaponAnim:"Attack1", shield:0 };
@@ -654,7 +697,8 @@
     }catch(_e){}
     const spellNames = (G.enemy.spells||[]).map(id=>{ const s=spellById(id); return s?s.name:id; }).join(" · ");
     const sty = (G.enemy.profile && G.enemy.profile.label) || G.enemy.strategy || "?";
-    setStatus("Combat "+G.fightN+" · "+G.enemy.name+" ("+sty+") · "+spellNames);
+    const mountBit = G.enemy.mount ? " · monté" : "";
+    setStatus("Combat "+G.fightN+" · "+G.enemy.name+" ("+sty+mountBit+") · "+spellNames);
     G.turn = "player";
     beginPlayerTurn();
   }
@@ -935,7 +979,10 @@
   }
 
   function playAnim(ent, anim){
-    ent.anim = anim; ent.frame = 0; ent.t0 = performance.now();
+    let a = anim;
+    if(ent === G.player && isPlayerMounted()) a = toRideAnim(anim);
+    else if(ent && ent.mount) a = toRideAnim(anim);
+    ent.anim = a; ent.frame = 0; ent.t0 = performance.now();
   }
   function faceToward(ent, tc, tr){
     const d = dirFromIsoDelta(tc-ent.c, tr-ent.r);
@@ -954,7 +1001,7 @@
     recomputeMoves(); recomputeTargets(); hud();
     setStatus("Dir "+DIR_LABEL[G.player.dir]+" · −1 PM");
     setTimeout(()=>{
-      if(MOVE_ANIMS.includes(G.player.anim)) playAnim(G.player,"Idle");
+      if(MOVE_ANIMS.includes(G.player.anim) || G.player.anim==="RideRun") playAnim(G.player,"Idle");
     }, 380);
   }
 
@@ -1478,14 +1525,16 @@
 
   function beginPlayerTurn(){
     G.busy = false;
+    G.player.pmMax = playerBasePm();
     G.player.pa = G.player.paMax;
     G.player.pm = G.player.pmMax;
     if(G.player.invis>0) G.player.invis -= 1;
     G.armed=null; G.armedSlot=null;
     refreshSpellBar();
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+    const mount = isPlayerMounted() ? " · monture +"+mountPmBonus()+" PM" : "";
     const invis = G.player.invis>0 ? " · voile "+G.player.invis : "";
-    setStatus("Ton tour"+invis);
+    setStatus("Ton tour"+mount+invis);
   }
 
   function offerEvo(forceId, fromVictory){
@@ -1604,7 +1653,7 @@
     const row = sheetRowForDir(ent.dir|0, anim);
     const elapsed = (performance.now()-(ent.t0||0))/1000;
     let col = Math.floor(elapsed*FPS);
-    if(anim==="Idle"||anim==="Walk"||anim==="Run"||anim==="RunBackwards"||anim==="StrafeLeft"||anim==="StrafeRight"||anim==="CrouchRun") col = col % COLS;
+    if(anim==="Idle"||anim==="Walk"||anim==="Run"||anim==="RunBackwards"||anim==="StrafeLeft"||anim==="StrafeRight"||anim==="CrouchRun"||anim==="RideIdle"||anim==="RideRun") col = col % COLS;
     else col = Math.min(col, COLS-1);
     const s = toScreen(ent.c, ent.r);
     const scale = 1.15;
@@ -1727,7 +1776,7 @@
   }
 
   function warm(){
-    const anims=["Idle","Walk","Run","TakeDamage","Die","Attack1"];
+    const anims=["Idle","Walk","Run","TakeDamage","Die","Attack1","RideIdle","RideRun","RideIdleAttack1","RideRunAttack1"];
     for(const L of layersForRow(3)) for(const a of anims) loadImg(L.folder,a);
     if(G.enemy && G.enemy.layers){
       for(const L of G.enemy.layers) for(const a of anims) loadImg(L.folder,a);

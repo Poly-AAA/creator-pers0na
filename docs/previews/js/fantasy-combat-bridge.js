@@ -625,9 +625,39 @@
     return EVO_TIER_LEVELS[taken];
   }
 
+  const MOUNT_PM = {
+    Mount1: 1,
+    Mount2: 1,
+    Mount3: 2,
+    Mount4: 1,
+    Mount5: 2,
+  };
+
+  function currentMountFolder() {
+    try {
+      const L = currentLook();
+      if (L && L.mount && L.mount !== "None") return L.mount;
+    } catch (_e) {}
+    return "None";
+  }
+
+  function mountPmBonus(folder) {
+    const f = folder || currentMountFolder();
+    return MOUNT_PM[f] || 0;
+  }
+
+  function toRideAnim(anim) {
+    if (!anim || anim === "Die" || anim === "TakeDamage") return anim;
+    if (anim === "Idle" || anim === "RideIdle") return "RideIdle";
+    if (/Walk|Run|Strafe|Crouch|RideRun$/i.test(anim)) return "RideRun";
+    if (/AttackRun/i.test(anim)) return "RideRunAttack1";
+    if (/Attack|Kick|Special|Taunt/i.test(anim)) return "RideIdleAttack1";
+    return anim;
+  }
+
   function lookSeed(look) {
     const L = look || {};
-    return [L.head || "", L.body || "", L.chest || "", L.weapon || "", L.offhand || "", L.backpack || ""].join("|");
+    return [L.head || "", L.body || "", L.chest || "", L.weapon || "", L.offhand || "", L.backpack || "", L.mount || ""].join("|");
   }
 
   /**
@@ -818,6 +848,10 @@
     readWeaponAnimMap,
     ensureWeaponAnimMap,
     currentWeaponFolder,
+    currentMountFolder,
+    mountPmBonus,
+    toRideAnim,
+    MOUNT_PM,
     currentLook,
     buildSpellBar,
     isSelfSpellId,
