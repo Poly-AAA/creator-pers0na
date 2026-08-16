@@ -225,7 +225,17 @@
   const GRID = 14;
   const TILE_W = 56, TILE_H = 28;
   const VIEW_TILES = 9; /* ~tuiles visibles en largeur */
-  const cam = { ox:0, oy:0, sc:1, fx:2, fy:7, smooth:0.18 };
+  const cam = { ox:0, oy:0, sc:1, fx:2, fy:7, smooth:0.22, _w:0, _h:0 };
+  let TILE_ORDER = null;
+  function ensureTileOrder(){
+    if(TILE_ORDER) return TILE_ORDER;
+    const order=[];
+    for(let r=0;r<GRID;r++) for(let c=0;c<GRID;c++) order.push({c,r,sum:c+r});
+    order.sort((a,b)=>a.sum-b.sum || a.c-b.c);
+    TILE_ORDER = order;
+    return TILE_ORDER;
+  }
+  let lastEnemySig = "";
 
   /*
    * Sheet fantasy-cc : mapping ligne→direction écran (calibrable par action).
@@ -376,13 +386,23 @@
   const ENEMY_WEAPONS = ["Melee1","Melee2","Melee3","Melee5","Melee8","Melee10","Melee12","Melee15","Ranged1","Ranged2","Ranged3","Ranged5","Magic1","Magic2","Magic3"];
   const ENEMY_OFFHAND = ["None","None","Shield1","Shield2","Offhand1","Offhand2"];
   const ENEMY_TINTS = ["#8a6060","#6a5a4a","#5a6a5a","#5a5a6a","#7a5a4a","#4a5a6a","#6a4a5a"];
-  const ENEMY_NAMES = ["Bandit","Brigand","Rôdeur","Sorcier","Archer","Mercenaire","Spectre","Garde","Pillard","Mage noir","Chasseur","Duelliste"];
+  const ENEMY_NAMES = {
+    bruiser:["Brute","Pillard","Garde","Mercenaire","Duelliste"],
+    sniper:["Archer","Rôdeur","Chasseur","Franc-tireur"],
+    caster:["Sorcier","Mage noir","Hexeur","Oracle"],
+    skirmisher:["Bandit","Brigand","Ombre","Éclaireur"],
+    controller:["Spectre","Enchanteur","Tyran","Runiste"],
+    assassin:["Assassin","Lame","Traqueur","Ninja"],
+  };
   const ENEMY_SPELL_POOL = SPELLS.filter(s=>s.dmg && s.type==="damage" && s.range>=1).map(s=>s.id);
+  const ENEMY_CTRL_POOL = ["parasite","gravite","impulsion_emp","piratage_neural","compression"];
+  const ENEMY_SUPPORT_POOL = ["bouclier","nanites"];
+  const ENEMY_MOBILE_POOL = ["dash","mine"];
 
-  const MOVE_ANIMS = ["Walk","Run","RunBackwards","StrafeLeft","StrafeRight","CrouchRun"];
+  const MOVE_ANIMS = ["Walk","Run"];
   const ATK_ANIMS = ["Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","AttackRun","AttackRun2","Kick","Special1"];
-
   function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function randomMoveAnim(){ return pick(MOVE_ANIMS); }
   function weaponFolder(){
     try{
       if(typeof FantasyBridge!=="undefined") return FantasyBridge.currentWeaponFolder();
@@ -442,7 +462,6 @@
     if(G.castFx.slash) loadImg(G.castFx.slash, (st.evo && st.evo.anim) || "Attack1");
     if(G.castFx.effect) loadImg(G.castFx.effect, (st.evo && st.evo.anim) || "Special1");
   }
-  function randomMoveAnim(){ return pick(MOVE_ANIMS); }
 
   function enemyWeaponAnim(folder){
     try{
@@ -455,9 +474,17 @@
     return "Attack1";
   }
 
-  function rollEnemyLayers(){
-    const weapon = pick(ENEMY_WEAPONS);
-    const off = pick(ENEMY_OFFHAND);
+  function rollEnemyLayers(strategy){
+    let weapons = ENEMY_WEAPONS;
+    if(strategy==="sniper") weapons = ENEMY_WEAPONS.filter(w=>/^Ranged/i.test(w));
+    else if(strategy==="caster") weapons = ENEMY_WEAPONS.filter(w=>/^Magic/i.test(w));
+    else if(strategy==="bruiser" || strategy==="assassin") weapons = ENEMY_WEAPONS.filter(w=>/^Melee/i.test(w));
+    else if(strategy==="skirmisher") weapons = ENEMY_WEAPONS.filter(w=>/^Melee|^Ranged/i.test(w));
+    if(!weapons.length) weapons = ENEMY_WEAPONS;
+    const weapon = pick(weapons);
+    const off = strategy==="bruiser" || strategy==="controller"
+      ? pick(["Shield1","Shield2","Offhand1","None"])
+      : pick(ENEMY_OFFHAND);
     const tintBody = pick(ENEMY_TINTS);
     const layers = [
       {folder:"NakedBody", tint:tintBody, alpha:1},
@@ -470,30 +497,71 @@
     return { layers, weapon, weaponAnim: enemyWeaponAnim(weapon) };
   }
 
-  function rollEnemySpells(weapon){
-    const pool = ENEMY_SPELL_POOL.slice();
-    /* biais selon arme */
-    let prefer = pool;
-    if(/^Ranged/i.test(weapon)) prefer = pool.filter(id=>{ const s=spellById(id); return s && s.range>=3; });
-    else if(/^Magic/i.test(weapon)) prefer = pool.filter(id=>{ const s=spellById(id); return s && (s.range>=2 || /surchauffe|tempete|rupture|brasier|arc/.test(id)); });
-    else prefer = pool.filter(id=>{ const s=spellById(id); return s && s.range<=2; });
-    if(!prefer.length) prefer = pool;
-    const n = 2 + Math.floor(Math.random()*2); /* 2–3 sorts */
+  function pickEnemyStrategy(){
+    return pick(["bruiser","sniper","caster","skirmisher","controller","assassin"]);
+  }
+
+  function rollEnemySpells(weapon, strategy){
+    const dmgPool = ENEMY_SPELL_POOL.slice();
+    let prefer = dmgPool;
+    if(strategy==="sniper" || /^Ranged/i.test(weapon))
+      prefer = dmgPool.filter(id=>{ const s=spellById(id); return s && s.range>=3; });
+    else if(strategy==="caster" || /^Magic/i.test(weapon))
+      prefer = dmgPool.filter(id=>{ const s=spellById(id); return s && (s.range>=2 || s.aoe); });
+    else if(strategy==="assassin")
+      prefer = dmgPool.filter(id=>{ const s=spellById(id); return s && s.range<=2 && enemySpellDmgAvg(s)>=12; });
+    else if(strategy==="bruiser")
+      prefer = dmgPool.filter(id=>{ const s=spellById(id); return s && s.range<=2; });
+    if(!prefer.length) prefer = dmgPool;
+
     const out = [];
     const used = new Set();
+    const add = (id)=>{ if(id && !used.has(id) && spellById(id)){ used.add(id); out.push(id); } };
+
+    if(strategy==="controller"){
+      add(pick(ENEMY_CTRL_POOL));
+      add(pick(ENEMY_CTRL_POOL));
+    }
+    if(strategy==="skirmisher") add(pick(ENEMY_MOBILE_POOL));
+    if(strategy==="bruiser" || strategy==="caster"){
+      if(Math.random()<0.55) add(pick(ENEMY_SUPPORT_POOL));
+    }
+    if(strategy==="assassin" && Math.random()<0.4) add("dash");
+
+    const n = 2 + Math.floor(Math.random()*2);
     for(let i=0;i<n;i++){
       const avail = prefer.filter(x=>!used.has(x));
-      const src = avail.length ? avail : pool.filter(x=>!used.has(x));
+      const src = avail.length ? avail : dmgPool.filter(x=>!used.has(x));
       if(!src.length) break;
-      const id = pick(src);
-      used.add(id); out.push(id);
+      add(pick(src));
     }
-    if(!out.length) out.push(pick(pool) || "punch");
+    if(!out.some(id=>{ const s=spellById(id); return s && s.dmg; }))
+      add(pick(prefer) || "punch");
     return out;
   }
 
+  function enemySpellDmgAvg(sp){
+    if(!sp || !sp.dmg) return 0;
+    return (sp.dmg[0]+sp.dmg[1])/2;
+  }
+
+  function strategyProfile(strategy, spells){
+    const defs = (spells||[]).map(spellById).filter(Boolean);
+    const maxR = defs.reduce((m,s)=>Math.max(m, s.range|0), 1);
+    const profiles = {
+      bruiser:   { preferMin:1, preferMax:1, kiteBelow:0, retreatHp:0.2, supportFirst:true, label:"charge" },
+      sniper:    { preferMin:Math.max(3,maxR-1), preferMax:maxR, kiteBelow:2, retreatHp:0.35, supportFirst:false, label:"tire" },
+      caster:    { preferMin:2, preferMax:Math.max(3,maxR), kiteBelow:1, retreatHp:0.4, supportFirst:true, label:"incante" },
+      skirmisher:{ preferMin:1, preferMax:2, kiteBelow:0, retreatHp:0.45, supportFirst:false, hitAndRun:true, label:"harcèle" },
+      controller:{ preferMin:2, preferMax:Math.max(3,maxR), kiteBelow:1, retreatHp:0.3, supportFirst:true, controlFirst:true, label:"contrôle" },
+      assassin:  { preferMin:1, preferMax:1, kiteBelow:0, retreatHp:0.25, supportFirst:false, waitForKill:true, label:"frappe" },
+    };
+    return profiles[strategy] || profiles.bruiser;
+  }
+
   function warmFolders(folders){
-    const anims=["Idle","Walk","Run","Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","AttackRun","AttackRun2","TakeDamage","Die","Special1","Kick","Taunt"];
+    /* léger : Idle + moves + 1–2 atks — le reste en lazy load */
+    const anims=["Idle","Walk","Run","TakeDamage","Die"];
     for(const f of folders){
       if(!f) continue;
       for(const a of anims) loadImg(f, a);
@@ -502,29 +570,42 @@
 
   function makeEnemy(scale){
     scale = scale || 1;
-    const look = rollEnemyLayers();
-    const spells = rollEnemySpells(look.weapon);
-    /* IA féroce : plus de PV / PA / PM, sorts 3–4 */
-    while(spells.length < 3){
-      const extra = pick(ENEMY_SPELL_POOL);
-      if(extra && spells.indexOf(extra)<0) spells.push(extra);
-      else break;
-    }
-    const basePv = 42 + Math.floor(Math.random()*22) + Math.floor((G.fightN-1)*6);
-    const pv = Math.min(120, Math.floor(basePv * scale));
-    const er = Math.max(1, Math.floor(GRID/2) - 1);
+    let tries = 0, look, spells, strategy, name, sig;
+    do {
+      strategy = pickEnemyStrategy();
+      look = rollEnemyLayers(strategy);
+      spells = rollEnemySpells(look.weapon, strategy);
+      name = pick(ENEMY_NAMES[strategy] || ENEMY_NAMES.bruiser);
+      sig = [strategy, look.weapon, name, spells.slice().sort().join(",")].join("|");
+      tries++;
+    } while(sig === lastEnemySig && tries < 8);
+    lastEnemySig = sig;
+
+    const profile = strategyProfile(strategy, spells);
+    const basePv = 38 + Math.floor(Math.random()*20) + Math.floor((G.fightN-1)*5);
+    const pv = Math.min(110, Math.floor(basePv * scale));
+    const spawnSpots = [
+      {c:GRID-3, r:Math.floor(GRID/2)-1},
+      {c:GRID-3, r:Math.floor(GRID/2)+1},
+      {c:GRID-4, r:2},
+      {c:GRID-4, r:GRID-3},
+      {c:GRID-2, r:Math.floor(GRID/2)},
+    ];
+    const spot = pick(spawnSpots);
     return {
-      c: GRID - 3, r: er, dir:7,
+      c: spot.c, r: Math.max(0, Math.min(GRID-1, spot.r)), dir:7,
       pv, pvMax:pv,
-      pa:5, paMax:5 + Math.min(2, Math.floor((G.fightN-1)/2)),
-      pm:4, pmMax:4,
+      pa:4, paMax:4 + Math.min(2, Math.floor((G.fightN-1)/2)),
+      pm: strategy==="skirmisher" || strategy==="sniper" ? 5 : 4,
+      pmMax: strategy==="skirmisher" || strategy==="sniper" ? 5 : 4,
       anim:"Idle", frame:0, t0:0, flash:0, alive:true,
-      name:pick(ENEMY_NAMES),
+      name, strategy, profile,
       layers: look.layers,
       spells,
       weaponAnim: look.weaponAnim,
       _stunned:false,
-      lastSeen: null
+      lastSeen: null,
+      shield:0
     };
   }
 
@@ -562,12 +643,18 @@
     cam.fx = p.c; cam.fy = p.r;
 
     try{ G.enemy = makeEnemy(1); }catch(_e){
-      G.enemy = { c:GRID-3, r:Math.max(1,Math.floor(GRID/2)-1), dir:7, pv:55, pvMax:55, pa:5, paMax:5, pm:4, pmMax:4, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit", layers:[{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}], spells:["punch","arc","monofil"], weaponAnim:"Attack1" };
+      G.enemy = { c:GRID-3, r:Math.max(1,Math.floor(GRID/2)-1), dir:7, pv:55, pvMax:55, pa:4, paMax:4, pm:4, pmMax:4, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit", strategy:"bruiser", profile:strategyProfile("bruiser",["punch"]), layers:[{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}], spells:["punch","monofil"], weaponAnim:"Attack1", shield:0 };
     }
-    try{ warmFolders((G.enemy.layers||[]).map(L=>L.folder)); }catch(_e){}
-    try{ warm(); }catch(_e){}
+    try{
+      warmFolders((G.enemy.layers||[]).map(L=>L.folder));
+      const atk = (G.enemy.spells||[]).map(spellById).filter(Boolean).map(s=>s.anim||G.enemy.weaponAnim).filter(Boolean);
+      for(const a of new Set(atk.concat([G.enemy.weaponAnim||"Attack1"]))){
+        for(const L of (G.enemy.layers||[])) loadImg(L.folder, a);
+      }
+    }catch(_e){}
     const spellNames = (G.enemy.spells||[]).map(id=>{ const s=spellById(id); return s?s.name:id; }).join(" · ");
-    setStatus("Combat "+G.fightN+" · "+G.enemy.name+" · "+spellNames);
+    const sty = (G.enemy.profile && G.enemy.profile.label) || G.enemy.strategy || "?";
+    setStatus("Combat "+G.fightN+" · "+G.enemy.name+" ("+sty+") · "+spellNames);
     G.turn = "player";
     beginPlayerTurn();
   }
@@ -763,16 +850,18 @@
     if(Math.abs(tr - cam.fy) < 0.02) cam.fy = tr;
   }
   function fit(){
-    const host = canvas.parentElement.getBoundingClientRect();
-    const w = Math.max(200, Math.round(host.width));
-    const h = Math.max(200, Math.round(host.height));
-    if(canvas.width!==w || canvas.height!==h){ canvas.width=w; canvas.height=h; }
+    const host = canvas.parentElement;
+    const w = Math.max(200, host.clientWidth|0);
+    const h = Math.max(200, host.clientHeight|0);
+    if(cam._w!==w || cam._h!==h){
+      cam._w=w; cam._h=h;
+      if(canvas.width!==w || canvas.height!==h){ canvas.width=w; canvas.height=h; }
+      const viewW = VIEW_TILES * TILE_W;
+      const viewH = VIEW_TILES * TILE_H * 0.72;
+      const sc = Math.min(w / (viewW + 24), h / (viewH + 48), 1.55);
+      cam.sc = Math.max(0.72, sc);
+    }
     updateCamera();
-    /* zoom : ~VIEW_TILES visibles, pas toute la map */
-    const viewW = VIEW_TILES * TILE_W;
-    const viewH = VIEW_TILES * TILE_H * 0.72;
-    const sc = Math.min(w / (viewW + 24), h / (viewH + 48), 1.55);
-    cam.sc = Math.max(0.72, sc);
     const cx = w / (2 * cam.sc);
     const cy = h / (2 * cam.sc) + 10;
     const px = (cam.fx - cam.fy) * (TILE_W/2);
@@ -780,11 +869,10 @@
     cam.ox = cx - px;
     cam.oy = cy - py;
   }
-  function tileVisible(c, r){
-    const s = toScreen(c, r);
-    const margin = TILE_W + 40;
-    const W = canvas.width / cam.sc, H = canvas.height / cam.sc;
-    return s.x > -margin && s.x < W + margin && s.y > -margin && s.y < H + margin;
+  function tileInView(c, r){
+    /* cull rapide autour du focus caméra (évite toScreen × 196) */
+    const pad = 6;
+    return Math.abs(c - cam.fx) <= pad && Math.abs(r - cam.fy) <= pad;
   }
 
   function key(c,r){ return c+","+r; }
@@ -1015,7 +1103,8 @@
         /* tacle */
         faceToward(cl, G.enemy.c, G.enemy.r);
         playAnim(cl, "AttackRun");
-        const dmg = roll(cl.dmg);
+        let dmg = roll(cl.dmg);
+        if(G.enemy.shield>0){ const a=Math.min(G.enemy.shield,dmg); G.enemy.shield-=a; dmg-=a; }
         G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
         G.enemy.flash = performance.now()+180;
         playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
@@ -1060,6 +1149,7 @@
     const hits = 1 + (evo.hits|0);
     let total = 0;
     for(let i=0;i<hits;i++) total += dmg;
+    if(G.enemy.shield>0){ const a=Math.min(G.enemy.shield,total); G.enemy.shield-=a; total-=a; }
     G.enemy.pv = Math.max(0, G.enemy.pv - total);
     G.enemy.flash = performance.now()+180;
     faceToward(G.enemy, G.player.c, G.player.r);
@@ -1147,23 +1237,42 @@
   }
 
   function enemySpellDmg(sp){
-    if(!sp || !sp.dmg) return 6;
-    return (sp.dmg[0] + sp.dmg[1]) / 2;
+    return enemySpellDmgAvg(sp) || 6;
   }
 
-  function enemyPickSpell(){
+  function enemyCanAfford(sp){
+    return sp && (G.enemy.pa|0) >= Math.max(1, sp.cost|0);
+  }
+
+  function enemyPickSpell(mode){
     const e = G.enemy, p = G.player;
     const ids = (e.spells && e.spells.length) ? e.spells : ["punch"];
-    const castable = ids.map(spellById).filter(s=>s && s.dmg && (e.pa|0) >= Math.max(1, s.cost|0));
-    if(!castable.length) return null;
-    const inRange = castable.filter(s=>dist(e,p) <= (s.range|0));
+    const all = ids.map(spellById).filter(s=>s && enemyCanAfford(s));
+    if(!all.length) return null;
+    const prof = e.profile || strategyProfile(e.strategy||"bruiser", e.spells);
+    const d = dist(e,p);
+
+    if(mode==="support" || (prof.supportFirst && e.pv < e.pvMax * 0.55)){
+      const sup = all.filter(s=>s.heal || s.type==="shield" || s.type==="heal");
+      if(sup.length && (!(e.shield>0) || e.pv < e.pvMax*0.4)) return pick(sup);
+    }
+    if(mode==="control" || prof.controlFirst){
+      const ctrl = all.filter(s=>s.effect && dist(e,p)<=(s.range|0));
+      if(ctrl.length) return ctrl.sort((a,b)=>(b.range|0)-(a.range|0))[0];
+    }
+
+    const dmg = all.filter(s=>s.dmg);
+    const inRange = dmg.filter(s=>d <= (s.range|0));
     if(inRange.length){
-      inRange.sort((a,b)=> enemySpellDmg(b) - enemySpellDmg(a) || (a.cost|0)-(b.cost|0));
+      if(prof.waitForKill){
+        inRange.sort((a,b)=> enemySpellDmg(b)-enemySpellDmg(a));
+        return inRange[0];
+      }
+      inRange.sort((a,b)=> enemySpellDmg(b)-enemySpellDmg(a) || (a.cost|0)-(b.cost|0));
       return inRange[0];
     }
-    /* hors portée : privilégie longue portée + gros dégâts */
-    castable.sort((a,b)=> (b.range|0)-(a.range|0) || enemySpellDmg(b)-enemySpellDmg(a));
-    return castable[0];
+    dmg.sort((a,b)=> (b.range|0)-(a.range|0) || enemySpellDmg(b)-enemySpellDmg(a));
+    return dmg[0] || all[0];
   }
 
   function enemyStepToward(goalC, goalR){
@@ -1185,27 +1294,71 @@
     return false;
   }
 
-  function enemyApplyHit(sp){
+  function enemyStepAway(fromC, fromR){
+    const e = G.enemy;
+    if((e.pm|0) <= 0) return false;
+    const opts=[
+      {c:e.c+1,r:e.r},{c:e.c-1,r:e.r},{c:e.c,r:e.r+1},{c:e.c,r:e.r-1}
+    ].filter(o=>inBounds(o.c,o.r) && !occupied(o.c,o.r,"enemy")
+      && !(G.player.alive && G.player.c===o.c && G.player.r===o.r));
+    opts.sort((a,b)=> dist(b,{c:fromC,r:fromR}) - dist(a,{c:fromC,r:fromR}));
+    if(!opts.length) return false;
+    const o = opts[0];
+    if(dist(o,{c:fromC,r:fromR}) <= dist(e,{c:fromC,r:fromR})) return false;
+    faceToward(e, o.c, o.r);
+    e.c=o.c; e.r=o.r; e.pm -= 1;
+    playAnim(e, "Walk");
+    return true;
+  }
+
+  function enemyCast(sp){
     const e=G.enemy, p=G.player;
-    if(!e.alive || !p.alive) return false;
-    const cost = Math.max(1, (sp && sp.cost) || 2);
-    if((e.pa|0) < cost) return false;
+    if(!e.alive || !sp || !enemyCanAfford(sp)) return false;
+    const cost = Math.max(1, sp.cost|0);
     e.pa -= cost;
-    faceToward(e, p.c, p.r);
-    const anim = (sp && sp.anim) || e.weaponAnim || "Attack1";
+    const anim = sp.anim || e.weaponAnim || "Attack1";
     playAnim(e, anim);
-    let dmg = 8 + Math.floor(Math.random()*6);
-    if(sp && sp.dmg){
-      dmg = sp.dmg[0] + Math.floor(Math.random()*Math.max(1, sp.dmg[1]-sp.dmg[0]+1));
+
+    /* self / soutien */
+    if(sp.heal || sp.type==="heal" || sp.type==="shield" || sp.id==="bouclier" || sp.id==="nanites"){
+      if(sp.heal){
+        const h = sp.heal[0] + Math.floor(Math.random()*Math.max(1,(sp.heal[1]-sp.heal[0]+1)));
+        e.pv = Math.min(e.pvMax, e.pv + h);
+        setStatus(e.name+" · "+sp.name+" +"+h+" PV");
+      } else {
+        e.shield = (e.shield|0) + 10 + Math.floor(Math.random()*8);
+        setStatus(e.name+" · "+sp.name+" (égide "+e.shield+")");
+      }
+      e.flash = performance.now()+160;
+      hud();
+      return false;
     }
-    /* féroce : dégâts pleins + léger bonus selon combat */
-    const boost = 1.05 + Math.min(0.25, (G.fightN-1)*0.04);
-    dmg = Math.max(5, Math.floor(dmg * boost));
-    if(p.shield>0){ const absorb=Math.min(p.shield,dmg); p.shield-=absorb; dmg-=absorb; }
-    p.pv = Math.max(0, p.pv-dmg);
-    p.flash = performance.now()+180;
-    const lab = (sp && sp.name) ? sp.name : "Frappe";
-    setStatus(e.name+" · "+lab+" → "+dmg+(e.pa>0?" · encore":""));
+
+    if(!p.alive) return false;
+    faceToward(e, p.c, p.r);
+    if(dist(e,p) > (sp.range|0)){ setStatus(e.name+" rate"); return false; }
+
+    let dmg = 0;
+    if(sp.dmg){
+      dmg = sp.dmg[0] + Math.floor(Math.random()*Math.max(1, sp.dmg[1]-sp.dmg[0]+1));
+      const boost = 1.0 + Math.min(0.2, (G.fightN-1)*0.03);
+      dmg = Math.max(4, Math.floor(dmg * boost));
+    }
+    if(sp.effect==="drainPA"){ /* flavor : petit bonus */ dmg += 2; }
+    if(sp.effect==="push"){
+      /* recule le joueur d’1 case si libre */
+      const nc = p.c + Math.sign(p.c - e.c);
+      const nr = p.r + Math.sign(p.r - e.r);
+      if(inBounds(nc,nr) && !occupied(nc,nr,"player") && !(e.c===nc&&e.r===nr)){
+        p.c=nc; p.r=nr;
+      }
+    }
+    if(p.shield>0 && dmg){ const absorb=Math.min(p.shield,dmg); p.shield-=absorb; dmg-=absorb; }
+    if(dmg){
+      p.pv = Math.max(0, p.pv-dmg);
+      p.flash = performance.now()+180;
+    }
+    setStatus(e.name+" · "+sp.name+(dmg?" → "+dmg:"")+(e.pa>0?" · …":""));
     hud();
     if(p.pv<=0){ p.alive=false; playAnim(p,"Die"); onCombatEnd("defeat"); return true; }
     return false;
@@ -1215,74 +1368,112 @@
     if(!G.enemy.alive){ G.turn="player"; beginPlayerTurn(); return; }
     const e=G.enemy, p=G.player;
     e.pa = e.paMax; e.pm = e.pmMax;
+    const prof = e.profile || strategyProfile(e.strategy||"bruiser", e.spells);
     if(e._stunned){ e._stunned=false; setStatus(e.name+" étourdi"); setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 380); return; }
 
     if(!(p.invis>0)) e.lastSeen = { c:p.c, r:p.r };
 
-    /* Voile : chasse la dernière position connue, sinon rôde agressif */
     if((p.invis|0) > 0){
       const hunt = e.lastSeen || { c:p.c, r:p.r };
-      let guard = 8;
+      let guard = 6;
       while((e.pm|0)>0 && guard-- > 0){
         if(dist(e, hunt) <= 0) break;
-        if(!enemyStepToward(hunt.c, hunt.r)){
-          const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-          const o = dirs[Math.floor(Math.random()*dirs.length)];
-          const nc=e.c+o[0], nr=e.r+o[1];
-          if(inBounds(nc,nr) && !occupied(nc,nr,"enemy") && !(p.c===nc&&p.r===nr)){
-            faceToward(e,nc,nr); e.c=nc; e.r=nr; e.pm--; playAnim(e,"Walk");
-          } else break;
-        }
+        if(!enemyStepToward(hunt.c, hunt.r)) break;
       }
       setTimeout(()=>{
-        setStatus(e.name+" traque le voile");
-        setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 320);
-      }, 280);
+        setStatus(e.name+" cherche…");
+        setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 280);
+      }, 240);
       return;
     }
 
-    /* Boucle féroce : avancer → frapper, répéter tant que PA/PM */
     let actions = 0;
-    const maxActions = 6;
+    const maxActions = 5;
+    let didHit = false;
+    const finish = ()=>{
+      if(G.turn!=="over" && p.alive){ G.turn="player"; beginPlayerTurn(); }
+    };
     const stepOnce = ()=>{
       if(!e.alive || !p.alive || G.turn==="over" || actions++ >= maxActions){
-        if(G.turn!=="over" && p.alive){ G.turn="player"; beginPlayerTurn(); }
-        return;
+        finish(); return;
       }
-      const sp = enemyPickSpell();
+      const d = dist(e,p);
+      const hpRatio = e.pv / Math.max(1, e.pvMax);
+
+      /* 1) soin / bouclier si blessé */
+      if(hpRatio <= (prof.retreatHp||0.35)){
+        const sup = enemyPickSpell("support");
+        if(sup && (sup.heal || sup.type==="shield" || sup.type==="heal")){
+          enemyCast(sup);
+          setTimeout(stepOnce, 360);
+          return;
+        }
+        if(prof.kiteBelow>=0 && enemyStepAway(p.c, p.r)){
+          setTimeout(stepOnce, 200);
+          return;
+        }
+      }
+
+      /* 2) kiting sniper/caster : trop près → reculer */
+      if(d < (prof.kiteBelow||0) && (e.pm|0)>0){
+        if(enemyStepAway(p.c, p.r)){ setTimeout(stepOnce, 200); return; }
+      }
+
+      /* 3) contrôle d’abord */
+      if(prof.controlFirst && !didHit){
+        const ctrl = enemyPickSpell("control");
+        if(ctrl && ctrl.effect && d <= (ctrl.range|0)){
+          const dead = enemyCast(ctrl);
+          if(dead) return;
+          didHit = true;
+          setTimeout(stepOnce, 380);
+          return;
+        }
+      }
+
+      /* 4) à bonne distance → cast */
+      const preferLo = prof.preferMin|0, preferHi = prof.preferMax|0;
+      const sp = enemyPickSpell("damage");
       const need = sp ? (sp.range|0) : 1;
 
-      if(sp && dist(e,p) <= need && (e.pa|0) >= Math.max(1, sp.cost|0)){
-        const dead = enemyApplyHit(sp);
+      if(sp && d <= need){
+        /* skirmisher : frappe puis fuite */
+        const dead = enemyCast(sp);
         if(dead) return;
-        setTimeout(stepOnce, 420);
+        didHit = true;
+        if(prof.hitAndRun && (e.pm|0)>0){
+          enemyStepAway(p.c, p.r);
+          setTimeout(stepOnce, 320);
+          return;
+        }
+        setTimeout(stepOnce, 380);
         return;
       }
 
-      if((e.pm|0) > 0 && dist(e,p) > need){
-        const moved = enemyStepToward(p.c, p.r);
-        if(moved){ setTimeout(stepOnce, 220); return; }
+      /* 5) se placer à la distance préférée */
+      if((e.pm|0)>0){
+        if(d > preferHi){
+          if(enemyStepToward(p.c, p.r)){ setTimeout(stepOnce, 200); return; }
+        } else if(d < preferLo){
+          if(enemyStepAway(p.c, p.r)){ setTimeout(stepOnce, 200); return; }
+        } else if(d > need){
+          if(enemyStepToward(p.c, p.r)){ setTimeout(stepOnce, 200); return; }
+        }
       }
 
-      /* à portée d’un autre sort moins cher ? */
-      const cheap = (e.spells||[]).map(spellById).filter(s=>s && s.dmg && dist(e,p)<=(s.range|0) && (e.pa|0)>=Math.max(1,s.cost|0))
-        .sort((a,b)=> enemySpellDmg(b)-enemySpellDmg(a));
-      if(cheap.length){
-        const dead = enemyApplyHit(cheap[0]);
+      /* 6) dernier recours cast */
+      if(sp && d <= need){
+        const dead = enemyCast(sp);
         if(dead) return;
-        setTimeout(stepOnce, 420);
+        setTimeout(stepOnce, 380);
         return;
       }
 
-      if((e.pm|0) > 0 && dist(e,p) > 1){
-        if(enemyStepToward(p.c, p.r)){ setTimeout(stepOnce, 220); return; }
-      }
-
-      setStatus(e.name+(actions>1?" · assaut":" · prêt"));
-      setTimeout(()=>{ if(G.turn!=="over"){ G.turn="player"; beginPlayerTurn(); } }, 280);
+      setStatus(e.name+" · "+(prof.label||"attend"));
+      setTimeout(finish, 220);
     };
-    setStatus(e.name+" charge…");
-    setTimeout(stepOnce, 280);
+    setStatus(e.name+" · "+(prof.label||e.strategy||"agit")+"…");
+    setTimeout(stepOnce, 260);
   }
 
   function beginPlayerTurn(){
@@ -1481,12 +1672,9 @@
     ctx.save();
     ctx.scale(cam.sc, cam.sc);
 
-    const order=[];
-    for(let r=0;r<GRID;r++) for(let c=0;c<GRID;c++) order.push({c,r,sum:c+r});
-    order.sort((a,b)=>a.sum-b.sum || a.c-b.c);
-
+    const order = ensureTileOrder();
     for(const t of order){
-      if(!tileVisible(t.c, t.r)) continue;
+      if(!tileInView(t.c, t.r)) continue;
       const a = ((t.c+t.r)&1);
       const fill = a ? "#e8e8e2" : "#dcdcd6";
       tileDiamond(t.c, t.r, fill, "rgba(80,80,70,0.12)");
@@ -1539,12 +1727,10 @@
   }
 
   function warm(){
-    const anims=["Idle","Walk","Run","RunBackwards","StrafeLeft","StrafeRight","CrouchRun","Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","AttackRun","AttackRun2","TakeDamage","Die","Special1","Kick"];
+    const anims=["Idle","Walk","Run","TakeDamage","Die","Attack1"];
     for(const L of layersForRow(3)) for(const a of anims) loadImg(L.folder,a);
     if(G.enemy && G.enemy.layers){
       for(const L of G.enemy.layers) for(const a of anims) loadImg(L.folder,a);
-    } else {
-      for(const f of ["NakedBody","Head3","Melee2"]) for(const a of anims) loadImg(f,a);
     }
   }
 
