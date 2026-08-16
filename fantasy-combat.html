@@ -221,10 +221,11 @@
     Idle:DEFAULT_DIR_ROW.slice()
   };
 
-  /* Iso Neuro : +c = SE écran, +r = SW écran */
-  const GRID = 10;
+  /* Iso Neuro : +c = SE écran, +r = SW écran — map élargie + caméra qui suit */
+  const GRID = 14;
   const TILE_W = 56, TILE_H = 28;
-  const cam = { ox:0, oy:0, sc:1 };
+  const VIEW_TILES = 9; /* ~tuiles visibles en largeur */
+  const cam = { ox:0, oy:0, sc:1, fx:2, fy:7, smooth:0.18 };
 
   /*
    * Sheet fantasy-cc : mapping ligne→direction écran (calibrable par action).
@@ -351,8 +352,8 @@
   const G = {
     turn:"player",
     busy: false,
-    player:{ c:2, r:5, dir:3, pv:100, pvMax:100, pa:6, paMax:6, pm:3, pmMax:3, anim:"Idle", frame:0, t0:0, flash:0, alive:true, shield:0, invis:0 },
-    enemy:{ c:7, r:4, dir:7, pv:40, pvMax:40, pa:4, paMax:4, pm:2, pmMax:2, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit", layers:null, spells:[], weaponAnim:"Attack1" },
+    player:{ c:2, r:7, dir:3, pv:100, pvMax:100, pa:6, paMax:6, pm:3, pmMax:3, anim:"Idle", frame:0, t0:0, flash:0, alive:true, shield:0, invis:0 },
+    enemy:{ c:11, r:6, dir:7, pv:40, pvMax:40, pa:5, paMax:5, pm:4, pmMax:4, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit", layers:null, spells:[], weaponAnim:"Attack1" },
     clone: null,
     armed: null,
     armedSlot: null,
@@ -503,19 +504,27 @@
     scale = scale || 1;
     const look = rollEnemyLayers();
     const spells = rollEnemySpells(look.weapon);
-    const basePv = 28 + Math.floor(Math.random()*18) + Math.floor((G.fightN-1)*4);
-    const pv = Math.min(90, Math.floor(basePv * scale));
+    /* IA féroce : plus de PV / PA / PM, sorts 3–4 */
+    while(spells.length < 3){
+      const extra = pick(ENEMY_SPELL_POOL);
+      if(extra && spells.indexOf(extra)<0) spells.push(extra);
+      else break;
+    }
+    const basePv = 42 + Math.floor(Math.random()*22) + Math.floor((G.fightN-1)*6);
+    const pv = Math.min(120, Math.floor(basePv * scale));
+    const er = Math.max(1, Math.floor(GRID/2) - 1);
     return {
-      c:7, r:4, dir:7,
+      c: GRID - 3, r: er, dir:7,
       pv, pvMax:pv,
-      pa:3+Math.floor(Math.random()*3), paMax:4,
-      pm:2+Math.floor(Math.random()*2), pmMax:3,
+      pa:5, paMax:5 + Math.min(2, Math.floor((G.fightN-1)/2)),
+      pm:4, pmMax:4,
       anim:"Idle", frame:0, t0:0, flash:0, alive:true,
       name:pick(ENEMY_NAMES),
       layers: look.layers,
       spells,
       weaponAnim: look.weaponAnim,
-      _stunned:false
+      _stunned:false,
+      lastSeen: null
     };
   }
 
@@ -548,11 +557,12 @@
     if(opts.fullHeal) p.pv = p.pvMax;
     p.shield = 0;
     p.invis = 0;
-    p.c = 2; p.r = 5; p.dir = 3;
+    p.c = 2; p.r = Math.floor(GRID/2); p.dir = 3;
     playAnim(p, "Idle");
+    cam.fx = p.c; cam.fy = p.r;
 
     try{ G.enemy = makeEnemy(1); }catch(_e){
-      G.enemy = { c:7, r:4, dir:7, pv:36, pvMax:36, pa:4, paMax:4, pm:2, pmMax:2, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit", layers:[{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}], spells:["punch","arc"], weaponAnim:"Attack1" };
+      G.enemy = { c:GRID-3, r:Math.max(1,Math.floor(GRID/2)-1), dir:7, pv:55, pvMax:55, pa:5, paMax:5, pm:4, pmMax:4, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit", layers:[{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}], spells:["punch","arc","monofil"], weaponAnim:"Attack1" };
     }
     try{ warmFolders((G.enemy.layers||[]).map(L=>L.folder)); }catch(_e){}
     try{ warm(); }catch(_e){}
@@ -742,17 +752,39 @@
     const r = Math.floor((y - x) / 2);
     return { c, r };
   }
+  function updateCamera(){
+    const focus = G.player && G.player.alive
+      ? G.player
+      : (G.enemy && G.enemy.alive ? G.enemy : { c:cam.fx, r:cam.fy });
+    const tc = focus.c, tr = focus.r;
+    cam.fx += (tc - cam.fx) * cam.smooth;
+    cam.fy += (tr - cam.fy) * cam.smooth;
+    if(Math.abs(tc - cam.fx) < 0.02) cam.fx = tc;
+    if(Math.abs(tr - cam.fy) < 0.02) cam.fy = tr;
+  }
   function fit(){
     const host = canvas.parentElement.getBoundingClientRect();
     const w = Math.max(200, Math.round(host.width));
     const h = Math.max(200, Math.round(host.height));
     if(canvas.width!==w || canvas.height!==h){ canvas.width=w; canvas.height=h; }
-    const gridW = GRID * TILE_W;
-    const gridH = GRID * TILE_H;
-    const sc = Math.min(w / (gridW + 40), h / (gridH + 80), 1.35);
-    cam.sc = sc;
-    cam.ox = w/(2*sc);
-    cam.oy = h/(2*sc) - (GRID*TILE_H)/2 + 18;
+    updateCamera();
+    /* zoom : ~VIEW_TILES visibles, pas toute la map */
+    const viewW = VIEW_TILES * TILE_W;
+    const viewH = VIEW_TILES * TILE_H * 0.72;
+    const sc = Math.min(w / (viewW + 24), h / (viewH + 48), 1.55);
+    cam.sc = Math.max(0.72, sc);
+    const cx = w / (2 * cam.sc);
+    const cy = h / (2 * cam.sc) + 10;
+    const px = (cam.fx - cam.fy) * (TILE_W/2);
+    const py = (cam.fx + cam.fy) * (TILE_H/2);
+    cam.ox = cx - px;
+    cam.oy = cy - py;
+  }
+  function tileVisible(c, r){
+    const s = toScreen(c, r);
+    const margin = TILE_W + 40;
+    const W = canvas.width / cam.sc, H = canvas.height / cam.sc;
+    return s.x > -margin && s.x < W + margin && s.y > -margin && s.y < H + margin;
   }
 
   function key(c,r){ return c+","+r; }
@@ -1114,33 +1146,66 @@
     setTimeout(enemyTurn, 420);
   }
 
+  function enemySpellDmg(sp){
+    if(!sp || !sp.dmg) return 6;
+    return (sp.dmg[0] + sp.dmg[1]) / 2;
+  }
+
   function enemyPickSpell(){
     const e = G.enemy, p = G.player;
     const ids = (e.spells && e.spells.length) ? e.spells : ["punch"];
-    const castable = ids.map(spellById).filter(s=>s && s.dmg);
+    const castable = ids.map(spellById).filter(s=>s && s.dmg && (e.pa|0) >= Math.max(1, s.cost|0));
     if(!castable.length) return null;
-    /* préférence : déjà à portée, sinon plus longue portée */
-    const inRange = castable.filter(s=>dist(e,p) <= s.range);
-    if(inRange.length) return pick(inRange);
-    castable.sort((a,b)=> (b.range|0)-(a.range|0));
+    const inRange = castable.filter(s=>dist(e,p) <= (s.range|0));
+    if(inRange.length){
+      inRange.sort((a,b)=> enemySpellDmg(b) - enemySpellDmg(a) || (a.cost|0)-(b.cost|0));
+      return inRange[0];
+    }
+    /* hors portée : privilégie longue portée + gros dégâts */
+    castable.sort((a,b)=> (b.range|0)-(a.range|0) || enemySpellDmg(b)-enemySpellDmg(a));
     return castable[0];
+  }
+
+  function enemyStepToward(goalC, goalR){
+    const e = G.enemy;
+    if((e.pm|0) <= 0) return false;
+    const opts=[];
+    if(e.c!==goalC) opts.push({c:e.c+Math.sign(goalC-e.c), r:e.r});
+    if(e.r!==goalR) opts.push({c:e.c, r:e.r+Math.sign(goalR-e.r)});
+    opts.sort((a,b)=> dist(a,{c:goalC,r:goalR}) - dist(b,{c:goalC,r:goalR}));
+    for(const o of opts){
+      if(!inBounds(o.c,o.r) || occupied(o.c,o.r,"enemy")) continue;
+      if(G.player.alive && G.player.c===o.c && G.player.r===o.r) continue;
+      if(G.clone && G.clone.alive && G.clone.c===o.c && G.clone.r===o.r) continue;
+      faceToward(e, o.c, o.r);
+      e.c=o.c; e.r=o.r; e.pm -= 1;
+      playAnim(e, "Run");
+      return true;
+    }
+    return false;
   }
 
   function enemyApplyHit(sp){
     const e=G.enemy, p=G.player;
-    if(!e.alive || !p.alive) return;
+    if(!e.alive || !p.alive) return false;
+    const cost = Math.max(1, (sp && sp.cost) || 2);
+    if((e.pa|0) < cost) return false;
+    e.pa -= cost;
     faceToward(e, p.c, p.r);
     const anim = (sp && sp.anim) || e.weaponAnim || "Attack1";
     playAnim(e, anim);
-    let dmg = 6+Math.floor(Math.random()*5);
-    if(sp && sp.dmg) dmg = sp.dmg[0] + Math.floor(Math.random()*Math.max(1, sp.dmg[1]-sp.dmg[0]+1));
-    /* ennemi un peu plus faible pour tests sorts */
-    dmg = Math.max(3, Math.floor(dmg * 0.55));
+    let dmg = 8 + Math.floor(Math.random()*6);
+    if(sp && sp.dmg){
+      dmg = sp.dmg[0] + Math.floor(Math.random()*Math.max(1, sp.dmg[1]-sp.dmg[0]+1));
+    }
+    /* féroce : dégâts pleins + léger bonus selon combat */
+    const boost = 1.05 + Math.min(0.25, (G.fightN-1)*0.04);
+    dmg = Math.max(5, Math.floor(dmg * boost));
     if(p.shield>0){ const absorb=Math.min(p.shield,dmg); p.shield-=absorb; dmg-=absorb; }
     p.pv = Math.max(0, p.pv-dmg);
     p.flash = performance.now()+180;
     const lab = (sp && sp.name) ? sp.name : "Frappe";
-    setStatus(e.name+" · "+lab+" → "+dmg);
+    setStatus(e.name+" · "+lab+" → "+dmg+(e.pa>0?" · encore":""));
     hud();
     if(p.pv<=0){ p.alive=false; playAnim(p,"Die"); onCombatEnd("defeat"); return true; }
     return false;
@@ -1149,56 +1214,75 @@
   function enemyTurn(){
     if(!G.enemy.alive){ G.turn="player"; beginPlayerTurn(); return; }
     const e=G.enemy, p=G.player;
+    e.pa = e.paMax; e.pm = e.pmMax;
     if(e._stunned){ e._stunned=false; setStatus(e.name+" étourdi"); setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 380); return; }
 
-    /* Invisibilité : l’ennemi cherche au hasard, ne frappe pas */
+    if(!(p.invis>0)) e.lastSeen = { c:p.c, r:p.r };
+
+    /* Voile : chasse la dernière position connue, sinon rôde agressif */
     if((p.invis|0) > 0){
-      let steps = e.pm;
-      while(steps-- > 0){
-        const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-        const o = dirs[Math.floor(Math.random()*dirs.length)];
-        const nc=e.c+o[0], nr=e.r+o[1];
-        if(!inBounds(nc,nr) || occupied(nc,nr,"enemy")) continue;
-        if(p.c===nc && p.r===nr) continue;
-        faceToward(e, nc, nr); e.c=nc; e.r=nr; playAnim(e,"Walk");
+      const hunt = e.lastSeen || { c:p.c, r:p.r };
+      let guard = 8;
+      while((e.pm|0)>0 && guard-- > 0){
+        if(dist(e, hunt) <= 0) break;
+        if(!enemyStepToward(hunt.c, hunt.r)){
+          const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+          const o = dirs[Math.floor(Math.random()*dirs.length)];
+          const nc=e.c+o[0], nr=e.r+o[1];
+          if(inBounds(nc,nr) && !occupied(nc,nr,"enemy") && !(p.c===nc&&p.r===nr)){
+            faceToward(e,nc,nr); e.c=nc; e.r=nr; e.pm--; playAnim(e,"Walk");
+          } else break;
+        }
       }
       setTimeout(()=>{
-        setStatus("Voile · ennemi perdu");
-        setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 360);
-      }, 300);
+        setStatus(e.name+" traque le voile");
+        setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 320);
+      }, 280);
       return;
     }
 
-    const sp = enemyPickSpell();
-    const needRange = sp ? (sp.range|0) : 1;
-    let steps=e.pm, nc=e.c, nr=e.r;
-    while(steps>0 && dist({c:nc,r:nr},p)>needRange){
-      const opts=[];
-      if(nc!==p.c) opts.push({c:nc+Math.sign(p.c-nc), r:nr});
-      if(nr!==p.r) opts.push({c:nc, r:nr+Math.sign(p.r-nr)});
-      let moved=false;
-      for(const o of opts){
-        if(!inBounds(o.c,o.r) || occupied(o.c,o.r,"enemy")) continue;
-        if(p.c===o.c && p.r===o.r) continue;
-        faceToward(e, o.c, o.r);
-        nc=o.c; nr=o.r; steps--; moved=true; break;
+    /* Boucle féroce : avancer → frapper, répéter tant que PA/PM */
+    let actions = 0;
+    const maxActions = 6;
+    const stepOnce = ()=>{
+      if(!e.alive || !p.alive || G.turn==="over" || actions++ >= maxActions){
+        if(G.turn!=="over" && p.alive){ G.turn="player"; beginPlayerTurn(); }
+        return;
       }
-      if(!moved) break;
-    }
-    if(nc!==e.c || nr!==e.r){
-      e.c=nc; e.r=nr; playAnim(e,"Walk");
-      setTimeout(()=>playAnim(e,"Idle"), 360);
-    }
-    setTimeout(()=>{
-      if(!e.alive || G.turn==="over") return;
-      if(dist(e,p) <= needRange && !(p.invis>0)){
+      const sp = enemyPickSpell();
+      const need = sp ? (sp.range|0) : 1;
+
+      if(sp && dist(e,p) <= need && (e.pa|0) >= Math.max(1, sp.cost|0)){
         const dead = enemyApplyHit(sp);
         if(dead) return;
-      } else {
-        setStatus(e.name+" hésite");
+        setTimeout(stepOnce, 420);
+        return;
       }
-      setTimeout(()=>{ if(G.turn!=="over"){ G.turn="player"; beginPlayerTurn(); } }, 480);
-    }, 420);
+
+      if((e.pm|0) > 0 && dist(e,p) > need){
+        const moved = enemyStepToward(p.c, p.r);
+        if(moved){ setTimeout(stepOnce, 220); return; }
+      }
+
+      /* à portée d’un autre sort moins cher ? */
+      const cheap = (e.spells||[]).map(spellById).filter(s=>s && s.dmg && dist(e,p)<=(s.range|0) && (e.pa|0)>=Math.max(1,s.cost|0))
+        .sort((a,b)=> enemySpellDmg(b)-enemySpellDmg(a));
+      if(cheap.length){
+        const dead = enemyApplyHit(cheap[0]);
+        if(dead) return;
+        setTimeout(stepOnce, 420);
+        return;
+      }
+
+      if((e.pm|0) > 0 && dist(e,p) > 1){
+        if(enemyStepToward(p.c, p.r)){ setTimeout(stepOnce, 220); return; }
+      }
+
+      setStatus(e.name+(actions>1?" · assaut":" · prêt"));
+      setTimeout(()=>{ if(G.turn!=="over"){ G.turn="player"; beginPlayerTurn(); } }, 280);
+    };
+    setStatus(e.name+" charge…");
+    setTimeout(stepOnce, 280);
   }
 
   function beginPlayerTurn(){
@@ -1402,6 +1486,7 @@
     order.sort((a,b)=>a.sum-b.sum || a.c-b.c);
 
     for(const t of order){
+      if(!tileVisible(t.c, t.r)) continue;
       const a = ((t.c+t.r)&1);
       const fill = a ? "#e8e8e2" : "#dcdcd6";
       tileDiamond(t.c, t.r, fill, "rgba(80,80,70,0.12)");
@@ -1504,6 +1589,8 @@
 
     warm();
     /* premier adversaire aléatoire */
+    G.player.c = 2; G.player.r = Math.floor(GRID/2);
+    cam.fx = G.player.c; cam.fy = G.player.r;
     G.fightN = 0;
     G.enemy = makeEnemy(1);
     warmFolders(G.enemy.layers.map(L=>L.folder));
@@ -1519,7 +1606,7 @@
         return s.label+":"+(sp?sp.name:s.spellId);
       });
       const enSp = (G.enemy.spells||[]).map(id=>{ const s=spellById(id); return s?s.name:id; }).join("/");
-      setStatus((names.slice(0,2).join(" · ")||"Prêt")+" · vs "+G.enemy.name+" ("+enSp+")");
+      setStatus("Map "+GRID+" · vs "+G.enemy.name+" ("+enSp+")");
     }
 
     canvas.addEventListener("click", onTap);
