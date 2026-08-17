@@ -1273,10 +1273,9 @@ function isFoe2(a, b){ return !!a && !!b && a.side && b.side && a.side !== b.sid
    Taille de grille selon le numéro de combat (caméra/zoom inchangés :
    Render.layout recalcule l'échelle pour toujours faire tenir la grille). */
 function gridSizeForFight(n){
-  if(n <= 2) return 12;
-  if(n <= 5) return 14;
-  if(n <= 10) return 16;
-  return 18;
+  if(n <= 3) return 12;
+  if(n <= 7) return 14;
+  return 16;
 }
 
 /* ---------------------- CASES TACTIQUES ----------------------
@@ -2630,7 +2629,7 @@ function biomeArenaDef(id){ return BIOME_ARENA[id] || null; }
    ÉLASTIQUE : on pioche N scènes selon la difficulté, le CLIMAX reste en fin.
    Objectifs de scène : eliminate, extract, hold, pursue, secure (S6 composite).
    ===================================================================== */
-const SCENE_SIZE = { S:12, M:14, L:16, XL:18 };
+const SCENE_SIZE = { S:12, M:12, L:14, XL:16 };
 const SCENE_OBJ = {
   eliminate: { label:"Neutraliser toute opposition", ico:"⚔" },
   extract:   { label:"Rejoindre la zone d'extraction", ico:"📤" },
@@ -5681,6 +5680,7 @@ const Combat = {
 
   advance(){
     if(State.over) return;
+    Combat.snapVisual(Combat.current());
     // effets de fin de tour de l'entité qui vient de jouer (cases tactiques)
     Combat.endOfTurnEffects(Combat.current());
     Combat.reap();   // M-fix — élimine tout PV≤0 resté vivant avant d'évaluer la victoire
@@ -5863,6 +5863,17 @@ const Combat = {
   // probabilité de désengagement (fuite vs tacle), bornée
   escapeChance(fuite, tacle){ return clamp(0.5 * ((fuite||0) + 1) / ((tacle||0) + 1), 0.05, 0.95); },
 
+  _moveEntity: null,
+  snapVisual(e){
+    if(!e) return;
+    e._rc = e.c;
+    e._rr = e.r;
+    e._packMovePM = 0;
+  },
+  visualMoving(e){
+    return !!(e && Combat._animating && Combat._moveEntity === e);
+  },
+
   moveAlong(entity, path, onDone){
     if(!path || path.length<2){ if(onDone) onDone(); return; }
     // V1.9e — TACLE / FUITE : si l'on quitte le contact d'un ennemi, jet de désengagement
@@ -5895,6 +5906,7 @@ const Combat = {
     }
     inputLocked = true;
     Combat._animating = true;   // V0.91.1 — déplacement en cours
+    Combat._moveEntity = entity;
     Combat._animStart = performance.now();   // M-fix — horodatage pour détecter un flag bloqué
     // Coût PM du trajet (cases franchies) — ≥ 2 → anim Run côté PackSprites
     entity._packMovePM = path.length - 1;
@@ -5902,7 +5914,8 @@ const Combat = {
     const step = ()=>{
       if(i >= path.length){
         Combat._animating = false;
-        entity._packMovePM = 0;
+        Combat._moveEntity = null;
+        Combat.snapVisual(entity);
         if(onDone) onDone();
         return;
       }
@@ -5914,12 +5927,18 @@ const Combat = {
       entity.pm = Math.max(0, entity.pm - 1);
       if(entity.isPlayer){ MetaProgress.noteMove(1); MetaProgress.noteTrait("mobilite", 1); }   // V0.95/V1.9c
       if(State) State.lastAct = performance.now();
-      UI.refreshAll();
+      if(entity.isPlayer) UI.refreshAll();
       i++;
       FX.ping(entity.c, entity.r, "rgba(39,224,255,.5)");
       // MINES MAGNÉTIQUES (V0.7) : déclenchées par le déplacement d'une unité du camp opposé
       Field.checkMines(entity);
-      if(!entity.alive){ Combat._animating = false; entity._packMovePM = 0; if(onDone) onDone(); return; }
+      if(!entity.alive){
+        Combat._animating = false;
+        Combat._moveEntity = null;
+        Combat.snapVisual(entity);
+        if(onDone) onDone();
+        return;
+      }
       setTimeout(step, 120);
     };
     step();
@@ -7398,9 +7417,8 @@ const PackSprites = {
     if(e._packAttackT && performance.now() < e._packAttackT){
       return e._packAttackAnim || "attack";
     }
-    // déplacement en cours (lissage ou anim moveAlong)
-    const moving = (e._rc !== undefined && (Math.abs(e._rc - e.c) > 0.04 || Math.abs(e._rr - e.r) > 0.04))
-      || (typeof Combat !== "undefined" && Combat._animating && Combat.current && Combat.current() === e);
+    // déplacement en cours — uniquement pendant moveAlong actif (évite course dans le vide après le tour)
+    const moving = typeof Combat !== "undefined" && Combat.visualMoving && Combat.visualMoving(e);
     // ≥ 2 PM sur ce trajet → course ; 1 PM → marche
     if(moving) return ((e._packMovePM || 0) >= 2) ? "run" : "walk";
     e._packMovePM = 0;
@@ -8207,11 +8225,15 @@ const Render = {
   },
 
   drawEntity(e){
-    // V0.91 — lissage visuel : la position dessinée glisse vers la case réelle
+    // V0.91 — lissage visuel : glisse seulement pendant le déplacement actif de cette unité
     if(e._rc === undefined){ e._rc = e.c; e._rr = e.r; }
-    e._rc += (e.c - e._rc) * 0.3; e._rr += (e.r - e._rr) * 0.3;
-    if(Math.abs(e._rc - e.c) < 0.02) e._rc = e.c;
-    if(Math.abs(e._rr - e.r) < 0.02) e._rr = e.r;
+    if(Combat.visualMoving(e)){
+      e._rc += (e.c - e._rc) * 0.3; e._rr += (e.r - e._rr) * 0.3;
+      if(Math.abs(e._rc - e.c) < 0.02) e._rc = e.c;
+      if(Math.abs(e._rr - e.r) < 0.02) e._rr = e.r;
+    } else {
+      e._rc = e.c; e._rr = e.r;
+    }
     const s = Iso.toScreen(e._rc, e._rr);
     const t = performance.now()/1000;
     const bob = Math.sin(t*2 + (e.isPlayer?0:e.c)) * 1.5;
