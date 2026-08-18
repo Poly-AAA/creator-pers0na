@@ -70,7 +70,7 @@
   </div>
   <div class="row2" style="margin-top:6px">
     <button type="button" class="btn ok" id="btnPng">Télécharger planche</button>
-    <a class="btn" href="creator.html" id="btnCreator" style="text-align:center;text-decoration:none;line-height:38px">Créateur</a>
+    <a class="btn" href="creator.html" data-fcc="creator" id="btnCreator" style="text-align:center;text-decoration:none;line-height:38px">Créateur</a>
   </div>
   <p class="hint">Quand c’est bon : Copier JSON et envoie-le-moi — j’applique dans le jeu.</p>
 </div>
@@ -89,7 +89,7 @@
     W:"hat-refs/pixellab-source/west.png",
     SW:"hat-refs/pixellab-source/south-west.png"
   };
-  const P={ targetW:26, dx:0, dy:0, dir:"S" };
+  const P={ targetW:14, dx:0, dy:-8, dir:"S" };
   const hats={}, scaled={};
   let body=null, head3=null, anchors=null, thumbs=[];
 
@@ -209,7 +209,7 @@
       rebuildScaled(); render();
     };
   });
-  el("btnReset").onclick=()=>{ P.targetW=26; P.dx=0; P.dy=0; rebuildScaled(); render(); };
+  el("btnReset").onclick=()=>{ P.targetW=14; P.dx=0; P.dy=-8; rebuildScaled(); render(); };
   el("btnCopy").onclick=()=>{
     navigator.clipboard.writeText(el("vals").textContent).then(()=>{ el("btnCopy").textContent="Copié ✓"; setTimeout(()=>el("btnCopy").textContent="Copier JSON",1200); });
   };
