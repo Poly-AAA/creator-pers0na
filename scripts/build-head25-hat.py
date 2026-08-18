@@ -27,7 +27,34 @@ ANIMS = [
     "Taunt", "Slide", "Rolling", "RideIdle", "RideRun", "RideIdleAttack1",
     "RideRunAttack1",
 ]
-TARGET_W = 26  # brim width in 128×128 cell (head gear ~9px, hat a bit wider)
+TARGET_W = 26
+DX = 0
+DY = 0
+SIT = 0.42
+
+
+def load_cfg(path: Path | None) -> None:
+    global TARGET_W, DX, DY, SIT
+    if not path or not path.exists():
+        return
+    import json
+    o = json.loads(path.read_text())
+    TARGET_W = int(o.get("targetW", TARGET_W))
+    DX = int(o.get("dx", DX))
+    DY = int(o.get("dy", DY))
+    SIT = float(o.get("sit", SIT))
+
+
+def place_on_cell(hat: Image.Image, head_bbox: tuple[int, int, int, int]) -> Image.Image:
+    cell = Image.new("RGBA", (FW, FH), (0, 0, 0, 0))
+    hx0, hy0, hx1, hy1 = head_bbox
+    hcx = (hx0 + hx1) / 2
+    x = int(round(hcx - hat.width / 2 + DX))
+    y = int(round(hy1 - hat.height * SIT + DY))
+    x = max(0, min(FW - hat.width, x))
+    y = max(0, min(FH - hat.height, y))
+    cell.alpha_composite(hat, (x, y))
+    return cell
 
 
 def content(im: Image.Image) -> Image.Image:
@@ -44,19 +71,6 @@ def scale_nn(im: Image.Image, tw: int) -> Image.Image:
         return im
     th = max(1, round(h * (tw / w)))
     return im.resize((tw, th), Image.NEAREST)
-
-
-def place_on_cell(hat: Image.Image, head_bbox: tuple[int, int, int, int]) -> Image.Image:
-    cell = Image.new("RGBA", (FW, FH), (0, 0, 0, 0))
-    hx0, hy0, hx1, hy1 = head_bbox
-    hcx = (hx0 + hx1) / 2
-    # Sit the brim on the helmet: hat bottom a couple px below helmet bottom
-    x = int(round(hcx - hat.width / 2))
-    y = int(round(hy1 - hat.height * 0.42))
-    x = max(0, min(FW - hat.width, x))
-    y = max(0, min(FH - hat.height, y))
-    cell.alpha_composite(hat, (x, y))
-    return cell
 
 
 def build(src_rot: Path, head3_idle: Path, out_dir: Path, preview_dir: Path | None = None) -> Path:
@@ -102,10 +116,13 @@ def build(src_rot: Path, head3_idle: Path, out_dir: Path, preview_dir: Path | No
 if __name__ == "__main__":
     import argparse
     p = argparse.ArgumentParser()
-    p.add_argument("--src", default="/tmp/hat-dropbox/extracted/Pixel_art_isometrique_2_1_sty/rotations")
+    p.add_argument("--src", default=str(ROOT / "docs/previews/hat-refs/pixellab-source"))
     p.add_argument("--head3", default=str(ROOT / "docs/previews/hat-refs/Head3_Idle_full.png"))
     p.add_argument("--out", default=str(ROOT / "assets/packs/fantasy-cc/spritesheets/Head25"))
+    p.add_argument("--cfg", default=str(ROOT / "docs/previews/hat-place.json"))
     args = p.parse_args()
+    load_cfg(Path(args.cfg) if args.cfg else None)
+    print("cfg", "targetW", TARGET_W, "dx", DX, "dy", DY, "sit", SIT)
     prev = ROOT / "docs/previews/hat-refs"
     path = build(Path(args.src), Path(args.head3), Path(args.out), prev)
     print("wrote", path, "bytes", path.stat().st_size)

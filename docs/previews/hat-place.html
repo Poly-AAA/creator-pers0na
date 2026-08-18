@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Cale chapeau · Head25</title>
+<style>
+  :root{--bg:#ecece8;--card:#fff;--ink:#3d3d3a;--acc:#6b4a2e;--line:#d8d4cc;--ok:#2f6f4e}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,sans-serif}
+  body{max-width:430px;margin:0 auto;padding:10px 10px 28px}
+  h1{font-size:1.05rem;margin:0 0 4px}
+  .sub{color:#666;font-size:.8rem;margin:0 0 10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
+  .stage{display:flex;justify-content:center;background:repeating-conic-gradient(#d8d8d2 0% 25%,#ecece6 0% 50%) 50%/16px 16px;border-radius:10px;overflow:hidden}
+  #big{width:100%;max-width:360px;height:auto;image-rendering:pixelated;touch-action:none;cursor:grab}
+  .thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .thumbs button{padding:0;border:2px solid transparent;border-radius:8px;background:#f4f2ec;overflow:hidden}
+  .thumbs button.on{border-color:var(--acc)}
+  .thumbs canvas{width:100%;height:auto;display:block;image-rendering:pixelated}
+  .thumbs small{display:block;text-align:center;font-size:.65rem;padding:2px 0;color:#666}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:.82rem}
+  label span{width:52px;flex-shrink:0}
+  label b{width:36px;text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{flex:1}
+  .nudge{display:flex;gap:6px;margin-top:6px}
+  .nudge button,.btn{flex:1;padding:10px 0;border:0;border-radius:9px;background:#3d3d3a;color:#fff;font-weight:700}
+  .btn.ok{background:var(--ok)}
+  .btn.acc{background:var(--acc)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  #vals{font:12px ui-monospace,Menlo,monospace;background:#f7f5f0;border:1px solid var(--line);border-radius:8px;padding:8px;margin:0;white-space:pre-wrap}
+  .hint{font-size:.75rem;color:#666;margin:4px 0 0}
+  a{color:#5b7c99}
+</style>
+</head>
+<body>
+<h1>Cale chapeau · Head25</h1>
+<p class="sub">Règle <b>une</b> vue — taille + position. Les 7 autres se calent toutes seules, en direct.</p>
+
+<div class="card">
+  <div class="stage"><canvas id="big" width="512" height="512"></canvas></div>
+  <p class="hint" id="lab">Vue S · glisse le chapeau · pinch ou curseur pour la taille</p>
+</div>
+
+<div class="card">
+  <div class="thumbs" id="thumbs"></div>
+</div>
+
+<div class="card">
+  <label><span>Taille</span><input id="sc" type="range" min="12" max="48" step="1" value="26"><b id="scV">26</b></label>
+  <label><span>X</span><input id="dx" type="range" min="-24" max="24" step="1" value="0"><b id="dxV">0</b></label>
+  <label><span>Y</span><input id="dy" type="range" min="-24" max="24" step="1" value="0"><b id="dyV">0</b></label>
+  <div class="nudge">
+    <button type="button" data-n="x-">←</button>
+    <button type="button" data-n="y-">↑</button>
+    <button type="button" data-n="y+">↓</button>
+    <button type="button" data-n="x+">→</button>
+  </div>
+  <div class="nudge">
+    <button type="button" data-n="s-">Taille −</button>
+    <button type="button" data-n="s+">Taille +</button>
+  </div>
+</div>
+
+<div class="card">
+  <pre id="vals"></pre>
+  <div class="row2">
+    <button type="button" class="btn" id="btnCopy">Copier JSON</button>
+    <button type="button" class="btn acc" id="btnReset">Reset</button>
+  </div>
+  <div class="row2" style="margin-top:6px">
+    <button type="button" class="btn ok" id="btnPng">Télécharger planche</button>
+    <a class="btn" href="creator.html" id="btnCreator" style="text-align:center;text-decoration:none;line-height:38px">Créateur</a>
+  </div>
+  <p class="hint">Quand c’est bon : Copier JSON et envoie-le-moi — j’applique dans le jeu.</p>
+</div>
+
+<script>
+(function(){
+  const FW=128, FH=128, ZOOM=4, SIT=0.42, KEY="fcc.hatPlace.Head25";
+  const ROW=["E","SE","S","SW","W","NW","N","NE"];
+  const SRC={
+    S:"hat-refs/pixellab-source/south.png",
+    SE:"hat-refs/pixellab-source/south-east.png",
+    E:"hat-refs/pixellab-source/east.png",
+    NE:"hat-refs/pixellab-source/north-east.png",
+    N:"hat-refs/pixellab-source/north.png",
+    NW:"hat-refs/pixellab-source/north-west.png",
+    W:"hat-refs/pixellab-source/west.png",
+    SW:"hat-refs/pixellab-source/south-west.png"
+  };
+  const P={ targetW:26, dx:0, dy:0, dir:"S" };
+  const hats={}, scaled={};
+  let body=null, head3=null, anchors=null, thumbs=[];
+
+  const el=id=>document.getElementById(id);
+  const big=el("big"), bctx=big.getContext("2d");
+  bctx.imageSmoothingEnabled=false;
+
+  function loadIm(src){
+    return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=()=>rej(src); i.src=src; });
+  }
+  function bbox(im, sx,sy,sw,sh){
+    const c=document.createElement("canvas"); c.width=sw; c.height=sh;
+    const x=c.getContext("2d"); x.drawImage(im,sx,sy,sw,sh,0,0,sw,sh);
+    const d=x.getImageData(0,0,sw,sh).data;
+    let x0=sw,y0=sh,x1=0,y1=0,hit=false;
+    for(let y=0;y<sh;y++) for(let p=0;p<sw;p++){
+      if(d[(y*sw+p)*4+3]>10){ hit=true; if(p<x0)x0=p; if(p>x1)x1=p; if(y<y0)y0=y; if(y>y1)y1=y; }
+    }
+    return hit?{x0,y0,x1:x1+1,y1:y1+1}:null;
+  }
+  function cropAlpha(im){
+    const b=bbox(im,0,0,im.width,im.height); if(!b) return im;
+    const c=document.createElement("canvas"); c.width=b.x1-b.x0; c.height=b.y1-b.y0;
+    c.getContext("2d").drawImage(im,-b.x0,-b.y0);
+    return c;
+  }
+  function nnScale(src, tw){
+    const th=Math.max(1, Math.round(src.height*(tw/src.width)));
+    const c=document.createElement("canvas"); c.width=tw; c.height=th;
+    const x=c.getContext("2d"); x.imageSmoothingEnabled=false;
+    x.drawImage(src,0,0,tw,th);
+    return c;
+  }
+  function hatPos(row){
+    const lab=ROW[row], hat=scaled[lab];
+    const a=anchors[row] || {x0:60,y0:48,x1:70,y1:58};
+    const hcx=(a.x0+a.x1)/2;
+    const x=Math.round(hcx - hat.width/2 + P.dx);
+    const y=Math.round(a.y1 - hat.height*SIT + P.dy);
+    return {x,y,hat};
+  }
+  function rebuildScaled(){
+    for(const lab of ROW) scaled[lab]=nnScale(hats[lab], P.targetW|0);
+  }
+  function drawCell(ctx, row, zoom, w, h){
+    ctx.imageSmoothingEnabled=false;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle="#e8e8e2"; ctx.fillRect(0,0,w,h);
+    if(body) ctx.drawImage(body, 0,row*FH,FW,FH, 0,0, FW*zoom, FH*zoom);
+    const {x,y,hat}=hatPos(row);
+    ctx.drawImage(hat, x*zoom, y*zoom, hat.width*zoom, hat.height*zoom);
+  }
+  function render(){
+    const row=ROW.indexOf(P.dir); const r=row<0?2:row;
+    drawCell(bctx, r, ZOOM, big.width, big.height);
+    thumbs.forEach((t,i)=>{
+      const z=t.canvas.width/FW;
+      drawCell(t.ctx, i, z, t.canvas.width, t.canvas.height);
+      t.btn.classList.toggle("on", ROW[i]===P.dir);
+    });
+    el("sc").value=P.targetW; el("scV").textContent=P.targetW;
+    el("dx").value=P.dx; el("dxV").textContent=P.dx;
+    el("dy").value=P.dy; el("dyV").textContent=P.dy;
+    el("lab").textContent="Vue "+P.dir+" · glisse le chapeau · les autres vues suivent";
+    el("vals").textContent=JSON.stringify({id:"Head25", targetW:P.targetW|0, dx:P.dx|0, dy:P.dy|0, sit:SIT}, null, 2);
+    try{ localStorage.setItem(KEY, JSON.stringify(P)); }catch(_e){}
+  }
+  function setDir(lab){ P.dir=lab; render(); }
+  function applySliders(){
+    P.targetW=+el("sc").value; P.dx=+el("dx").value; P.dy=+el("dy").value;
+    rebuildScaled(); render();
+  }
+
+  /* drag on big canvas */
+  let drag=null;
+  function cellFromEvt(ev){
+    const r=big.getBoundingClientRect();
+    const t=ev.touches?ev.touches[0]:ev;
+    return {
+      x:(t.clientX-r.left)*(big.width/r.width)/ZOOM,
+      y:(t.clientY-r.top)*(big.height/r.height)/ZOOM
+    };
+  }
+  function onDown(ev){
+    ev.preventDefault();
+    const p=cellFromEvt(ev);
+    const row=Math.max(0, ROW.indexOf(P.dir));
+    const hp=hatPos(row);
+    drag={ ox:p.x-(hp.x+hp.hat.width/2), oy:p.y-(hp.y+hp.hat.height/2), sx:P.dx, sy:P.dy, px:p.x, py:p.y };
+  }
+  function onMove(ev){
+    if(!drag) return;
+    ev.preventDefault();
+    const p=cellFromEvt(ev);
+    P.dx=Math.max(-24, Math.min(24, Math.round(drag.sx + (p.x-drag.px))));
+    P.dy=Math.max(-24, Math.min(24, Math.round(drag.sy + (p.y-drag.py))));
+    render();
+  }
+  function onUp(){ drag=null; }
+  big.addEventListener("pointerdown", onDown);
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+  big.addEventListener("touchstart", onDown, {passive:false});
+  window.addEventListener("touchmove", onMove, {passive:false});
+  window.addEventListener("touchend", onUp);
+
+  el("sc").oninput=applySliders; el("dx").oninput=applySliders; el("dy").oninput=applySliders;
+  document.querySelectorAll("[data-n]").forEach(btn=>{
+    btn.onclick=()=>{
+      const n=btn.dataset.n;
+      if(n==="x-") P.dx--; if(n==="x+") P.dx++;
+      if(n==="y-") P.dy--; if(n==="y+") P.dy++;
+      if(n==="s-") P.targetW--; if(n==="s+") P.targetW++;
+      P.dx=Math.max(-24,Math.min(24,P.dx));
+      P.dy=Math.max(-24,Math.min(24,P.dy));
+      P.targetW=Math.max(12,Math.min(48,P.targetW));
+      rebuildScaled(); render();
+    };
+  });
+  el("btnReset").onclick=()=>{ P.targetW=26; P.dx=0; P.dy=0; rebuildScaled(); render(); };
+  el("btnCopy").onclick=()=>{
+    navigator.clipboard.writeText(el("vals").textContent).then(()=>{ el("btnCopy").textContent="Copié ✓"; setTimeout(()=>el("btnCopy").textContent="Copier JSON",1200); });
+  };
+  el("btnPng").onclick=()=>{
+    const sheet=document.createElement("canvas"); sheet.width=FW*15; sheet.height=FH*8;
+    const s=sheet.getContext("2d"); s.imageSmoothingEnabled=false;
+    for(let row=0;row<8;row++){
+      const {x,y,hat}=hatPos(row);
+      for(let col=0;col<15;col++){
+        s.drawImage(hat, col*FW+x, row*FH+y);
+      }
+    }
+    const a=document.createElement("a"); a.download="Head25-Idle.png"; a.href=sheet.toDataURL("image/png"); a.click();
+  };
+
+  async function boot(){
+    try{
+      const raw=localStorage.getItem(KEY); if(raw) Object.assign(P, JSON.parse(raw));
+    }catch(_e){}
+    const host=el("thumbs");
+    ROW.forEach((lab,i)=>{
+      const btn=document.createElement("button"); btn.type="button";
+      const cv=document.createElement("canvas"); cv.width=128; cv.height=128;
+      const sm=document.createElement("small"); sm.textContent=lab;
+      btn.appendChild(cv); btn.appendChild(sm);
+      btn.onclick=()=>setDir(lab);
+      host.appendChild(btn);
+      thumbs.push({btn, canvas:cv, ctx:cv.getContext("2d")});
+    });
+    body=await loadIm("hat-refs/NakedBody_Idle_full.png");
+    head3=await loadIm("hat-refs/Head3_Idle_full.png");
+    anchors=ROW.map((_,row)=>bbox(head3,0,row*FH,FW,FH));
+    await Promise.all(ROW.map(async lab=>{ hats[lab]=cropAlpha(await loadIm(SRC[lab])); }));
+    rebuildScaled(); render();
+  }
+  boot().catch(e=>{ el("lab").textContent="Chargement échoué — "+e; });
+})();
+</script>
+</body>
+</html>

@@ -28,8 +28,12 @@ mkdir -p "$OUT/hat-refs" "$OUT/assets/packs/fantasy-cc/spritesheets" "$ROOT/docs
 if [[ -d "$ROOT/docs/previews/hat-refs" ]]; then
   cp -a "$ROOT/docs/previews/hat-refs/." "$OUT/hat-refs/"
 fi
-if [[ -f "$ROOT/docs/previews/hat-wizard-guide.html" ]]; then
-  cp "$ROOT/docs/previews/hat-wizard-guide.html" "$OUT/hat-wizard-guide.html"
+if [[ -f "$ROOT/hat-place.html" ]]; then
+  cp "$ROOT/hat-place.html" "$OUT/hat-place.html"
+  cp "$ROOT/hat-place.html" "$ROOT/docs/previews/hat-place.html"
+fi
+if [[ -f "$ROOT/docs/previews/hat-place.json" ]]; then
+  cp "$ROOT/docs/previews/hat-place.json" "$OUT/hat-place.json"
 fi
 if [[ -d "$ROOT/assets/packs/fantasy-cc/spritesheets/Head25" ]]; then
   cp -a "$ROOT/assets/packs/fantasy-cc/spritesheets/Head25" "$OUT/assets/packs/fantasy-cc/spritesheets/"
@@ -45,6 +49,7 @@ cat > "$OUT/index.html" <<'EOF'
 <h1>Previews</h1>
 <p><a href="creator.html">Créateur</a></p>
 <p><a href="fantasy-combat.html">Combat</a></p>
+<p><a href="hat-place.html">Cale chapeau Head25</a></p>
 <p><a href="hat-wizard-guide.html">Guide chapeau sorcier (Head25)</a></p>
 <p><a href="fantasy-weapon-anim.html">Anim par équipement</a></p>
 <p><a href="fantasy-dir-calibrate.html">Calibrage directions</a></p>
