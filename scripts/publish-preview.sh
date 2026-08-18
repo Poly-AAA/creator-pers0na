@@ -30,7 +30,6 @@ if [[ -d "$ROOT/docs/previews/hat-refs" ]]; then
 fi
 if [[ -f "$ROOT/docs/previews/hat-wizard-guide.html" ]]; then
   cp "$ROOT/docs/previews/hat-wizard-guide.html" "$OUT/hat-wizard-guide.html"
-  cp "$ROOT/docs/previews/hat-wizard-guide.html" "$ROOT/docs/previews/hat-wizard-guide.html"
 fi
 if [[ -d "$ROOT/assets/packs/fantasy-cc/spritesheets/Head25" ]]; then
   cp -a "$ROOT/assets/packs/fantasy-cc/spritesheets/Head25" "$OUT/assets/packs/fantasy-cc/spritesheets/"
