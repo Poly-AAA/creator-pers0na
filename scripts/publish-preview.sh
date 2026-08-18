@@ -23,6 +23,22 @@ cp "$ROOT/fantasy-weapon-anim.html" "$ROOT/docs/previews/fantasy-weapon-anim.htm
 cp "$ROOT/js/fantasy-combat-bridge.js" "$ROOT/docs/previews/js/fantasy-combat-bridge.js"
 cp "$ROOT/character-creator-fantasy.html" "$ROOT/docs/previews/character-creator-fantasy.html"
 
+# Chapeau Head25 + guide PixelLab (local, pas sur le CDN pin)
+mkdir -p "$OUT/hat-refs" "$OUT/assets/packs/fantasy-cc/spritesheets" "$ROOT/docs/previews/hat-refs"
+if [[ -d "$ROOT/docs/previews/hat-refs" ]]; then
+  cp -a "$ROOT/docs/previews/hat-refs/." "$OUT/hat-refs/"
+fi
+if [[ -f "$ROOT/docs/previews/hat-wizard-guide.html" ]]; then
+  cp "$ROOT/docs/previews/hat-wizard-guide.html" "$OUT/hat-wizard-guide.html"
+  cp "$ROOT/docs/previews/hat-wizard-guide.html" "$ROOT/docs/previews/hat-wizard-guide.html"
+fi
+if [[ -d "$ROOT/assets/packs/fantasy-cc/spritesheets/Head25" ]]; then
+  cp -a "$ROOT/assets/packs/fantasy-cc/spritesheets/Head25" "$OUT/assets/packs/fantasy-cc/spritesheets/"
+fi
+if [[ -f "$ROOT/assets/packs/fantasy-cc/catalog.json" ]]; then
+  cp "$ROOT/assets/packs/fantasy-cc/catalog.json" "$OUT/assets/packs/fantasy-cc/catalog.json"
+fi
+
 cat > "$OUT/index.html" <<'EOF'
 <!DOCTYPE html><html lang="fr"><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Previews Fantasy-CC</title>
@@ -30,6 +46,7 @@ cat > "$OUT/index.html" <<'EOF'
 <h1>Previews</h1>
 <p><a href="creator.html">Créateur</a></p>
 <p><a href="fantasy-combat.html">Combat</a></p>
+<p><a href="hat-wizard-guide.html">Guide chapeau sorcier (Head25)</a></p>
 <p><a href="fantasy-weapon-anim.html">Anim par équipement</a></p>
 <p><a href="fantasy-dir-calibrate.html">Calibrage directions</a></p>
 <p><a href="editor.html">Éditeur placement</a></p>

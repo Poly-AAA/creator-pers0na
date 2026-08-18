@@ -256,7 +256,18 @@
   }
   function shortOpt(name){
     if(!name||name==="None") return "Aucun";
+    if(name==="Head25") return "Sorcier";
     return name.replace(/^(Head|Chest|Legs|Shoes|Belt|Hands|Weapon|Shield|Backpack|Melee|Bow|Staff|Mount|Effect|Slash|NakedBody)_?/i,"")||name;
+  }
+  function ensureExtraGear(cat){
+    if(!cat) return cat;
+    const head=(cat.slots||[]).find(s=>s.id==="head");
+    if(head && Array.isArray(head.folders) && !head.folders.includes("Head25")){
+      const i=head.folders.indexOf("Head24");
+      head.folders.splice(i>=0?i+1:head.folders.length, 0, "Head25");
+    }
+    if(Array.isArray(cat.folders) && !cat.folders.includes("Head25")) cat.folders.push("Head25");
+    return cat;
   }
   function markEdited(key){ state.lastEdited=key; }
 
@@ -265,7 +276,12 @@
     if(state.cache.has(key)) return state.cache.get(key);
     const p=new Promise((resolve)=>{
       const rel=`spritesheets/${folder}/${anim}.png`;
-      const urls=[BASE_CDN+rel, BASE_LOCAL+rel];
+      const urls=[];
+      if(folder==="Head25"){
+        urls.push(`hat-refs/Head25/${anim}.png`);
+        urls.push(`assets/packs/fantasy-cc/spritesheets/Head25/${anim}.png`);
+      }
+      urls.push(BASE_CDN+rel, BASE_LOCAL+rel);
       const im=new Image(); try{ im.crossOrigin="anonymous"; }catch(_e){}
       let i=0;
       const next=()=>{
@@ -689,7 +705,7 @@
       try{ const r=await fetch(u,{cache:"no-store",mode:"cors"}); if(r.ok){ cat=await r.json(); break; } }catch(_e){}
     }
     if(!cat){ el("status").textContent="Catalogue ∅"; return; }
-    state.catalog=cat;
+    state.catalog=ensureExtraGear(cat);
     if(cat.weaponAfterShieldRows) weaponAfterShieldRows=cat.weaponAfterShieldRows;
     if(cat.backpackInFrontRows) backpackInFrontRows=cat.backpackInFrontRows;
     if(cat.defaultFps) state.fps=cat.defaultFps|0;

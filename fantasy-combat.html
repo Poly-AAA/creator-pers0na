@@ -380,7 +380,7 @@
     awaitingNext: false,
   };
 
-  const ENEMY_HEADS = ["Head1","Head2","Head3","Head4","Head5","Head6","Head7","Head8","Head9","Head10","Head12","Head14","Head16","Head18","Head20","Head22"];
+  const ENEMY_HEADS = ["Head1","Head2","Head3","Head4","Head5","Head6","Head7","Head8","Head9","Head10","Head12","Head14","Head16","Head18","Head20","Head22","Head25"];
   const ENEMY_CHESTS = ["Chest1","Chest2","Chest3","Chest4","Chest5","Chest6","Chest7","Chest8","Chest9","Chest10","Chest12","Chest14","Chest16"];
   const ENEMY_LEGS = ["Legs1","Legs2","Legs3","Legs4","Legs5","Legs6","Legs7","Legs8","Legs9"];
   const ENEMY_WEAPONS = ["Melee1","Melee2","Melee3","Melee5","Melee8","Melee10","Melee12","Melee15","Ranged1","Ranged2","Ranged3","Ranged5","Magic1","Magic2","Magic3"];
@@ -839,7 +839,12 @@
     if(cacheP.has(key)) return cacheP.get(key);
     const p = new Promise((resolve)=>{
       const rel = `spritesheets/${folderName}/${anim}.png`;
-      const urls = [BASE_CDN+rel, BASE_LOCAL+rel];
+      const urls = [];
+      if(folderName==="Head25"){
+        urls.push(`hat-refs/Head25/${anim}.png`);
+        urls.push(`assets/packs/fantasy-cc/spritesheets/Head25/${anim}.png`);
+      }
+      urls.push(BASE_CDN+rel, BASE_LOCAL+rel);
       let i=0, useCors=true;
       const tryOne=()=>{
         if(i>=urls.length){

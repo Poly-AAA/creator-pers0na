@@ -1,0 +1,29 @@
+{
+  "group_id": "3c238078-7067-4ae9-bc89-3990b95453b9",
+  "objects": [
+    {
+      "id": "aab44bbf-7ac6-4d99-865d-5b370d842de6",
+      "name": "base",
+      "prompt": "Pixel art isom\u00e9trique 2:1, style RPG modular SmallScaleInt.\nUNIQUEMENT un chapeau de sorcier/sorci\u00e8re marron cuir us\u00e9 :\n- haut conique mou et pliss\u00e9, pointe inclin\u00e9e vers l'arri\u00e8re\n- bord large ondul\u00e9, coutures visibles, petit n\u0153ud lat\u00e9ral\n- couleurs : #6B4A2E #4A3220 #8B6344\n- fond transparent, pixels nets, PAS de personnage\nInterdit : cone rigide, photo, 3D, ombre floue au sol.",
+      "size": {
+        "width": 85,
+        "height": 85
+      },
+      "directions": 8,
+      "view": "low top-down",
+      "rotations": {
+        "south": "rotations/south.png",
+        "south-east": "rotations/south-east.png",
+        "east": "rotations/east.png",
+        "north-east": "rotations/north-east.png",
+        "north": "rotations/north.png",
+        "north-west": "rotations/north-west.png",
+        "west": "rotations/west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {}
+    }
+  ],
+  "export_version": "1.1",
+  "export_date": "2026-08-18T00:35:56.617582"
+}
