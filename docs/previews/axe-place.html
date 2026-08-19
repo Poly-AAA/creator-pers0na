@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Cale Tomahawk · Melee26</title>
+<style>
+  :root{--bg:#ecece8;--card:#fff;--ink:#3d3d3a;--acc:#8a3a20;--line:#d8d4cc;--ok:#2f6f4e}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,sans-serif}
+  body{max-width:430px;margin:0 auto;padding:10px 10px 32px}
+  h1{font-size:1.05rem;margin:0 0 3px}
+  .sub{color:#777;font-size:.8rem;margin:0 0 8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
+  /* ---- big canvas ---- */
+  .stage{display:flex;justify-content:center;background:repeating-conic-gradient(#d8d8d2 0% 25%,#ededea 0% 50%) 50%/16px 16px;border-radius:10px;overflow:hidden}
+  #big{width:100%;max-width:360px;height:auto;image-rendering:pixelated;touch-action:none;cursor:grab}
+  /* ---- anim row ---- */
+  .animrow{display:flex;gap:5px;overflow-x:auto;padding:4px 0;-webkit-overflow-scrolling:touch}
+  .animrow button{flex-shrink:0;padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;
+    background:#f4f2ec;font-size:.72rem;font-weight:700;color:var(--ink)}
+  .animrow button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  /* ---- dir grid ---- */
+  .dirs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+  .dirs button{padding:0;border:2px solid transparent;border-radius:8px;background:#f4f2ec;overflow:hidden}
+  .dirs button.on{border-color:var(--acc)}
+  .dirs canvas{width:100%;height:auto;display:block;image-rendering:pixelated}
+  .dirs small{display:block;text-align:center;font-size:.62rem;padding:2px 0;color:#666}
+  /* ---- sliders ---- */
+  label{display:flex;align-items:center;gap:7px;margin:5px 0;font-size:.82rem}
+  label span{width:50px;flex-shrink:0}
+  label b{width:34px;text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{flex:1}
+  .nudge{display:flex;gap:5px;margin-top:5px}
+  .nudge button,.btn{flex:1;padding:10px 0;border:0;border-radius:9px;background:#3d3d3a;color:#fff;font-weight:700}
+  .btn.ok{background:var(--ok)}
+  .btn.acc{background:var(--acc)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  #vals{font:11px ui-monospace,Menlo,monospace;background:#f7f5f0;border:1px solid var(--line);
+    border-radius:8px;padding:8px;margin:0;white-space:pre-wrap}
+  .hint{font-size:.72rem;color:#777;margin:5px 0 0}
+  a.btn{text-align:center;text-decoration:none;line-height:38px}
+  #status{font-size:.75rem;color:#777;margin:3px 0 0;min-height:1em}
+</style>
+</head>
+<body>
+<h1>Cale Tomahawk · Melee26</h1>
+<p class="sub">Règle taille+position sur une vue/anim — les 8 directions suivent en direct.</p>
+
+<div class="card">
+  <div class="stage"><canvas id="big" width="512" height="512"></canvas></div>
+  <p id="status">Chargement…</p>
+</div>
+
+<!-- Anim selector (mêlée uniquement) -->
+<div class="card">
+  <div class="animrow" id="animrow"></div>
+</div>
+
+<!-- 8 directions -->
+<div class="card">
+  <div class="dirs" id="dirs"></div>
+</div>
+
+<!-- Sliders -->
+<div class="card">
+  <label><span>Taille W</span><input id="sc"  type="range" min="8" max="56" step="1" value="20"><b id="scV">20</b></label>
+  <label><span>X</span>      <input id="dx"  type="range" min="-32" max="32" step="1" value="0"><b id="dxV">0</b></label>
+  <label><span>Y</span>      <input id="dy"  type="range" min="-32" max="32" step="1" value="0"><b id="dyV">0</b></label>
+  <div class="nudge">
+    <button type="button" data-n="x-">←</button>
+    <button type="button" data-n="y-">↑</button>
+    <button type="button" data-n="y+">↓</button>
+    <button type="button" data-n="x+">→</button>
+  </div>
+  <div class="nudge">
+    <button type="button" data-n="s-">Taille −</button>
+    <button type="button" data-n="s+">Taille +</button>
+  </div>
+</div>
+
+<!-- Export -->
+<div class="card">
+  <pre id="vals"></pre>
+  <div class="row2">
+    <button type="button" class="btn" id="btnCopy">Copier JSON</button>
+    <button type="button" class="btn acc" id="btnReset">Reset</button>
+  </div>
+  <div class="row2" style="margin-top:6px">
+    <button type="button" class="btn ok" id="btnPng">Télécharger planche</button>
+    <a class="btn" href="creator.html" data-fcc="creator">Créateur</a>
+  </div>
+  <p class="hint">Quand c'est bon : <b>Copier JSON</b> et envoie-le moi.</p>
+</div>
+
+<script>
+(function(){
+const FW=128, FH=128, ZOOM=4, KEY="fcc.axePlace.Melee26";
+// sheet rows → compass label (fantasy-cc Idle calibration)
+const ROW_LABEL=["E","SE","S","SW","W","NW","N","NE"];
+// mêlée + attaque ride uniquement
+const ATTACK_ANIMS=["Idle","Attack1","Attack2","Attack3","Attack4","Attack5","Attack6",
+  "AttackRun","AttackRun2","Kick","RideIdleAttack1","RideRunAttack1"];
+const SRC={
+  S:"axe-refs/pixellab-source/south.png",
+  SE:"axe-refs/pixellab-source/south-east.png",
+  E:"axe-refs/pixellab-source/east.png",
+  NE:"axe-refs/pixellab-source/north-east.png",
+  N:"axe-refs/pixellab-source/north.png",
+  NW:"axe-refs/pixellab-source/north-west.png",
+  W:"axe-refs/pixellab-source/west.png",
+  SW:"axe-refs/pixellab-source/south-west.png",
+};
+const CDN="https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/spritesheets/";
+const LOCAL="assets/packs/fantasy-cc/spritesheets/";
+
+let P={targetW:20, dx:0, dy:0, dir:"S", anim:"Idle"};
+const axes={}, scaled={};
+// melee1[anim] = Image (reference sheet)
+const melee1={};
+// anchor cache per anim per row: {cx, cy} = center of Melee1 content in that frame
+const anchors={};
+let bodySheet=null;
+let dirThumbs=[];
+let loadErrors=0;
+
+const el=id=>document.getElementById(id);
+const big=el("big"); const bctx=big.getContext("2d"); bctx.imageSmoothingEnabled=false;
+
+function loadIm(url){
+  return new Promise((res,rej)=>{
+    const i=new Image(); i.crossOrigin="anonymous";
+    i.onload=()=>res(i); i.onerror=()=>rej(url); i.src=url;
+  });
+}
+function loadImFallback(urls){
+  let i=0;
+  return new Promise((res,rej)=>{
+    const next=()=>{ if(i>=urls.length){rej(urls);return;}
+      const im=new Image(); im.crossOrigin="anonymous";
+      im.onload=()=>res(im); im.onerror=()=>{i++;next();}; im.src=urls[i++];
+    }; next();
+  });
+}
+function bboxCanvas(im, sx,sy,sw,sh){
+  const c=document.createElement("canvas"); c.width=sw; c.height=sh;
+  const x=c.getContext("2d"); x.drawImage(im,sx,sy,sw,sh,0,0,sw,sh);
+  const d=x.getImageData(0,0,sw,sh).data;
+  let x0=sw,y0=sh,x1=0,y1=0,hit=false;
+  for(let y=0;y<sh;y++) for(let p=0;p<sw;p++){
+    if(d[(y*sw+p)*4+3]>10){hit=true;if(p<x0)x0=p;if(p>x1)x1=p;if(y<y0)y0=y;if(y>y1)y1=y;}
+  }
+  return hit?{x0,y0,x1:x1+1,y1:y1+1,cx:((x0+x1+1)/2)|0,cy:((y0+y1+1)/2)|0}:null;
+}
+function cropAlpha(im){
+  const b=bboxCanvas(im,0,0,im.width,im.height); if(!b) return im;
+  const c=document.createElement("canvas"); c.width=b.x1-b.x0; c.height=b.y1-b.y0;
+  c.getContext("2d").drawImage(im,-b.x0,-b.y0); return c;
+}
+function nnScale(src,tw){
+  const th=Math.max(1,Math.round(src.height*(tw/src.width)));
+  const c=document.createElement("canvas"); c.width=tw; c.height=th;
+  const x=c.getContext("2d"); x.imageSmoothingEnabled=false;
+  x.drawImage(src,0,0,tw,th); return c;
+}
+function getAnchor(anim, row){
+  const k=anim+"_"+row;
+  if(anchors[k]) return anchors[k];
+  if(!melee1[anim]) return {cx:64,cy:64};
+  const im=melee1[anim];
+  const b=bboxCanvas(im, 0, row*FH, FW, FH);
+  const r=b||{cx:64,cy:64};
+  anchors[k]=r; return r;
+}
+function rebuildScaled(){
+  for(const lab of ROW_LABEL) if(axes[lab]) scaled[lab]=nnScale(axes[lab],P.targetW|0);
+}
+function drawCell(ctx, row, zoom, w, h, anim){
+  ctx.imageSmoothingEnabled=false;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle="#e8e8e2"; ctx.fillRect(0,0,w,h);
+  // draw body reference
+  if(bodySheet) ctx.drawImage(bodySheet, 0,row*FH,FW,FH, 0,0,FW*zoom,FH*zoom);
+  // draw melee1 reference (faded, for alignment)
+  const ref=melee1[anim]||melee1["Idle"];
+  if(ref){
+    ctx.save(); ctx.globalAlpha=0.35;
+    ctx.drawImage(ref, 0,row*FH,FW,FH, 0,0,FW*zoom,FH*zoom);
+    ctx.restore();
+  }
+  // draw axe
+  const lab=ROW_LABEL[row];
+  const hat=scaled[lab]; if(!hat) return;
+  const anc=getAnchor(anim, row);
+  const x=Math.round(anc.cx - hat.width/2 + P.dx);
+  const y=Math.round(anc.cy - hat.height/2 + P.dy);
+  ctx.drawImage(hat, x*zoom, y*zoom, hat.width*zoom, hat.height*zoom);
+  // draw anchor crosshair
+  ctx.save(); ctx.globalAlpha=0.5; ctx.strokeStyle="#e85c20"; ctx.lineWidth=1;
+  const ax=anc.cx*zoom, ay=anc.cy*zoom;
+  ctx.beginPath(); ctx.moveTo(ax-6,ay); ctx.lineTo(ax+6,ay); ctx.moveTo(ax,ay-6); ctx.lineTo(ax,ay+6); ctx.stroke();
+  ctx.restore();
+}
+function render(){
+  const row=Math.max(0,ROW_LABEL.indexOf(P.dir));
+  drawCell(bctx, row, ZOOM, big.width, big.height, P.anim);
+  dirThumbs.forEach((t,i)=>{
+    const z=t.canvas.width/FW;
+    drawCell(t.ctx, i, z, t.canvas.width, t.canvas.height, P.anim);
+    t.btn.classList.toggle("on", ROW_LABEL[i]===P.dir);
+  });
+  el("sc").value=P.targetW; el("scV").textContent=P.targetW;
+  el("dx").value=P.dx; el("dxV").textContent=P.dx;
+  el("dy").value=P.dy; el("dyV").textContent=P.dy;
+  document.querySelectorAll(".animrow button").forEach(b=>b.classList.toggle("on",b.dataset.anim===P.anim));
+  el("vals").textContent=JSON.stringify({id:"Melee26",targetW:P.targetW|0,dx:P.dx|0,dy:P.dy|0},null,2);
+  el("status").textContent="Vue "+P.dir+" · Anim "+P.anim+" (point orange = ancre main Melee1)";
+  try{localStorage.setItem(KEY,JSON.stringify(P));}catch(_e){}
+}
+function applySliders(){
+  P.targetW=+el("sc").value; P.dx=+el("dx").value; P.dy=+el("dy").value;
+  rebuildScaled(); render();
+}
+
+// drag
+let drag=null;
+function ptFromEvt(ev){
+  const r=big.getBoundingClientRect(), t=ev.touches?ev.touches[0]:ev;
+  return{x:(t.clientX-r.left)*(big.width/r.width)/ZOOM,
+         y:(t.clientY-r.top)*(big.height/r.height)/ZOOM};
+}
+big.addEventListener("pointerdown",ev=>{ev.preventDefault();drag={ox:0,oy:0,sx:P.dx,sy:P.dy,px:ptFromEvt(ev).x,py:ptFromEvt(ev).y};});
+window.addEventListener("pointermove",ev=>{
+  if(!drag)return; ev.preventDefault();
+  const p=ptFromEvt(ev);
+  P.dx=Math.max(-32,Math.min(32,Math.round(drag.sx+(p.x-drag.px))));
+  P.dy=Math.max(-32,Math.min(32,Math.round(drag.sy+(p.y-drag.py))));
+  render();
+});
+window.addEventListener("pointerup",()=>drag=null);
+big.addEventListener("touchstart",ev=>{ev.preventDefault();drag={sx:P.dx,sy:P.dy,px:ptFromEvt(ev).x,py:ptFromEvt(ev).y};},{passive:false});
+window.addEventListener("touchmove",ev=>{
+  if(!drag)return;ev.preventDefault();
+  const p=ptFromEvt(ev);
+  P.dx=Math.max(-32,Math.min(32,Math.round(drag.sx+(p.x-drag.px))));
+  P.dy=Math.max(-32,Math.min(32,Math.round(drag.sy+(p.y-drag.py))));
+  render();
+},{passive:false});
+window.addEventListener("touchend",()=>drag=null);
+
+// sliders
+el("sc").oninput=applySliders; el("dx").oninput=applySliders; el("dy").oninput=applySliders;
+document.querySelectorAll("[data-n]").forEach(btn=>{
+  btn.onclick=()=>{
+    const n=btn.dataset.n;
+    if(n==="x-")P.dx--; if(n==="x+")P.dx++;
+    if(n==="y-")P.dy--; if(n==="y+")P.dy++;
+    if(n==="s-")P.targetW--; if(n==="s+")P.targetW++;
+    P.dx=Math.max(-32,Math.min(32,P.dx));
+    P.dy=Math.max(-32,Math.min(32,P.dy));
+    P.targetW=Math.max(8,Math.min(56,P.targetW));
+    rebuildScaled(); render();
+  };
+});
+el("btnReset").onclick=()=>{ P.targetW=20; P.dx=0; P.dy=0; rebuildScaled(); render(); };
+el("btnCopy").onclick=()=>{
+  navigator.clipboard.writeText(el("vals").textContent)
+    .then(()=>{el("btnCopy").textContent="Copié ✓"; setTimeout(()=>el("btnCopy").textContent="Copier JSON",1400);});
+};
+el("btnPng").onclick=()=>{
+  const sheet=document.createElement("canvas"); sheet.width=FW*15; sheet.height=FH*8;
+  const s=sheet.getContext("2d"); s.imageSmoothingEnabled=false;
+  for(let row=0;row<8;row++){
+    const lab=ROW_LABEL[row], hat=scaled[lab]; if(!hat) continue;
+    const anc=getAnchor(P.anim,row);
+    const x=Math.round(anc.cx-hat.width/2+P.dx);
+    const y=Math.round(anc.cy-hat.height/2+P.dy);
+    for(let col=0;col<15;col++) s.drawImage(hat,col*FW+x,row*FH+y);
+  }
+  const a=document.createElement("a"); a.download="Melee26-"+P.anim+".png"; a.href=sheet.toDataURL("image/png"); a.click();
+};
+
+async function boot(){
+  try{const raw=localStorage.getItem(KEY); if(raw) Object.assign(P,JSON.parse(raw));}catch(_e){}
+
+  // Build anim buttons
+  const ar=el("animrow");
+  ATTACK_ANIMS.forEach(a=>{
+    const b=document.createElement("button"); b.type="button"; b.dataset.anim=a;
+    b.textContent=a; b.onclick=()=>{ P.anim=a; render(); };
+    ar.appendChild(b);
+  });
+
+  // Build direction thumbs
+  const dh=el("dirs");
+  ROW_LABEL.forEach((lab,i)=>{
+    const btn=document.createElement("button"); btn.type="button";
+    const cv=document.createElement("canvas"); cv.width=128; cv.height=128;
+    const sm=document.createElement("small"); sm.textContent=lab;
+    btn.appendChild(cv); btn.appendChild(sm);
+    btn.onclick=()=>{P.dir=lab; render();};
+    dh.appendChild(btn);
+    dirThumbs.push({btn,canvas:cv,ctx:cv.getContext("2d")});
+  });
+
+  el("status").textContent="Chargement images…";
+
+  // Load body
+  bodySheet=await loadIm("axe-refs/NakedBody_Idle_full.png").catch(()=>null);
+
+  // Load axe directions
+  await Promise.all(ROW_LABEL.map(async lab=>{
+    try{ axes[lab]=cropAlpha(await loadIm(SRC[lab])); }
+    catch(_e){ loadErrors++; }
+  }));
+  rebuildScaled();
+
+  // Load Melee1 attack sheets (needed for anchor points)
+  el("status").textContent="Chargement anims Melee1…";
+  await Promise.all(ATTACK_ANIMS.map(async anim=>{
+    const urls=[LOCAL+"Melee1/"+anim+".png", CDN+"Melee1/"+anim+".png"];
+    try{ melee1[anim]=await loadImFallback(urls); }
+    catch(_e){ /* pas grave, fallback Idle */ }
+  }));
+  if(!melee1["Idle"]) melee1["Idle"]=await loadImFallback([LOCAL+"Melee1/Idle.png",CDN+"Melee1/Idle.png"]).catch(()=>null);
+
+  render();
+}
+boot();
+})();
+</script>
+</body>
+</html>

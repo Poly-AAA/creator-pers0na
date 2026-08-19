@@ -1,0 +1,29 @@
+{
+  "group_id": "85140c94-545e-4925-ad90-8a5595365ca6",
+  "objects": [
+    {
+      "id": "6c033e23-efdf-4337-b8aa-0dea31a47438",
+      "name": "base",
+      "prompt": "Pixel art isom\u00e9trique 2:1, style RPG modular SmallScaleInt fantasy.\nUNIQUEMENT la hache tomahawk, PAS de personnage, PAS de sol, PAS de fond.\n\nFORME (strictement comme la photo de r\u00e9f\u00e9rence) :\n- lame double : c\u00f4t\u00e9 tranchant large et incurv\u00e9 d'un c\u00f4t\u00e9,\n  petite lame secondaire (spike) de l'autre c\u00f4t\u00e9\n- dos de lame avec d\u00e9coupe g\u00e9om\u00e9trique (fen\u00eatre rectangulaire dans le m\u00e9tal)\n- manche long, textur\u00e9, avec grip tan/sable le long du corps\n- bout du manche \u00e9vas\u00e9 avec pointe noire (pommel)\n- languette noire en haut du manche sous la lame\n\nCOULEURS :\n- lame : #1c1c20 avec reflets #2e2e38 et #0e0e12\n- manche grip : #c8a96e (sable/tan chaud), ombres #9a7e50, highlights #e0c48a\n- parties noires (t\u00eate, pommel, languette) : #181820\n- contour global : #0a0a0e (1 px net)\n\nTECHNIQUE :\n- pixel art net, SANS anti-aliasing, SANS flou\n- fond TRANSPARENT\n- isom\u00e9trique 2:1 \u2014 m\u00eame angle exact que l'arme de r\u00e9f\u00e9rence Melee1 jointe\n- 8 directions (S, SE, E, NE, N, NW, W, SW)\n- l'arme doit tenir dans la main du personnage : cal\u00e9e sur Melee1 (r\u00e9f\u00e9rence jointe)\n- format export : 512\u00d7512 px par vue, fond transparent\n\nINTERDIT :\n- personnage, corps, ombre au sol\n- m\u00e9di\u00e9val, fantaisie, runes, magie\n- 3D rendu, photor\u00e9alisme, d\u00e9grad\u00e9s flous\n- changer l'angle ou l'\u00e9chelle",
+      "size": {
+        "width": 48,
+        "height": 48
+      },
+      "directions": 8,
+      "view": "low top-down",
+      "rotations": {
+        "south": "rotations/south.png",
+        "south-east": "rotations/south-east.png",
+        "east": "rotations/east.png",
+        "north-east": "rotations/north-east.png",
+        "north": "rotations/north.png",
+        "north-west": "rotations/north-west.png",
+        "west": "rotations/west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {}
+    }
+  ],
+  "export_version": "1.1",
+  "export_date": "2026-08-19T08:57:50.536902"
+}
