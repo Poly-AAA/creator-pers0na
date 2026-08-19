@@ -100,7 +100,7 @@
   <!-- Footer -->
   <div class="footer">
     <a href="character-creator-fantasy.html" data-fcc="creator">Créateur</a>
-    <a href="fantasy-combat.html" id="btnCombat" data-fcc="combat">Combat</a>
+    <button type="button" class="ok" id="btnCombatGo" type="button">Combat ▶</button>
     <button type="button" class="primary" id="btnSave">Sauver</button>
   </div>
 </div>
@@ -190,10 +190,51 @@ let customSpells = [];  // sorts créés / modifiés
 let activeId = null;    // sort en cours d'édition
 
 function loadCustom(){
+  importSpellsFromHash();
   try{ const r=localStorage.getItem(KEY_SPELLS); if(r) customSpells=JSON.parse(r)||[]; }catch(_e){}
+  try{
+    const bk=sessionStorage.getItem(KEY_SPELLS);
+    if(bk && !customSpells.length) customSpells=JSON.parse(bk)||[];
+  }catch(_e){}
 }
 function saveCustom(){
-  try{ localStorage.setItem(KEY_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+  try{
+    localStorage.setItem(KEY_SPELLS, JSON.stringify(customSpells));
+    sessionStorage.setItem(KEY_SPELLS, JSON.stringify(customSpells));
+  }catch(_e){}
+}
+function exportSpellsPack(){
+  return btoa(unescape(encodeURIComponent(JSON.stringify(customSpells))));
+}
+function importSpellsFromHash(){
+  const m=(location.hash||"").match(/fccSpells=([^&]+)/);
+  if(!m) return false;
+  try{
+    const raw=decodeURIComponent(m[1]);
+    const arr=JSON.parse(decodeURIComponent(escape(atob(raw))));
+    if(!Array.isArray(arr)) return false;
+    customSpells=arr;
+    saveCustom();
+    return true;
+  }catch(_e){ return false; }
+}
+let _autoSaveT=null;
+function scheduleAutoSave(){
+  clearTimeout(_autoSaveT);
+  _autoSaveT=setTimeout(()=>{ saveCustom(); showSavedStatus(); }, 350);
+}
+function goCombat(){
+  saveCustom();
+  const nav=wireFccNav();
+  let base=(nav&&nav.combat)||"fantasy-combat.html";
+  try{
+    const u=new URL(base, location.href);
+    u.hash="fccSpells="+encodeURIComponent(exportSpellsPack());
+    location.href=u.href;
+  }catch(_e){
+    const sep=base.includes("#")?"&":"#";
+    location.href=base+sep+"fccSpells="+encodeURIComponent(exportSpellsPack());
+  }
 }
 function allSpells(){ return [...BASE_SPELLS, ...customSpells.filter(c=>!BASE_SPELLS.find(b=>b.id===c.id))]; }
 function spellById(id){ return customSpells.find(s=>s.id===id) || BASE_SPELLS.find(s=>s.id===id) || null; }
@@ -818,28 +859,28 @@ function renderEvoChoice(spellId, tier, choice, spell){
     const s2=ensureEditable(spellId);
     initEvoConfig(s2);
     const e=evoEntry(s2, tier, choice);
-    if(e){ e.enabled=cb.checked; div.classList.toggle("on", cb.checked); }
+    if(e){ e.enabled=cb.checked; div.classList.toggle("on", cb.checked); scheduleAutoSave(); }
   };
 
   div.appendChild(mkSelectRow("Animation", ALL_ANIMS, entry.anim||choice.anim||"Attack1", v=>{
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
-    if(e) e.anim=v;
+    if(e){ e.anim=v; scheduleAutoSave(); }
   }));
   div.appendChild(mkSelectRow("FX Slash", fxSlashList(), entry.slash||"None", v=>{
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
-    if(e) e.slash=v;
+    if(e){ e.slash=v; scheduleAutoSave(); }
   }));
   div.appendChild(mkSelectRow("FX Effect", fxEffectList(), entry.effect||"None", v=>{
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
-    if(e) e.effect=v;
+    if(e){ e.effect=v; scheduleAutoSave(); }
   }));
   div.appendChild(mkNumRow("Vitesse (FPS)", entry.fps!=null?entry.fps:14, 1, 30, 1, v=>{
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
-    if(e) e.fps=v;
+    if(e){ e.fps=v; scheduleAutoSave(); }
   }));
   div.appendChild(mkNumRow("Délai avant (ms)", entry.delay!=null?entry.delay:80, 0, 3000, 50, v=>{
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
-    if(e) e.delay=v;
+    if(e){ e.delay=v; scheduleAutoSave(); }
   }));
 
   const testB=document.createElement("button"); testB.type="button"; testB.className="test-btn";
@@ -970,11 +1011,11 @@ function boot(){
 
   document.getElementById("btnSave").onclick=()=>{
     saveCustom();
-    try{ localStorage.setItem("neuro.customSpells", JSON.stringify(customSpells)); }catch(_e){}
     showSavedStatus();
-    setTimeout(()=>{ document.getElementById("pvStatus").textContent="Sauvé ✓"; showSavedStatus(); }, 1200);
+    setTimeout(()=>{ document.getElementById("pvStatus").textContent="Sauvé ✓"; showSavedStatus(); }, 800);
     setTimeout(()=>renderNav(),100);
   };
+  document.getElementById("btnCombatGo").onclick=()=> goCombat();
   showSavedStatus();
 
   function resizePv(){

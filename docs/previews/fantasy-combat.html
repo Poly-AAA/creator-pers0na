@@ -358,6 +358,20 @@
     const rawCs = localStorage.getItem(KEY_CUSTOM_SPELLS);
     if(rawCs) customSpells = JSON.parse(rawCs) || [];
   }catch(_e){}
+  function importCustomSpellsFromHash(){
+    const m=(location.hash||"").match(/fccSpells=([^&]+)/);
+    if(!m) return false;
+    try{
+      const raw=decodeURIComponent(m[1]);
+      const arr=JSON.parse(decodeURIComponent(escape(atob(raw))));
+      if(!Array.isArray(arr)) return false;
+      customSpells=arr;
+      localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(arr));
+      try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(arr)); }catch(_e){}
+      return true;
+    }catch(_e){ return false; }
+  }
+  importCustomSpellsFromHash();
   function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
   function evoState(id){
     if(!spellEvo[id]) spellEvo[id] = { tiersTaken:0, evo:{} };
@@ -861,35 +875,15 @@
     G.awaitingNext = true;
     G.busy = false;
     G.armed = null; G.armedSlot = null;
+    try{ closeEvo(); }catch(_e){}
     G.turn = "over";
     if(kind==="defeat"){
       setStatus("Défaite · prochain adversaire…");
-      setTimeout(()=> startNextFight({ force:true, fullHeal:true }), 1100);
+      setTimeout(()=> startNextFight({ force:true, fullHeal:true }), 900);
       return;
     }
-    /* victoire : évo éditeur déjà configurée → enchaîne direct */
-    setTimeout(()=>{
-      const bar = G.spellBar.length ? G.spellBar : refreshSpellBar();
-      const skipPicker = bar.some(s=> s && s.spellId && hasEditorEvos(s.spellId));
-      if(skipPicker){
-        setStatus("Victoire · prochain adversaire…");
-        setTimeout(()=> startNextFight({ force:true }), 500);
-        return;
-      }
-      const offered = offerEvo(null, true);
-      if(!offered){
-        setStatus("Victoire · prochain adversaire…");
-        setTimeout(()=> startNextFight({ force:true }), 700);
-      } else {
-        /* filet de sécurité si l’overlay reste bloqué */
-        setTimeout(()=>{
-          if(G.awaitingNext && G.pendingEvo){
-            closeEvo();
-            startNextFight({ force:true });
-          }
-        }, 8000);
-      }
-    }, 650);
+    setStatus("Victoire · prochain adversaire…"+customSpellStatus());
+    setTimeout(()=> startNextFight({ force:true, keepLook:true }), 600);
   }
 
   function setStatus(t){ el("status").textContent = t; }
@@ -1981,8 +1975,10 @@
   }
 
   async function boot(){
+    importCustomSpellsFromHash();
     setStatus("Chargement…");
     G.awaitingNext = false;
+    G.pendingEvo = null;
     G.busy = false;
     G.turn = "player";
     if(!loadLook()) defaultLook();
@@ -2084,18 +2080,20 @@
     });
     loop();
   }
-  boot().catch(()=>{
+  boot().catch((err)=>{
+    try{ importCustomSpellsFromHash(); }catch(_e){}
     try{ if(!lookState.look) defaultLook(); }catch(_e){}
     try{
+      G.awaitingNext=false; G.pendingEvo=null; G.busy=false;
       G.fightN = 1;
       G.enemy = makeEnemy(1);
       G.turn = "player";
       beginPlayerTurn();
       renderSpells(); hud();
       loop();
-      setStatus("Combat relancé");
+      setStatus("Combat relancé"+customSpellStatus());
     }catch(_e){
-      try{ setStatus("Erreur · tape Fin de tour"); }catch(_e2){}
+      try{ setStatus("Erreur combat · touche Relancer"); forceRestartCombat(); loop(); }catch(_e2){}
     }
   });
 })();
