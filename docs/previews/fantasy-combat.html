@@ -402,7 +402,13 @@
       };
       if(G.castFx.slash) loadImg(G.castFx.slash, step.anim || "Attack1");
       if(G.castFx.effect) loadImg(G.castFx.effect, step.anim || "Special1");
-      const dur = Math.max(180, Math.round((15 / (step.fps || 14)) * 1000));
+      const fps=(step.fps!=null?step.fps:14);
+      let dur;
+      if(!fps || fps<=0){ dur=40; }
+      else {
+        const base=(15/fps)*1000;
+        dur=Math.max(40, Math.round(base*0.25));
+      }
       setTimeout(next, (step.delay || 0) + dur);
     }
     next();
