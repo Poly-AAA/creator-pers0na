@@ -234,6 +234,22 @@ if [[ -n "$BASE" ]]; then
   wire_fcc_nav "$OUT/character-creator-fantasy.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
   wire_fcc_nav "$OUT/fantasy-weapon-anim.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
   wire_fcc_nav "$OUT/fantasy-dir-calibrate.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
+  # Patch BASE_LOCAL to absolute tunnel URL so sprites load even from single-file hosts
+  python3 - "$OUT" "$BASE" <<'PY'
+from pathlib import Path
+import sys
+out, base = Path(sys.argv[1]), sys.argv[2]
+asset_base = f"{base}/assets/packs/fantasy-cc/"
+for fname in ["creator.html","character-creator-fantasy.html","fantasy-combat.html","spell-editor.html"]:
+    p = out / fname
+    if not p.exists(): continue
+    t = p.read_text()
+    t2 = t.replace('const BASE_LOCAL = "assets/packs/fantasy-cc/";', f'const BASE_LOCAL = "{asset_base}";', 1)
+    t2 = t2.replace("const BASE_LOCAL = 'assets/packs/fantasy-cc/';", f"const BASE_LOCAL = '{asset_base}';", 1)
+    if t2 != t:
+        p.write_text(t2)
+        print(f"  patched BASE_LOCAL in {fname}")
+PY
   # For safety: link to spell-editor should be valid even in Litterbox fallback.
   python3 - "$OUT/creator.html" "$OUT/fantasy-combat.html" "$SPELL_URL" <<'PY'
 from pathlib import Path
