@@ -200,7 +200,7 @@
 (function(){
   "use strict";
   const BASE_LOCAL = "assets/packs/fantasy-cc/";
-  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
+  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@main/assets/packs/fantasy-cc/";
   const FW=128, FH=128, COLS=15, FPS=14;
   const KEY_LOOK = "neuro.fantasyLook";
   const KEY_DIR = "neuro.fantasyDirRow";
@@ -402,14 +402,17 @@
       };
       if(G.castFx.slash) loadImg(G.castFx.slash, step.anim || "Attack1");
       if(G.castFx.effect) loadImg(G.castFx.effect, step.anim || "Special1");
-      const fps=(step.fps!=null?step.fps:14);
+      let delay=Math.max(0, step.delay|0);
       let dur;
-      if(!fps || fps<=0){ dur=40; }
-      else {
-        const base=(15/fps)*1000;
-        dur=Math.max(40, Math.round(base*0.25));
+      if(typeof FantasyBridge!=="undefined" && FantasyBridge.animStepTiming){
+        const t=FantasyBridge.animStepTiming(step, COLS);
+        delay=t.delay; dur=t.dur||step.dur; G.player.stepFps=t.fps;
+      } else {
+        let fps=(step.fps!=null?step.fps:14); if(fps<1) fps=14;
+        G.player.stepFps=fps;
+        dur=Math.max(120, Math.round((COLS/fps)*1000));
       }
-      setTimeout(next, (step.delay || 0) + dur);
+      setTimeout(next, delay+dur);
     }
     next();
   }
@@ -810,6 +813,12 @@
     beginPlayerTurn();
   }
 
+  function hasEditorEvos(spellId){
+    reloadCustomSpells();
+    const custom = customSpellById(spellId);
+    if(!custom || !custom.evoConfig) return false;
+    return Object.values(custom.evoConfig).some(e=> e && e.enabled);
+  }
   function onCombatEnd(kind){
     if(G.awaitingNext) return;
     G.awaitingNext = true;
@@ -821,12 +830,27 @@
       setTimeout(()=> startNextFight({ force:true, fullHeal:true }), 1100);
       return;
     }
-    /* victoire : offre évo puis prochain combat */
+    /* victoire : évo éditeur déjà configurée → enchaîne direct */
     setTimeout(()=>{
+      const bar = G.spellBar.length ? G.spellBar : refreshSpellBar();
+      const skipPicker = bar.some(s=> s && s.spellId && hasEditorEvos(s.spellId));
+      if(skipPicker){
+        setStatus("Victoire · prochain adversaire…");
+        setTimeout(()=> startNextFight({ force:true }), 500);
+        return;
+      }
       const offered = offerEvo(null, true);
       if(!offered){
         setStatus("Victoire · prochain adversaire…");
         setTimeout(()=> startNextFight({ force:true }), 700);
+      } else {
+        /* filet de sécurité si l’overlay reste bloqué */
+        setTimeout(()=>{
+          if(G.awaitingNext && G.pendingEvo){
+            closeEvo();
+            startNextFight({ force:true });
+          }
+        }, 8000);
       }
     }, 650);
   }
@@ -1095,6 +1119,7 @@
     if(ent === G.player && isPlayerMounted()) a = toRideAnim(anim);
     else if(ent && ent.mount) a = toRideAnim(anim);
     ent.anim = a; ent.frame = 0; ent.t0 = performance.now();
+    if(/^Idle$/i.test(a)) ent.stepFps = null;
   }
   function faceToward(ent, tc, tr){
     const d = dirFromIsoDelta(tc-ent.c, tr-ent.r);
@@ -1788,12 +1813,13 @@
 
     ctx.imageSmoothingEnabled=false;
     let drawn=0;
+    const animFps = ent.stepFps || FPS;
     for(const L of layers){
       const resolved = resolveSheet(L.folder, anim, mounted);
       if(!resolved) continue;
       const { im, sheetAnim } = resolved;
       const row = sheetRowForDir(ent.dir|0, sheetAnim);
-      let col = Math.floor(elapsed*FPS);
+      let col = Math.floor(elapsed*animFps);
       if(loopAnims.test(sheetAnim)) col = col % COLS;
       else col = Math.min(col, COLS-1);
       try{ tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, (L.alpha||1)*baseAlpha); drawn++; }catch(_e){}
@@ -1813,7 +1839,7 @@
         if(!resolved) continue;
         const { im, sheetAnim } = resolved;
         const row = sheetRowForDir(ent.dir|0, sheetAnim);
-        let col = Math.floor(elapsed*FPS);
+        let col = Math.floor(elapsed*animFps);
         if(loopAnims.test(sheetAnim)) col = col % COLS;
         else col = Math.min(col, COLS-1);
         try{ ctx.drawImage(im,col*FW,row*FH,FW,FH,dx,dy,dw,dh); }catch(_e){}
@@ -1919,6 +1945,9 @@
 
   async function boot(){
     setStatus("Chargement…");
+    G.awaitingNext = false;
+    G.busy = false;
+    G.turn = "player";
     if(!loadLook()) defaultLook();
     lastLookSig = lookSig();
     try{

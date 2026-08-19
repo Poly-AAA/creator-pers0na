@@ -865,19 +865,32 @@
     return out;
   }
 
+  /** Délai avant + durée complète d’une anim (toutes les frames du sheet). */
+  function animStepTiming(step, cols) {
+    cols = cols || 15;
+    const delay = Math.max(0, step.delay != null ? (step.delay | 0) : 0);
+    let fps = step.fps != null ? step.fps : 14;
+    if (fps < 1) fps = 14;
+    const dur = Math.max(120, Math.round((cols / fps) * 1000));
+    return { delay: delay, dur: dur, fps: fps };
+  }
+
   /** Steps pour prévisualisation / chaîne d’anim en combat. */
   function buildEvoAnimSteps(spellId, evoConfig) {
     return enabledEvoChoices(spellId, evoConfig).map(function (item) {
       const ch = item.choice;
       const e = item.entry;
-      return {
+      const step = {
         anim: e.anim || ch.anim || "Attack1",
-        delay: e.delay != null ? e.delay : 80,
+        delay: e.delay != null ? e.delay : 0,
         fps: e.fps != null ? e.fps : 14,
         slash: e.slash || "None",
         effect: e.effect || "None",
         hitTarget: false,
       };
+      const t = animStepTiming(step);
+      step.dur = t.dur;
+      return step;
     });
   }
 
@@ -989,6 +1002,7 @@
     ensureEvoConfig,
     enabledEvoChoices,
     buildEvoAnimSteps,
+    animStepTiming,
     applyEvoConfig,
     editorEvoBonuses,
     castAnimFor,
