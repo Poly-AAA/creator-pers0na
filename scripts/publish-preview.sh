@@ -264,7 +264,7 @@ PY
   if verify_url "$CREATOR_URL" "combatUrlWithLook" \
     && verify_url "$COMBAT_URL" "Combat Fantasy" \
     && verify_url "$DIRS_URL" "Calibrage directions" \
-    && verify_url "$SPELL_URL" "paliers libres"; then
+    && verify_url "$SPELL_URL" "Évolutions du jeu"; then
     CF_OK=1
     echo
     echo "EDITOR=$BASE/editor.html"
@@ -325,7 +325,7 @@ p.write_text(t)
 PY
       # Re-upload creator to apply the rewrite
       LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html || true)"
-      if [[ "$LIT_CREATOR" == https://* ]] && verify_url "$LIT_SPELL" "paliers libres"; then
+      if [[ "$LIT_CREATOR" == https://* ]] && verify_url "$LIT_SPELL" "Évolutions du jeu"; then
         LIT_OK=1
       fi
     else

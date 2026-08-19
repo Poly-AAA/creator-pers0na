@@ -52,13 +52,17 @@
     background:var(--acc);color:#fff;border-radius:999px;font-size:11px;font-weight:700}
   .anim-seq .chip button{background:none;border:none;color:#fff;font-size:12px;padding:0;cursor:pointer}
 
-  /* tiers evo */
-  .tier{border:1px solid var(--line2);border-radius:10px;padding:10px;margin-top:8px}
-  .tier-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-  .tier-head span{font-size:11px;font-weight:700;color:var(--acc)}
-  .tier-head button{margin-left:auto;font-size:11px;padding:4px 9px;border:1px solid var(--line);
-    border-radius:8px;background:var(--soft);color:var(--ink)}
-  .tier-head button.del{background:#fee;border-color:#fcc;color:#c00}
+  /* évolutions catalogue */
+  .evo-tier{margin-top:10px}
+  .evo-tier h4{margin:0 0 6px;font-size:12px;font-weight:700;color:var(--acc)}
+  .evo-choice{border:1.5px solid var(--line2);border-radius:10px;padding:8px;margin-top:6px;background:var(--bg2)}
+  .evo-choice.on{border-color:var(--acc);background:#f0eef8}
+  .evo-choice-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+  .evo-choice-head label{display:flex;align-items:flex-start;gap:6px;cursor:pointer;flex:1}
+  .evo-choice-head b{font-size:12px;color:var(--ink)}
+  .evo-choice-head small{font-size:10px;color:var(--ink2);display:block;margin-top:2px;line-height:1.3}
+  .evo-choice .test-btn{margin-top:6px;padding:4px 10px;border-radius:7px;background:var(--acc);
+    color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer}
 
   /* overlay corps */
   .body-tokens{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
@@ -196,6 +200,71 @@ function ensureEditable(id){
     s.steps = (seq||[]).map(normalizeStep);
   }
   return s;
+}
+
+/* ── Catalogue évolutions (EVO_TREE du jeu) ── */
+function getEvoTree(spellId){
+  if(typeof FantasyBridge==="undefined" || !FantasyBridge.EVO_TREE) return null;
+  return FantasyBridge.EVO_TREE[spellId] || null;
+}
+function evoKey(tier, name){
+  if(typeof FantasyBridge!=="undefined" && FantasyBridge.evoCatalogKey) return FantasyBridge.evoCatalogKey(tier, name);
+  return tier+":"+name;
+}
+function initEvoConfig(spell){
+  if(!spell.evoConfig) spell.evoConfig = {};
+  if(typeof FantasyBridge!=="undefined" && FantasyBridge.ensureEvoConfig){
+    spell.evoConfig = FantasyBridge.ensureEvoConfig(spell.id, spell.evoConfig);
+  } else {
+    const tree = getEvoTree(spell.id);
+    if(tree){
+      [1,2].forEach(tier=>{
+        (tree[tier]||[]).forEach(ch=>{
+          const k=evoKey(tier, ch.name);
+          if(!spell.evoConfig[k]){
+            const slash = ch.fx && /^Slash/i.test(ch.fx) ? ch.fx : "None";
+            const effect = ch.fx && /^Effect/i.test(ch.fx) ? ch.fx : "None";
+            spell.evoConfig[k] = { enabled:false, anim:ch.anim||"Attack1", slash, effect };
+          }
+        });
+      });
+    }
+  }
+  return spell.evoConfig;
+}
+function evoEntry(spell, tier, choice){
+  initEvoConfig(spell);
+  return spell.evoConfig[evoKey(tier, choice.name)] || null;
+}
+function previewEnabledEvos(spellId){
+  const s = ensureEditable(spellId);
+  initEvoConfig(s);
+  let steps = [];
+  if(typeof FantasyBridge!=="undefined" && FantasyBridge.buildEvoAnimSteps){
+    steps = FantasyBridge.buildEvoAnimSteps(spellId, s.evoConfig);
+  } else {
+    const tree = getEvoTree(spellId);
+    if(tree){
+      [1,2].forEach(tier=>{
+        (tree[tier]||[]).forEach(ch=>{
+          const e = evoEntry(s, tier, ch);
+          if(e && e.enabled){
+            steps.push(normalizeStep({
+              anim:e.anim||ch.anim, delay:80, slash:e.slash, effect:e.effect, hitTarget:tier===2
+            }));
+          }
+        });
+      });
+    }
+  }
+  if(!steps.length){
+    document.getElementById("pvStatus").textContent = "Aucune évolution active — coche au moins une";
+    return;
+  }
+  steps = steps.map(normalizeStep);
+  const last = steps[steps.length-1];
+  if(last) last.hitTarget = true;
+  previewAction(steps);
 }
 
 /* ────────────────────────────────────────────────────────────
@@ -566,23 +635,38 @@ function renderEditor(){
   bodyCard.appendChild(bt);
   host.appendChild(bodyCard);
 
-  /* ── Évolutions ── */
-  const evoCard=card("Évolutions (paliers libres)");
+  /* ── Évolutions catalogue jeu ── */
+  const evoCard=card("Évolutions du jeu");
   const evHint=document.createElement("p"); evHint.className="hint";
-  evHint.textContent="Ajoute autant de paliers que tu veux. Chaque palier peut changer les anims, les dégâts, l'overlay.";
+  evHint.textContent="Coche chaque évolution et assigne son animation. Les évolutions actives se cumulent en combat.";
   evoCard.appendChild(evHint);
-  const evos=(sp.evos)||[];
-  evos.forEach((evo,i)=>{ evoCard.appendChild(renderTier(evo,i,activeId)); });
-  const addTier=document.createElement("button"); addTier.type="button";
-  addTier.textContent="+ Ajouter un palier d'évolution";
-  addTier.style.cssText="padding:8px 14px;border-radius:8px;border:1.5px dashed var(--acc);background:none;color:var(--acc);font-weight:700;margin-top:6px;cursor:pointer;width:100%";
-  addTier.onclick=()=>{
-    const s2=ensureEditable(activeId);
-    if(!s2.evos) s2.evos=[];
-    s2.evos.push({ name:"Palier "+(s2.evos.length+1), desc:"Décris l'amélioration…", animSeq:[], bodyOverlay:null });
-    renderEditor();
-  };
-  evoCard.appendChild(addTier);
+
+  const sEvo = ensureEditable(activeId);
+  initEvoConfig(sEvo);
+  const tree = getEvoTree(activeId);
+
+  if(!tree){
+    const noEvo=document.createElement("p");
+    noEvo.className="hint";
+    noEvo.textContent="Ce sort n'a pas de catalogue d'évolutions dans le jeu.";
+    evoCard.appendChild(noEvo);
+  } else {
+    [1,2].forEach(tier=>{
+      const choices = tree[tier];
+      if(!choices || !choices.length) return;
+      const tierWrap=document.createElement("div"); tierWrap.className="evo-tier";
+      const h4=document.createElement("h4"); h4.textContent="Palier "+tier+" · "+choices.length+" choix";
+      tierWrap.appendChild(h4);
+      choices.forEach(ch=> tierWrap.appendChild(renderEvoChoice(activeId, tier, ch, sEvo)));
+      evoCard.appendChild(tierWrap);
+    });
+
+    const pvAll=document.createElement("button"); pvAll.type="button";
+    pvAll.textContent="▶ Prévisualiser évolutions actives";
+    pvAll.style.cssText="margin-top:8px;padding:9px;border-radius:9px;background:var(--ok);color:#fff;border:none;font-weight:700;cursor:pointer;width:100%";
+    pvAll.onclick=()=>previewEnabledEvos(activeId);
+    evoCard.appendChild(pvAll);
+  }
   host.appendChild(evoCard);
 
   if(!isCustom){
@@ -642,59 +726,49 @@ function renderSeq(container, seq){
   }
 }
 
-function renderTier(evo, idx, spellId){
-  const div=document.createElement("div"); div.className="tier";
-  const head=document.createElement("div"); head.className="tier-head";
-  const lbl=document.createElement("span"); lbl.textContent="Palier "+(idx+1);
-  const del=document.createElement("button"); del.type="button"; del.textContent="Supprimer"; del.className="del";
-  del.onclick=()=>{
+function renderEvoChoice(spellId, tier, choice, spell){
+  const div=document.createElement("div"); div.className="evo-choice";
+  const entry = evoEntry(spell, tier, choice) || { enabled:false, anim:choice.anim||"Attack1", slash:"None", effect:"None" };
+  div.classList.toggle("on", !!entry.enabled);
+
+  const head=document.createElement("div"); head.className="evo-choice-head";
+  const lbl=document.createElement("label");
+  const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=!!entry.enabled;
+  const info=document.createElement("span");
+  info.innerHTML="<b>"+choice.name+"</b><small>"+(choice.d||"")+"</small>";
+  lbl.appendChild(cb); lbl.appendChild(info);
+  head.appendChild(lbl);
+  div.appendChild(head);
+
+  cb.onchange=()=>{
     const s2=ensureEditable(spellId);
-    s2.evos.splice(idx,1);
-    renderEditor();
+    initEvoConfig(s2);
+    const e=evoEntry(s2, tier, choice);
+    if(e){ e.enabled=cb.checked; div.classList.toggle("on", cb.checked); }
   };
-  head.appendChild(lbl); head.appendChild(del); div.appendChild(head);
 
-  div.append(
-    fieldTextEvo("Nom évolution",evo.name||"","name",idx),
-    fieldTextAreaEvo("Description",evo.desc||"","desc",idx)
-  );
+  div.appendChild(mkSelectRow("Animation", ALL_ANIMS, entry.anim||choice.anim||"Attack1", v=>{
+    const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+    if(e) e.anim=v;
+  }));
+  div.appendChild(mkSelectRow("FX Slash", fxSlashList(), entry.slash||"None", v=>{
+    const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+    if(e) e.slash=v;
+  }));
+  div.appendChild(mkSelectRow("FX Effect", fxEffectList(), entry.effect||"None", v=>{
+    const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+    if(e) e.effect=v;
+  }));
 
-  /* Séquence anims evo */
-  const sh=document.createElement("p"); sh.className="hint"; sh.textContent="Anims ajoutées à cette évolution :";
-  div.appendChild(sh);
-  const seq=document.createElement("div"); seq.className="anim-seq";
-  const evoSeq=evo.animSeq||[];
-  renderSeq(seq, evoSeq);
-  div.appendChild(seq);
-  const ap=document.createElement("div"); ap.className="anim-list";
-  ATTACK_ANIMS.forEach(a=>{
-    const b=document.createElement("button"); b.type="button"; b.textContent=a;
-    b.onclick=()=>{
-      const s2=ensureEditable(spellId);
-      if(!s2.evos[idx].animSeq) s2.evos[idx].animSeq=[];
-      s2.evos[idx].animSeq.push(a);
-      renderSeq(seq, s2.evos[idx].animSeq);
-    };
-    ap.appendChild(b);
-  });
-  div.appendChild(ap);
-
-  /* body overlay evo */
-  const bh=document.createElement("p"); bh.className="hint"; bh.textContent="Corps overlay pour ce palier :";
-  div.appendChild(bh);
-  const bt=document.createElement("div"); bt.className="body-tokens";
-  BODY_OVERLAYS.forEach(b=>{
-    const btn=document.createElement("button"); btn.type="button"; btn.textContent=b;
-    const cur=evo.bodyOverlay||"Aucun";
-    btn.classList.toggle("on",cur===b);
-    btn.onclick=()=>{
-      const s2=ensureEditable(spellId);
-      s2.evos[idx].bodyOverlay=(b==="Aucun")?null:b;
-      bt.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.textContent===b));
-    };
-    bt.appendChild(btn);
-  });
-  div.appendChild(bt);
+  const testB=document.createElement("button"); testB.type="button"; testB.className="test-btn";
+  testB.textContent="▶ Tester";
+  testB.onclick=()=>{
+    previewAction([normalizeStep({
+      anim: entry.anim||choice.anim||"Attack1",
+      delay:0, slash:entry.slash, effect:entry.effect, hitTarget:true
+    })]);
+  };
+  div.appendChild(testB);
   return div;
 }
 
