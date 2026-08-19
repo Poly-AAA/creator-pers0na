@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Portail Fantasy-CC</title>
+<style>
+  body{margin:0;font:16px/1.5 -apple-system,Helvetica,sans-serif;background:#ecece8;color:#3d3d3a;padding:24px;max-width:480px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:#888;font-size:13px;margin:0 0 24px}
+  .card{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .card a{display:block;text-decoration:none;font-weight:700;font-size:17px;color:#4a3870;padding:10px 0 2px}
+  .card .desc{font-size:12px;color:#888}
+  .refresh-btn{display:block;width:100%;margin-top:20px;padding:14px;background:#4a3870;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer}
+  .status{text-align:center;font-size:12px;color:#888;margin-top:8px}
+</style>
+</head>
+<body>
+<h1>🎮 Fantasy-CC</h1>
+<p class="sub">Porte d'accès à tous les outils</p>
+
+<div class="card">
+  <a id="lnkCreator" href="https://audience-colony-dna-district.trycloudflare.com/creator.html">🧑 Créateur de personnage</a>
+  <span class="desc">Choisis tête, coiffure, corps, couleurs</span>
+</div>
+<div class="card">
+  <a id="lnkCombat" href="https://audience-colony-dna-district.trycloudflare.com/fantasy-combat.html">⚔️ Combat</a>
+  <span class="desc">Lance un combat avec ton personnage</span>
+</div>
+<div class="card">
+  <a id="lnkSpell" href="https://audience-colony-dna-district.trycloudflare.com/spell-editor.html">✨ Éditeur de sorts</a>
+  <span class="desc">Crée des sorts, chaîne les animations, ajoute des évolutions</span>
+</div>
+
+<button class="refresh-btn" onclick="refreshLinks()">🔄 Rafraîchir les liens</button>
+<div class="status" id="status">Dernière mise à jour : 12:38 le 19/08/2026</div>
+
+<script>
+const INDEX_URL = "https://raw.githubusercontent.com/Poly-AAA/creator-pers0na/cursor/strict-regen-idle-66c0/docs/previews/tunnel-base.txt";
+async function refreshLinks(){
+  document.getElementById("status").textContent = "Récupération du tunnel actif…";
+  try {
+    const r = await fetch(INDEX_URL + "?v=" + Date.now());
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const base = (await r.text()).trim().replace(/\/+$/, "");
+    document.getElementById("lnkCreator").href = base + "/creator.html";
+    document.getElementById("lnkCombat").href = base + "/fantasy-combat.html";
+    document.getElementById("lnkSpell").href = base + "/spell-editor.html";
+    document.getElementById("status").textContent = "Liens mis à jour ✓ – " + base;
+  } catch(e) {
+    document.getElementById("status").textContent = "Erreur : " + e.message + " — liens inchangés";
+  }
+}
+// Auto-refresh on load
+refreshLinks();
+</script>
+</body>
+</html>

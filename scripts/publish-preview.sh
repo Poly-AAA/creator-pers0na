@@ -258,6 +258,16 @@ PY
     echo "ANIMS=$ANIMS_URL"
     echo "SPELL=$SPELL_URL"
     echo "INDEX=$BASE/"
+    # ── Mettre à jour tunnel-base.txt + portail.html pour le portail permanent ──
+    echo "$BASE" > "$ROOT/docs/previews/tunnel-base.txt"
+    sed -i "s|href=\"[^\"]*\/creator\.html\"|href=\"$BASE/creator.html\"|g" "$ROOT/docs/previews/portail.html"
+    sed -i "s|href=\"[^\"]*\/fantasy-combat\.html\"|href=\"$BASE/fantasy-combat.html\"|g" "$ROOT/docs/previews/portail.html"
+    sed -i "s|href=\"[^\"]*\/spell-editor\.html\"|href=\"$BASE/spell-editor.html\"|g" "$ROOT/docs/previews/portail.html"
+    sed -i "s|Dernière mise à jour.*<|Dernière mise à jour : $(date '+%H:%M le %d/%m/%Y')<|" "$ROOT/docs/previews/portail.html"
+    git -C "$ROOT" add docs/previews/tunnel-base.txt docs/previews/portail.html 2>/dev/null || true
+    git -C "$ROOT" commit -m "Update tunnel-base.txt → $BASE" 2>/dev/null || true
+    git -C "$ROOT" push origin HEAD 2>/dev/null || true
+    echo "PORTAIL=https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/cursor/strict-regen-idle-66c0/docs/previews/portail.html"
   else
     echo "WARN: Cloudflare tunnel registered but verify failed" >&2
     CF_OK=0
