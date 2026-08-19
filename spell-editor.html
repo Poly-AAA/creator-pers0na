@@ -106,6 +106,21 @@
 (function(){
 "use strict";
 
+function pvFail(msg){
+  const d=document.getElementById("pvStatus");
+  if(d) d.textContent="JS ERROR: "+(msg||"inconnu");
+}
+window.addEventListener("error", (e)=>{
+  pvFail((e && e.message) ? e.message : "unknown");
+});
+window.addEventListener("unhandledrejection", (e)=>{
+  try{
+    pvFail((e && e.reason && e.reason.message) ? e.reason.message : String(e.reason||e));
+  }catch(_x){
+    pvFail("unhandledrejection");
+  }
+});
+
 const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
 const BASE_LOCAL = "assets/packs/fantasy-cc/";
 const FW=128, FH=128, COLS=15, FPS=14;
@@ -170,7 +185,14 @@ function ensureEditable(id){
     if(b) customSpells.push(JSON.parse(JSON.stringify(b)));
     else customSpells.push({ id, name:"Nouveau sort "+id, cost:2, range:1, dmg:[8,12], anim:"Attack1", type:"damage", animSeq:[], evos:[] });
   }
-  return customSpells.find(s=>s.id===id);
+  const s = customSpells.find(s=>s.id===id);
+  if(!s) return null;
+  // Compat: nouveau système "steps" — garantir steps même pour les sorts de base
+  if(!Array.isArray(s.steps) || !s.steps.length){
+    const seq = (s.animSeq && s.animSeq.length) ? s.animSeq : [(s.anim||"Attack1")];
+    s.steps = (seq||[]).map(normalizeStep);
+  }
+  return s;
 }
 
 /* ────────────────────────────────────────────────────────────
