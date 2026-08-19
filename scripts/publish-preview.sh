@@ -143,7 +143,7 @@ print("spell standalone ready", len(stand_cdn))
 PY
 
 wire_fcc_nav() {
-  python3 - "$1" "$2" "$3" "$4" "$5" "$6" <<'PY'
+  python3 - "$1" "$2" "$3" "$4" "$5" "${6:-}" <<'PY'
 from pathlib import Path
 import re, sys
 path, combat, creator, anims, dirs, spell = (sys.argv[1:7] + [""]*6)[:6]
@@ -181,7 +181,7 @@ PY
 }
 
 inject_fcc_nav() {
-  python3 - "$1" "$2" "$3" "$4" "$5" "$6" <<'PY'
+  python3 - "$1" "$2" "$3" "$4" "$5" "${6:-}" <<'PY'
 from pathlib import Path
 import json, re, sys
 path, combat, creator, spell, anims, dirs = (sys.argv[1:7] + [""]*6)[:6]
@@ -266,8 +266,8 @@ if [[ -n "$BASE" ]]; then
   wire_fcc_nav "$OUT/spell-editor.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL" "$SPELL_URL"
   inject_fcc_nav "$OUT/fantasy-combat.html" "$COMBAT_URL" "$CREATOR_URL" "$SPELL_URL" "$ANIMS_URL" "$DIRS_URL"
   inject_fcc_nav "$OUT/spell-editor.html" "$COMBAT_URL" "$CREATOR_URL" "$SPELL_URL" "$ANIMS_URL" "$DIRS_URL"
-  wire_fcc_nav "$OUT/fantasy-weapon-anim.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
-  wire_fcc_nav "$OUT/fantasy-dir-calibrate.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
+  wire_fcc_nav "$OUT/fantasy-weapon-anim.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL" "$SPELL_URL"
+  wire_fcc_nav "$OUT/fantasy-dir-calibrate.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL" "$SPELL_URL"
   # Patch BASE_LOCAL to absolute tunnel URL so sprites load even from single-file hosts
   python3 - "$OUT" "$BASE" <<'PY'
 from pathlib import Path
