@@ -18,7 +18,7 @@
 
   /* ── PREVIEW (haut) ── */
   .preview-wrap{flex:0 0 auto;position:relative;background:#d8ddd4;overflow:hidden}
-  canvas#arena{display:block;width:100%;image-rendering:pixelated}
+  canvas#arena{display:block;width:100%;height:200px;image-rendering:pixelated}
   .preview-status{position:absolute;bottom:4px;left:8px;right:8px;
     font-size:11px;color:rgba(255,255,255,.85);text-shadow:0 1px 3px rgba(0,0,0,.6);
     pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -731,26 +731,33 @@ function boot(){
   loadCustom(); loadLook();
   if(allSpells().length) activeId=allSpells()[0].id;
 
+  /* Resize en premier pour que le canvas ait sa bonne hauteur dès le premier frame */
+  (function resizePvEarly(){
+    const h=Math.max(180, Math.round(window.innerHeight*0.32));
+    canvas.height=h; canvas.style.height=h+"px";
+    document.getElementById("previewWrap").style.height=h+"px";
+  })();
+
   renderNav(); renderEditor();
 
-  /* Charger tous les sprites essentiels AVANT de démarrer la boucle */
-  const WARM_ANIMS = ["Idle","Walk","Run","Attack1","Attack2","Attack3","Attack4","Attack5","Attack6",
-                      "Kick","Special1","TakeDamage","Die","Rolling","Slide","Taunt","AttackRun","AttackRun2"];
+  /* Démarrer la boucle immédiatement — les sprites arrivent au fur et à mesure */
+  document.getElementById("pvStatus").textContent = "Chargement…";
+  drawLoop();
+
+  /* Précharger en arrière-plan (priorité : Idle + Attack1 en premier) */
+  const WARM_ANIMS_PRIO = ["Idle","Attack1","Attack2","Kick","TakeDamage"];
+  const WARM_ANIMS_REST = ["Walk","Run","Attack3","Attack4","Attack5","Attack6",
+                           "Special1","Die","Rolling","Slide","Taunt","AttackRun","AttackRun2"];
   const coreFolders = ["NakedBody","Head3"];
   const playerFolders = playerLayers().map(l=>l.folder).filter(Boolean);
-  /* Aussi précharger FX si présents dans les sorts existants */
-  const fxFolders = [];
-  customSpells.forEach(s=>{ (s.steps||[]).forEach(st=>{ if(st.slash&&st.slash!=="None") fxFolders.push(st.slash); if(st.effect&&st.effect!=="None") fxFolders.push(st.effect); }); });
-  const allFolders = [...new Set([...coreFolders,...playerFolders,...fxFolders])];
-  const jobs = [];
-  allFolders.forEach(f=> WARM_ANIMS.forEach(a=>{
-    jobs.push(loadImg(f,a));
-  }));
-
-  document.getElementById("pvStatus").textContent = "Chargement des sprites…";
-  Promise.allSettled(jobs).then(()=>{
-    document.getElementById("pvStatus").textContent = "Prêt";
-    drawLoop();
+  const allFolders = [...new Set([...coreFolders,...playerFolders])];
+  /* Priorité haute */
+  const prioJobs = [];
+  allFolders.forEach(f=> WARM_ANIMS_PRIO.forEach(a=>{ prioJobs.push(loadImg(f,a)); }));
+  Promise.allSettled(prioJobs).then(()=>{
+    document.getElementById("pvStatus").textContent = "Prêt ✓";
+    /* Reste en arrière-plan */
+    allFolders.forEach(f=> WARM_ANIMS_REST.forEach(a=>loadImg(f,a)));
   });
 
   document.getElementById("btnSave").onclick=()=>{
@@ -762,14 +769,16 @@ function boot(){
     setTimeout(()=>renderNav(),100);
   };
 
-  /* Resize canvas height to 30% of viewport */
+  /* Resize canvas height to 32% of viewport */
   function resizePv(){
-    const h=Math.max(160, Math.round(window.innerHeight*0.30));
+    const h=Math.max(180, Math.round(window.innerHeight*0.32));
     canvas.height=h;
     canvas.style.height=h+"px";
     document.getElementById("previewWrap").style.height=h+"px";
   }
-  resizePv(); window.addEventListener("resize",resizePv);
+  /* Appel immédiat AVANT drawLoop pour que le canvas ait sa bonne taille */
+  resizePv();
+  window.addEventListener("resize",resizePv);
 }
 boot();
 })();
