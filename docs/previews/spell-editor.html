@@ -17,8 +17,8 @@
   .app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto}
 
   /* ── PREVIEW (haut) ── */
-  .preview-wrap{flex:0 0 auto;position:relative;background:#d8ddd4;overflow:hidden}
-  canvas#arena{display:block;width:100%;image-rendering:pixelated}
+  .preview-wrap{flex:0 0 220px;min-height:220px;position:relative;background:#d8ddd4;overflow:hidden}
+  canvas#arena{display:block;width:100%;height:220px;image-rendering:pixelated}
   .preview-status{position:absolute;bottom:4px;left:8px;right:8px;
     font-size:11px;color:rgba(255,255,255,.85);text-shadow:0 1px 3px rgba(0,0,0,.6);
     pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -52,13 +52,17 @@
     background:var(--acc);color:#fff;border-radius:999px;font-size:11px;font-weight:700}
   .anim-seq .chip button{background:none;border:none;color:#fff;font-size:12px;padding:0;cursor:pointer}
 
-  /* tiers evo */
-  .tier{border:1px solid var(--line2);border-radius:10px;padding:10px;margin-top:8px}
-  .tier-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-  .tier-head span{font-size:11px;font-weight:700;color:var(--acc)}
-  .tier-head button{margin-left:auto;font-size:11px;padding:4px 9px;border:1px solid var(--line);
-    border-radius:8px;background:var(--soft);color:var(--ink)}
-  .tier-head button.del{background:#fee;border-color:#fcc;color:#c00}
+  /* évolutions catalogue */
+  .evo-tier{margin-top:10px}
+  .evo-tier h4{margin:0 0 6px;font-size:12px;font-weight:700;color:var(--acc)}
+  .evo-choice{border:1.5px solid var(--line2);border-radius:10px;padding:8px;margin-top:6px;background:var(--bg2)}
+  .evo-choice.on{border-color:var(--acc);background:#f0eef8}
+  .evo-choice-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+  .evo-choice-head label{display:flex;align-items:flex-start;gap:6px;cursor:pointer;flex:1}
+  .evo-choice-head b{font-size:12px;color:var(--ink)}
+  .evo-choice-head small{font-size:10px;color:var(--ink2);display:block;margin-top:2px;line-height:1.3}
+  .evo-choice .test-btn{margin-top:6px;padding:4px 10px;border-radius:7px;background:var(--acc);
+    color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer}
 
   /* overlay corps */
   .body-tokens{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
@@ -82,8 +86,8 @@
 <body>
 <div class="app">
   <!-- Prévisualisation combat -->
-  <div class="preview-wrap" id="previewWrap">
-    <canvas id="arena" width="390" height="200" aria-label="Prévisualisation"></canvas>
+  <div class="preview-wrap" id="previewWrap" style="height:220px">
+    <canvas id="arena" width="390" height="220" style="display:block;width:100%;height:220px;image-rendering:pixelated" aria-label="Prévisualisation"></canvas>
     <div class="preview-status" id="pvStatus">Chargement…</div>
   </div>
 
@@ -106,6 +110,21 @@
 (function(){
 "use strict";
 
+function pvFail(msg){
+  const d=document.getElementById("pvStatus");
+  if(d) d.textContent="JS ERROR: "+(msg||"inconnu");
+}
+window.addEventListener("error", (e)=>{
+  pvFail((e && e.message) ? e.message : "unknown");
+});
+window.addEventListener("unhandledrejection", (e)=>{
+  try{
+    pvFail((e && e.reason && e.reason.message) ? e.reason.message : String(e.reason||e));
+  }catch(_x){
+    pvFail("unhandledrejection");
+  }
+});
+
 const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
 const BASE_LOCAL = "assets/packs/fantasy-cc/";
 const FW=128, FH=128, COLS=15, FPS=14;
@@ -116,10 +135,16 @@ const KEY_LOOK   = "neuro.fantasyLook";
    Anims disponibles pour chaîner
 ──────────────────────────────────────────────────────────── */
 const ALL_ANIMS = [
+  "Idle","Walk","Run","Rolling","Slide",
   "Attack1","Attack2","Attack3","Attack4","Attack5","Attack6",
-  "AttackRun","AttackRun2","Kick","Special1","Taunt","Rolling",
-  "Slide","RideIdleAttack1","RideRunAttack1","TakeDamage","Die","Idle","Walk","Run"
+  "AttackRun","AttackRun2","Kick","Special1","Taunt",
+  "RideIdleAttack1","RideRunAttack1","TakeDamage","Die"
 ];
+const MOVE_ANIMS_LIST = ["Idle","Walk","Run","Rolling","Slide","AttackRun","AttackRun2","TakeDamage"];
+// Vraies listes depuis catalog.json (slots "slash" et "effect")
+const FX_SLASH_LIST  = ["None","Slash1","Slash2"];
+const FX_EFFECT_LIST = ["None","Effect1","Effect2","Effect3","Effect4","Effect5"];
+
 const ATTACK_ANIMS = ALL_ANIMS.filter(a=>/Attack|Kick|Special|Taunt|Rolling|Slide|Ride.*Attack/i.test(a));
 
 /* Corps overlay disponibles */
@@ -167,7 +192,79 @@ function ensureEditable(id){
     if(b) customSpells.push(JSON.parse(JSON.stringify(b)));
     else customSpells.push({ id, name:"Nouveau sort "+id, cost:2, range:1, dmg:[8,12], anim:"Attack1", type:"damage", animSeq:[], evos:[] });
   }
-  return customSpells.find(s=>s.id===id);
+  const s = customSpells.find(s=>s.id===id);
+  if(!s) return null;
+  // Compat: nouveau système "steps" — garantir steps même pour les sorts de base
+  if(!Array.isArray(s.steps) || !s.steps.length){
+    const seq = (s.animSeq && s.animSeq.length) ? s.animSeq : [(s.anim||"Attack1")];
+    s.steps = (seq||[]).map(normalizeStep);
+  }
+  return s;
+}
+
+/* ── Catalogue évolutions (EVO_TREE du jeu) ── */
+function getEvoTree(spellId){
+  if(typeof FantasyBridge==="undefined" || !FantasyBridge.EVO_TREE) return null;
+  return FantasyBridge.EVO_TREE[spellId] || null;
+}
+function evoKey(tier, name){
+  if(typeof FantasyBridge!=="undefined" && FantasyBridge.evoCatalogKey) return FantasyBridge.evoCatalogKey(tier, name);
+  return tier+":"+name;
+}
+function initEvoConfig(spell){
+  if(!spell.evoConfig) spell.evoConfig = {};
+  if(typeof FantasyBridge!=="undefined" && FantasyBridge.ensureEvoConfig){
+    spell.evoConfig = FantasyBridge.ensureEvoConfig(spell.id, spell.evoConfig);
+  } else {
+    const tree = getEvoTree(spell.id);
+    if(tree){
+      [1,2].forEach(tier=>{
+        (tree[tier]||[]).forEach(ch=>{
+          const k=evoKey(tier, ch.name);
+          if(!spell.evoConfig[k]){
+            const slash = ch.fx && /^Slash/i.test(ch.fx) ? ch.fx : "None";
+            const effect = ch.fx && /^Effect/i.test(ch.fx) ? ch.fx : "None";
+            spell.evoConfig[k] = { enabled:false, anim:ch.anim||"Attack1", slash, effect };
+          }
+        });
+      });
+    }
+  }
+  return spell.evoConfig;
+}
+function evoEntry(spell, tier, choice){
+  initEvoConfig(spell);
+  return spell.evoConfig[evoKey(tier, choice.name)] || null;
+}
+function previewEnabledEvos(spellId){
+  const s = ensureEditable(spellId);
+  initEvoConfig(s);
+  let steps = [];
+  if(typeof FantasyBridge!=="undefined" && FantasyBridge.buildEvoAnimSteps){
+    steps = FantasyBridge.buildEvoAnimSteps(spellId, s.evoConfig);
+  } else {
+    const tree = getEvoTree(spellId);
+    if(tree){
+      [1,2].forEach(tier=>{
+        (tree[tier]||[]).forEach(ch=>{
+          const e = evoEntry(s, tier, ch);
+          if(e && e.enabled){
+            steps.push(normalizeStep({
+              anim:e.anim||ch.anim, delay:80, slash:e.slash, effect:e.effect, hitTarget:tier===2
+            }));
+          }
+        });
+      });
+    }
+  }
+  if(!steps.length){
+    document.getElementById("pvStatus").textContent = "Aucune évolution active — coche au moins une";
+    return;
+  }
+  steps = steps.map(normalizeStep);
+  const last = steps[steps.length-1];
+  if(last) last.hitTarget = true;
+  previewAction(steps);
 }
 
 /* ────────────────────────────────────────────────────────────
@@ -190,11 +287,15 @@ function loadImg(folder, anim){
     urls.push(BASE_LOCAL+rel, BASE_CDN+rel);
     const im=new Image(); im.crossOrigin="anonymous"; let i=0;
     const nx=()=>{ if(i>=urls.length){res(null);return;}
-      im.onload=()=>res(im); im.onerror=()=>{i++;nx();}; im.src=urls[i++]; }; nx();
+      im.onload=()=>{ p._v=im; res(im); };
+      im.onerror=()=>{i++;nx();}; im.src=urls[i++]; }; nx();
   });
   imgCache.set(k,p); return p;
 }
-function getImg(folder,anim){ const p=imgCache.get(folder+"/"+anim); return (p&&p._v)||null; }
+function getImg(folder,anim){
+  const p=imgCache.get(folder+"/"+anim);
+  return (p&&p._v)||null;
+}
 
 /* Précharger un look */
 let lookState = { look:{}, bodies:[{folder:"NakedBody",opacity:1,color:"#d4a574"}], colors:{} };
@@ -216,9 +317,12 @@ function toScreen(c,r){
   return { x: cam.ox+(c-r)*(TILE_W/2), y: cam.oy+(c+r)*(TILE_H/2) };
 }
 function fitCam(){
-  const W=canvas.clientWidth||390, H=canvas.height;
+  const W=Math.max(canvas.width||320, canvas.clientWidth||320);
+  const H=Math.max(canvas.height||220, 220);
+  /* sync canvas internal size if CSS size differs */
+  if(canvas.width!==W){ canvas.width=W; }
   const sc=Math.min(W/(GRID*TILE_W*0.7+24), H/(GRID*TILE_H*0.9+24), 1.6);
-  cam.sc=Math.max(0.7,sc);
+  cam.sc=Math.max(0.6,sc);
   const fx=(GRID-1)/2, fy=(GRID-1)/2;
   const cx=W/(2*cam.sc), cy=H/(2*cam.sc);
   cam.ox=cx-(fx-fy)*(TILE_W/2);
@@ -253,16 +357,22 @@ function drawLoop(){
     const anim=ent.anim||"Idle";
     const row=sheetRow(ent.dir);
     const elapsed=(now-ent.t0)/1000;
+    const fps=ent.stepFps||FPS;
     const loop=/^(Idle|Walk|Run|RideIdle|RideRun)$/i.test(anim);
-    let col=Math.floor(elapsed*FPS);
+    let col=Math.floor(elapsed*fps);
     col=loop?col%COLS:Math.min(col,COLS-1);
     const s=toScreen(ent.c,ent.r);
     const sc2=1.15, dw=FW*sc2, dh=FH*sc2, FOOT=88;
     const dx=s.x-dw/2, dy=s.y-FOOT*sc2;
     const isEnemy=(ent===enemy);
-    const layers=isEnemy
+    /* Build layers: base + optional FX for player */
+    let layers=isEnemy
       ? [{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1}]
       : playerLayers();
+    if(!isEnemy){
+      if(ent.fxSlash) layers=layers.concat([{folder:ent.fxSlash,tint:"#e8590c",alpha:0.9}]);
+      if(ent.fxEffect) layers=layers.concat([{folder:ent.fxEffect,tint:"#5ec8ff",alpha:0.85}]);
+    }
     ctx.imageSmoothingEnabled=false;
     let drawn=0;
     for(const L of layers){
@@ -320,17 +430,48 @@ function playerLayers(){
   return L.filter(x=>x.folder);
 }
 
-/* Preview d'une action (chaîne d'anims sur le joueur) */
-let animQueue=[];
-function previewAction(animSeq){
-  const seq=animSeq&&animSeq.length?animSeq:["Attack1"];
+/* Normalise un step : string legacy → objet riche */
+function normalizeStep(s){
+  if(typeof s==="string") return {anim:s, delay:0, move:"Idle", fps:14, slash:"None", effect:"None", hitTarget:false};
+  return Object.assign({anim:"Attack1",delay:0,move:"Idle",fps:14,slash:"None",effect:"None",hitTarget:false}, s);
+}
+
+/* FX catalogue : on lit les dossiers depuis catalog si dispo */
+function fxSlashList(){ return FX_SLASH_LIST; }
+function fxEffectList(){ return FX_EFFECT_LIST; }
+
+/* Preview d'une action (chaîne de steps riches sur le joueur) */
+let _previewTimer=null;
+function previewAction(steps){
+  if(_previewTimer){ clearTimeout(_previewTimer); _previewTimer=null; }
+  const seq=(steps&&steps.length?steps:["Attack1"]).map(normalizeStep);
   let i=0;
   function next(){
-    if(i>=seq.length){ player.anim="Idle"; player.t0=performance.now(); return; }
-    player.anim=seq[i++]; player.t0=performance.now();
-    const dur=(COLS/FPS)*1000;
-    setTimeout(next,dur);
+    if(i>=seq.length){
+      player.anim="Idle"; player.t0=performance.now();
+      player.fxSlash=null; player.fxEffect=null;
+      enemy.anim="Idle"; enemy.t0=performance.now();
+      return;
+    }
+    const step=seq[i++];
+    /* déplacement joueur */
+    player.anim=step.anim; player.t0=performance.now();
+    player.stepFps=step.fps||14;
+    /* FX */
+    player.fxSlash=(step.slash&&step.slash!=="None")?step.slash:null;
+    player.fxEffect=(step.effect&&step.effect!=="None")?step.effect:null;
+    /* Hit sur la cible */
+    if(step.hitTarget){
+      enemy.anim="TakeDamage"; enemy.t0=performance.now();
+    }
+    const dur=Math.max(200, (COLS/(step.fps||14))*1000);
+    _previewTimer=setTimeout(next, (step.delay||0)+dur);
   }
+  /* Précharger FX */
+  seq.forEach(s=>{
+    if(s.slash&&s.slash!=="None") loadImg(s.slash,"Attack1");
+    if(s.effect&&s.effect!=="None") loadImg(s.effect,"Attack1");
+  });
   next();
 }
 
@@ -393,38 +534,86 @@ function renderEditor(){
   );
   host.appendChild(idCard);
 
-  /* ── Chaîne d'animations ── */
-  const animCard=card("Animations (chaîne ordonnée)");
+  /* ── Chaîne de steps ── */
+  if(!sp.steps||!sp.steps.length){
+    /* Migrer l'ancien animSeq [] ou anim string vers steps riches */
+    const old=(sp.animSeq&&sp.animSeq.length)?sp.animSeq:[sp.anim||"Attack1"];
+    sp.steps=old.map(normalizeStep);
+  }
+
+  const animCard=card("Séquence d'actions");
   const hint=document.createElement("p"); hint.className="hint";
-  hint.textContent="Tape sur une anim pour l'ajouter à la séquence. Tape sur la séquence pour retirer.";
+  hint.textContent="Chaque étape = une animation + ses réglages. Tap + pour ajouter, × pour retirer.";
   animCard.appendChild(hint);
 
-  const seq=document.createElement("div"); seq.className="anim-seq"; seq.id="animSeq";
-  const animSeq=(sp.animSeq&&sp.animSeq.length)?sp.animSeq:[sp.anim||"Attack1"];
-  renderSeq(seq, animSeq);
-  animCard.appendChild(seq);
+  function renderSteps(){
+    /* Re-render the steps list inside animCard */
+    const existing=animCard.querySelector(".steps-wrap");
+    if(existing) existing.remove();
+    const wrap=document.createElement("div"); wrap.className="steps-wrap";
+    wrap.style.cssText="display:flex;flex-direction:column;gap:8px;margin-top:6px";
 
-  const animPicker=document.createElement("div"); animPicker.className="anim-list";
-  ATTACK_ANIMS.forEach(a=>{
-    const b=document.createElement("button"); b.type="button"; b.textContent=a;
-    b.onclick=()=>{
-      const s2=ensureEditable(activeId);
-      if(!s2.animSeq) s2.animSeq=[s2.anim||"Attack1"];
-      s2.animSeq.push(a);
-      renderSeq(seq, s2.animSeq);
-      previewAction(s2.animSeq);
+    const s2=ensureEditable(activeId);
+    s2.steps.forEach((step,idx)=>{
+      const st=normalizeStep(step); s2.steps[idx]=st;
+      const box=document.createElement("div");
+      box.style.cssText="border:1.5px solid var(--line2);border-radius:10px;padding:8px;background:var(--soft);position:relative";
+
+      /* Header : numéro + ×supprimer */
+      const hdr=document.createElement("div"); hdr.style.cssText="display:flex;align-items:center;gap:6px;margin-bottom:6px";
+      const num=document.createElement("span"); num.style.cssText="font-size:10px;font-weight:700;color:var(--acc);min-width:18px";
+      num.textContent="Step "+(idx+1);
+      const delB=document.createElement("button"); delB.type="button"; delB.textContent="×";
+      delB.style.cssText="margin-left:auto;background:#fee;border:1px solid #fcc;color:#c00;border-radius:6px;padding:0 7px;cursor:pointer;font-weight:700";
+      delB.onclick=()=>{ s2.steps.splice(idx,1); renderSteps(); };
+      hdr.appendChild(num); hdr.appendChild(delB); box.appendChild(hdr);
+
+      /* Anim */
+      const animSel=mkSelectRow("Animation", ALL_ANIMS, st.anim, v=>{ st.anim=v; });
+      box.appendChild(animSel);
+      /* Mouvement joueur */
+      const moveSel=mkSelectRow("Mouvement joueur", MOVE_ANIMS_LIST, st.move||"Idle", v=>{ st.move=v; });
+      box.appendChild(moveSel);
+      /* FX Slash */
+      const slashSel=mkSelectRow("FX Slash", fxSlashList(), st.slash||"None", v=>{ st.slash=v; });
+      box.appendChild(slashSel);
+      /* FX Effect */
+      const fxSel=mkSelectRow("FX Effect", fxEffectList(), st.effect||"None", v=>{ st.effect=v; });
+      box.appendChild(fxSel);
+      /* Délai avant (ms) */
+      box.appendChild(mkNumRow("Délai avant (ms)", st.delay||0, 0, 3000, 50, v=>{ st.delay=v; }));
+      /* Vitesse (FPS) */
+      box.appendChild(mkNumRow("Vitesse (FPS)", st.fps||14, 1, 30, 1, v=>{ st.fps=v; }));
+      /* Hit sur la cible */
+      box.appendChild(mkCheckRow("Frappe la cible (TakeDamage)", !!st.hitTarget, v=>{ st.hitTarget=v; }));
+
+      /* Preview ce step seul */
+      const pvB=document.createElement("button"); pvB.type="button"; pvB.textContent="▶ Tester ce step";
+      pvB.style.cssText="margin-top:6px;padding:5px 12px;border-radius:8px;background:var(--acc);color:#fff;border:none;font-weight:700;cursor:pointer;font-size:11px";
+      pvB.onclick=()=>previewAction([st]);
+      box.appendChild(pvB);
+
+      wrap.appendChild(box);
+    });
+
+    /* Bouton ajouter */
+    const addB=document.createElement("button"); addB.type="button"; addB.textContent="+ Ajouter une étape";
+    addB.style.cssText="padding:9px;border-radius:9px;border:1.5px dashed var(--acc);background:none;color:var(--acc);font-weight:700;cursor:pointer;width:100%";
+    addB.onclick=()=>{
+      s2.steps.push(normalizeStep("Attack1"));
+      renderSteps();
     };
-    animPicker.appendChild(b);
-  });
-  animCard.appendChild(animPicker);
+    wrap.appendChild(addB);
 
-  const testBtn=document.createElement("button"); testBtn.type="button";
-  testBtn.textContent="▶ Prévisualiser"; testBtn.style.cssText="margin-top:8px;padding:8px 16px;border-radius:9px;background:var(--acc);color:#fff;border:none;font-weight:700;cursor:pointer";
-  testBtn.onclick=()=>{
-    const s2=editableSpell(activeId);
-    previewAction((s2&&s2.animSeq&&s2.animSeq.length)?s2.animSeq:[s2&&s2.anim||"Attack1"]);
-  };
-  animCard.appendChild(testBtn);
+    /* Bouton preview tout */
+    const allB=document.createElement("button"); allB.type="button"; allB.textContent="▶ Prévisualiser tout";
+    allB.style.cssText="margin-top:4px;padding:9px;border-radius:9px;background:var(--acc);color:#fff;border:none;font-weight:700;cursor:pointer;width:100%";
+    allB.onclick=()=>{ const s3=editableSpell(activeId); previewAction(s3.steps||[]); };
+    wrap.appendChild(allB);
+
+    animCard.appendChild(wrap);
+  }
+  renderSteps();
   host.appendChild(animCard);
 
   /* ── Overlays corps ── */
@@ -446,23 +635,38 @@ function renderEditor(){
   bodyCard.appendChild(bt);
   host.appendChild(bodyCard);
 
-  /* ── Évolutions ── */
-  const evoCard=card("Évolutions (paliers libres)");
+  /* ── Évolutions catalogue jeu ── */
+  const evoCard=card("Évolutions du jeu");
   const evHint=document.createElement("p"); evHint.className="hint";
-  evHint.textContent="Ajoute autant de paliers que tu veux. Chaque palier peut changer les anims, les dégâts, l'overlay.";
+  evHint.textContent="Coche chaque évolution et assigne son animation. Les évolutions actives se cumulent en combat.";
   evoCard.appendChild(evHint);
-  const evos=(sp.evos)||[];
-  evos.forEach((evo,i)=>{ evoCard.appendChild(renderTier(evo,i,activeId)); });
-  const addTier=document.createElement("button"); addTier.type="button";
-  addTier.textContent="+ Ajouter un palier d'évolution";
-  addTier.style.cssText="padding:8px 14px;border-radius:8px;border:1.5px dashed var(--acc);background:none;color:var(--acc);font-weight:700;margin-top:6px;cursor:pointer;width:100%";
-  addTier.onclick=()=>{
-    const s2=ensureEditable(activeId);
-    if(!s2.evos) s2.evos=[];
-    s2.evos.push({ name:"Palier "+(s2.evos.length+1), desc:"Décris l'amélioration…", animSeq:[], bodyOverlay:null });
-    renderEditor();
-  };
-  evoCard.appendChild(addTier);
+
+  const sEvo = ensureEditable(activeId);
+  initEvoConfig(sEvo);
+  const tree = getEvoTree(activeId);
+
+  if(!tree){
+    const noEvo=document.createElement("p");
+    noEvo.className="hint";
+    noEvo.textContent="Ce sort n'a pas de catalogue d'évolutions dans le jeu.";
+    evoCard.appendChild(noEvo);
+  } else {
+    [1,2].forEach(tier=>{
+      const choices = tree[tier];
+      if(!choices || !choices.length) return;
+      const tierWrap=document.createElement("div"); tierWrap.className="evo-tier";
+      const h4=document.createElement("h4"); h4.textContent="Palier "+tier+" · "+choices.length+" choix";
+      tierWrap.appendChild(h4);
+      choices.forEach(ch=> tierWrap.appendChild(renderEvoChoice(activeId, tier, ch, sEvo)));
+      evoCard.appendChild(tierWrap);
+    });
+
+    const pvAll=document.createElement("button"); pvAll.type="button";
+    pvAll.textContent="▶ Prévisualiser évolutions actives";
+    pvAll.style.cssText="margin-top:8px;padding:9px;border-radius:9px;background:var(--ok);color:#fff;border:none;font-weight:700;cursor:pointer;width:100%";
+    pvAll.onclick=()=>previewEnabledEvos(activeId);
+    evoCard.appendChild(pvAll);
+  }
   host.appendChild(evoCard);
 
   if(!isCustom){
@@ -473,11 +677,40 @@ function renderEditor(){
   }
 }
 
+/* ── Helpers UI pour les steps ── */
+function mkSelectRow(label, opts, val, onChange){
+  const d=document.createElement("div");
+  d.style.cssText="display:flex;align-items:center;gap:6px;margin-bottom:4px";
+  const lb=document.createElement("span"); lb.style.cssText="font-size:11px;color:var(--ink2);min-width:90px;flex-shrink:0"; lb.textContent=label;
+  const sel=document.createElement("select");
+  sel.style.cssText="flex:1;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--soft);font-size:11px";
+  opts.forEach(o=>{ const op=document.createElement("option"); op.value=o; op.textContent=o; if(o===val) op.selected=true; sel.appendChild(op); });
+  sel.onchange=()=>onChange(sel.value);
+  d.appendChild(lb); d.appendChild(sel); return d;
+}
+function mkNumRow(label, val, min, max, step, onChange){
+  const d=document.createElement("div");
+  d.style.cssText="display:flex;align-items:center;gap:6px;margin-bottom:4px";
+  const lb=document.createElement("span"); lb.style.cssText="font-size:11px;color:var(--ink2);min-width:90px;flex-shrink:0"; lb.textContent=label;
+  const inp=document.createElement("input"); inp.type="range"; inp.min=min; inp.max=max; inp.step=step; inp.value=val;
+  inp.style.cssText="flex:1";
+  const disp=document.createElement("span"); disp.style.cssText="font-size:11px;min-width:28px;text-align:right"; disp.textContent=val;
+  inp.oninput=()=>{ const v=parseInt(inp.value); disp.textContent=v; onChange(v); };
+  d.appendChild(lb); d.appendChild(inp); d.appendChild(disp); return d;
+}
+function mkCheckRow(label, val, onChange){
+  const d=document.createElement("label");
+  d.style.cssText="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink2);margin-bottom:4px;cursor:pointer";
+  const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=!!val;
+  cb.onchange=()=>onChange(cb.checked);
+  d.appendChild(cb); d.appendChild(document.createTextNode(label)); return d;
+}
+
 function renderSeq(container, seq){
   container.innerHTML="";
   seq.forEach((a,i)=>{
     const chip=document.createElement("span"); chip.className="chip";
-    chip.innerHTML=`${a} <button type="button" data-i="${i}" aria-label="Retirer">×</button>`;
+    chip.innerHTML=`${a} <button type="button" data-i="${i}" aria-label="Retirer">\xd7</button>`;
     chip.querySelector("button").onclick=()=>{
       const s2=ensureEditable(activeId);
       s2.animSeq.splice(i,1);
@@ -493,59 +726,49 @@ function renderSeq(container, seq){
   }
 }
 
-function renderTier(evo, idx, spellId){
-  const div=document.createElement("div"); div.className="tier";
-  const head=document.createElement("div"); head.className="tier-head";
-  const lbl=document.createElement("span"); lbl.textContent="Palier "+(idx+1);
-  const del=document.createElement("button"); del.type="button"; del.textContent="Supprimer"; del.className="del";
-  del.onclick=()=>{
+function renderEvoChoice(spellId, tier, choice, spell){
+  const div=document.createElement("div"); div.className="evo-choice";
+  const entry = evoEntry(spell, tier, choice) || { enabled:false, anim:choice.anim||"Attack1", slash:"None", effect:"None" };
+  div.classList.toggle("on", !!entry.enabled);
+
+  const head=document.createElement("div"); head.className="evo-choice-head";
+  const lbl=document.createElement("label");
+  const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=!!entry.enabled;
+  const info=document.createElement("span");
+  info.innerHTML="<b>"+choice.name+"</b><small>"+(choice.d||"")+"</small>";
+  lbl.appendChild(cb); lbl.appendChild(info);
+  head.appendChild(lbl);
+  div.appendChild(head);
+
+  cb.onchange=()=>{
     const s2=ensureEditable(spellId);
-    s2.evos.splice(idx,1);
-    renderEditor();
+    initEvoConfig(s2);
+    const e=evoEntry(s2, tier, choice);
+    if(e){ e.enabled=cb.checked; div.classList.toggle("on", cb.checked); }
   };
-  head.appendChild(lbl); head.appendChild(del); div.appendChild(head);
 
-  div.append(
-    fieldTextEvo("Nom évolution",evo.name||"","name",idx),
-    fieldTextAreaEvo("Description",evo.desc||"","desc",idx)
-  );
+  div.appendChild(mkSelectRow("Animation", ALL_ANIMS, entry.anim||choice.anim||"Attack1", v=>{
+    const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+    if(e) e.anim=v;
+  }));
+  div.appendChild(mkSelectRow("FX Slash", fxSlashList(), entry.slash||"None", v=>{
+    const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+    if(e) e.slash=v;
+  }));
+  div.appendChild(mkSelectRow("FX Effect", fxEffectList(), entry.effect||"None", v=>{
+    const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+    if(e) e.effect=v;
+  }));
 
-  /* Séquence anims evo */
-  const sh=document.createElement("p"); sh.className="hint"; sh.textContent="Anims ajoutées à cette évolution :";
-  div.appendChild(sh);
-  const seq=document.createElement("div"); seq.className="anim-seq";
-  const evoSeq=evo.animSeq||[];
-  renderSeq(seq, evoSeq);
-  div.appendChild(seq);
-  const ap=document.createElement("div"); ap.className="anim-list";
-  ATTACK_ANIMS.forEach(a=>{
-    const b=document.createElement("button"); b.type="button"; b.textContent=a;
-    b.onclick=()=>{
-      const s2=ensureEditable(spellId);
-      if(!s2.evos[idx].animSeq) s2.evos[idx].animSeq=[];
-      s2.evos[idx].animSeq.push(a);
-      renderSeq(seq, s2.evos[idx].animSeq);
-    };
-    ap.appendChild(b);
-  });
-  div.appendChild(ap);
-
-  /* body overlay evo */
-  const bh=document.createElement("p"); bh.className="hint"; bh.textContent="Corps overlay pour ce palier :";
-  div.appendChild(bh);
-  const bt=document.createElement("div"); bt.className="body-tokens";
-  BODY_OVERLAYS.forEach(b=>{
-    const btn=document.createElement("button"); btn.type="button"; btn.textContent=b;
-    const cur=evo.bodyOverlay||"Aucun";
-    btn.classList.toggle("on",cur===b);
-    btn.onclick=()=>{
-      const s2=ensureEditable(spellId);
-      s2.evos[idx].bodyOverlay=(b==="Aucun")?null:b;
-      bt.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.textContent===b));
-    };
-    bt.appendChild(btn);
-  });
-  div.appendChild(bt);
+  const testB=document.createElement("button"); testB.type="button"; testB.className="test-btn";
+  testB.textContent="▶ Tester";
+  testB.onclick=()=>{
+    previewAction([normalizeStep({
+      anim: entry.anim||choice.anim||"Attack1",
+      delay:0, slash:entry.slash, effect:entry.effect, hitTarget:true
+    })]);
+  };
+  div.appendChild(testB);
   return div;
 }
 
@@ -610,16 +833,36 @@ function boot(){
   loadCustom(); loadLook();
   if(allSpells().length) activeId=allSpells()[0].id;
 
-  /* Précharger NakedBody + Head3 pour la preview */
-  ["NakedBody","Head3"].forEach(f=>["Idle","Attack1","Attack2","Kick","Special1"].forEach(a=>{
-    loadImg(f,a).then(im=>{ if(im) im._v=im; });
-  }));
-  for(const L of playerLayers()) ["Idle","Attack1","Attack2","Kick","Special1"].forEach(a=>{
-    loadImg(L.folder,a).then(im=>{ if(im) im._v=im; });
-  });
+  /* Resize en premier — fallbacks multiples pour mobile Safari */
+  (function resizePvEarly(){
+    const vh = window.innerHeight || document.documentElement.clientHeight || 667;
+    const h=Math.max(180, Math.round(vh*0.32));
+    canvas.width=Math.max(320, canvas.parentElement ? canvas.parentElement.clientWidth : 390);
+    canvas.height=h; canvas.style.height=h+"px";
+    document.getElementById("previewWrap").style.height=h+"px";
+  })();
 
   renderNav(); renderEditor();
+
+  /* Démarrer la boucle immédiatement — les sprites arrivent au fur et à mesure */
+  document.getElementById("pvStatus").textContent = "Chargement…";
   drawLoop();
+
+  /* Précharger en arrière-plan (priorité : Idle + Attack1 en premier) */
+  const WARM_ANIMS_PRIO = ["Idle","Attack1","Attack2","Kick","TakeDamage"];
+  const WARM_ANIMS_REST = ["Walk","Run","Attack3","Attack4","Attack5","Attack6",
+                           "Special1","Die","Rolling","Slide","Taunt","AttackRun","AttackRun2"];
+  const coreFolders = ["NakedBody","Head3"];
+  const playerFolders = playerLayers().map(l=>l.folder).filter(Boolean);
+  const allFolders = [...new Set([...coreFolders,...playerFolders])];
+  /* Priorité haute */
+  const prioJobs = [];
+  allFolders.forEach(f=> WARM_ANIMS_PRIO.forEach(a=>{ prioJobs.push(loadImg(f,a)); }));
+  Promise.allSettled(prioJobs).then(()=>{
+    document.getElementById("pvStatus").textContent = "Prêt ✓";
+    /* Reste en arrière-plan */
+    allFolders.forEach(f=> WARM_ANIMS_REST.forEach(a=>loadImg(f,a)));
+  });
 
   document.getElementById("btnSave").onclick=()=>{
     /* Fusionner les edits dans customSpells */
@@ -630,14 +873,14 @@ function boot(){
     setTimeout(()=>renderNav(),100);
   };
 
-  /* Resize canvas height to 30% of viewport */
   function resizePv(){
-    const h=Math.max(160, Math.round(window.innerHeight*0.30));
-    canvas.height=h;
-    canvas.style.height=h+"px";
+    const vh = window.innerHeight || document.documentElement.clientHeight || 667;
+    const h=Math.max(180, Math.round(vh*0.32));
+    canvas.width=Math.max(320, canvas.parentElement ? canvas.parentElement.clientWidth : 390);
+    canvas.height=h; canvas.style.height=h+"px";
     document.getElementById("previewWrap").style.height=h+"px";
   }
-  resizePv(); window.addEventListener("resize",resizePv);
+  window.addEventListener("resize",resizePv);
 }
 boot();
 })();

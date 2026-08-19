@@ -809,6 +809,105 @@
   }
 
   /** Anim sheet fantasy pour un sort (évo > anim équipement > défaut). */
+  function evoCatalogKey(tier, name) {
+    return String(tier) + ":" + name;
+  }
+
+  function splitEvoFx(fx) {
+    if (!fx) return { slash: "None", effect: "None" };
+    if (/^Slash/i.test(fx)) return { slash: fx, effect: "None" };
+    if (/^Effect/i.test(fx)) return { slash: "None", effect: fx };
+    return { slash: "None", effect: "None" };
+  }
+
+  function defaultEvoConfigEntry(choice) {
+    const fx = splitEvoFx(choice.fx);
+    return {
+      enabled: false,
+      anim: choice.anim || "Attack1",
+      slash: fx.slash,
+      effect: fx.effect,
+    };
+  }
+
+  /** Complète evoConfig avec les choix manquants du catalogue EVO_TREE. */
+  function ensureEvoConfig(spellId, evoConfig) {
+    const tree = EVO_TREE[spellId];
+    const out = Object.assign({}, evoConfig || {});
+    if (!tree) return out;
+    [1, 2].forEach(function (tier) {
+      (tree[tier] || []).forEach(function (ch) {
+        const k = evoCatalogKey(tier, ch.name);
+        if (!out[k]) out[k] = defaultEvoConfigEntry(ch);
+      });
+    });
+    return out;
+  }
+
+  /** Choix activés dans l’ordre palier 1 → 2. */
+  function enabledEvoChoices(spellId, evoConfig) {
+    const tree = EVO_TREE[spellId];
+    if (!tree || !evoConfig) return [];
+    const out = [];
+    [1, 2].forEach(function (tier) {
+      (tree[tier] || []).forEach(function (ch) {
+        const k = evoCatalogKey(tier, ch.name);
+        const e = evoConfig[k];
+        if (e && e.enabled) out.push({ tier: tier, choice: ch, entry: e });
+      });
+    });
+    return out;
+  }
+
+  /** Steps pour prévisualisation / chaîne d’anim en combat. */
+  function buildEvoAnimSteps(spellId, evoConfig) {
+    return enabledEvoChoices(spellId, evoConfig).map(function (item) {
+      const ch = item.choice;
+      const e = item.entry;
+      return {
+        anim: e.anim || ch.anim || "Attack1",
+        delay: 80,
+        fps: 14,
+        slash: e.slash || "None",
+        effect: e.effect || "None",
+        hitTarget: false,
+      };
+    });
+  }
+
+  /** Cumule les effets + dernière anim/FX des évolutions activées (mute st). */
+  function applyEvoConfig(spellId, evoConfig, st) {
+    if (!st) return;
+    if (!st.evo) st.evo = {};
+    const bonuses = editorEvoBonuses(spellId, evoConfig);
+    Object.keys(bonuses).forEach(function (k) {
+      st.evo[k] = (st.evo[k] | 0) + (bonuses[k] | 0);
+    });
+    const enabled = enabledEvoChoices(spellId, evoConfig);
+    if (enabled.length) {
+      const last = enabled[enabled.length - 1];
+      if (last.entry.anim) st.evo.anim = last.entry.anim;
+      const slash = last.entry.slash && last.entry.slash !== "None" ? last.entry.slash : null;
+      const effect = last.entry.effect && last.entry.effect !== "None" ? last.entry.effect : null;
+      st.evo.fx = slash || effect || st.evo.fx || null;
+    }
+  }
+
+  /** Bonus cumulés sans modifier l’état de combat persisté. */
+  function editorEvoBonuses(spellId, evoConfig) {
+    const out = {};
+    enabledEvoChoices(spellId, evoConfig).forEach(function (item) {
+      const fake = { evo: {} };
+      try {
+        if (typeof item.choice.apply === "function") item.choice.apply(fake);
+      } catch (_e) {}
+      Object.keys(fake.evo).forEach(function (k) {
+        out[k] = (out[k] | 0) + (fake.evo[k] | 0);
+      });
+    });
+    return out;
+  }
+
   function castAnimFor(def, st) {
     if (st && st.evo && st.evo.anim) return st.evo.anim;
     const State = global.State;
@@ -878,6 +977,14 @@
     EVO_TREE,
     EVO_MAX_TIERS,
     EVO_CHOICES_PER_TIER,
+    evoCatalogKey,
+    splitEvoFx,
+    defaultEvoConfigEntry,
+    ensureEvoConfig,
+    enabledEvoChoices,
+    buildEvoAnimSteps,
+    applyEvoConfig,
+    editorEvoBonuses,
     castAnimFor,
     toSpriteKey,
     resolveSpellId,

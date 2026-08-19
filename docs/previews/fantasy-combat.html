@@ -332,15 +332,78 @@
   function spellById(id){ return SPELLS.find(s=>s.id===id) || null; }
 
   const KEY_EVO = "neuro.fantasySpellEvo";
+  const KEY_CUSTOM_SPELLS = "neuro.customSpells";
   let spellEvo = {};
+  let customSpells = [];
   try{
     const raw = localStorage.getItem(KEY_EVO);
     if(raw) spellEvo = JSON.parse(raw) || {};
+  }catch(_e){}
+  try{
+    const rawCs = localStorage.getItem(KEY_CUSTOM_SPELLS);
+    if(rawCs) customSpells = JSON.parse(rawCs) || [];
   }catch(_e){}
   function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
   function evoState(id){
     if(!spellEvo[id]) spellEvo[id] = { tiersTaken:0, evo:{} };
     return spellEvo[id];
+  }
+  function customSpellById(id){ return customSpells.find(s=>s.id===id) || null; }
+  function reloadCustomSpells(){
+    try{
+      const raw = localStorage.getItem(KEY_CUSTOM_SPELLS);
+      if(raw) customSpells = JSON.parse(raw) || [];
+    }catch(_e){}
+  }
+  /** Bonus évo victoire + évolutions cochées dans l’éditeur. */
+  function evoBonusesFor(sp){
+    const st = evoState(sp.id);
+    const out = Object.assign({}, st.evo || {});
+    reloadCustomSpells();
+    const custom = customSpellById(sp.id);
+    if(custom && custom.evoConfig && typeof FantasyBridge!=="undefined" && FantasyBridge.editorEvoBonuses){
+      const ed = FantasyBridge.editorEvoBonuses(sp.id, custom.evoConfig);
+      Object.keys(ed).forEach(k=>{ out[k] = (out[k]|0) + (ed[k]|0); });
+    }
+    return out;
+  }
+  function editorEvoSteps(sp){
+    reloadCustomSpells();
+    const custom = customSpellById(sp.id);
+    if(!custom || !custom.evoConfig) return [];
+    if(typeof FantasyBridge!=="undefined" && FantasyBridge.buildEvoAnimSteps)
+      return FantasyBridge.buildEvoAnimSteps(sp.id, custom.evoConfig) || [];
+    return [];
+  }
+  function playCastAnimChain(sp, onDone){
+    const steps = editorEvoSteps(sp);
+    if(!steps.length){
+      const st = evoState(sp.id);
+      playAnim(G.player, (st.evo && st.evo.anim) || animForArmed(sp));
+      flashCastFx(sp);
+      setTimeout(onDone || (()=>{}), 650);
+      return;
+    }
+    let i = 0;
+    function next(){
+      if(i >= steps.length){
+        playAnim(G.player, "Idle");
+        G.castFx = null;
+        if(onDone) onDone();
+        return;
+      }
+      const step = steps[i++];
+      playAnim(G.player, step.anim);
+      G.castFx = {
+        slash: step.slash && step.slash !== "None" ? step.slash : null,
+        effect: step.effect && step.effect !== "None" ? step.effect : null,
+        until: performance.now() + 520,
+      };
+      if(G.castFx.slash) loadImg(G.castFx.slash, step.anim || "Attack1");
+      if(G.castFx.effect) loadImg(G.castFx.effect, step.anim || "Special1");
+      setTimeout(next, 420);
+    }
+    next();
   }
 
   const el = (id)=> document.getElementById(id);
@@ -1118,13 +1181,13 @@
 
   function finishCastSelf(sp){
     const st = evoState(sp.id);
-    const evo = st.evo || {};
+    const evo = evoBonusesFor(sp);
     const cost = Math.max(1, sp.cost + (evo.cost|0));
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
     G.player.pa -= cost;
-    const anim = (evo.anim) || animForArmed(sp);
-    flashCastFx(sp);
-    playAnim(G.player, anim);
+    playCastAnimChain(sp, ()=>{
+      if(G.player.anim!=="Die") playAnim(G.player,"Idle");
+    });
 
     if(sp.id==="double"){
       spawnClone(sp, evo);
@@ -1151,7 +1214,6 @@
     G.combo = Math.min(100, G.combo + 18);
     G.armed=null; G.armedSlot=null;
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
-    setTimeout(()=>playAnim(G.player,"Idle"), 650);
   }
 
   function spawnClone(sp, evo){
@@ -1222,16 +1284,13 @@
 
   function finishCastEnemy(sp){
     if(!G.enemy.alive){ setStatus("Plus de cible"); return; }
-    if(dist(G.player, G.enemy) > sp.range + ((evoState(sp.id).evo||{}).range|0)){ setStatus("Toujours hors portée"); return; }
-    const st = evoState(sp.id);
-    const evo = st.evo || {};
+    const evo = evoBonusesFor(sp);
+    if(dist(G.player, G.enemy) > sp.range + (evo.range|0)){ setStatus("Toujours hors portée"); return; }
     const cost = Math.max(1, sp.cost + (evo.cost|0));
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
     faceToward(G.player, G.enemy.c, G.enemy.r);
-    const anim = evo.anim || animForArmed(sp);
     G.player.pa -= cost;
-    flashCastFx(sp);
-    playAnim(G.player, anim);
+    playCastAnimChain(sp);
     let dmg = roll(sp.dmg || [6,10]) + (evo.dmg|0);
     if(G.player.invis>0 && evo.invisBurst) dmg += evo.invisBurst|0;
     const hits = 1 + (evo.hits|0);
@@ -1248,7 +1307,9 @@
     if(G.enemy.pv<=0){ G.enemy.alive=false; setStatus("Victoire"); onCombatEnd("win"); }
     G.armed=null; G.armedSlot=null;
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
-    setTimeout(()=>{ if(G.player.anim!=="Die") playAnim(G.player,"Idle"); }, 700);
+    playCastAnimChain(sp, ()=>{
+      if(G.player.anim!=="Die") playAnim(G.player,"Idle");
+    });
   }
 
   function tryCastAt(c, r){
