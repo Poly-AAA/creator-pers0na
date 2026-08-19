@@ -875,15 +875,27 @@
     G.awaitingNext = true;
     G.busy = false;
     G.armed = null; G.armedSlot = null;
-    try{ closeEvo(); }catch(_e){}
     G.turn = "over";
     if(kind==="defeat"){
       setStatus("Défaite · prochain adversaire…");
-      setTimeout(()=> startNextFight({ force:true, fullHeal:true }), 900);
+      setTimeout(()=> startNextFight({ force:true, fullHeal:true }), 1100);
       return;
     }
-    setStatus("Victoire · prochain adversaire…"+customSpellStatus());
-    setTimeout(()=> startNextFight({ force:true, keepLook:true }), 600);
+    /* Victoire → choix d’évolution (comme avant) puis prochain combat */
+    setTimeout(()=>{
+      const offered = offerEvo(null, true);
+      if(!offered){
+        setStatus("Victoire · prochain adversaire…"+customSpellStatus());
+        setTimeout(()=> startNextFight({ force:true }), 700);
+      } else {
+        setTimeout(()=>{
+          if(G.awaitingNext && G.pendingEvo){
+            closeEvo();
+            startNextFight({ force:true });
+          }
+        }, 12000);
+      }
+    }, 650);
   }
 
   function setStatus(t){ el("status").textContent = t; }
