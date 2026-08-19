@@ -221,11 +221,11 @@
     Idle:DEFAULT_DIR_ROW.slice()
   };
 
-  /* Iso Neuro : +c = SE écran, +r = SW écran — map élargie + caméra qui suit */
-  const GRID = 14;
+  /* Iso Neuro : +c = SE écran, +r = SW écran — map + caméra qui suit */
+  const GRID = 10;
   const TILE_W = 56, TILE_H = 28;
-  const VIEW_TILES = 9; /* ~tuiles visibles en largeur */
-  const cam = { ox:0, oy:0, sc:1, fx:2, fy:7, smooth:0.22, _w:0, _h:0 };
+  const VIEW_TILES = 8; /* ~tuiles visibles en largeur */
+  const cam = { ox:0, oy:0, sc:1, fx:2, fy:5, smooth:0.22, _w:0, _h:0 };
   let TILE_ORDER = null;
   function ensureTileOrder(){
     if(TILE_ORDER) return TILE_ORDER;
@@ -380,7 +380,7 @@
     awaitingNext: false,
   };
 
-  const ENEMY_HEADS = ["Head1","Head2","Head3","Head4","Head5","Head6","Head7","Head8","Head9","Head10","Head12","Head14","Head16","Head18","Head20","Head22"];
+  const ENEMY_HEADS = ["Head1","Head2","Head3","Head4","Head5","Head6","Head7","Head8","Head9","Head10","Head12","Head14","Head16","Head18","Head20","Head22","Head25"];
   const ENEMY_CHESTS = ["Chest1","Chest2","Chest3","Chest4","Chest5","Chest6","Chest7","Chest8","Chest9","Chest10","Chest12","Chest14","Chest16"];
   const ENEMY_LEGS = ["Legs1","Legs2","Legs3","Legs4","Legs5","Legs6","Legs7","Legs8","Legs9"];
   const ENEMY_WEAPONS = ["Melee1","Melee2","Melee3","Melee5","Melee8","Melee10","Melee12","Melee15","Ranged1","Ranged2","Ranged3","Ranged5","Magic1","Magic2","Magic3"];
@@ -600,9 +600,45 @@
     return profiles[strategy] || profiles.bruiser;
   }
 
-  function warmFolders(folders){
-    /* léger : Idle + moves + ride — le reste en lazy load */
-    const anims=["Idle","Walk","Run","TakeDamage","Die","RideIdle","RideRun"];
+  function isMountFolder(folder){ return /^Mount\d/i.test(folder||""); }
+  function entityMounted(ent){
+    if(!ent) return false;
+    if(ent === G.player) return isPlayerMounted();
+    return !!ent.mount;
+  }
+  function stopMoveAnim(ent){
+    if(!ent || !ent.alive) return;
+    const a = ent.anim || "Idle";
+    if(/^(Walk|Run|RunBackwards|StrafeLeft|StrafeRight|CrouchRun|RideRun)$/i.test(a))
+      playAnim(ent, "Idle");
+  }
+  function resolveSheet(folder, anim, mounted){
+    const a = anim || "Idle";
+    const tries = [];
+    if(mounted && isMountFolder(folder)){
+      tries.push(a, "RideIdle", "Idle");
+    } else if(mounted){
+      tries.push(a, "RideIdle", "RideRun", "Idle");
+    } else {
+      tries.push(a, "Idle");
+      if(/Walk|Run/i.test(a)) tries.push("Walk", "Run");
+    }
+    const seen = new Set();
+    for(const t of tries){
+      if(seen.has(t)) continue;
+      seen.add(t);
+      const im = getImg(folder, t);
+      if(im) return { im, sheetAnim: t };
+    }
+    for(const t of tries) loadImg(folder, t);
+    return null;
+  }
+
+  function warmFolders(folders, opts){
+    opts = opts || {};
+    /* léger : Idle + moves ; ride complet si monté */
+    const anims=["Idle","Walk","Run","TakeDamage","Die"];
+    if(opts.mounted) anims.push("RideIdle","RideRun","RideIdleAttack1","RideRunAttack1");
     for(const f of folders){
       if(!f) continue;
       for(const a of anims) loadImg(f, a);
@@ -689,7 +725,7 @@
       G.enemy = { c:GRID-3, r:Math.max(1,Math.floor(GRID/2)-1), dir:7, pv:55, pvMax:55, pa:4, paMax:4, pm:4, pmMax:4, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit", strategy:"bruiser", profile:strategyProfile("bruiser",["punch"]), layers:[{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}], spells:["punch","monofil"], weaponAnim:"Attack1", shield:0 };
     }
     try{
-      warmFolders((G.enemy.layers||[]).map(L=>L.folder));
+      warmFolders((G.enemy.layers||[]).map(L=>L.folder), { mounted: !!G.enemy.mount });
       const atk = (G.enemy.spells||[]).map(spellById).filter(Boolean).map(s=>s.anim||G.enemy.weaponAnim).filter(Boolean);
       for(const a of new Set(atk.concat([G.enemy.weaponAnim||"Attack1"]))){
         for(const L of (G.enemy.layers||[])) loadImg(L.folder, a);
@@ -803,7 +839,12 @@
     if(cacheP.has(key)) return cacheP.get(key);
     const p = new Promise((resolve)=>{
       const rel = `spritesheets/${folderName}/${anim}.png`;
-      const urls = [BASE_CDN+rel, BASE_LOCAL+rel];
+      const urls = [];
+      if(folderName==="Head25"){
+        urls.push(`hat-refs/Head25/${anim}.png`);
+        urls.push(`assets/packs/fantasy-cc/spritesheets/Head25/${anim}.png`);
+      }
+      urls.push(BASE_CDN+rel, BASE_LOCAL+rel);
       let i=0, useCors=true;
       const tryOne=()=>{
         if(i>=urls.length){
@@ -914,8 +955,8 @@
     cam.oy = cy - py;
   }
   function tileInView(c, r){
-    /* cull rapide autour du focus caméra (évite toScreen × 196) */
-    const pad = 6;
+    /* cull rapide autour du focus caméra */
+    const pad = 5;
     return Math.abs(c - cam.fx) <= pad && Math.abs(r - cam.fy) <= pad;
   }
 
@@ -1428,6 +1469,7 @@
         if(!enemyStepToward(hunt.c, hunt.r)) break;
       }
       setTimeout(()=>{
+        stopMoveAnim(e);
         setStatus(e.name+" cherche…");
         setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 280);
       }, 240);
@@ -1438,6 +1480,7 @@
     const maxActions = 5;
     let didHit = false;
     const finish = ()=>{
+      stopMoveAnim(e);
       if(G.turn!=="over" && p.alive){ G.turn="player"; beginPlayerTurn(); }
     };
     const stepOnce = ()=>{
@@ -1650,11 +1693,9 @@
     opts = opts || {};
     if(!ent.alive && ent.anim!=="Die") return;
     const anim = ent.anim||"Idle";
-    const row = sheetRowForDir(ent.dir|0, anim);
+    const mounted = entityMounted(ent);
     const elapsed = (performance.now()-(ent.t0||0))/1000;
-    let col = Math.floor(elapsed*FPS);
-    if(anim==="Idle"||anim==="Walk"||anim==="Run"||anim==="RunBackwards"||anim==="StrafeLeft"||anim==="StrafeRight"||anim==="CrouchRun"||anim==="RideIdle"||anim==="RideRun") col = col % COLS;
-    else col = Math.min(col, COLS-1);
+    const loopAnims = /^(Idle|Walk|Run|RunBackwards|StrafeLeft|StrafeRight|CrouchRun|RideIdle|RideRun|RideIdleAttack1|RideRunAttack1)$/i;
     const s = toScreen(ent.c, ent.r);
     const scale = 1.15;
     const dw=FW*scale, dh=FH*scale;
@@ -1675,13 +1716,18 @@
       ? (ent.layers && ent.layers.length
           ? ent.layers
           : [{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}])
-      : layersForRow(row);
+      : layersForRow(sheetRowForDir(ent.dir|0, anim));
 
     ctx.imageSmoothingEnabled=false;
     let drawn=0;
     for(const L of layers){
-      const im = getImg(L.folder, anim) || getImg(L.folder, "Idle");
-      if(!im){ loadImg(L.folder, anim); loadImg(L.folder,"Idle"); continue; }
+      const resolved = resolveSheet(L.folder, anim, mounted);
+      if(!resolved) continue;
+      const { im, sheetAnim } = resolved;
+      const row = sheetRowForDir(ent.dir|0, sheetAnim);
+      let col = Math.floor(elapsed*FPS);
+      if(loopAnims.test(sheetAnim)) col = col % COLS;
+      else col = Math.min(col, COLS-1);
       try{ tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, (L.alpha||1)*baseAlpha); drawn++; }catch(_e){}
     }
     if(!drawn){
@@ -1695,8 +1741,13 @@
     if(ent.flash && performance.now()<ent.flash){
       ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=0.45*baseAlpha;
       for(const L of layers){
-        const im=getImg(L.folder,anim)||getImg(L.folder,"Idle");
-        if(!im) continue;
+        const resolved = resolveSheet(L.folder, anim, mounted);
+        if(!resolved) continue;
+        const { im, sheetAnim } = resolved;
+        const row = sheetRowForDir(ent.dir|0, sheetAnim);
+        let col = Math.floor(elapsed*FPS);
+        if(loopAnims.test(sheetAnim)) col = col % COLS;
+        else col = Math.min(col, COLS-1);
         try{ ctx.drawImage(im,col*FW,row*FH,FW,FH,dx,dy,dw,dh); }catch(_e){}
       }
       ctx.restore();

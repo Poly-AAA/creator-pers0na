@@ -12,6 +12,7 @@ cp "$ROOT/fantasy-cc-layout-editor.html" "$OUT/editor.html"
 cp "$ROOT/fantasy-combat.html" "$OUT/fantasy-combat.html"
 cp "$ROOT/fantasy-dir-calibrate.html" "$OUT/fantasy-dir-calibrate.html"
 cp "$ROOT/fantasy-weapon-anim.html" "$OUT/fantasy-weapon-anim.html"
+cp "$ROOT/spell-editor.html" "$OUT/spell-editor.html"
 cp "$ROOT/js/fantasy-combat-bridge.js" "$OUT/js/fantasy-combat-bridge.js"
 # Même noms que le repo pour les liens Créateur ↔ Combat
 cp "$ROOT/character-creator-fantasy.html" "$OUT/character-creator-fantasy.html"
@@ -22,6 +23,7 @@ cp "$ROOT/fantasy-dir-calibrate.html" "$ROOT/docs/previews/fantasy-dir-calibrate
 cp "$ROOT/fantasy-weapon-anim.html" "$ROOT/docs/previews/fantasy-weapon-anim.html"
 cp "$ROOT/js/fantasy-combat-bridge.js" "$ROOT/docs/previews/js/fantasy-combat-bridge.js"
 cp "$ROOT/character-creator-fantasy.html" "$ROOT/docs/previews/character-creator-fantasy.html"
+cp "$ROOT/spell-editor.html" "$ROOT/docs/previews/spell-editor.html"
 
 # Chapeau Head25 + guide PixelLab (local, pas sur le CDN pin)
 mkdir -p "$OUT/hat-refs" "$OUT/assets/packs/fantasy-cc/spritesheets" "$ROOT/docs/previews/hat-refs"
@@ -49,6 +51,7 @@ cat > "$OUT/index.html" <<'EOF'
 <h1>Previews</h1>
 <p><a href="creator.html">Créateur</a></p>
 <p><a href="fantasy-combat.html">Combat</a></p>
+<p><a href="spell-editor.html">Éditeur de sorts</a></p>
 <p><a href="hat-place.html">Cale chapeau Head25</a></p>
 <p><a href="hat-wizard-guide.html">Guide chapeau sorcier (Head25)</a></p>
 <p><a href="fantasy-weapon-anim.html">Anim par équipement</a></p>
@@ -202,14 +205,27 @@ if [[ -n "$BASE" ]]; then
   COMBAT_URL="$BASE/fantasy-combat.html"
   ANIMS_URL="$BASE/fantasy-weapon-anim.html"
   DIRS_URL="$BASE/fantasy-dir-calibrate.html"
+  SPELL_URL="$BASE/spell-editor.html"
   wire_fcc_nav "$OUT/fantasy-combat.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
   wire_fcc_nav "$OUT/creator.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
   wire_fcc_nav "$OUT/character-creator-fantasy.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
   wire_fcc_nav "$OUT/fantasy-weapon-anim.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
   wire_fcc_nav "$OUT/fantasy-dir-calibrate.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
+  # For safety: link to spell-editor should be valid even in Litterbox fallback.
+  python3 - "$OUT/creator.html" "$OUT/fantasy-combat.html" "$SPELL_URL" <<'PY'
+from pathlib import Path
+import sys
+creator, combat, spell = sys.argv[1:4]
+for path in [creator, combat]:
+    p=Path(path)
+    t=p.read_text()
+    t=t.replace('href="spell-editor.html"', f'href="{spell}"')
+    p.write_text(t)
+PY
   if verify_url "$CREATOR_URL" "combatUrlWithLook" \
     && verify_url "$COMBAT_URL" "Combat Fantasy" \
-    && verify_url "$DIRS_URL" "Calibrage directions"; then
+    && verify_url "$DIRS_URL" "Calibrage directions" \
+    && verify_url "$SPELL_URL" "paliers libres"; then
     CF_OK=1
     echo
     echo "EDITOR=$BASE/editor.html"
@@ -217,6 +233,7 @@ if [[ -n "$BASE" ]]; then
     echo "COMBAT=$COMBAT_URL"
     echo "DIRS=$DIRS_URL"
     echo "ANIMS=$ANIMS_URL"
+    echo "SPELL=$SPELL_URL"
     echo "INDEX=$BASE/"
   else
     echo "WARN: Cloudflare tunnel registered but verify failed" >&2
@@ -238,14 +255,33 @@ if [[ "$CF_OK" -ne 1 ]]; then
   cp "$OUT/creator.html" /tmp/fcc-creator-litter.html
   cp "$OUT/fantasy-dir-calibrate.html" /tmp/fcc-dirs-litter.html
   cp "$OUT/fantasy-weapon-anim.html" /tmp/fcc-weapon-anim-litter.html
+  cp "$OUT/spell-editor.html" /tmp/fcc-spell-litter.html
   LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html || true)"
   LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html || true)"
   LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html || true)"
   LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html || true)"
+  LIT_SPELL="$(litter_upload /tmp/fcc-spell-litter.html || true)"
   if [[ "$LIT_COMBAT" == https://* ]] && verify_url "$LIT_COMBAT" "Combat Fantasy"; then
     wire_fcc_nav /tmp/fcc-creator-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
     LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html || true)"
-    if [[ "$LIT_CREATOR" == https://* ]]; then LIT_OK=1; fi
+    # Rewrite spell-editor link inside littered creator HTML
+    if [[ "$LIT_CREATOR" == https://* ]] && [[ "$LIT_SPELL" == https://* ]]; then
+      python3 - /tmp/fcc-creator-litter.html "$LIT_SPELL" <<'PY'
+from pathlib import Path
+import sys
+p=Path(sys.argv[1]); spell=sys.argv[2]
+t=p.read_text()
+t=t.replace('href="spell-editor.html"', f'href="{spell}"')
+p.write_text(t)
+PY
+      # Re-upload creator to apply the rewrite
+      LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html || true)"
+      if [[ "$LIT_CREATOR" == https://* ]] && verify_url "$LIT_SPELL" "paliers libres"; then
+        LIT_OK=1
+      fi
+    else
+      if [[ "$LIT_CREATOR" == https://* ]]; then LIT_OK=1; fi
+    fi
   fi
   if [[ "$LIT_OK" -eq 1 ]]; then
     echo
@@ -253,6 +289,7 @@ if [[ "$CF_OK" -ne 1 ]]; then
     echo "LITTER_CREATOR=$LIT_CREATOR"
     echo "COMBAT=$LIT_COMBAT"
     echo "CREATOR=$LIT_CREATOR"
+    if [[ "$LIT_SPELL" == https://* ]]; then echo "SPELL=$LIT_SPELL"; fi
   else
     echo "WARN: Litterbox unavailable — use Cloudflare links only" >&2
   fi
@@ -263,6 +300,7 @@ if [[ "$CF_OK" -eq 1 ]]; then
   echo "CREATOR=$CREATOR_URL"
   echo "DIRS=$DIRS_URL"
   echo "ANIMS=$ANIMS_URL"
+  echo "SPELL=$SPELL_URL"
 fi
 
 if [[ "$CF_OK" -ne 1 && "$LIT_OK" -ne 1 ]]; then
