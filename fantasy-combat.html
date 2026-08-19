@@ -154,6 +154,8 @@
       </div>
       <div style="display:flex;gap:6px;pointer-events:auto">
         <a class="link-cc" href="#" id="btnEvo">Évo</a>
+        <a class="link-cc" href="#" id="btnRestart" title="Relancer un combat">Relancer</a>
+        <a class="link-cc" data-fcc="spell" href="spell-editor.html">Sorts</a>
         <a class="link-cc" data-fcc="anims" href="fantasy-weapon-anim.html">Anims</a>
         <a class="link-cc" data-fcc="dirs" href="fantasy-dir-calibrate.html">Dirs</a>
         <a class="link-cc" data-fcc="creator" href="character-creator-fantasy.html">Créateur</a>
@@ -199,6 +201,19 @@
 <script>
 (function(){
   "use strict";
+  function wireFccNav(){
+    const nav=Object.assign({}, window.FCC_NAV||{});
+    try{ Object.assign(nav, JSON.parse(localStorage.getItem("neuro.fccNav")||"{}")); }catch(_e){}
+    document.querySelectorAll("[data-fcc]").forEach(el=>{
+      const k=el.getAttribute("data-fcc");
+      if(nav[k]) el.href=nav[k];
+      else if(el.href && /^https?:\/\//.test(el.href)) nav[k]=el.href;
+    });
+    try{ localStorage.setItem("neuro.fccNav", JSON.stringify(nav)); }catch(_e){}
+    return nav;
+  }
+  wireFccNav();
+
   const BASE_LOCAL = "assets/packs/fantasy-cc/";
   const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@main/assets/packs/fantasy-cc/";
   const FW=128, FH=128, COLS=15, FPS=14;
@@ -813,6 +828,28 @@
     beginPlayerTurn();
   }
 
+  function customSpellStatus(){
+    reloadCustomSpells();
+    const parts=[];
+    ["punch","monofil","dash"].forEach(id=>{
+      const c=customSpellById(id);
+      if(!c||!c.evoConfig) return;
+      const n=Object.values(c.evoConfig).filter(e=>e&&e.enabled).length;
+      if(n) parts.push((c.name||id)+":"+n+"évo");
+    });
+    return parts.length ? " · "+parts.join(" · ") : "";
+  }
+  function forceRestartCombat(){
+    G.awaitingNext=false; G.busy=false; G.pendingEvo=null;
+    try{ closeEvo(); }catch(_e){}
+    G.turn="player";
+    startNextFight({ force:true, keepLook:true, fullHeal:true });
+  }
+    reloadCustomSpells();
+    const custom = customSpellById(spellId);
+    if(!custom || !custom.evoConfig) return false;
+    return Object.values(custom.evoConfig).some(e=> e && e.enabled);
+  }
   function hasEditorEvos(spellId){
     reloadCustomSpells();
     const custom = customSpellById(spellId);
@@ -1976,7 +2013,7 @@
     cam.fx = G.player.c; cam.fy = G.player.r;
     G.fightN = 0;
     G.enemy = makeEnemy(1);
-    warmFolders(G.enemy.layers.map(L=>L.folder));
+    try{ warmFolders((G.enemy.layers||[]).map(L=>L.folder)); }catch(_e){}
     G.fightN = 1;
     refreshSpellBar();
     beginPlayerTurn();
@@ -1989,7 +2026,12 @@
         return s.label+":"+(sp?sp.name:s.spellId);
       });
       const enSp = (G.enemy.spells||[]).map(id=>{ const s=spellById(id); return s?s.name:id; }).join("/");
-      setStatus("Map "+GRID+" · vs "+G.enemy.name+" ("+enSp+")");
+      setStatus("Map "+GRID+" · vs "+G.enemy.name+" ("+enSp+")"+customSpellStatus());
+    }
+
+    /* Débloquer si session précédente bloquée sur victoire/évo */
+    if(G.turn==="over" || G.awaitingNext){
+      setTimeout(()=> forceRestartCombat(), 300);
     }
 
     canvas.addEventListener("click", onTap);
@@ -2004,6 +2046,13 @@
       if(G.armed) recomputeTargets();
     });
     el("btnEnd").onclick=endTurn;
+    const btnRestart=el("btnRestart");
+    if(btnRestart){
+      btnRestart.addEventListener("click", (e)=>{
+        e.preventDefault();
+        forceRestartCombat();
+      });
+    }
     const btnEvo = el("btnEvo");
     if(btnEvo){
       btnEvo.addEventListener("click", (e)=>{

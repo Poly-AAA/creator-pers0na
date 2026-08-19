@@ -107,6 +107,20 @@
 
 <script src="js/fantasy-combat-bridge.js"></script>
 <script>
+/* Liens Créateur / Combat / Sorts — persistés dans localStorage (neuro.fccNav) */
+function wireFccNav(){
+  const nav=Object.assign({}, window.FCC_NAV||{});
+  try{ Object.assign(nav, JSON.parse(localStorage.getItem("neuro.fccNav")||"{}")); }catch(_e){}
+  document.querySelectorAll("[data-fcc]").forEach(el=>{
+    const k=el.getAttribute("data-fcc");
+    if(nav[k]) el.href=nav[k];
+    else if(el.href && /^https?:\/\//.test(el.href)) nav[k]=el.href;
+  });
+  try{ localStorage.setItem("neuro.fccNav", JSON.stringify(nav)); }catch(_e){}
+  return nav;
+}
+</script>
+<script>
 (function(){
 "use strict";
 
@@ -234,13 +248,34 @@ function initEvoConfig(spell){
   }
   Object.values(spell.evoConfig).forEach(e=>{
     if(e && e.fps==null) e.fps=14;
-    if(e && e.delay==null) e.delay=80;
+    if(e && e.delay==null) e.delay=0;
   });
   return spell.evoConfig;
 }
 function evoEntry(spell, tier, choice){
   initEvoConfig(spell);
   return spell.evoConfig[evoKey(tier, choice.name)] || null;
+}
+function savedEvoSummary(spellId){
+  loadCustom();
+  const s=customSpells.find(x=>x.id===spellId);
+  if(!s||!s.evoConfig) return null;
+  initEvoConfig(s);
+  const lines=[];
+  Object.keys(s.evoConfig).forEach(k=>{
+    const e=s.evoConfig[k];
+    if(!e||!e.enabled) return;
+    lines.push(k.split(":").pop()+": "+(e.anim||"?")+" @"+(e.fps!=null?e.fps:14)+"fps");
+  });
+  return lines.length?{spell:s, lines}:null;
+}
+function showSavedStatus(){
+  const sum=savedEvoSummary("punch")||savedEvoSummary(activeId);
+  const st=document.getElementById("pvStatus");
+  if(!st) return;
+  if(sum){
+    st.textContent="Sauvé · "+sum.spell.name+" · "+sum.lines.length+" évo: "+sum.lines.join(" · ");
+  }
 }
 function previewEnabledEvos(spellId){
   const s = ensureEditable(spellId);
@@ -883,6 +918,7 @@ function fieldTextAreaEvo(label, val, key, evoIdx){
    Init
 ──────────────────────────────────────────────────────────── */
 function boot(){
+  wireFccNav();
   loadCustom(); loadLook();
   if(allSpells().length) activeId=allSpells()[0].id;
 
@@ -933,13 +969,13 @@ function boot(){
   });
 
   document.getElementById("btnSave").onclick=()=>{
-    /* Fusionner les edits dans customSpells */
     saveCustom();
-    /* Exposer au combat via localStorage */
     try{ localStorage.setItem("neuro.customSpells", JSON.stringify(customSpells)); }catch(_e){}
-    document.getElementById("pvStatus").textContent="Sauvé ✓";
+    showSavedStatus();
+    setTimeout(()=>{ document.getElementById("pvStatus").textContent="Sauvé ✓"; showSavedStatus(); }, 1200);
     setTimeout(()=>renderNav(),100);
   };
+  showSavedStatus();
 
   function resizePv(){
     const vh = window.innerHeight || document.documentElement.clientHeight || 667;

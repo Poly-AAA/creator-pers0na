@@ -143,15 +143,16 @@ print("spell standalone ready", len(stand_cdn))
 PY
 
 wire_fcc_nav() {
-  python3 - "$1" "$2" "$3" "$4" "$5" <<'PY'
+  python3 - "$1" "$2" "$3" "$4" "$5" "$6" <<'PY'
 from pathlib import Path
 import re, sys
-path, combat, creator, anims, dirs = sys.argv[1:6]
+path, combat, creator, anims, dirs, spell = (sys.argv[1:7] + [""]*6)[:6]
 links = {
     "combat": combat,
     "creator": creator,
     "anims": anims,
     "dirs": dirs,
+    "spell": spell,
 }
 p = Path(path)
 t = p.read_text()
@@ -168,12 +169,37 @@ if combat:
 if creator:
     t = t.replace('href="character-creator-fantasy.html"', f'href="{creator}"')
     t = t.replace('href="creator.html"', f'href="{creator}"')
+if spell:
+    t = t.replace('href="spell-editor.html"', f'href="{spell}"')
 if anims:
     t = t.replace('href="fantasy-weapon-anim.html"', f'href="{anims}"')
 if dirs:
     t = t.replace('href="fantasy-dir-calibrate.html"', f'href="{dirs}"')
 p.write_text(t)
 print("wired", path)
+PY
+}
+
+inject_fcc_nav() {
+  python3 - "$1" "$2" "$3" "$4" "$5" "$6" <<'PY'
+from pathlib import Path
+import json, re, sys
+path, combat, creator, spell, anims, dirs = (sys.argv[1:7] + [""]*6)[:6]
+nav = {k:v for k,v in {
+    "combat": combat, "creator": creator, "spell": spell,
+    "anims": anims, "dirs": dirs,
+}.items() if v}
+if not nav:
+    raise SystemExit(0)
+p = Path(path)
+t = p.read_text()
+block = f'<script>window.FCC_NAV={json.dumps(nav)};</script>\n'
+if "window.FCC_NAV" in t:
+    t = re.sub(r'<script>window\.FCC_NAV=.*?</script>\s*', block, t, count=1)
+else:
+    t = t.replace("</head>", block + "</head>", 1)
+p.write_text(t)
+print("inject nav", path)
 PY
 }
 
@@ -234,9 +260,12 @@ if [[ -n "$BASE" ]]; then
   ANIMS_URL="$BASE/fantasy-weapon-anim.html"
   DIRS_URL="$BASE/fantasy-dir-calibrate.html"
   SPELL_URL="$BASE/spell-editor.html"
-  wire_fcc_nav "$OUT/fantasy-combat.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
-  wire_fcc_nav "$OUT/creator.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
-  wire_fcc_nav "$OUT/character-creator-fantasy.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
+  wire_fcc_nav "$OUT/fantasy-combat.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL" "$SPELL_URL"
+  wire_fcc_nav "$OUT/creator.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL" "$SPELL_URL"
+  wire_fcc_nav "$OUT/character-creator-fantasy.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL" "$SPELL_URL"
+  wire_fcc_nav "$OUT/spell-editor.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL" "$SPELL_URL"
+  inject_fcc_nav "$OUT/fantasy-combat.html" "$COMBAT_URL" "$CREATOR_URL" "$SPELL_URL" "$ANIMS_URL" "$DIRS_URL"
+  inject_fcc_nav "$OUT/spell-editor.html" "$COMBAT_URL" "$CREATOR_URL" "$SPELL_URL" "$ANIMS_URL" "$DIRS_URL"
   wire_fcc_nav "$OUT/fantasy-weapon-anim.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
   wire_fcc_nav "$OUT/fantasy-dir-calibrate.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL"
   # Patch BASE_LOCAL to absolute tunnel URL so sprites load even from single-file hosts
@@ -310,13 +339,24 @@ if [[ "$CF_OK" -ne 1 ]]; then
   cp "$OUT/fantasy-dir-calibrate.html" /tmp/fcc-dirs-litter.html
   cp "$OUT/fantasy-weapon-anim.html" /tmp/fcc-weapon-anim-litter.html
   cp /tmp/fcc-spell-standalone.html /tmp/fcc-spell-litter.html
-  LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html || true)"
+  cp /tmp/fcc-combat-standalone.html /tmp/fcc-combat-litter.html
+  LIT_COMBAT="$(litter_upload /tmp/fcc-combat-litter.html || true)"
   LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html || true)"
   LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html || true)"
   LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html || true)"
-  LIT_SPELL="$(litter_upload /tmp/fcc-spell-litter.html || true)"
+  if [[ "$LIT_COMBAT" == https://* ]]; then
+    wire_fcc_nav /tmp/fcc-spell-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS" ""
+    LIT_SPELL="$(litter_upload /tmp/fcc-spell-litter.html || true)"
+    if [[ "$LIT_SPELL" == https://* ]]; then
+      wire_fcc_nav /tmp/fcc-combat-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS" "$LIT_SPELL"
+      inject_fcc_nav /tmp/fcc-spell-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_SPELL" "$LIT_ANIMS" "$LIT_DIRS"
+      inject_fcc_nav /tmp/fcc-combat-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_SPELL" "$LIT_ANIMS" "$LIT_DIRS"
+      LIT_SPELL="$(litter_upload /tmp/fcc-spell-litter.html || true)"
+      LIT_COMBAT="$(litter_upload /tmp/fcc-combat-litter.html || true)"
+    fi
+  fi
   if [[ "$LIT_COMBAT" == https://* ]] && verify_url "$LIT_COMBAT" "Combat Fantasy"; then
-    wire_fcc_nav /tmp/fcc-creator-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS"
+    wire_fcc_nav /tmp/fcc-creator-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS" "$LIT_SPELL"
     LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html || true)"
     # Rewrite spell-editor link inside littered creator HTML
     if [[ "$LIT_CREATOR" == https://* ]] && [[ "$LIT_SPELL" == https://* ]]; then
