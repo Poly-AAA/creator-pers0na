@@ -190,11 +190,15 @@ function loadImg(folder, anim){
     urls.push(BASE_LOCAL+rel, BASE_CDN+rel);
     const im=new Image(); im.crossOrigin="anonymous"; let i=0;
     const nx=()=>{ if(i>=urls.length){res(null);return;}
-      im.onload=()=>res(im); im.onerror=()=>{i++;nx();}; im.src=urls[i++]; }; nx();
+      im.onload=()=>{ p._v=im; res(im); };
+      im.onerror=()=>{i++;nx();}; im.src=urls[i++]; }; nx();
   });
   imgCache.set(k,p); return p;
 }
-function getImg(folder,anim){ const p=imgCache.get(folder+"/"+anim); return (p&&p._v)||null; }
+function getImg(folder,anim){
+  const p=imgCache.get(folder+"/"+anim);
+  return (p&&p._v)||null;
+}
 
 /* Précharger un look */
 let lookState = { look:{}, bodies:[{folder:"NakedBody",opacity:1,color:"#d4a574"}], colors:{} };
@@ -610,16 +614,24 @@ function boot(){
   loadCustom(); loadLook();
   if(allSpells().length) activeId=allSpells()[0].id;
 
-  /* Précharger NakedBody + Head3 pour la preview */
-  ["NakedBody","Head3"].forEach(f=>["Idle","Attack1","Attack2","Kick","Special1"].forEach(a=>{
-    loadImg(f,a).then(im=>{ if(im) im._v=im; });
-  }));
-  for(const L of playerLayers()) ["Idle","Attack1","Attack2","Kick","Special1"].forEach(a=>{
-    loadImg(L.folder,a).then(im=>{ if(im) im._v=im; });
-  });
-
   renderNav(); renderEditor();
-  drawLoop();
+
+  /* Charger tous les sprites essentiels AVANT de démarrer la boucle */
+  const WARM_ANIMS = ["Idle","Walk","Attack1","Attack2","Attack3","Attack4","Attack5","Attack6",
+                      "Kick","Special1","TakeDamage","Die","Rolling","Slide","Taunt","AttackRun"];
+  const coreFolders = ["NakedBody","Head3"];
+  const playerFolders = playerLayers().map(l=>l.folder).filter(Boolean);
+  const allFolders = [...new Set([...coreFolders,...playerFolders])];
+  const jobs = [];
+  allFolders.forEach(f=> WARM_ANIMS.forEach(a=>{
+    jobs.push(loadImg(f,a));
+  }));
+
+  document.getElementById("pvStatus").textContent = "Chargement des sprites…";
+  Promise.allSettled(jobs).then(()=>{
+    document.getElementById("pvStatus").textContent = "Prêt";
+    drawLoop();
+  });
 
   document.getElementById("btnSave").onclick=()=>{
     /* Fusionner les edits dans customSpells */
