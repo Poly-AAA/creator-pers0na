@@ -827,6 +827,8 @@
       anim: choice.anim || "Attack1",
       slash: fx.slash,
       effect: fx.effect,
+      fps: 14,
+      delay: 80,
     };
   }
 
@@ -839,6 +841,10 @@
       (tree[tier] || []).forEach(function (ch) {
         const k = evoCatalogKey(tier, ch.name);
         if (!out[k]) out[k] = defaultEvoConfigEntry(ch);
+        else {
+          if (out[k].fps == null) out[k].fps = 14;
+          if (out[k].delay == null) out[k].delay = 80;
+        }
       });
     });
     return out;
@@ -866,8 +872,8 @@
       const e = item.entry;
       return {
         anim: e.anim || ch.anim || "Attack1",
-        delay: 80,
-        fps: 14,
+        delay: e.delay != null ? e.delay : 80,
+        fps: e.fps != null ? e.fps : 14,
         slash: e.slash || "None",
         effect: e.effect || "None",
         hitTarget: false,

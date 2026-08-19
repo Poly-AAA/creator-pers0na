@@ -394,6 +394,7 @@
       }
       const step = steps[i++];
       playAnim(G.player, step.anim);
+      G.player.stepFps = step.fps || 14;
       G.castFx = {
         slash: step.slash && step.slash !== "None" ? step.slash : null,
         effect: step.effect && step.effect !== "None" ? step.effect : null,
@@ -401,7 +402,8 @@
       };
       if(G.castFx.slash) loadImg(G.castFx.slash, step.anim || "Attack1");
       if(G.castFx.effect) loadImg(G.castFx.effect, step.anim || "Special1");
-      setTimeout(next, 420);
+      const dur = Math.max(180, Math.round((15 / (step.fps || 14)) * 1000));
+      setTimeout(next, (step.delay || 0) + dur);
     }
     next();
   }
@@ -1290,7 +1292,9 @@
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
     faceToward(G.player, G.enemy.c, G.enemy.r);
     G.player.pa -= cost;
-    playCastAnimChain(sp);
+    playCastAnimChain(sp, ()=>{
+      if(G.player.anim!=="Die") playAnim(G.player,"Idle");
+    });
     let dmg = roll(sp.dmg || [6,10]) + (evo.dmg|0);
     if(G.player.invis>0 && evo.invisBurst) dmg += evo.invisBurst|0;
     const hits = 1 + (evo.hits|0);
@@ -1307,9 +1311,6 @@
     if(G.enemy.pv<=0){ G.enemy.alive=false; setStatus("Victoire"); onCombatEnd("win"); }
     G.armed=null; G.armedSlot=null;
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
-    playCastAnimChain(sp, ()=>{
-      if(G.player.anim!=="Die") playAnim(G.player,"Idle");
-    });
   }
 
   function tryCastAt(c, r){
