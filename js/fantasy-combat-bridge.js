@@ -828,7 +828,7 @@
       slash: fx.slash,
       effect: fx.effect,
       fps: 14,
-      delay: 80,
+      delay: 0,
     };
   }
 
@@ -843,7 +843,7 @@
         if (!out[k]) out[k] = defaultEvoConfigEntry(ch);
         else {
           if (out[k].fps == null) out[k].fps = 14;
-          if (out[k].delay == null) out[k].delay = 80;
+          if (out[k].delay == null) out[k].delay = 0;
         }
       });
     });

@@ -753,7 +753,7 @@ function renderEditor(){
   /* ── Évolutions catalogue jeu ── */
   const evoCard=card("Évolutions du jeu");
   const evHint=document.createElement("p"); evHint.className="hint";
-  evHint.textContent="Coche chaque évolution et assigne son animation. Les évolutions actives se cumulent en combat.";
+  evHint.textContent="Coche + assigne anim/FPS → ▶ Tester ici. En combat : lance un sort pour voir la chaîne, ou gagne un fight pour choisir une évo (palier 1/2).";
   evoCard.appendChild(evHint);
 
   const sEvo = ensureEditable(activeId);
