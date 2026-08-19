@@ -48,6 +48,12 @@
   }
   .btn.primary{background:var(--sel);color:#fff;border-color:var(--sel)}
   .btn.ghost{min-height:36px;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  /* Pavé directionnel */
+  .dpad{display:grid;grid-template-columns:repeat(3,30px);grid-template-rows:repeat(3,30px);gap:2px;margin:0 auto}
+  .dpad button{width:30px;height:30px;border:1px solid var(--line);border-radius:6px;background:var(--soft);
+    color:var(--sel);font-size:14px;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
+  .dpad button:active{background:var(--sel);color:#fff}
+  .dpad span{width:30px;height:30px}
   .status{font-size:10px;color:var(--ink2);text-align:center;line-height:1.25}
   .size-row{display:flex;align-items:center;gap:4px}
   .size-row input{flex:1;accent-color:var(--sel);min-width:0}
@@ -119,6 +125,28 @@
         <span class="val" id="animVal">Idle</span>
         <button type="button" class="nav" id="animNext" aria-label="Anim suivante">›</button>
       </div>
+    </div>
+    <div class="sec">
+      <span class="ttl">Vitesse (FPS)</span>
+      <div class="size-row">
+        <input type="range" id="fpsSlider" min="1" max="30" value="14" step="1"/>
+        <span id="fpsVal">14</span>
+      </div>
+    </div>
+    <div class="sec">
+      <span class="ttl">Direction</span>
+      <div class="dpad" id="dpad">
+        <button type="button" data-d="6">↖</button>
+        <button type="button" data-d="7">↑</button>
+        <button type="button" data-d="0">↗</button>
+        <button type="button" data-d="5">←</button>
+        <span></span>
+        <button type="button" data-d="1">→</button>
+        <button type="button" data-d="4">↙</button>
+        <button type="button" data-d="3">↓</button>
+        <button type="button" data-d="2">↘</button>
+      </div>
+      <span class="val" id="dirVal" style="text-align:center;font-size:11px;color:var(--ink2)">E</span>
     </div>
     <div class="sec">
       <span class="ttl">Choix</span>
@@ -514,13 +542,25 @@
     i=(i+dir+MISC_SLOTS.length)%MISC_SLOTS.length;
     state._miscFocus=MISC_SLOTS[i]; syncSteppers(); renderSwatches();
   }
-  function cycleAnim(dir){
-    let anims=(state.catalog.anims&&state.catalog.anims.length)?state.catalog.anims.slice():["Idle","Walk","Attack1"];
+  /* Toutes les anims disponibles, mouvement en tête */
+  const MOVE_ANIMS = ["Idle","Walk","Run","Rolling","Slide","AttackRun","AttackRun2","Taunt"];
+  const DIR_NAMES  = ["E","SE","S","SW","W","NW","N","NE"];
+
+  function fullAnimList(){
+    const cat=(state.catalog&&state.catalog.anims&&state.catalog.anims.length)
+      ? state.catalog.anims.slice()
+      : ["Idle","Walk","Attack1","Attack2","Kick","TakeDamage","Die"];
+    /* Mettre les anims de mouvement en premier, sans doublons */
+    const extra=MOVE_ANIMS.filter(a=>!cat.includes(a));
+    const all=[...MOVE_ANIMS.filter(a=>cat.includes(a)||extra.includes(a)),...cat.filter(a=>!MOVE_ANIMS.includes(a))];
     if(isMounted()){
-      /* priorise les anims montées */
-      const ride = RIDE_ANIMS.filter(a=>anims.indexOf(a)>=0 || true);
-      anims = ride.concat(anims.filter(a=>!/^Ride/i.test(a)));
+      const ride=RIDE_ANIMS.filter(a=>all.indexOf(a)<0?true:true); // toujours dispo
+      return [...ride,...all.filter(a=>!/^Ride/i.test(a))];
     }
+    return all;
+  }
+  function cycleAnim(dir){
+    const anims=fullAnimList();
     let i=anims.indexOf(state.anim); if(i<0) i=0;
     i=(i+dir+anims.length)%anims.length;
     state.anim=anims[i]; state.frame=0; state.dirty=true; syncSteppers();
@@ -528,6 +568,7 @@
 
   function syncSteppers(){
     el("animVal").textContent=state.anim||"—";
+    if(el("dirVal")) el("dirVal").textContent=DIR_NAMES[state.dir|0]||"";
     if(state.zoneId==="weapon"){
       const s=slotById(state._miscFocus||"weapon");
       const sub=(s&&s.lab)?s.lab.split("/")[0].trim():(state._miscFocus||"");
@@ -656,8 +697,18 @@
   }
 
   function bind(){
-    el("dirPrev").onclick=()=>{ state.dir=(state.dir+7)%8; state.dirty=true; };
-    el("dirNext").onclick=()=>{ state.dir=(state.dir+1)%8; state.dirty=true; };
+    el("dirPrev").onclick=()=>{ state.dir=(state.dir+7)%8; state.dirty=true; syncSteppers(); };
+    el("dirNext").onclick=()=>{ state.dir=(state.dir+1)%8; state.dirty=true; syncSteppers(); };
+    /* Pavé directionnel 8-dir */
+    el("dpad").querySelectorAll("button[data-d]").forEach(btn=>{
+      btn.onclick=()=>{ state.dir=parseInt(btn.dataset.d); state.frame=0; state.dirty=true; syncSteppers(); };
+    });
+    /* Slider FPS */
+    const fpsEl=el("fpsSlider");
+    if(fpsEl){
+      fpsEl.value=String(state.fps);
+      fpsEl.oninput=()=>{ state.fps=Math.max(1,Math.min(30,parseInt(fpsEl.value)||14)); el("fpsVal").textContent=state.fps; state.dirty=true; };
+    }
     el("animPrev").onclick=()=>cycleAnim(-1);
     el("animNext").onclick=()=>cycleAnim(1);
     el("optPrev").onclick=()=>cycleOption(-1);
