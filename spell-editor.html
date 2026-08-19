@@ -297,23 +297,28 @@ function loadImg(folder, anim){
   const bases=HOST_STANDALONE ? [BASE_CDN, BASE_LOCAL] : [BASE_LOCAL, BASE_CDN];
   bases.forEach(b=>{ const base=b.endsWith("/")?b:b+"/"; urls.push(base+rel); });
   const p=new Promise(res=>{
-    p._pending=true;
     let i=0, pass=0;
     function tryNext(){
       if(i>=urls.length){
         if(pass===0){ pass=1; i=0; tryNext(); return; }
-        p._pending=false; p._failed=true;
         imgCache.delete(k);
         res(null);
         return;
       }
       const im=new Image();
       if(pass===0) im.crossOrigin="anonymous";
-      im.onload=()=>{ p._v=im; p._pending=false; p._failed=false; res(im); };
+      im.onload=()=> res(im);
       im.onerror=()=>{ i++; tryNext(); };
       im.src=urls[i++];
     }
     tryNext();
+  });
+  p._pending=true;
+  p._failed=false;
+  p.then(function(im){
+    p._pending=false;
+    if(im){ p._v=im; p._failed=false; }
+    else p._failed=true;
   });
   imgCache.set(k,p); return p;
 }
