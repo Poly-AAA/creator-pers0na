@@ -17,8 +17,8 @@
   .app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto}
 
   /* ── PREVIEW (haut) ── */
-  .preview-wrap{flex:0 0 auto;position:relative;background:#d8ddd4;overflow:hidden}
-  canvas#arena{display:block;width:100%;height:200px;image-rendering:pixelated}
+  .preview-wrap{flex:0 0 220px;min-height:220px;position:relative;background:#d8ddd4;overflow:hidden}
+  canvas#arena{display:block;width:100%;height:220px;image-rendering:pixelated}
   .preview-status{position:absolute;bottom:4px;left:8px;right:8px;
     font-size:11px;color:rgba(255,255,255,.85);text-shadow:0 1px 3px rgba(0,0,0,.6);
     pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -82,8 +82,8 @@
 <body>
 <div class="app">
   <!-- Prévisualisation combat -->
-  <div class="preview-wrap" id="previewWrap">
-    <canvas id="arena" width="390" height="200" aria-label="Prévisualisation"></canvas>
+  <div class="preview-wrap" id="previewWrap" style="height:220px">
+    <canvas id="arena" width="390" height="220" style="display:block;width:100%;height:220px;image-rendering:pixelated" aria-label="Prévisualisation"></canvas>
     <div class="preview-status" id="pvStatus">Chargement…</div>
   </div>
 
@@ -223,9 +223,12 @@ function toScreen(c,r){
   return { x: cam.ox+(c-r)*(TILE_W/2), y: cam.oy+(c+r)*(TILE_H/2) };
 }
 function fitCam(){
-  const W=canvas.clientWidth||390, H=canvas.height;
+  const W=Math.max(canvas.width||320, canvas.clientWidth||320);
+  const H=Math.max(canvas.height||220, 220);
+  /* sync canvas internal size if CSS size differs */
+  if(canvas.width!==W){ canvas.width=W; }
   const sc=Math.min(W/(GRID*TILE_W*0.7+24), H/(GRID*TILE_H*0.9+24), 1.6);
-  cam.sc=Math.max(0.7,sc);
+  cam.sc=Math.max(0.6,sc);
   const fx=(GRID-1)/2, fy=(GRID-1)/2;
   const cx=W/(2*cam.sc), cy=H/(2*cam.sc);
   cam.ox=cx-(fx-fy)*(TILE_W/2);
@@ -731,9 +734,11 @@ function boot(){
   loadCustom(); loadLook();
   if(allSpells().length) activeId=allSpells()[0].id;
 
-  /* Resize en premier pour que le canvas ait sa bonne hauteur dès le premier frame */
+  /* Resize en premier — fallbacks multiples pour mobile Safari */
   (function resizePvEarly(){
-    const h=Math.max(180, Math.round(window.innerHeight*0.32));
+    const vh = window.innerHeight || document.documentElement.clientHeight || 667;
+    const h=Math.max(180, Math.round(vh*0.32));
+    canvas.width=Math.max(320, canvas.parentElement ? canvas.parentElement.clientWidth : 390);
     canvas.height=h; canvas.style.height=h+"px";
     document.getElementById("previewWrap").style.height=h+"px";
   })();
@@ -769,15 +774,13 @@ function boot(){
     setTimeout(()=>renderNav(),100);
   };
 
-  /* Resize canvas height to 32% of viewport */
   function resizePv(){
-    const h=Math.max(180, Math.round(window.innerHeight*0.32));
-    canvas.height=h;
-    canvas.style.height=h+"px";
+    const vh = window.innerHeight || document.documentElement.clientHeight || 667;
+    const h=Math.max(180, Math.round(vh*0.32));
+    canvas.width=Math.max(320, canvas.parentElement ? canvas.parentElement.clientWidth : 390);
+    canvas.height=h; canvas.style.height=h+"px";
     document.getElementById("previewWrap").style.height=h+"px";
   }
-  /* Appel immédiat AVANT drawLoop pour que le canvas ait sa bonne taille */
-  resizePv();
   window.addEventListener("resize",resizePv);
 }
 boot();
