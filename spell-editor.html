@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<title>Éditeur de sorts · NEURO-CORE</title>
+<style>
+  :root{
+    --bg:#ecece8;--bg2:#f5f5f2;--ink:#3d3d3a;--ink2:#888884;
+    --line:#d0d0cc;--line2:#e4e4e0;--card:#fafaf8;
+    --sel:#3d3d3a;--soft:#f0f0ec;
+    --acc:#4a3870;--ok:#2f6f4e;--warn:#c45c26;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;height:100dvh;background:var(--bg);color:var(--ink);
+    font:14px/1.35 -apple-system,BlinkMacSystemFont,Helvetica,sans-serif;overflow:hidden}
+  .app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto}
+
+  /* ── PREVIEW (haut) ── */
+  .preview-wrap{flex:0 0 auto;position:relative;background:#d8ddd4;overflow:hidden}
+  canvas#arena{display:block;width:100%;image-rendering:pixelated}
+  .preview-status{position:absolute;bottom:4px;left:8px;right:8px;
+    font-size:11px;color:rgba(255,255,255,.85);text-shadow:0 1px 3px rgba(0,0,0,.6);
+    pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* ── NAV SORTS (bandeau) ── */
+  .spell-nav{display:flex;gap:6px;padding:8px;overflow-x:auto;background:var(--bg2);
+    border-bottom:1px solid var(--line2);-webkit-overflow-scrolling:touch;flex-shrink:0}
+  .spell-nav button{flex-shrink:0;padding:7px 12px;border:1.5px solid var(--line);border-radius:10px;
+    background:var(--soft);font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap}
+  .spell-nav button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .spell-nav button.new{background:var(--ok);color:#fff;border-color:var(--ok)}
+
+  /* ── PANEL ÉDITEUR (bas, scrollable) ── */
+  .editor{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
+  .card{background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:12px}
+  .card h3{margin:0 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+  label.field{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--ink2)}
+  label.field input,label.field select,label.field textarea{
+    padding:7px 9px;border:1px solid var(--line);border-radius:8px;
+    background:var(--soft);font:13px/1.3 inherit;color:var(--ink);width:100%}
+  label.field textarea{resize:vertical;min-height:56px}
+  .anim-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .anim-list button{padding:5px 10px;border:1.5px solid var(--line);border-radius:8px;
+    background:var(--soft);font-size:11px;font-weight:700;color:var(--ink)}
+  .anim-list button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .anim-seq{display:flex;flex-wrap:wrap;gap:5px;min-height:30px;
+    background:var(--bg2);border:1px dashed var(--line);border-radius:8px;padding:5px}
+  .anim-seq .chip{display:flex;align-items:center;gap:3px;padding:3px 8px;
+    background:var(--acc);color:#fff;border-radius:999px;font-size:11px;font-weight:700}
+  .anim-seq .chip button{background:none;border:none;color:#fff;font-size:12px;padding:0;cursor:pointer}
+
+  /* tiers evo */
+  .tier{border:1px solid var(--line2);border-radius:10px;padding:10px;margin-top:8px}
+  .tier-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .tier-head span{font-size:11px;font-weight:700;color:var(--acc)}
+  .tier-head button{margin-left:auto;font-size:11px;padding:4px 9px;border:1px solid var(--line);
+    border-radius:8px;background:var(--soft);color:var(--ink)}
+  .tier-head button.del{background:#fee;border-color:#fcc;color:#c00}
+
+  /* overlay corps */
+  .body-tokens{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+  .body-tokens button{padding:4px 10px;border:1.5px solid var(--line);border-radius:8px;
+    background:var(--soft);font-size:11px;font-weight:700;color:var(--ink)}
+  .body-tokens button.on{background:#6b4a2e;color:#fff;border-color:#6b4a2e}
+
+  /* footer */
+  .footer{display:flex;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    background:var(--bg2);border-top:1px solid var(--line2);flex-shrink:0}
+  .footer button,.footer a{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);
+    background:var(--soft);color:var(--ink);font-size:13px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;text-decoration:none}
+  .footer .primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .footer .ok{background:var(--ok);color:#fff;border-color:var(--ok)}
+
+  /* hint */
+  .hint{font-size:11px;color:var(--ink2);margin:3px 0 0}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Prévisualisation combat -->
+  <div class="preview-wrap" id="previewWrap">
+    <canvas id="arena" width="390" height="200" aria-label="Prévisualisation"></canvas>
+    <div class="preview-status" id="pvStatus">Chargement…</div>
+  </div>
+
+  <!-- Navigation sorts -->
+  <div class="spell-nav" id="spellNav"></div>
+
+  <!-- Panneau éditeur -->
+  <div class="editor" id="editor"></div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <a href="character-creator-fantasy.html" data-fcc="creator">Créateur</a>
+    <a href="fantasy-combat.html" id="btnCombat" data-fcc="combat">Combat</a>
+    <button type="button" class="primary" id="btnSave">Sauver</button>
+  </div>
+</div>
+
+<script src="js/fantasy-combat-bridge.js"></script>
+<script>
+(function(){
+"use strict";
+
+const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
+const BASE_LOCAL = "assets/packs/fantasy-cc/";
+const FW=128, FH=128, COLS=15, FPS=14;
+const KEY_SPELLS = "neuro.customSpells";
+const KEY_LOOK   = "neuro.fantasyLook";
+
+/* ────────────────────────────────────────────────────────────
+   Anims disponibles pour chaîner
+──────────────────────────────────────────────────────────── */
+const ALL_ANIMS = [
+  "Attack1","Attack2","Attack3","Attack4","Attack5","Attack6",
+  "AttackRun","AttackRun2","Kick","Special1","Taunt","Rolling",
+  "Slide","RideIdleAttack1","RideRunAttack1","TakeDamage","Die","Idle","Walk","Run"
+];
+const ATTACK_ANIMS = ALL_ANIMS.filter(a=>/Attack|Kick|Special|Taunt|Rolling|Slide|Ride.*Attack/i.test(a));
+
+/* Corps overlay disponibles */
+const BODY_OVERLAYS = ["Aucun","NakedBody2","NakedBody3"]; // squelette/éthéré quand assets prêts
+
+/* ────────────────────────────────────────────────────────────
+   SPELLS catalogue de base (mêmes que combat)
+──────────────────────────────────────────────────────────── */
+const BASE_SPELLS = [
+  { id:"punch",   name:"Coup brut",        cost:2, range:1, dmg:[8,12],   anim:"Attack2", type:"damage" },
+  { id:"monofil", name:"Lame spectrale",   cost:3, range:1, dmg:[14,18],  anim:"Attack3", type:"damage" },
+  { id:"arc",     name:"Éclair runique",   cost:3, range:4, dmg:[10,15],  anim:"Attack1", type:"damage" },
+  { id:"surchauffe",name:"Brasier",        cost:4, range:3, dmg:[16,22],  anim:"Attack5", type:"damage" },
+  { id:"gravite", name:"Poussée tellurique",cost:4,range:3, dmg:[8,12],   anim:"Special1",type:"damage" },
+  { id:"nanites", name:"Soin de lumière",  cost:4, range:0, heal:[15,15], anim:"Special1",type:"heal" },
+  { id:"dash",    name:"Charge",           cost:2, range:4, dmg:[10,14],  anim:"AttackRun",type:"damage"},
+  { id:"mine",    name:"Rune piégée",      cost:2, range:2, dmg:[12,16],  anim:"Kick",    type:"damage" },
+  { id:"bouclier",name:"Égide",            cost:3, range:0, heal:[8,12],  anim:"Special1",type:"shield" },
+  { id:"double",  name:"Sosie",            cost:3, range:0, anim:"Special1",type:"clone",  dmg:[8,12]   },
+  { id:"invisibilite",name:"Voile d'ombre",cost:3,range:0, anim:"Special1",type:"buff",   invisTurns:2 },
+];
+
+/* ────────────────────────────────────────────────────────────
+   État
+──────────────────────────────────────────────────────────── */
+let customSpells = [];  // sorts créés / modifiés
+let activeId = null;    // sort en cours d'édition
+
+function loadCustom(){
+  try{ const r=localStorage.getItem(KEY_SPELLS); if(r) customSpells=JSON.parse(r)||[]; }catch(_e){}
+}
+function saveCustom(){
+  try{ localStorage.setItem(KEY_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+}
+function allSpells(){ return [...BASE_SPELLS, ...customSpells.filter(c=>!BASE_SPELLS.find(b=>b.id===c.id))]; }
+function spellById(id){ return customSpells.find(s=>s.id===id) || BASE_SPELLS.find(s=>s.id===id) || null; }
+function editableSpell(id){
+  let s = customSpells.find(s=>s.id===id);
+  if(!s){ const b=BASE_SPELLS.find(b=>b.id===id); s=b?JSON.parse(JSON.stringify(b)):null; }
+  return s;
+}
+function ensureEditable(id){
+  if(!customSpells.find(s=>s.id===id)){
+    const b=BASE_SPELLS.find(b=>b.id===id);
+    if(b) customSpells.push(JSON.parse(JSON.stringify(b)));
+    else customSpells.push({ id, name:"Nouveau sort "+id, cost:2, range:1, dmg:[8,12], anim:"Attack1", type:"damage", animSeq:[], evos:[] });
+  }
+  return customSpells.find(s=>s.id===id);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Prévisualisation combat (mini-moteur)
+──────────────────────────────────────────────────────────── */
+const canvas = document.getElementById("arena");
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+const TILE_W=56, TILE_H=28, GRID=6;
+const cam = { ox:0, oy:0, sc:1 };
+const imgCache = new Map();
+
+function loadImg(folder, anim){
+  const k=folder+"/"+anim;
+  if(imgCache.has(k)) return imgCache.get(k);
+  const p=new Promise(res=>{
+    const rel=`spritesheets/${folder}/${anim}.png`;
+    const urls=[];
+    if(folder==="Head25") urls.push(`hat-refs/Head25/${anim}.png`);
+    urls.push(BASE_LOCAL+rel, BASE_CDN+rel);
+    const im=new Image(); im.crossOrigin="anonymous"; let i=0;
+    const nx=()=>{ if(i>=urls.length){res(null);return;}
+      im.onload=()=>res(im); im.onerror=()=>{i++;nx();}; im.src=urls[i++]; }; nx();
+  });
+  imgCache.set(k,p); return p;
+}
+function getImg(folder,anim){ const p=imgCache.get(folder+"/"+anim); return (p&&p._v)||null; }
+
+/* Précharger un look */
+let lookState = { look:{}, bodies:[{folder:"NakedBody",opacity:1,color:"#d4a574"}], colors:{} };
+function loadLook(){
+  try{
+    const r=localStorage.getItem(KEY_LOOK); if(!r) return;
+    const o=JSON.parse(r);
+    if(o.look) lookState.look=o.look;
+    if(o.bodies) lookState.bodies=o.bodies;
+    if(o.colors) lookState.colors=o.colors;
+  }catch(_e){}
+}
+
+/* Entités preview */
+const player = { c:1, r:GRID/2|0, dir:3, anim:"Idle", frame:0, t0:0, alive:true, pv:40, pvMax:40 };
+const enemy  = { c:GRID-2, r:GRID/2|0, dir:7, anim:"Idle", frame:0, t0:0, alive:true, pv:40, pvMax:40 };
+
+function toScreen(c,r){
+  return { x: cam.ox+(c-r)*(TILE_W/2), y: cam.oy+(c+r)*(TILE_H/2) };
+}
+function fitCam(){
+  const W=canvas.clientWidth||390, H=canvas.height;
+  const sc=Math.min(W/(GRID*TILE_W*0.7+24), H/(GRID*TILE_H*0.9+24), 1.6);
+  cam.sc=Math.max(0.7,sc);
+  const fx=(GRID-1)/2, fy=(GRID-1)/2;
+  const cx=W/(2*cam.sc), cy=H/(2*cam.sc);
+  cam.ox=cx-(fx-fy)*(TILE_W/2);
+  cam.oy=cy-(fx+fy)*(TILE_H/2);
+}
+
+const ROW_LABEL_TO_DIR_ROW={"E":0,"SE":1,"S":2,"SW":3,"W":4,"NW":5,"N":6,"NE":7};
+function sheetRow(dir){ return dir&7; }
+
+let raf=0;
+function drawLoop(){
+  raf=requestAnimationFrame(drawLoop);
+  fitCam();
+  const W=canvas.width, H=canvas.height;
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle="#d8ddd4"; ctx.fillRect(0,0,W,H);
+  ctx.save(); ctx.scale(cam.sc,cam.sc);
+  /* tiles */
+  for(let c=0;c<GRID;c++) for(let r=0;r<GRID;r++){
+    const s=toScreen(c,r);
+    const hw=TILE_W/2, hh=TILE_H/2;
+    ctx.beginPath();
+    ctx.moveTo(s.x,s.y-hh); ctx.lineTo(s.x+hw,s.y);
+    ctx.lineTo(s.x,s.y+hh); ctx.lineTo(s.x-hw,s.y); ctx.closePath();
+    ctx.fillStyle=((c+r)&1)?"#e8e8e2":"#dcdcd6"; ctx.fill();
+    ctx.strokeStyle="rgba(80,80,70,0.12)"; ctx.lineWidth=1; ctx.stroke();
+  }
+  const now=performance.now();
+  for(const ent of [enemy, player]){
+    if(!ent.alive && ent.anim!=="Die") continue;
+    const anim=ent.anim||"Idle";
+    const row=sheetRow(ent.dir);
+    const elapsed=(now-ent.t0)/1000;
+    const loop=/^(Idle|Walk|Run|RideIdle|RideRun)$/i.test(anim);
+    let col=Math.floor(elapsed*FPS);
+    col=loop?col%COLS:Math.min(col,COLS-1);
+    const s=toScreen(ent.c,ent.r);
+    const sc2=1.15, dw=FW*sc2, dh=FH*sc2, FOOT=88;
+    const dx=s.x-dw/2, dy=s.y-FOOT*sc2;
+    const isEnemy=(ent===enemy);
+    const layers=isEnemy
+      ? [{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1}]
+      : playerLayers();
+    ctx.imageSmoothingEnabled=false;
+    let drawn=0;
+    for(const L of layers){
+      const im=getImg(L.folder,anim)||getImg(L.folder,"Idle"); if(!im) continue;
+      ctx.save(); ctx.globalAlpha=(L.alpha||1);
+      if(L.tint){ drawTinted(im,col*FW,row*FH,FW,FH,dx,dy,dw,dh,L.tint); }
+      else { ctx.drawImage(im,col*FW,row*FH,FW,FH,dx,dy,dw,dh); }
+      ctx.restore(); drawn++;
+    }
+    if(!drawn){
+      ctx.fillStyle=isEnemy?"#8a5050":"#3d6a8a";
+      ctx.beginPath(); ctx.ellipse(s.x,s.y-16,11,16,0,0,Math.PI*2); ctx.fill();
+    }
+    if(ent.pvMax){
+      const pct=ent.pv/ent.pvMax, bw=24, bh=3, bx=s.x-bw/2, by=dy+12;
+      ctx.fillStyle="rgba(0,0,0,.2)"; ctx.fillRect(bx-1,by-1,bw+2,bh+2);
+      ctx.fillStyle=isEnemy?"#8a3030":"#2f6f4e";
+      ctx.fillRect(bx,by,bw*Math.max(0,pct),bh);
+    }
+  }
+  ctx.restore();
+  /* warm missing images */
+  for(const ent of [player,enemy]){
+    const layers=ent===player?playerLayers():[{folder:"NakedBody"},{folder:"Head3"}];
+    for(const L of layers) loadImg(L.folder,ent.anim||"Idle").then(im=>{ if(im) im._v=im; });
+  }
+}
+const tintCv=document.createElement("canvas");
+const tintCx=tintCv.getContext("2d");
+function drawTinted(img,sx,sy,sw,sh,dx,dy,dw,dh,tintHex){
+  const tw=Math.max(1,Math.round(dw)), th=Math.max(1,Math.round(dh));
+  if(tintCv.width!==tw) tintCv.width=tw;
+  if(tintCv.height!==th) tintCv.height=th;
+  tintCx.clearRect(0,0,tw,th); tintCx.imageSmoothingEnabled=false;
+  tintCx.drawImage(img,sx,sy,sw,sh,0,0,tw,th);
+  tintCx.globalCompositeOperation="multiply"; tintCx.fillStyle=tintHex; tintCx.fillRect(0,0,tw,th);
+  tintCx.globalCompositeOperation="destination-in"; tintCx.drawImage(img,sx,sy,sw,sh,0,0,tw,th);
+  tintCx.globalCompositeOperation="source-over";
+  ctx.drawImage(tintCv,dx,dy);
+}
+function playerLayers(){
+  const L=[];
+  for(const b of lookState.bodies){
+    if(!b.folder) continue;
+    const tint=(!b.color||b.color==="#ffffff")?null:b.color;
+    L.push({folder:b.folder,tint,alpha:b.opacity??1});
+  }
+  const lk=lookState.look;
+  const folder=id=>{ const v=lk[id]; return (v&&v!=="None")?v:null; };
+  for(const id of ["chest","legs","shoes"]){
+    const f=folder(id); if(f) L.push({folder:f,tint:(lookState.colors||{})[id]||null,alpha:1});
+  }
+  const h=folder("hair"); if(h) L.push({folder:h,tint:(lookState.colors||{}).hair||null,alpha:1});
+  const hd=folder("head"); if(hd) L.push({folder:hd,tint:(lookState.colors||{}).head||null,alpha:1});
+  return L.filter(x=>x.folder);
+}
+
+/* Preview d'une action (chaîne d'anims sur le joueur) */
+let animQueue=[];
+function previewAction(animSeq){
+  const seq=animSeq&&animSeq.length?animSeq:["Attack1"];
+  let i=0;
+  function next(){
+    if(i>=seq.length){ player.anim="Idle"; player.t0=performance.now(); return; }
+    player.anim=seq[i++]; player.t0=performance.now();
+    const dur=(COLS/FPS)*1000;
+    setTimeout(next,dur);
+  }
+  next();
+}
+
+/* ────────────────────────────────────────────────────────────
+   UI — navigation sorts
+──────────────────────────────────────────────────────────── */
+function renderNav(){
+  const host=document.getElementById("spellNav");
+  host.innerHTML="";
+  const all=allSpells();
+  all.forEach(s=>{
+    const b=document.createElement("button"); b.type="button";
+    b.textContent=s.name; b.classList.toggle("on",s.id===activeId);
+    b.onclick=()=>{ activeId=s.id; renderNav(); renderEditor(); };
+    host.appendChild(b);
+  });
+  const add=document.createElement("button"); add.type="button";
+  add.textContent="+ Nouveau"; add.className="new";
+  add.onclick=createSpell;
+  host.appendChild(add);
+}
+
+function createSpell(){
+  const id="custom_"+Date.now();
+  customSpells.push({
+    id, name:"Nouveau sort", cost:2, range:1, dmg:[8,12],
+    anim:"Attack1", type:"damage", animSeq:["Attack1"], evos:[],
+    desc:"Décris ce sort ici…"
+  });
+  activeId=id; saveCustom(); renderNav(); renderEditor();
+}
+
+/* ────────────────────────────────────────────────────────────
+   UI — éditeur
+──────────────────────────────────────────────────────────── */
+function renderEditor(){
+  const host=document.getElementById("editor"); host.innerHTML="";
+  if(!activeId){ host.innerHTML='<p style="color:var(--ink2);text-align:center;padding:24px">Sélectionne un sort</p>'; return; }
+  const sp=editableSpell(activeId);
+  if(!sp) return;
+  const isCustom=!!customSpells.find(s=>s.id===activeId);
+
+  /* ── Identité ── */
+  const idCard=card("Identité & paramètres");
+  idCard.append(
+    fieldText("Nom",sp.name,"name"),
+    mkRow2(
+      fieldNum("Coût PA",sp.cost,"cost",1,8),
+      fieldNum("Portée",sp.range,"range",0,8)
+    ),
+    fieldText("Description libre",sp.desc||"","desc","Décris ce que fait le sort, l'effet visuel…",true),
+    mkRow2(
+      fieldSelect("Type",sp.type,"type",["damage","heal","shield","buff","clone","summon"]),
+      fieldText("Dégâts min",sp.dmg?String(sp.dmg[0]):"0","dmgMin")
+    ),
+    mkRow2(
+      fieldText("Dégâts max",sp.dmg?String(sp.dmg[1]):"0","dmgMax"),
+      fieldNum("AoE rayon",sp.aoe||0,"aoe",0,3)
+    )
+  );
+  host.appendChild(idCard);
+
+  /* ── Chaîne d'animations ── */
+  const animCard=card("Animations (chaîne ordonnée)");
+  const hint=document.createElement("p"); hint.className="hint";
+  hint.textContent="Tape sur une anim pour l'ajouter à la séquence. Tape sur la séquence pour retirer.";
+  animCard.appendChild(hint);
+
+  const seq=document.createElement("div"); seq.className="anim-seq"; seq.id="animSeq";
+  const animSeq=(sp.animSeq&&sp.animSeq.length)?sp.animSeq:[sp.anim||"Attack1"];
+  renderSeq(seq, animSeq);
+  animCard.appendChild(seq);
+
+  const animPicker=document.createElement("div"); animPicker.className="anim-list";
+  ATTACK_ANIMS.forEach(a=>{
+    const b=document.createElement("button"); b.type="button"; b.textContent=a;
+    b.onclick=()=>{
+      const s2=ensureEditable(activeId);
+      if(!s2.animSeq) s2.animSeq=[s2.anim||"Attack1"];
+      s2.animSeq.push(a);
+      renderSeq(seq, s2.animSeq);
+      previewAction(s2.animSeq);
+    };
+    animPicker.appendChild(b);
+  });
+  animCard.appendChild(animPicker);
+
+  const testBtn=document.createElement("button"); testBtn.type="button";
+  testBtn.textContent="▶ Prévisualiser"; testBtn.style.cssText="margin-top:8px;padding:8px 16px;border-radius:9px;background:var(--acc);color:#fff;border:none;font-weight:700;cursor:pointer";
+  testBtn.onclick=()=>{
+    const s2=editableSpell(activeId);
+    previewAction((s2&&s2.animSeq&&s2.animSeq.length)?s2.animSeq:[s2&&s2.anim||"Attack1"]);
+  };
+  animCard.appendChild(testBtn);
+  host.appendChild(animCard);
+
+  /* ── Overlays corps ── */
+  const bodyCard=card("Corps overlay (pendant l'action)");
+  const bHint=document.createElement("p"); bHint.className="hint";
+  bHint.textContent="Choisir un corps alternatif visible pendant le sort (ex. éthéré, squelette).";
+  bodyCard.appendChild(bHint);
+  const bt=document.createElement("div"); bt.className="body-tokens";
+  BODY_OVERLAYS.forEach(b=>{
+    const btn=document.createElement("button"); btn.type="button"; btn.textContent=b;
+    btn.classList.toggle("on",(sp.bodyOverlay||"Aucun")===b);
+    btn.onclick=()=>{
+      const s2=ensureEditable(activeId);
+      s2.bodyOverlay=(b==="Aucun")?null:b;
+      bt.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.textContent===b));
+    };
+    bt.appendChild(btn);
+  });
+  bodyCard.appendChild(bt);
+  host.appendChild(bodyCard);
+
+  /* ── Évolutions ── */
+  const evoCard=card("Évolutions (paliers libres)");
+  const evHint=document.createElement("p"); evHint.className="hint";
+  evHint.textContent="Ajoute autant de paliers que tu veux. Chaque palier peut changer les anims, les dégâts, l'overlay.";
+  evoCard.appendChild(evHint);
+  const evos=(sp.evos)||[];
+  evos.forEach((evo,i)=>{ evoCard.appendChild(renderTier(evo,i,activeId)); });
+  const addTier=document.createElement("button"); addTier.type="button";
+  addTier.textContent="+ Ajouter un palier d'évolution";
+  addTier.style.cssText="padding:8px 14px;border-radius:8px;border:1.5px dashed var(--acc);background:none;color:var(--acc);font-weight:700;margin-top:6px;cursor:pointer;width:100%";
+  addTier.onclick=()=>{
+    const s2=ensureEditable(activeId);
+    if(!s2.evos) s2.evos=[];
+    s2.evos.push({ name:"Palier "+(s2.evos.length+1), desc:"Décris l'amélioration…", animSeq:[], bodyOverlay:null });
+    renderEditor();
+  };
+  evoCard.appendChild(addTier);
+  host.appendChild(evoCard);
+
+  if(!isCustom){
+    const note=document.createElement("p");
+    note.style.cssText="font-size:11px;color:var(--ink2);text-align:center;padding:4px";
+    note.textContent="Ce sort est un sort de base. Il sera copié dans tes modifications.";
+    host.appendChild(note);
+  }
+}
+
+function renderSeq(container, seq){
+  container.innerHTML="";
+  seq.forEach((a,i)=>{
+    const chip=document.createElement("span"); chip.className="chip";
+    chip.innerHTML=`${a} <button type="button" data-i="${i}" aria-label="Retirer">×</button>`;
+    chip.querySelector("button").onclick=()=>{
+      const s2=ensureEditable(activeId);
+      s2.animSeq.splice(i,1);
+      renderSeq(container, s2.animSeq);
+    };
+    container.appendChild(chip);
+  });
+  if(!seq.length){
+    const ph=document.createElement("span");
+    ph.style.cssText="color:var(--ink2);font-size:11px;padding:4px";
+    ph.textContent="Ajouter des anims ci-dessous";
+    container.appendChild(ph);
+  }
+}
+
+function renderTier(evo, idx, spellId){
+  const div=document.createElement("div"); div.className="tier";
+  const head=document.createElement("div"); head.className="tier-head";
+  const lbl=document.createElement("span"); lbl.textContent="Palier "+(idx+1);
+  const del=document.createElement("button"); del.type="button"; del.textContent="Supprimer"; del.className="del";
+  del.onclick=()=>{
+    const s2=ensureEditable(spellId);
+    s2.evos.splice(idx,1);
+    renderEditor();
+  };
+  head.appendChild(lbl); head.appendChild(del); div.appendChild(head);
+
+  div.append(
+    fieldTextEvo("Nom évolution",evo.name||"","name",idx),
+    fieldTextAreaEvo("Description",evo.desc||"","desc",idx)
+  );
+
+  /* Séquence anims evo */
+  const sh=document.createElement("p"); sh.className="hint"; sh.textContent="Anims ajoutées à cette évolution :";
+  div.appendChild(sh);
+  const seq=document.createElement("div"); seq.className="anim-seq";
+  const evoSeq=evo.animSeq||[];
+  renderSeq(seq, evoSeq);
+  div.appendChild(seq);
+  const ap=document.createElement("div"); ap.className="anim-list";
+  ATTACK_ANIMS.forEach(a=>{
+    const b=document.createElement("button"); b.type="button"; b.textContent=a;
+    b.onclick=()=>{
+      const s2=ensureEditable(spellId);
+      if(!s2.evos[idx].animSeq) s2.evos[idx].animSeq=[];
+      s2.evos[idx].animSeq.push(a);
+      renderSeq(seq, s2.evos[idx].animSeq);
+    };
+    ap.appendChild(b);
+  });
+  div.appendChild(ap);
+
+  /* body overlay evo */
+  const bh=document.createElement("p"); bh.className="hint"; bh.textContent="Corps overlay pour ce palier :";
+  div.appendChild(bh);
+  const bt=document.createElement("div"); bt.className="body-tokens";
+  BODY_OVERLAYS.forEach(b=>{
+    const btn=document.createElement("button"); btn.type="button"; btn.textContent=b;
+    const cur=evo.bodyOverlay||"Aucun";
+    btn.classList.toggle("on",cur===b);
+    btn.onclick=()=>{
+      const s2=ensureEditable(spellId);
+      s2.evos[idx].bodyOverlay=(b==="Aucun")?null:b;
+      bt.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.textContent===b));
+    };
+    bt.appendChild(btn);
+  });
+  div.appendChild(bt);
+  return div;
+}
+
+/* ── Helpers UI ── */
+function card(title){
+  const d=document.createElement("div"); d.className="card";
+  const h=document.createElement("h3"); h.textContent=title; d.appendChild(h);
+  return d;
+}
+function mkRow2(...els){
+  const d=document.createElement("div"); d.className="row2";
+  els.forEach(e=>d.appendChild(e)); return d;
+}
+function fieldText(label, val, key, placeholder, textarea){
+  const lbl=document.createElement("label"); lbl.className="field";
+  lbl.innerHTML=`<span>${label}</span>`;
+  const inp=textarea?document.createElement("textarea"):document.createElement("input");
+  if(!textarea) inp.type="text"; inp.value=val||""; if(placeholder) inp.placeholder=placeholder;
+  inp.oninput=()=>{
+    const s2=ensureEditable(activeId);
+    if(key==="dmgMin"){ if(!s2.dmg) s2.dmg=[0,0]; s2.dmg[0]=parseInt(inp.value)||0; }
+    else if(key==="dmgMax"){ if(!s2.dmg) s2.dmg=[0,0]; s2.dmg[1]=parseInt(inp.value)||0; }
+    else s2[key]=inp.value;
+    if(key==="name") renderNav();
+  };
+  lbl.appendChild(inp); return lbl;
+}
+function fieldNum(label, val, key, min, max){
+  const lbl=document.createElement("label"); lbl.className="field";
+  lbl.innerHTML=`<span>${label}</span>`;
+  const inp=document.createElement("input"); inp.type="number"; inp.min=min; inp.max=max; inp.value=val||0;
+  inp.oninput=()=>{ const s2=ensureEditable(activeId); s2[key]=parseInt(inp.value)||0; };
+  lbl.appendChild(inp); return lbl;
+}
+function fieldSelect(label, val, key, opts){
+  const lbl=document.createElement("label"); lbl.className="field";
+  lbl.innerHTML=`<span>${label}</span>`;
+  const sel=document.createElement("select");
+  opts.forEach(o=>{ const op=document.createElement("option"); op.value=o; op.textContent=o; if(o===val) op.selected=true; sel.appendChild(op); });
+  sel.onchange=()=>{ const s2=ensureEditable(activeId); s2[key]=sel.value; };
+  lbl.appendChild(sel); return lbl;
+}
+function fieldTextEvo(label, val, key, evoIdx){
+  const lbl=document.createElement("label"); lbl.className="field";
+  lbl.innerHTML=`<span>${label}</span>`;
+  const inp=document.createElement("input"); inp.type="text"; inp.value=val||"";
+  inp.oninput=()=>{ const s2=ensureEditable(activeId); if(s2.evos&&s2.evos[evoIdx]) s2.evos[evoIdx][key]=inp.value; };
+  lbl.appendChild(inp); return lbl;
+}
+function fieldTextAreaEvo(label, val, key, evoIdx){
+  const lbl=document.createElement("label"); lbl.className="field";
+  lbl.innerHTML=`<span>${label}</span>`;
+  const ta=document.createElement("textarea"); ta.value=val||""; ta.placeholder="Décris l'amélioration…";
+  ta.oninput=()=>{ const s2=ensureEditable(activeId); if(s2.evos&&s2.evos[evoIdx]) s2.evos[evoIdx][key]=ta.value; };
+  lbl.appendChild(ta); return lbl;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Init
+──────────────────────────────────────────────────────────── */
+function boot(){
+  loadCustom(); loadLook();
+  if(allSpells().length) activeId=allSpells()[0].id;
+
+  /* Précharger NakedBody + Head3 pour la preview */
+  ["NakedBody","Head3"].forEach(f=>["Idle","Attack1","Attack2","Kick","Special1"].forEach(a=>{
+    loadImg(f,a).then(im=>{ if(im) im._v=im; });
+  }));
+  for(const L of playerLayers()) ["Idle","Attack1","Attack2","Kick","Special1"].forEach(a=>{
+    loadImg(L.folder,a).then(im=>{ if(im) im._v=im; });
+  });
+
+  renderNav(); renderEditor();
+  drawLoop();
+
+  document.getElementById("btnSave").onclick=()=>{
+    /* Fusionner les edits dans customSpells */
+    saveCustom();
+    /* Exposer au combat via localStorage */
+    try{ localStorage.setItem("neuro.customSpells", JSON.stringify(customSpells)); }catch(_e){}
+    document.getElementById("pvStatus").textContent="Sauvé ✓";
+    setTimeout(()=>renderNav(),100);
+  };
+
+  /* Resize canvas height to 30% of viewport */
+  function resizePv(){
+    const h=Math.max(160, Math.round(window.innerHeight*0.30));
+    canvas.height=h;
+    canvas.style.height=h+"px";
+    document.getElementById("previewWrap").style.height=h+"px";
+  }
+  resizePv(); window.addEventListener("resize",resizePv);
+}
+boot();
+})();
+</script>
+</body>
+</html>

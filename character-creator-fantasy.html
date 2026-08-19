@@ -147,10 +147,12 @@
       <div id="bodyRows"></div>
     </div>
     <div class="sec" style="margin-top:auto">
+      <button type="button" class="btn" id="btnAdvanced" style="font-size:10px;letter-spacing:.05em">⚙ Équipements avancés</button>
       <button type="button" class="btn" id="btnRandom">Aléatoire</button>
       <button type="button" class="btn" id="btnReset">Reset</button>
       <button type="button" class="btn primary" id="btnExport">Sauver</button>
       <a class="btn ok" id="btnCombat" data-fcc="combat" href="fantasy-combat.html" style="display:block;text-align:center;text-decoration:none;line-height:40px;background:#2f6f4e;color:#fff;border-color:#2f6f4e">Combat</a>
+      <a class="btn" id="btnSpellEditor" href="spell-editor.html" style="display:block;text-align:center;text-decoration:none;line-height:40px;background:#4a3870;color:#fff;border-color:#4a3870">Sorts</a>
       <div class="status" id="status">Chargement…</div>
     </div>
   </aside>
@@ -192,16 +194,32 @@
     char:{ xPct:40, yPct:44, sizePct:0.74 },
     shadow:{ xPct:40, yPct:66, opacity:0.08 },
     zonesLab:{
-      head:"Tête", chest:"Torse", backpack:"Sac", body:"Corps",
-      legs:"Jambes", shoes:"Chauss.", mount:"Monture", weapon:"Extra",
+      hair:"Coiff.", head:"Équip.", body:"Corps",
+      chest:"Torse", backpack:"Sac", legs:"Jambes",
+      shoes:"Chauss.", mount:"Monture", weapon:"Extra",
     },
     rot:{ yPct:86, gapPct:22, size:48 }
   };
 
-  /* Ordre anatomique haut → bas · Monture dédiée */
-  const ZONE_ORDER = ["head","chest","backpack","body","legs","shoes","mount","weapon"];
+  /* Mode simplifié (par défaut) : hair + head + body uniquement
+     Mode avancé : tout le reste visible */
+  const ZONE_SIMPLE   = ["hair","head","body"];
+  const ZONE_ADVANCED = ["hair","head","body","chest","legs","shoes","backpack","mount","weapon"];
+  let advancedMode = false;
+  function currentZoneOrder(){ return advancedMode ? ZONE_ADVANCED : ZONE_SIMPLE; }
+  const ZONE_ORDER_ALL = ZONE_ADVANCED; /* alias pour compatibilité interne */
   const MISC_SLOTS = ["weapon","offhand","belt","gloves","slash","effect"];
   const RIDE_ANIMS = ["RideIdle","RideRun","RideIdleAttack1","RideRunAttack1"];
+
+  /* Coiffures : dossier vide pour l'instant — tu y ajouteras tes assets */
+  const HAIR_FOLDERS = [];
+  /* Équipements tête (Head1-24 + Head25) : resteront dans le slot "head" */
+  /* Pour voir lesquels ressemblent à des coiffures, affiche la liste ci-dessous : */
+  const HEAD_CATALOG_PREVIEW = [
+    "Head1","Head2","Head3","Head4","Head5","Head6","Head7","Head8","Head9","Head10",
+    "Head12","Head13","Head14","Head15","Head16","Head17","Head18","Head19","Head20",
+    "Head21","Head22","Head23","Head24","Head25"
+  ];
   const PALETTE = [
     "#f5c6aa","#d4a574","#a67c52","#f8d9a0","#e0b878","#b8893a",
     "#f0a090","#c45c26","#7a3010","#f2b8c6","#d4789a","#8a3a58",
@@ -212,7 +230,7 @@
   const DEFAULT_COLORS = {
     body:"#d4a574", shoes:"#3a3230", legs:"#3e4f63", chest:"#5b7c99",
     belt:"#8b6914", gloves:"#6a5a4e", offhand:"#6b8f71", weapon:"#9aa8b8",
-    backpack:"#7a5c3a", head:"#e0b878", slash:"#e8590c", effect:"#5ec8ff", mount:"#8a7060",
+    backpack:"#7a5c3a", head:"#e0b878", hair:"#3a2a1a", slash:"#e8590c", effect:"#5ec8ff", mount:"#8a7060",
   };
 
   const state = {
@@ -220,7 +238,7 @@
     bodies:[{folder:"NakedBody", opacity:1, color:"#d4a574"}],
     bodyFocus:0,
     anim:"Idle", dir:0, fps:14,
-    zoneId:"head", _miscFocus:"weapon",
+    zoneId:"hair", _miscFocus:"weapon",
     lastEdited:null,
     charSizePct: 0.74,
     sizeMode: "h", /* hauteur scène */
@@ -235,7 +253,10 @@
   const tintCx = tintCv.getContext("2d");
 
   function slots(){ return (state.catalog && state.catalog.slots) || []; }
-  function slotById(id){ return slots().find(s=>s.id===id); }
+  function slotById(id){
+    if(id==="hair") return { id:"hair", lab:"Coiffure", folders:["None",...HAIR_FOLDERS], required:false };
+    return slots().find(s=>s.id===id);
+  }
   function folderFor(slotId){
     if(slotId==="body") return null;
     const v=state.look[slotId];
@@ -249,14 +270,19 @@
   function defaultColors(){ return Object.assign({}, DEFAULT_COLORS); }
   function defaultLook(cat){
     const look={};
-    for(const s of cat.slots) look[s.id]=s.required?(s.folders[0]||"NakedBody"):"None";
-    look.body="NakedBody"; look.chest="Chest1"; look.legs="Legs1";
-    look.shoes="Shoes1"; look.head="Head1"; look.weapon="Melee1"; look.offhand="Shield1";
+    if(cat){ for(const s of cat.slots) look[s.id]="None"; }
+    /* défaut simplifié : nu + tête 1 seulement */
+    look.body="NakedBody"; look.head="None"; look.hair="None";
+    look.chest="None"; look.legs="None"; look.shoes="None";
+    look.belt="None"; look.gloves="None"; look.backpack="None";
+    look.weapon="None"; look.offhand="None"; look.mount="None";
+    look.slash="None"; look.effect="None";
     return look;
   }
   function shortOpt(name){
     if(!name||name==="None") return "Aucun";
     if(name==="Head25") return "Sorcier";
+    if(/^Hair/i.test(name)) return name.replace(/^Hair_?/i,"")||name;
     return name.replace(/^(Head|Chest|Legs|Shoes|Belt|Hands|Weapon|Shield|Backpack|Melee|Bow|Staff|Mount|Effect|Slash|NakedBody)_?/i,"")||name;
   }
   function ensureExtraGear(cat){
@@ -295,7 +321,7 @@
 
   function layersForRow(row){
     const L=[];
-    L.push({folder:(state.catalog.shadowFolder||"Shadow"), tint:null, alpha:1});
+    L.push({folder:(state.catalog&&state.catalog.shadowFolder||"Shadow"), tint:null, alpha:1});
     for(const b of state.bodies){
       if(!b.folder) continue;
       const tint=(!b.color||b.color==="#ffffff"||b.color==="#FFFFFF")?null:b.color;
@@ -311,6 +337,8 @@
     else { if(weapon) mid.push({folder:weapon,tint:tintForSlot("weapon"),alpha:1}); if(shield) mid.push({folder:shield,tint:tintForSlot("offhand"),alpha:1}); }
     if(bag){ const item={folder:bag,tint:tintForSlot("backpack"),alpha:1}; if(bagFront) mid.push(item); else mid.unshift(item); }
     L.push(...mid);
+    /* hair sous les équipements de tête */
+    const hair=folderFor("hair"); if(hair) L.push({folder:hair, tint:tintForSlot("hair"), alpha:1});
     for(const id of ["head","slash","effect"]){ const f=folderFor(id); if(f) L.push({folder:f, tint:tintForSlot(id), alpha:1}); }
     const mount=folderFor("mount"); if(mount) L.unshift({folder:mount, tint:tintForSlot("mount"), alpha:1});
     return L.filter(x=>x.folder);
@@ -342,12 +370,12 @@
   }
 
   function layoutChrome(){
-    /* Pas de lignes — onglets droite gérés en flex CSS. Flèches sous le perso. */
     const host=el("callouts");
-    const need = ZONE_ORDER.join("|");
+    const order=currentZoneOrder();
+    const need = order.join("|");
     if(host.dataset.zones !== need){
       host.innerHTML="";
-      ZONE_ORDER.forEach(id=>{
+      order.forEach(id=>{
         const btn=document.createElement("button");
         btn.type="button"; btn.className="callout"; btn.dataset.zone=id;
         btn.textContent=LAY.zonesLab[id]||id;
@@ -447,6 +475,7 @@
   function optionList(){
     if(state.zoneId==="body") return ((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
     if(state.zoneId==="weapon"){ const s=slotById(state._miscFocus||"weapon"); return (s&&s.folders)||["None"]; }
+    if(state.zoneId==="hair") return ["None",...HAIR_FOLDERS];
     const s=slotById(state.zoneId); return (s&&s.folders)||["None"];
   }
   function currentOption(){
@@ -507,6 +536,9 @@
       el("optVal").textContent="L"+(state.bodyFocus+1)+": "+shortOpt(currentOption());
     } else if(state.zoneId==="mount"){
       el("optVal").textContent=isMounted() ? shortOpt(currentOption())+" · à cheval" : "À pied";
+    } else if(state.zoneId==="hair"){
+      const cur=currentOption();
+      el("optVal").textContent=(cur==="None"||!cur) ? "Aucune" : shortOpt(cur);
     } else {
       el("optVal").textContent=shortOpt(currentOption());
     }
@@ -650,13 +682,22 @@
       markEdited("body:"+(state.bodies.length-1));
       renderBodies(); syncSteppers(); renderSwatches(); state.dirty=true;
     };
+    el("btnAdvanced").onclick=()=>{
+      advancedMode=!advancedMode;
+      el("btnAdvanced").textContent=advancedMode ? "⚙ Mode simplifié" : "⚙ Équipements avancés";
+      /* Si on repasse simplifié et zone hors scope, revenir à hair */
+      if(!advancedMode && !currentZoneOrder().includes(state.zoneId)) selectZone("hair");
+      else layoutChrome();
+      state.dirty=true;
+    };
     el("btnRandom").onclick=()=>{
       const palette=PALETTE.slice(0,-2);
       for(const s of slots()){
         if(s.id==="body") continue;
-        state.look[s.id]=s.folders[Math.floor(Math.random()*s.folders.length)];
-        if(Math.random()<0.7) state.colors[s.id]=palette[Math.floor(Math.random()*palette.length)];
+        if(Math.random()<0.5) state.look[s.id]=s.folders[Math.floor(Math.random()*s.folders.length)];
       }
+      state.look.chest="None"; state.look.legs="None"; state.look.shoes="None";
+      state.look.weapon="None"; state.look.offhand="None"; state.look.hair="None";
       const bf=((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
       state.bodies=[{folder:bf[Math.floor(Math.random()*bf.length)]||"NakedBody", opacity:1, color:palette[Math.floor(Math.random()*palette.length)]}];
       state.bodyFocus=0; state.look.body=state.bodies[0].folder;
@@ -733,12 +774,13 @@
       }
     }catch(_e){}
     if(!state.look.body) state.look=defaultLook(cat);
+    if(!("hair" in state.look)) state.look.hair="None";
     if(!state.bodies.length) state.bodies=[{folder:"NakedBody",opacity:1,color:DEFAULT_COLORS.body}];
     if(!state.look.mount) state.look.mount="None";
     syncRideAnim();
     const anims=(cat.anims&&cat.anims.length)?cat.anims:["Idle","Walk","Attack1"];
     if(!anims.includes(state.anim) && !RIDE_ANIMS.includes(state.anim)) state.anim=isMounted()?"RideIdle":anims[0];
-    bind(); syncSizeUI(); selectZone("head");
+    bind(); syncSizeUI(); selectZone("hair");
     state.dirty=true;
     await loadImg(state.bodies[0].folder||"NakedBody","Idle");
     el("status").textContent="Prêt";
