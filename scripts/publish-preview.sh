@@ -114,6 +114,29 @@ Path("/tmp/fcc-combat-standalone.html").write_text(stand)
 print("standalone ready", len(stand))
 PY
 
+# Spell-editor autonome (bridge inliné) — indispensable en Litterbox
+python3 - "$OUT" <<'PY'
+from pathlib import Path
+import re, sys
+out = Path(sys.argv[1])
+spell_path = out / "spell-editor.html"
+if not spell_path.exists():
+    print("spell-editor not found; skip standalone") 
+    raise SystemExit(0)
+spell = spell_path.read_text()
+bridge = (out / "js" / "fantasy-combat-bridge.js").read_text()
+pat = re.compile(
+    r'<script[^>]*src=["\'][^"\']*fantasy-combat-bridge\.js["\'][^>]*>\s*</script>',
+    re.I,
+)
+inline = f"<script>\n{bridge}\n</script>"
+stand = pat.sub(inline, spell, count=1)
+if stand == spell:
+    stand = spell.replace("</head>", inline + "\n</head>", 1)
+Path("/tmp/fcc-spell-standalone.html").write_text(stand)
+print("spell standalone ready", len(stand))
+PY
+
 wire_fcc_nav() {
   python3 - "$1" "$2" "$3" "$4" "$5" <<'PY'
 from pathlib import Path
@@ -255,7 +278,7 @@ if [[ "$CF_OK" -ne 1 ]]; then
   cp "$OUT/creator.html" /tmp/fcc-creator-litter.html
   cp "$OUT/fantasy-dir-calibrate.html" /tmp/fcc-dirs-litter.html
   cp "$OUT/fantasy-weapon-anim.html" /tmp/fcc-weapon-anim-litter.html
-  cp "$OUT/spell-editor.html" /tmp/fcc-spell-litter.html
+  cp /tmp/fcc-spell-standalone.html /tmp/fcc-spell-litter.html
   LIT_COMBAT="$(litter_upload /tmp/fcc-combat-standalone.html || true)"
   LIT_CREATOR="$(litter_upload /tmp/fcc-creator-litter.html || true)"
   LIT_DIRS="$(litter_upload /tmp/fcc-dirs-litter.html || true)"
