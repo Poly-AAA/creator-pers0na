@@ -137,8 +137,11 @@ const ALL_ANIMS = [
   "RideIdleAttack1","RideRunAttack1","TakeDamage","Die"
 ];
 const MOVE_ANIMS_LIST = ["Idle","Walk","Run","Rolling","Slide","AttackRun","AttackRun2","TakeDamage"];
-const FX_SLASH_LIST  = ["None","Slash1","Slash2","Slash3","Slash4","Slash5","Slash6","Slash7","Slash8"];
-const FX_EFFECT_LIST = ["None","Effect1","Effect2","Effect3","Effect4","Effect5","Effect6","Effect7","Effect8"];
+// Vraies listes depuis catalog.json (slots "slash" et "effect")
+const FX_SLASH_LIST  = ["None","Slash1","Slash2"];
+const FX_EFFECT_LIST = ["None","Effect1","Effect2","Effect3","Effect4","Effect5"];
+
+const ATTACK_ANIMS = ALL_ANIMS.filter(a=>/Attack|Kick|Special|Taunt|Rolling|Slide|Ride.*Attack/i.test(a));
 
 /* Corps overlay disponibles */
 const BODY_OVERLAYS = ["Aucun","NakedBody2","NakedBody3"]; // squelette/éthéré quand assets prêts
