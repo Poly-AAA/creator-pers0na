@@ -134,7 +134,12 @@ stand = pat.sub(inline, spell, count=1)
 if stand == spell:
     stand = spell.replace("</head>", inline + "\n</head>", 1)
 Path("/tmp/fcc-spell-standalone.html").write_text(stand)
-print("spell standalone ready", len(stand))
+# Litterbox = pas de dossier assets → forcer le CDN jsDelivr
+cdn = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@main/assets/packs/fantasy-cc/"
+stand_cdn = re.sub(r'const BASE_CDN = "[^"]+";', f'const BASE_CDN = "{cdn}";', stand, count=1)
+stand_cdn = re.sub(r'const BASE_LOCAL = "[^"]+";', f'const BASE_LOCAL = "{cdn}";', stand_cdn, count=1)
+Path("/tmp/fcc-spell-standalone.html").write_text(stand_cdn)
+print("spell standalone ready", len(stand_cdn))
 PY
 
 wire_fcc_nav() {

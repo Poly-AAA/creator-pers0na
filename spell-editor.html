@@ -125,8 +125,10 @@ window.addEventListener("unhandledrejection", (e)=>{
   }
 });
 
-const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
+const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@main/assets/packs/fantasy-cc/";
 const BASE_LOCAL = "assets/packs/fantasy-cc/";
+/** Hébergement sans dossier assets (Litterbox, etc.) → CDN en priorité */
+const HOST_STANDALONE = /litter\.(catbox|box)\.moe|catbox\.moe|trycloudflare\.com|htmlpreview\.github\.io/i.test(location.hostname);
 const FW=128, FH=128, COLS=15, FPS=14;
 const KEY_SPELLS = "neuro.customSpells";
 const KEY_LOOK   = "neuro.fantasyLook";
@@ -224,12 +226,16 @@ function initEvoConfig(spell){
           if(!spell.evoConfig[k]){
             const slash = ch.fx && /^Slash/i.test(ch.fx) ? ch.fx : "None";
             const effect = ch.fx && /^Effect/i.test(ch.fx) ? ch.fx : "None";
-            spell.evoConfig[k] = { enabled:false, anim:ch.anim||"Attack1", slash, effect };
+            spell.evoConfig[k] = { enabled:false, anim:ch.anim||"Attack1", slash, effect, fps:14, delay:80 };
           }
         });
       });
     }
   }
+  Object.values(spell.evoConfig).forEach(e=>{
+    if(e && e.fps==null) e.fps=14;
+    if(e && e.delay==null) e.delay=80;
+  });
   return spell.evoConfig;
 }
 function evoEntry(spell, tier, choice){
@@ -250,7 +256,8 @@ function previewEnabledEvos(spellId){
           const e = evoEntry(s, tier, ch);
           if(e && e.enabled){
             steps.push(normalizeStep({
-              anim:e.anim||ch.anim, delay:80, slash:e.slash, effect:e.effect, hitTarget:tier===2
+              anim:e.anim||ch.anim, delay:e.delay!=null?e.delay:80, fps:e.fps!=null?e.fps:14,
+              slash:e.slash, effect:e.effect, hitTarget:tier===2
             }));
           }
         });
@@ -279,16 +286,34 @@ const imgCache = new Map();
 
 function loadImg(folder, anim){
   const k=folder+"/"+anim;
-  if(imgCache.has(k)) return imgCache.get(k);
+  const cached=imgCache.get(k);
+  if(cached){
+    if(cached._v) return cached;
+    if(cached._pending) return cached;
+  }
+  const rel=`spritesheets/${folder}/${anim}.png`;
+  const urls=[];
+  if(folder==="Head25") urls.push(`hat-refs/Head25/${anim}.png`);
+  const bases=HOST_STANDALONE ? [BASE_CDN, BASE_LOCAL] : [BASE_LOCAL, BASE_CDN];
+  bases.forEach(b=>{ const base=b.endsWith("/")?b:b+"/"; urls.push(base+rel); });
   const p=new Promise(res=>{
-    const rel=`spritesheets/${folder}/${anim}.png`;
-    const urls=[];
-    if(folder==="Head25") urls.push(`hat-refs/Head25/${anim}.png`);
-    urls.push(BASE_LOCAL+rel, BASE_CDN+rel);
-    const im=new Image(); im.crossOrigin="anonymous"; let i=0;
-    const nx=()=>{ if(i>=urls.length){res(null);return;}
-      im.onload=()=>{ p._v=im; res(im); };
-      im.onerror=()=>{i++;nx();}; im.src=urls[i++]; }; nx();
+    p._pending=true;
+    let i=0, pass=0;
+    function tryNext(){
+      if(i>=urls.length){
+        if(pass===0){ pass=1; i=0; tryNext(); return; }
+        p._pending=false; p._failed=true;
+        imgCache.delete(k);
+        res(null);
+        return;
+      }
+      const im=new Image();
+      if(pass===0) im.crossOrigin="anonymous";
+      im.onload=()=>{ p._v=im; p._pending=false; p._failed=false; res(im); };
+      im.onerror=()=>{ i++; tryNext(); };
+      im.src=urls[i++];
+    }
+    tryNext();
   });
   imgCache.set(k,p); return p;
 }
@@ -759,13 +784,27 @@ function renderEvoChoice(spellId, tier, choice, spell){
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
     if(e) e.effect=v;
   }));
+  div.appendChild(mkNumRow("Vitesse (FPS)", entry.fps!=null?entry.fps:14, 1, 30, 1, v=>{
+    const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+    if(e) e.fps=v;
+  }));
+  div.appendChild(mkNumRow("Délai avant (ms)", entry.delay!=null?entry.delay:80, 0, 3000, 50, v=>{
+    const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+    if(e) e.delay=v;
+  }));
 
   const testB=document.createElement("button"); testB.type="button"; testB.className="test-btn";
   testB.textContent="▶ Tester";
   testB.onclick=()=>{
+    const s2=ensureEditable(spellId);
+    const e=evoEntry(s2, tier, choice);
     previewAction([normalizeStep({
-      anim: entry.anim||choice.anim||"Attack1",
-      delay:0, slash:entry.slash, effect:entry.effect, hitTarget:true
+      anim: (e&&e.anim)||choice.anim||"Attack1",
+      delay:(e&&e.delay)||0,
+      fps:(e&&e.fps)||14,
+      slash:(e&&e.slash)||"None",
+      effect:(e&&e.effect)||"None",
+      hitTarget:true
     })]);
   };
   div.appendChild(testB);
@@ -858,10 +897,25 @@ function boot(){
   /* Priorité haute */
   const prioJobs = [];
   allFolders.forEach(f=> WARM_ANIMS_PRIO.forEach(a=>{ prioJobs.push(loadImg(f,a)); }));
-  Promise.allSettled(prioJobs).then(()=>{
-    document.getElementById("pvStatus").textContent = "Prêt ✓";
-    /* Reste en arrière-plan */
+  /* Ennemi preview */
+  ["NakedBody","Head3"].forEach(f=> WARM_ANIMS_PRIO.forEach(a=> prioJobs.push(loadImg(f,a)) ));
+  Promise.allSettled(prioJobs).then(results=>{
+    const ok=results.filter(r=>r.status==="fulfilled"&&r.value).length;
+    const st=document.getElementById("pvStatus");
+    if(ok>=6) st.textContent="Prêt ✓";
+    else if(ok>0) st.textContent="Sprites "+ok+"/"+prioJobs.length+"…";
+    else{
+      st.textContent="Chargement sprites CDN…";
+      setTimeout(()=>{
+        allFolders.concat(["NakedBody","Head3"]).forEach(f=>{
+          WARM_ANIMS_PRIO.forEach(a=> loadImg(f,a));
+        });
+      }, 1500);
+    }
     allFolders.forEach(f=> WARM_ANIMS_REST.forEach(a=>loadImg(f,a)));
+    ["Slash1","Slash2","Effect1","Effect2","Effect3"].forEach(fx=>{
+      loadImg(fx,"Attack1"); loadImg(fx,"Special1");
+    });
   });
 
   document.getElementById("btnSave").onclick=()=>{
