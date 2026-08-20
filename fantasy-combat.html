@@ -402,10 +402,8 @@
   };
   let spellEvo = {};
   let customSpells = [];
-  try{
-    const raw = localStorage.getItem(KEY_EVO);
-    if(raw) spellEvo = JSON.parse(raw) || {};
-  }catch(_e){}
+  /* Évos combat (victoire) : pas de reprise d’une vieille session */
+  try{ localStorage.removeItem(KEY_EVO); }catch(_e){}
   try{
     const rawCs = localStorage.getItem(KEY_CUSTOM_SPELLS);
     if(rawCs) customSpells = JSON.parse(rawCs) || [];
@@ -511,6 +509,11 @@
   ensureSpellEffects();
   /* Pas de migration qui réécrit les saves joueur. */
   function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
+  /** Remet les bonus d’évo combat à zéro (cases éditeur inchangées). */
+  function resetCombatEvos(){
+    spellEvo = {};
+    try{ localStorage.setItem(KEY_EVO, "{}"); }catch(_e){}
+  }
   function evoState(id){
     if(!spellEvo[id]) spellEvo[id] = { tiersTaken:0, evo:{} };
     return spellEvo[id];
@@ -555,16 +558,9 @@
     const st = evoState(sp.id);
     return Object.assign({}, st.evo || {});
   }
-  /** Nombre de frappes / roulades : victoire hits, ou case « Double Impact » éditeur. */
+  /** Nombre de frappes : uniquement si l’évo victoire a donné des hits (pas les cases éditeur). */
   function spellHitCount(sp){
-    let hits = 1 + ((evoBonusesFor(sp).hits)|0);
-    if(hits <= 1){
-      reloadCustomSpells();
-      const c = customSpellById(sp && sp.id);
-      const di = c && c.evoConfig && (c.evoConfig["2:Double Impact"] || c.evoConfig["2:Déchirure"] || c.evoConfig["2:Salve"]);
-      if(di && di.enabled) hits = 2;
-    }
-    return Math.max(1, hits|0);
+    return Math.max(1, 1 + ((evoBonusesFor(sp).hits)|0));
   }
   /** Réaction ennemi (TakeDamage / Taunt / None) + FPS — sort, évo, ou coup 1/2 Double Impact. */
   function resolveHitReact(sp, hitIndex, hits){
@@ -1198,6 +1194,8 @@
     G.castFx = null;
     G.combo = Math.max(0, Math.floor(G.combo * 0.35));
     if(!opts.keepFightN) G.fightN = (G.fightN|0) + 1;
+    /* Évos combat remises à zéro sauf juste après un choix victoire (keepEvo) */
+    if(!opts.keepEvo) resetCombatEvos();
 
     /* joueur : soin partiel + reset PA/PM, reste en vie */
     const p = G.player;
@@ -1235,20 +1233,13 @@
 
   function customSpellStatus(){
     reloadCustomSpells();
-    const parts=[];
-    ["punch","monofil","dash"].forEach(id=>{
-      const c=customSpellById(id);
-      if(!c||!c.evoConfig) return;
-      const n=Object.values(c.evoConfig).filter(e=>e&&e.enabled).length;
-      if(n) parts.push((c.name||id)+":"+n+"évo");
-    });
-    if(parts.length) return " · "+parts.join(" · ");
     if(customSpells.length) return " · "+customSpells.length+" sort(s) éditeur";
     return " · ⚠ config éditeur absente — Éditeur → Combat ▶";
   }
   function forceRestartCombat(){
     G.awaitingNext=false; G.busy=false; G.pendingEvo=null;
     try{ closeEvo(); }catch(_e){}
+    resetCombatEvos();
     G.turn="player";
     startNextFight({ force:true, keepLook:true, fullHeal:true });
   }
@@ -2467,7 +2458,7 @@
         closeEvo();
         setStatus((sp?sp.name:pickId)+" → "+ch.name+" · "+ch.anim+(ch.fx?" +"+ch.fx:""));
         renderSpells();
-        if(wasVictory) setTimeout(()=> startNextFight({ force:true }), 450);
+        if(wasVictory) setTimeout(()=> startNextFight({ force:true, keepEvo:true }), 450);
       };
       host.appendChild(b);
     });
