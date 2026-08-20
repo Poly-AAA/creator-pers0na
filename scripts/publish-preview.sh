@@ -194,7 +194,7 @@ if not nav:
 p = Path(path)
 t = p.read_text()
 block = f'<script>window.FCC_NAV={json.dumps(nav)};</script>\n'
-if "window.FCC_NAV" in t:
+if re.search(r'<script>window\.FCC_NAV=', t):
     t = re.sub(r'<script>window\.FCC_NAV=.*?</script>\s*', block, t, count=1)
 else:
     t = t.replace("</head>", block + "</head>", 1)
