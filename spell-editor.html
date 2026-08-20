@@ -164,6 +164,8 @@ const ALL_ANIMS = [
   "RideIdleAttack1","RideRunAttack1","TakeDamage","Die"
 ];
 const MOVE_ANIMS_LIST = ["Idle","Walk","Run","Rolling","Slide","AttackRun","AttackRun2","TakeDamage"];
+/** Réaction de l’ennemi quand le sort touche (TakeDamage / Taunt / aucune). */
+const HIT_REACT_ANIMS = ["TakeDamage", "Taunt", "None"];
 // Vraies listes depuis catalog.json (slots "slash" et "effect")
 const FX_SLASH_LIST  = ["None","Slash1","Slash2"];
 const FX_EFFECT_LIST = ["None","Effect1","Effect2","Effect3","Effect4","Effect5"];
@@ -601,8 +603,11 @@ function initEvoConfig(spell){
     }
   }
   Object.values(spell.evoConfig).forEach(e=>{
-    if(e && e.fps==null) e.fps=14;
-    if(e && e.delay==null) e.delay=0;
+    if(!e) return;
+    if(e.fps==null) e.fps=14;
+    if(e.delay==null) e.delay=0;
+    if(!e.hitAnim) e.hitAnim="TakeDamage";
+    if(e.hitAnimFps==null) e.hitAnimFps=14;
   });
   return spell.evoConfig;
 }
@@ -851,8 +856,8 @@ function playerLayers(){
 
 /* Normalise un step : string legacy → objet riche */
 function normalizeStep(s){
-  if(typeof s==="string") return {anim:s, delay:0, move:"Idle", fps:14, slash:"None", effect:"None", hitTarget:false};
-  return Object.assign({anim:"Attack1",delay:0,move:"Idle",fps:14,slash:"None",effect:"None",hitTarget:false}, s);
+  if(typeof s==="string") return {anim:s, delay:0, move:"Idle", fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14};
+  return Object.assign({anim:"Attack1",delay:0,move:"Idle",fps:14,slash:"None",effect:"None",hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14}, s);
 }
 
 /* FX catalogue : on lit les dossiers depuis catalog si dispo */
@@ -881,7 +886,12 @@ function previewAction(steps){
     player.fxEffect=(step.effect&&step.effect!=="None")?step.effect:null;
     /* Hit sur la cible */
     if(step.hitTarget){
-      enemy.anim="TakeDamage"; enemy.t0=performance.now();
+      const ha = step.hitAnim && step.hitAnim!=="None" ? step.hitAnim : (step.hitAnim==="None" ? null : "TakeDamage");
+      if(ha){
+        enemy.anim=ha; enemy.t0=performance.now();
+        let hfps=Number(step.hitAnimFps); if(!isFinite(hfps)||hfps<1) hfps=14;
+        enemy.stepFps=hfps;
+      }
     }
     let delay=Math.max(0, step.delay|0);
     let dur;
@@ -1017,7 +1027,11 @@ function renderEditor(){
       /* Vitesse (FPS) */
       box.appendChild(mkNumRow("Vitesse (FPS)", st.fps||14, 1, 30, 1, v=>{ st.fps=v; scheduleAutoSave(); }));
       /* Hit sur la cible */
-      box.appendChild(mkCheckRow("Frappe la cible (TakeDamage)", !!st.hitTarget, v=>{ st.hitTarget=v; }));
+      box.appendChild(mkCheckRow("Frappe la cible", !!st.hitTarget, v=>{ st.hitTarget=v; scheduleAutoSave(); renderSteps(); }));
+      if(st.hitTarget){
+        box.appendChild(mkSelectRow("Réaction ennemi", HIT_REACT_ANIMS, st.hitAnim||"TakeDamage", v=>{ st.hitAnim=v; scheduleAutoSave(); }));
+        box.appendChild(mkNumRow("FPS réaction", st.hitAnimFps!=null?st.hitAnimFps:14, 1, 30, 1, v=>{ st.hitAnimFps=v; scheduleAutoSave(); }));
+      }
 
       /* Preview ce step seul */
       const pvB=document.createElement("button"); pvB.type="button"; pvB.textContent="▶ Tester ce step";
@@ -1200,6 +1214,40 @@ function renderEvoChoice(spellId, tier, choice, spell){
     if(e){ e.delay=v; scheduleAutoSave(); }
   }));
 
+  /* Réaction ennemi à l’impact (TakeDamage / Taunt / aucune) */
+  div.appendChild(mkSelectRow("Réaction ennemi", HIT_REACT_ANIMS, entry.hitAnim||"TakeDamage", v=>{
+    const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+    if(e){ e.hitAnim=v; scheduleAutoSave(); }
+  }));
+  div.appendChild(mkNumRow("FPS réaction", entry.hitAnimFps!=null?entry.hitAnimFps:14, 1, 30, 1, v=>{
+    const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+    if(e){ e.hitAnimFps=v; scheduleAutoSave(); }
+  }));
+
+  /* Double Impact : réaction + FPS séparés pour les 2 coups */
+  if(/Double Impact|Déchirure|Salve/i.test(choice.name||"")){
+    const sep=document.createElement("div");
+    sep.style.cssText="margin:6px 0 4px;padding-top:6px;border-top:1px dashed var(--line2);font-size:10px;font-weight:700;color:var(--acc)";
+    sep.textContent="Double Impact — par coup";
+    div.appendChild(sep);
+    div.appendChild(mkSelectRow("Coup 1 · réaction", HIT_REACT_ANIMS, entry.hitAnim1||entry.hitAnim||"TakeDamage", v=>{
+      const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+      if(e){ e.hitAnim1=v; scheduleAutoSave(); }
+    }));
+    div.appendChild(mkNumRow("Coup 1 · FPS", entry.hitAnimFps1!=null?entry.hitAnimFps1:(entry.hitAnimFps!=null?entry.hitAnimFps:14), 1, 30, 1, v=>{
+      const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+      if(e){ e.hitAnimFps1=v; scheduleAutoSave(); }
+    }));
+    div.appendChild(mkSelectRow("Coup 2 · réaction", HIT_REACT_ANIMS, entry.hitAnim2||entry.hitAnim||"TakeDamage", v=>{
+      const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+      if(e){ e.hitAnim2=v; scheduleAutoSave(); }
+    }));
+    div.appendChild(mkNumRow("Coup 2 · FPS", entry.hitAnimFps2!=null?entry.hitAnimFps2:(entry.hitAnimFps!=null?entry.hitAnimFps:14), 1, 30, 1, v=>{
+      const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+      if(e){ e.hitAnimFps2=v; scheduleAutoSave(); }
+    }));
+  }
+
   const testB=document.createElement("button"); testB.type="button"; testB.className="test-btn";
   testB.textContent="▶ Tester";
   testB.onclick=()=>{
@@ -1211,7 +1259,9 @@ function renderEvoChoice(spellId, tier, choice, spell){
       fps:(e&&e.fps)||14,
       slash:(e&&e.slash)||"None",
       effect:(e&&e.effect)||"None",
-      hitTarget:true
+      hitTarget:true,
+      hitAnim:(e&&e.hitAnim)||"TakeDamage",
+      hitAnimFps:(e&&e.hitAnimFps)!=null?e.hitAnimFps:14
     })]);
   };
   div.appendChild(testB);
