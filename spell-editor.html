@@ -244,6 +244,20 @@ function ensurePunchAnims(){
   });
   if(changed) saveCustom();
 }
+/** Infère effect:push depuis la description (ex. Coup de pied). */
+function ensureSpellEffects(){
+  let changed=false;
+  (customSpells||[]).forEach(s=>{
+    if(!s || !s.id) return;
+    if((!s.effect || s.effect==="none") && /repouss/i.test(s.desc||"")){
+      s.effect="push";
+      if(s.push==null && s.pushDist==null) s.push=1;
+      changed=true;
+    }
+    if(s.effect==="push" && s.push==null && s.pushDist==null){ s.push=1; changed=true; }
+  });
+  if(changed) saveCustom();
+}
 function loadCustom(){
   try{ const r=localStorage.getItem(KEY_SPELLS); if(r) customSpells=JSON.parse(r)||[]; }catch(_e){}
   try{
@@ -254,6 +268,7 @@ function loadCustom(){
   importSpellsFromHash();
   pruneLegacySpells();
   ensurePunchAnims();
+  ensureSpellEffects();
 }
 function saveCustom(){
   try{
@@ -271,6 +286,8 @@ function importSpellsPack(b64){
     if(!Array.isArray(arr)) return false;
     customSpells=arr;
     pruneLegacySpells();
+    ensurePunchAnims();
+    ensureSpellEffects();
     saveCustom();
     return true;
   }catch(_e){ return false; }
@@ -291,6 +308,8 @@ function importSpellsJson(raw){
     if(!Array.isArray(arr)) return false;
     customSpells=arr;
     pruneLegacySpells();
+    ensurePunchAnims();
+    ensureSpellEffects();
     saveCustom();
     return true;
   }catch(_e){ return false; }
@@ -767,6 +786,10 @@ function renderEditor(){
     mkRow2(
       fieldText("Dégâts max",sp.dmg?String(sp.dmg[1]):"0","dmgMax"),
       fieldNum("AoE rayon",sp.aoe||0,"aoe",0,3)
+    ),
+    mkRow2(
+      fieldSelect("Effet", sp.effect||"none", "effect", ["none","push","drainPA"]),
+      fieldNum("Push (cases)", sp.push!=null?sp.push:1, "push", 0, 4)
     )
   );
   host.appendChild(idCard);
@@ -1051,7 +1074,7 @@ function fieldNum(label, val, key, min, max){
   const lbl=document.createElement("label"); lbl.className="field";
   lbl.innerHTML=`<span>${label}</span>`;
   const inp=document.createElement("input"); inp.type="number"; inp.min=min; inp.max=max; inp.value=val||0;
-  inp.oninput=()=>{ const s2=ensureEditable(activeId); s2[key]=parseInt(inp.value)||0; };
+  inp.oninput=()=>{ const s2=ensureEditable(activeId); s2[key]=parseInt(inp.value)||0; scheduleAutoSave(); };
   lbl.appendChild(inp); return lbl;
 }
 function fieldSelect(label, val, key, opts){
@@ -1059,7 +1082,11 @@ function fieldSelect(label, val, key, opts){
   lbl.innerHTML=`<span>${label}</span>`;
   const sel=document.createElement("select");
   opts.forEach(o=>{ const op=document.createElement("option"); op.value=o; op.textContent=o; if(o===val) op.selected=true; sel.appendChild(op); });
-  sel.onchange=()=>{ const s2=ensureEditable(activeId); s2[key]=sel.value; };
+  sel.onchange=()=>{
+    const s2=ensureEditable(activeId);
+    s2[key]=sel.value==="none"?"":sel.value;
+    scheduleAutoSave();
+  };
   lbl.appendChild(sel); return lbl;
 }
 function fieldTextEvo(label, val, key, evoIdx){
