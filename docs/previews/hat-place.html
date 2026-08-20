@@ -37,7 +37,7 @@
 </head>
 <body>
 <h1>Cale chapeau · 8 vues</h1>
-<p class="sub">Tu règles <b>une</b> taille + position. Les <b>8 directions</b> utilisent exactement les mêmes valeurs — le chapeau reste collé à la tête partout.</p>
+<p class="sub">Tes <b>8 vues de base</b> sont déjà là. Ici tu règles <b>une</b> taille/position — appliquée à <b>toutes les directions</b> et à <b>toutes les anims</b> (Walk, Attack, Die…), frame par frame sur la tête.</p>
 
 <div class="card">
   <div class="stage"><canvas id="big" width="512" height="512"></canvas></div>
@@ -47,6 +47,18 @@
     <label><input type="checkbox" id="showHead" checked> Tête (ancre)</label>
     <label><input type="checkbox" id="showHat" checked> Chapeau</label>
   </div>
+  <label style="margin-top:8px"><span>Anim</span>
+    <select id="anim" style="flex:1;padding:6px;border-radius:8px;border:1px solid var(--line)">
+      <option value="Idle">Idle</option>
+      <option value="Walk">Walk</option>
+      <option value="Run">Run</option>
+      <option value="Attack1">Attack1</option>
+      <option value="Attack2">Attack2</option>
+      <option value="Die">Die</option>
+      <option value="TakeDamage">TakeDamage</option>
+    </select>
+  </label>
+  <label><span>Frame</span><input id="frame" type="range" min="0" max="14" step="1" value="0"><b id="frameV">0</b></label>
 </div>
 
 <div class="card">
@@ -81,7 +93,7 @@
     <button type="button" class="btn ok" id="btnPng">Télécharger planche Idle</button>
     <a class="btn" href="character-creator-fantasy.html" data-fcc="creator" id="btnCreator">Créateur</a>
   </div>
-  <p class="hint">Quand c’est bon : <b>Copier JSON</b> et envoie-le-moi — je rebuild Head25 pour Idle/Walk/Attack (le chapeau suit le joueur).</p>
+  <p class="hint">Tes 8 vues PixelLab restent. Le rebuild place le chapeau sur <b>chaque frame</b> de Walk / Attack / Die… (ancre = tête Head3 de cette frame).</p>
 </div>
 
 <script>
@@ -98,12 +110,14 @@
     W:"hat-refs/pixellab-source/west.png",
     SW:"hat-refs/pixellab-source/south-west.png"
   };
-  const P={ targetW:14, dx:0, dy:-8, sit:0.42, dir:"S" };
+  const P={ targetW:14, dx:0, dy:-8, sit:0.42, dir:"S", anim:"Idle", frame:0 };
   const hats={}, scaled={};
-  let body=null, head3=null, anchors=null, thumbs=[];
+  const sheetCache={ body:{}, head:{} };
+  let thumbs=[];
   const el=id=>document.getElementById(id);
   const big=el("big"), bctx=big.getContext("2d");
   bctx.imageSmoothingEnabled=false;
+  const ASSET="assets/packs/fantasy-cc/spritesheets/";
 
   function loadIm(src){
     return new Promise((res,rej)=>{
@@ -112,6 +126,21 @@
       i.onerror=()=>rej(src);
       i.src=src;
     });
+  }
+  async function loadSheet(kind, anim){
+    const cache = sheetCache[kind];
+    if(cache[anim]) return cache[anim];
+    const folder = kind==="body" ? "NakedBody" : "Head3";
+    const urls = [
+      ASSET+folder+"/"+anim+".png",
+      ASSET+folder+"/Idle.png",
+      kind==="body" ? "hat-refs/NakedBody_Idle_full.png" : "hat-refs/Head3_Idle_full.png"
+    ];
+    let lastErr=null;
+    for(const u of urls){
+      try{ cache[anim]=await loadIm(u); return cache[anim]; }catch(e){ lastErr=e; }
+    }
+    throw lastErr||anim;
   }
   function bbox(im, sx,sy,sw,sh){
     const c=document.createElement("canvas"); c.width=sw; c.height=sh;
@@ -136,10 +165,12 @@
     x.drawImage(src,0,0,tw,th);
     return c;
   }
-  /** Même formule pour les 8 vues — dx/dy/sit/taille uniques */
-  function hatPos(row){
+  /** Même dx/dy/sit/taille — ancre = bbox tête de CETTE frame */
+  function hatPos(row, headIm, frame){
     const lab=ROW[row], hat=scaled[lab];
-    const a=anchors[row] || {x0:60,y0:48,x1:70,y1:58};
+    const col = frame|0;
+    const a = headIm ? (bbox(headIm, col*FW, row*FH, FW, FH) || {x0:60,y0:48,x1:70,y1:58})
+                     : {x0:60,y0:48,x1:70,y1:58};
     const hcx=(a.x0+a.x1)/2;
     const x=Math.round(hcx - hat.width/2 + (P.dx|0));
     const y=Math.round(a.y1 - hat.height*(P.sit||0.42) + (P.dy|0));
@@ -148,14 +179,15 @@
   function rebuildScaled(){
     for(const lab of ROW) scaled[lab]=nnScale(hats[lab], P.targetW|0);
   }
-  function drawCell(ctx, row, zoom, w, h){
+  function drawCell(ctx, row, zoom, w, h, bodyIm, headIm, frame){
     ctx.imageSmoothingEnabled=false;
     ctx.clearRect(0,0,w,h);
     ctx.fillStyle="#e8e8e2"; ctx.fillRect(0,0,w,h);
-    if(el("showBody").checked && body) ctx.drawImage(body, 0,row*FH,FW,FH, 0,0, FW*zoom, FH*zoom);
-    if(el("showHead").checked && head3) ctx.drawImage(head3, 0,row*FH,FW,FH, 0,0, FW*zoom, FH*zoom);
+    const col=frame|0;
+    if(el("showBody").checked && bodyIm) ctx.drawImage(bodyIm, col*FW,row*FH,FW,FH, 0,0, FW*zoom, FH*zoom);
+    if(el("showHead").checked && headIm) ctx.drawImage(headIm, col*FW,row*FH,FW,FH, 0,0, FW*zoom, FH*zoom);
     if(el("showHat").checked){
-      const {x,y,hat}=hatPos(row);
+      const {x,y,hat}=hatPos(row, headIm, col);
       ctx.drawImage(hat, x*zoom, y*zoom, hat.width*zoom, hat.height*zoom);
     }
   }
@@ -166,22 +198,29 @@
       dx:P.dx|0,
       dy:P.dy|0,
       sit: +(P.sit||0.42),
-      note:"Même calage pour E/SE/S/SW/W/NW/N/NE"
+      note:"8 dirs + toutes anims (Idle/Walk/Attack/Die) — même calage, ancre frame tête"
     };
   }
-  function render(){
+  async function render(){
+    const anim = el("anim").value || "Idle";
+    const frame = +el("frame").value || 0;
+    P.anim=anim; P.frame=frame;
+    let bodyIm=null, headIm=null;
+    try{ bodyIm=await loadSheet("body", anim); }catch(_e){}
+    try{ headIm=await loadSheet("head", anim); }catch(_e){}
     const row=ROW.indexOf(P.dir); const r=row<0?2:row;
-    drawCell(bctx, r, ZOOM, big.width, big.height);
+    drawCell(bctx, r, ZOOM, big.width, big.height, bodyIm, headIm, frame);
     thumbs.forEach((t,i)=>{
       const z=t.canvas.width/FW;
-      drawCell(t.ctx, i, z, t.canvas.width, t.canvas.height);
+      drawCell(t.ctx, i, z, t.canvas.width, t.canvas.height, bodyIm, headIm, frame);
       t.btn.classList.toggle("on", ROW[i]===P.dir);
     });
     el("sc").value=P.targetW; el("scV").textContent=P.targetW;
     el("dx").value=P.dx; el("dxV").textContent=P.dx;
     el("dy").value=P.dy; el("dyV").textContent=P.dy;
     el("sit").value=Math.round((P.sit||0.42)*100); el("sitV").textContent=(P.sit||0.42).toFixed(2);
-    el("lab").textContent="Vue "+P.dir+" · 8 vues = mêmes X/Y/Taille/Assise";
+    el("frameV").textContent=frame;
+    el("lab").textContent="Vue "+P.dir+" · "+anim+" frame "+frame+" · chapeau suit la tête";
     el("vals").textContent=JSON.stringify(exportJson(), null, 2);
     try{ localStorage.setItem(KEY, JSON.stringify(P)); }catch(_e){}
   }
@@ -204,8 +243,6 @@
   function onDown(ev){
     ev.preventDefault();
     const p=cellFromEvt(ev);
-    const row=Math.max(0, ROW.indexOf(P.dir));
-    const hp=hatPos(row);
     drag={ sx:P.dx, sy:P.dy, px:p.x, py:p.y };
   }
   function onMove(ev){
@@ -224,7 +261,9 @@
   window.addEventListener("touchmove", onMove, {passive:false});
   window.addEventListener("touchend", onUp);
 
-  ["showBody","showHead","showHat"].forEach(id=> el(id).onchange=render);
+  ["showBody","showHead","showHat"].forEach(id=> el(id).onchange=()=>render());
+  el("anim").onchange=()=>render();
+  el("frame").oninput=()=>render();
   el("sc").oninput=applySliders; el("dx").oninput=applySliders;
   el("dy").oninput=applySliders; el("sit").oninput=applySliders;
   document.querySelectorAll("[data-n]").forEach(btn=>{
@@ -246,14 +285,19 @@
       setTimeout(()=>el("btnCopy").textContent="Copier JSON",1200);
     });
   };
-  el("btnPng").onclick=()=>{
+  el("btnPng").onclick=async()=>{
+    const anim=el("anim").value||"Idle";
+    let headIm=null;
+    try{ headIm=await loadSheet("head", anim); }catch(_e){}
     const sheet=document.createElement("canvas"); sheet.width=FW*15; sheet.height=FH*8;
     const s=sheet.getContext("2d"); s.imageSmoothingEnabled=false;
     for(let row=0;row<8;row++){
-      const {x,y,hat}=hatPos(row);
-      for(let col=0;col<15;col++) s.drawImage(hat, col*FW+x, row*FH+y);
+      for(let col=0;col<15;col++){
+        const {x,y,hat}=hatPos(row, headIm, col);
+        s.drawImage(hat, col*FW+x, row*FH+y);
+      }
     }
-    const a=document.createElement("a"); a.download="Head25-Idle.png"; a.href=sheet.toDataURL("image/png"); a.click();
+    const a=document.createElement("a"); a.download="Head25-"+anim+".png"; a.href=sheet.toDataURL("image/png"); a.click();
   };
 
   async function boot(){
@@ -271,11 +315,10 @@
       host.appendChild(btn);
       thumbs.push({btn, canvas:cv, ctx:cv.getContext("2d")});
     });
-    body=await loadIm("hat-refs/NakedBody_Idle_full.png");
-    head3=await loadIm("hat-refs/Head3_Idle_full.png");
-    anchors=ROW.map((_,row)=>bbox(head3,0,row*FH,FW,FH));
+    if(P.anim) el("anim").value=P.anim;
     await Promise.all(ROW.map(async lab=>{ hats[lab]=cropAlpha(await loadIm(SRC[lab])); }));
-    rebuildScaled(); render();
+    rebuildScaled();
+    await render();
   }
   boot().catch(e=>{ el("lab").textContent="Chargement échoué — "+e; });
 })();
