@@ -109,6 +109,10 @@ inline = f"<script>\n{bridge}\n</script>"
 stand = pat.sub(inline, combat, count=1)
 if stand == combat:
     stand = combat.replace("</head>", inline + "\n</head>", 1)
+# Litterbox / hosts sans dossier assets → forcer le CDN (évite 403/404 relatifs)
+cdn = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@main/assets/packs/fantasy-cc/"
+stand = re.sub(r'const BASE_CDN = "[^"]+";', f'const BASE_CDN = "{cdn}";', stand, count=1)
+stand = re.sub(r'const BASE_LOCAL = "[^"]+";', f'const BASE_LOCAL = "{cdn}";', stand, count=1)
 Path("/tmp/fcc-combat-standalone.html").write_text(stand)
 (out / "fantasy-combat.html").write_text(stand)
 print("standalone ready", len(stand))

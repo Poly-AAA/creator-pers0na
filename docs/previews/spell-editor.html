@@ -1150,7 +1150,7 @@ function mkHitDelayRow(val, onChange){
   const numHost=document.createElement("div");
   const paintNum=()=>{
     numHost.innerHTML="";
-    const cur = (!atEnd && val != null && val !== "" && val !== "end") ? (Number(val)|0) : 0;
+    const cur = (val != null && val !== "" && val !== "end" && val !== false) ? (Number(val)|0) : 0;
     numHost.appendChild(mkNumRow("Délai impact (ms)", cur, 0, 2000, 10, v=>{
       onChange(v); val=v;
     }));
