@@ -661,14 +661,39 @@
   }
 
   /**
-   * Barre de sorts — temporaire : uniquement Coup brut (punch).
-   * Les autres slots restent verrouillés le temps de refaire les sorts.
+   * Barre de sorts — Coup brut + sorts custom de l’éditeur (slots libres).
    */
+  function readCustomSpells() {
+    const out = [];
+    const tryParse = (raw) => {
+      try {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) out.push(...arr);
+      } catch (_e) {}
+    };
+    try {
+      if (typeof localStorage !== "undefined" && localStorage.getItem("neuro.customSpells")) {
+        tryParse(localStorage.getItem("neuro.customSpells"));
+      }
+    } catch (_e) {}
+    if (!out.length) {
+      try {
+        if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("neuro.customSpells")) {
+          tryParse(sessionStorage.getItem("neuro.customSpells"));
+        }
+      } catch (_e) {}
+    }
+    return out;
+  }
+
   function buildSpellBar(look) {
     const L = look || currentLook();
     const weapon = L.weapon && L.weapon !== "None" ? L.weapon : "None";
     const hasWeapon = weapon !== "None";
-    return [
+    const customs = readCustomSpells().filter(function (s) {
+      return s && s.id && s.id !== "punch";
+    });
+    const slots = [
       {
         slot: "weapon",
         label: "Coup brut",
@@ -677,12 +702,32 @@
         source: weapon,
         locked: false,
       },
-      { slot: "kick", label: "—", spellId: null, anim: null, source: null, locked: true },
-      { slot: "offhand", label: "—", spellId: null, anim: null, source: null, locked: true },
-      { slot: "hero", label: "—", spellId: null, anim: null, source: null, locked: true },
-      { slot: "bonusA", label: "—", spellId: null, anim: null, source: null, locked: true },
-      { slot: "bonusB", label: "—", spellId: null, anim: null, source: null, locked: true },
     ];
+    const names = ["kick", "offhand", "hero", "bonusA", "bonusB"];
+    for (let i = 0; i < names.length; i++) {
+      const s = customs[i];
+      if (s) {
+        const step0 = s.steps && s.steps[0];
+        slots.push({
+          slot: names[i],
+          label: String(s.name || "Sort").trim().slice(0, 12) || "Sort",
+          spellId: s.id,
+          anim: (step0 && step0.anim) || s.anim || "Kick",
+          source: "custom",
+          locked: false,
+        });
+      } else {
+        slots.push({
+          slot: names[i],
+          label: "—",
+          spellId: null,
+          anim: null,
+          source: null,
+          locked: true,
+        });
+      }
+    }
+    return slots;
   }
 
   function isSelfSpellId(spellId) {

@@ -381,6 +381,22 @@
     const rawCs = localStorage.getItem(KEY_CUSTOM_SPELLS);
     if(rawCs) customSpells = JSON.parse(rawCs) || [];
   }catch(_e){}
+  function ensureSpellEffects(){
+    let changed=false;
+    (customSpells||[]).forEach(s=>{
+      if(!s || !s.id) return;
+      if((!s.effect || s.effect==="none") && /repouss/i.test(s.desc||"")){
+        s.effect="push";
+        if(s.push==null && s.pushDist==null) s.push=1;
+        changed=true;
+      }
+      if(s.effect==="push" && s.push==null && s.pushDist==null){ s.push=1; changed=true; }
+    });
+    if(changed){
+      try{ localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+      try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+    }
+  }
   function ensurePunchCustom(){
     const preset = JSON.parse(JSON.stringify(DEFAULT_COUP_BRUT));
     let punch = (customSpells||[]).find(s=>s && s.id==="punch");
@@ -421,6 +437,7 @@
   }
   importCustomSpellsFromHash();
   ensurePunchCustom();
+  ensureSpellEffects();
   function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
   function evoState(id){
     if(!spellEvo[id]) spellEvo[id] = { tiersTaken:0, evo:{} };
@@ -442,6 +459,7 @@
       }catch(_e){}
     }
     ensurePunchCustom();
+    ensureSpellEffects();
   }
   function normalizeCastStep(step){
     if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None" };
@@ -1503,12 +1521,47 @@
     G.enemy.flash = performance.now()+180;
     faceToward(G.enemy, G.player.c, G.player.r);
     playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
+    let pushed = 0;
+    if(sp.effect==="push" && G.enemy.alive){
+      const cells = sp.push != null ? (sp.push|0) : (sp.pushDist != null ? (sp.pushDist|0) : 1);
+      pushed = pushEntityAway(G.enemy, G.player, Math.max(1, cells), "enemy");
+    }
     G.combo = Math.min(100, G.combo + 22);
-    setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" → "+total);
+    setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" → "+total+(pushed?" · poussé "+pushed:""));
     if(G.player.invis>0) G.player.invis = 0;
     if(G.enemy.pv<=0){ G.enemy.alive=false; setStatus("Victoire"); onCombatEnd("win"); }
     G.armed=null; G.armedSlot=null;
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+  }
+
+  /** Repousse `ent` loin de `from` sur N cases (si libre). */
+  function pushEntityAway(ent, from, cells, skipKey){
+    let dc = Math.sign(ent.c - from.c);
+    let dr = Math.sign(ent.r - from.r);
+    if(dc===0 && dr===0){
+      /* même case : pousse selon la direction regardée */
+      const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
+      const d = dirs[(from.dir|0) % 4] || [0,1];
+      dc = d[0]; dr = d[1];
+    }
+    let moved = 0;
+    const n = Math.max(0, cells|0);
+    for(let i=0;i<n;i++){
+      const nc = ent.c + dc, nr = ent.r + dr;
+      if(inBounds(nc,nr) && !occupied(nc,nr, skipKey)){
+        ent.c = nc; ent.r = nr; moved++;
+        continue;
+      }
+      /* si diag bloquée, tente un axe */
+      if(dc && dr){
+        const a = {c:ent.c+dc, r:ent.r};
+        const b = {c:ent.c, r:ent.r+dr};
+        if(inBounds(a.c,a.r) && !occupied(a.c,a.r, skipKey)){ ent.c=a.c; ent.r=a.r; moved++; continue; }
+        if(inBounds(b.c,b.r) && !occupied(b.c,b.r, skipKey)){ ent.c=b.c; ent.r=b.r; moved++; continue; }
+      }
+      break;
+    }
+    return moved;
   }
 
   function tryCastAt(c, r){
