@@ -227,24 +227,24 @@ const SAVED_COUP_DE_PIED = {
 const SAVED_ROULADE = {
   id:"roulade",
   name:"Roulade",
-  cost:4,
+  cost:1,
   range:2,
   dmg:[0,0],
-  anim:"Attack1",
+  anim:"Rolling",
   type:"buff",
   aoe:0,
   animSeq:[],
   effect:"roulade",
   push:0,
   desc:"Roulade : hors corps à corps → se rapproche ; au corps à corps → recule",
-  steps:[{ anim:"Attack1", delay:0, move:"Idle", fps:14, slash:"None", effect:"None", hitTarget:false }],
+  steps:[{ anim:"Rolling", delay:0, move:"Idle", fps:16, slash:"None", effect:"None", hitTarget:false }],
   evoConfig:{
-    "1:Brise-Os":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
-    "1:Boxeur":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
-    "1:Rapide":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
-    "2:Uppercut":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
-    "2:Percutant":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
-    "2:Double Impact":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
+    "1:Brise-Os":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+    "1:Boxeur":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+    "1:Rapide":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+    "2:Uppercut":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+    "2:Percutant":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+    "2:Double Impact":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
   },
 };
 const BASE_SPELLS = [
@@ -371,14 +371,20 @@ function ensureRoulade(){
     saveCustom();
     return;
   }
-  let changed = false;
+    let changed = false;
   if(roll.effect!=="roulade"){ roll.effect="roulade"; changed=true; }
   if((roll.range|0) < 2){ roll.range=2; changed=true; }
   if(roll.type!=="buff" && !(roll.dmg && (roll.dmg[1]|0)>0)){ roll.type="buff"; changed=true; }
   if(!Array.isArray(roll.steps) || !roll.steps.length){
     roll.steps = preset.steps;
-    roll.anim = roll.anim || "Attack1";
+    roll.anim = roll.anim || "Rolling";
     changed = true;
+  } else {
+    /* Ne jamais écraser l’anim/FPS joueur — juste normaliser le type numérique */
+    roll.steps.forEach(st=>{
+      if(!st) return;
+      if(st.fps!=null){ const n=Number(st.fps); if(isFinite(n)) st.fps=n; }
+    });
   }
   if(!roll.evoConfig || !Object.keys(roll.evoConfig).length){
     roll.evoConfig = preset.evoConfig;
@@ -989,9 +995,9 @@ function renderEditor(){
       const fxSel=mkSelectRow("FX Effect", fxEffectList(), st.effect||"None", v=>{ st.effect=v; });
       box.appendChild(fxSel);
       /* Délai avant (ms) */
-      box.appendChild(mkNumRow("Délai avant (ms)", st.delay||0, 0, 3000, 50, v=>{ st.delay=v; }));
+      box.appendChild(mkNumRow("Délai avant (ms)", st.delay||0, 0, 3000, 50, v=>{ st.delay=v; scheduleAutoSave(); }));
       /* Vitesse (FPS) */
-      box.appendChild(mkNumRow("Vitesse (FPS)", st.fps||14, 1, 30, 1, v=>{ st.fps=v; }));
+      box.appendChild(mkNumRow("Vitesse (FPS)", st.fps||14, 1, 30, 1, v=>{ st.fps=v; scheduleAutoSave(); }));
       /* Hit sur la cible */
       box.appendChild(mkCheckRow("Frappe la cible (TakeDamage)", !!st.hitTarget, v=>{ st.hitTarget=v; }));
 
