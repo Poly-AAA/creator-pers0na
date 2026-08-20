@@ -535,6 +535,10 @@
   }
   function normalizeCastStep(step){
     if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null };
+    let hd = step.hitDelay;
+    if(hd === "end" || hd === -1) hd = "end";
+    else if(hd == null || hd === "" || hd === false) hd = null;
+    else hd = Math.max(0, Number(hd)|0);
     return {
       anim: step.anim || "Attack1",
       delay: step.delay != null ? step.delay : 0,
@@ -544,8 +548,8 @@
       hitTarget: !!step.hitTarget,
       hitAnim: step.hitAnim || "TakeDamage",
       hitAnimFps: step.hitAnimFps != null ? step.hitAnimFps : 14,
-      /* null = TakeDamage à la fin de ton anim ; nombre = ms après le début de ton anim */
-      hitDelay: step.hitDelay == null || step.hitDelay === "" ? null : Math.max(0, Number(step.hitDelay)|0),
+      /* null = pendant l’anim (avant la fin) ; "end" = fin d’anim ; nombre = ms */
+      hitDelay: hd,
     };
   }
   /** Bonus : cases cochées éditeur + évos victoire (cumul sur la partie). */
@@ -667,14 +671,16 @@
 
     return pick(baseAnim, baseFps);
   }
-  /** Délai (ms) entre le début de TON anim d’attaque et TakeDamage. null = fin de l’anim. */
+  /** Délai (ms) entre le début de TON anim d’attaque et TakeDamage.
+   *  null = défaut pendant l’anim ; "end" = fin d’anim ; nombre = ms exact. */
   function resolveHitDelay(sp, hitIndex, hits){
     reloadCustomSpells();
     const c = customSpellById(sp && sp.id);
     const di = c && c.evoConfig
       ? (c.evoConfig["2:Double Impact"] || c.evoConfig["2:Déchirure"] || c.evoConfig["2:Salve"])
       : null;
-    const numOrNull = (v)=>{
+    const norm = (v)=>{
+      if(v === "end" || v === -1) return "end";
       if(v == null || v === "" || v === false) return null;
       const n = Number(v);
       if(!isFinite(n) || n < 0) return null;
@@ -682,27 +688,40 @@
     };
     /* Step de base d’abord */
     let baseDelay = null;
+    let sawHitStep = false;
     const steps = rawEditorSteps(sp);
     for(let i = steps.length - 1; i >= 0; i--){
       const s = steps[i];
       if(s && (s.hitTarget || s.hitDelay != null)){
-        const v = numOrNull(s.hitDelay);
-        if(v != null){ baseDelay = v; break; }
-        if(s.hitTarget) break;
+        const v = norm(s.hitDelay);
+        if(s.hitDelay != null && s.hitDelay !== ""){ baseDelay = v; sawHitStep = true; break; }
+        if(s.hitTarget){ sawHitStep = true; break; }
       }
     }
     if(di && hits > 1){
       const n = (hitIndex|0) + 1;
-      const per = numOrNull(di["hitDelay"+n]);
-      if(per != null) return per;
+      const per = norm(di["hitDelay"+n]);
+      if(di["hitDelay"+n] != null && di["hitDelay"+n] !== "") return per;
     }
-    if(baseDelay != null) return baseDelay;
+    if(sawHitStep && baseDelay != null) return baseDelay;
+    if(sawHitStep) return null; /* step sans délai → défaut pendant l’anim */
     const vis = activeEvoVisual(sp);
-    if(vis && vis.fromVictory){
-      const v = numOrNull(vis.hitDelay);
-      if(v != null) return v;
+    if(vis && vis.fromVictory && vis.hitDelay != null && vis.hitDelay !== ""){
+      return norm(vis.hitDelay);
     }
-    return null; /* fin d’anim */
+    return null;
+  }
+  function hitDelayMsFromStart(hd, dur){
+    if(typeof FantasyBridge!=="undefined" && FantasyBridge.hitDelayMsFromStart)
+      return FantasyBridge.hitDelayMsFromStart(hd, dur);
+    dur = Math.max(0, Number(dur)||0);
+    if(hd === "end" || hd === -1) return dur;
+    if(hd == null || hd === "" || hd === false)
+      return Math.max(0, Math.min(Math.max(0, dur-40), Math.round(dur*0.4)));
+    const n = Number(hd);
+    if(!isFinite(n) || n < 0)
+      return Math.max(0, Math.min(Math.max(0, dur-40), Math.round(dur*0.4)));
+    return Math.min(dur, n|0);
   }
   function playEnemyHitReact(sp, hitIndex, hits){
     if(!G.enemy || !G.enemy.alive) return { anim:"None", fps:14 };
@@ -918,10 +937,11 @@
           hitIndex = Math.floor((i - 1) / stepsPerHit);
         }
       }
-      /* TakeDamage : hitDelay ms après le début de ton anim, ou fin d’anim si non réglé */
+      /* TakeDamage : pendant l’attaque par défaut (avant la fin), ou délai / fin si réglé */
       if(hitNow){
         const hd = resolveHitDelay(sp, hitIndex, Math.max(1, totalHits));
-        const fromStepStart = delay + (hd != null ? hd : dur);
+        const hitMs = hitDelayMsFromStart(hd, dur);
+        const fromStepStart = delay + hitMs;
         setTimeout(()=>{
           try{ onHit(hitIndex); }catch(_e){}
         }, fromStepStart);

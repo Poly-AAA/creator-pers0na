@@ -816,7 +816,8 @@ function playerLayers(){
 function normalizeStep(s){
   if(typeof s==="string") return {anim:s, delay:0, move:"Idle", fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null};
   const o = Object.assign({anim:"Attack1",delay:0,move:"Idle",fps:14,slash:"None",effect:"None",hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null}, s);
-  if(o.hitDelay === "" || o.hitDelay === false) o.hitDelay = null;
+  if(o.hitDelay === "end" || o.hitDelay === -1) o.hitDelay = "end";
+  else if(o.hitDelay === "" || o.hitDelay === false) o.hitDelay = null;
   return o;
 }
 
@@ -857,14 +858,22 @@ function previewAction(steps){
     }
     if(step.hitTarget){
       const ha = step.hitAnim && step.hitAnim!=="None" ? step.hitAnim : (step.hitAnim==="None" ? null : "TakeDamage");
-      const hd = step.hitDelay == null || step.hitDelay === "" ? dur : Math.max(0, Number(step.hitDelay)|0);
+      let hitMs;
+      if(typeof FantasyBridge!=="undefined" && FantasyBridge.hitDelayMsFromStart){
+        hitMs = FantasyBridge.hitDelayMsFromStart(step.hitDelay, dur);
+      } else {
+        const hd = step.hitDelay;
+        if(hd === "end" || hd === -1) hitMs = dur;
+        else if(hd == null || hd === "") hitMs = Math.max(0, Math.min(Math.max(0, dur-40), Math.round(dur*0.4)));
+        else hitMs = Math.min(dur, Math.max(0, Number(hd)|0));
+      }
       setTimeout(()=>{
         if(ha){
           enemy.anim=ha; enemy.t0=performance.now();
           let hfps=Number(step.hitAnimFps); if(!isFinite(hfps)||hfps<1) hfps=14;
           enemy.stepFps=hfps;
         }
-      }, delay + hd);
+      }, delay + hitMs);
     }
     _previewTimer=setTimeout(next, delay+dur);
   }
@@ -1048,7 +1057,7 @@ function renderEditor(){
   /* ── Évolutions catalogue jeu ── */
   const evoCard=card("Évolutions du jeu");
   const evHint=document.createElement("p"); evHint.className="hint";
-  evHint.textContent="Pause avant ton anim ≠ délai impact. Délai impact = ms entre le début de TON attaque et le TakeDamage ennemi (ou « fin d’anim »). Puis Combat ▶.";
+  evHint.textContent="Par défaut TakeDamage démarre pendant ton attaque (avant la fin). Case « fin d’anim » seulement si tu veux attendre. Puis Combat ▶.";
   evoCard.appendChild(evHint);
 
   const sEvo = ensureEditable(activeId);
@@ -1115,33 +1124,42 @@ function mkCheckRow(label, val, onChange){
   cb.onchange=()=>onChange(cb.checked);
   d.appendChild(cb); d.appendChild(document.createTextNode(label)); return d;
 }
-/** Délai impact : null = fin de ton anim ; sinon ms après le début de ton attaque. */
+/** Délai impact : null = pendant l’anim (avant la fin) ; "end" = fin ; nombre = ms. */
 function mkHitDelayRow(val, onChange){
   const wrap=document.createElement("div");
   wrap.style.cssText="margin-bottom:6px;padding:6px 8px;border:1px dashed var(--line2);border-radius:8px;background:var(--bg)";
   const tip=document.createElement("div");
   tip.style.cssText="font-size:10px;color:var(--ink2);margin-bottom:4px;line-height:1.35";
-  tip.textContent="Délai impact = début de TON attaque → TakeDamage. Décoche « fin d’anim » et mets un petit ms pour démarrer TakeDamage AVANT la fin.";
+  tip.textContent="Par défaut TakeDamage commence pendant ton attaque (avant la fin). Coche seulement pour attendre la fin, ou mets un délai ms précis.";
   wrap.appendChild(tip);
-  const atEnd = val==null || val==="" || val===false;
+  const atEnd = val === "end" || val === -1;
   const row=document.createElement("label");
   row.style.cssText="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink2);margin-bottom:4px;cursor:pointer";
   const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=atEnd;
   row.appendChild(cb); row.appendChild(document.createTextNode("TakeDamage à la fin de mon anim"));
   wrap.appendChild(row);
   const numHost=document.createElement("div");
-  const syncNum=()=>{
+  const paintNum=()=>{
     numHost.innerHTML="";
-    if(cb.checked){ onChange(null); return; }
-    const cur = (val!=null && val!=="" && !cb.checked) ? (Number(val)|0) : 200;
-    numHost.appendChild(mkNumRow("Délai impact (ms)", cur, 0, 2000, 50, v=>{ onChange(v); val=v; }));
-    onChange(cur);
+    const auto=document.createElement("div");
+    auto.style.cssText="font-size:10px;color:var(--acc);margin:2px 0 6px";
+    const hasCustom = val != null && val !== "" && val !== "end" && val !== -1;
+    auto.textContent = hasCustom
+      ? "Délai personnalisé (ms depuis le début de ton attaque)."
+      : "Auto : impact vers ~40 % de ton anim (avant la fin).";
+    numHost.appendChild(auto);
+    const cur = hasCustom ? (Number(val)|0) : 200;
+    numHost.appendChild(mkNumRow("Délai impact (ms)", cur, 0, 2000, 50, v=>{
+      onChange(v); val=v;
+      auto.textContent="Délai personnalisé (ms depuis le début de ton attaque).";
+    }));
   };
-  cb.onchange=()=>{ if(cb.checked){ onChange(null); numHost.innerHTML=""; } else syncNum(); };
+  cb.onchange=()=>{
+    if(cb.checked){ onChange("end"); val="end"; numHost.innerHTML=""; }
+    else { onChange(null); val=null; paintNum(); }
+  };
   wrap.appendChild(numHost);
-  if(!atEnd){
-    numHost.appendChild(mkNumRow("Délai impact (ms)", Number(val)|0, 0, 2000, 50, v=>{ onChange(v); val=v; }));
-  }
+  if(!atEnd) paintNum();
   return wrap;
 }
 
