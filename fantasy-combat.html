@@ -369,7 +369,7 @@
       "1:Rapide":{ enabled:false, anim:"Kick", slash:"None", effect:"None", fps:14, delay:0 },
       "2:Uppercut":{ enabled:true, anim:"Special1", slash:"None", effect:"Effect1", fps:17, delay:0 },
       "2:Percutant":{ enabled:true, anim:"Attack6", slash:"None", effect:"None", fps:14, delay:0 },
-      "2:Double Impact":{ enabled:true, anim:"Attack5", slash:"Slash2", effect:"None", fps:17, delay:0 },
+      "2:Double Impact":{ enabled:false, anim:"Attack5", slash:"Slash2", effect:"None", fps:17, delay:0 },
     },
   };
   const DEFAULT_COUP_DE_PIED = {
@@ -383,7 +383,7 @@
       "1:Rapide":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
       "2:Uppercut":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
       "2:Percutant":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
-      "2:Double Impact":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+      "2:Double Impact":{ enabled:false, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
     },
   };
   const DEFAULT_ROULADE = {
@@ -397,7 +397,7 @@
       "1:Rapide":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
       "2:Uppercut":{ enabled:false, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
       "2:Percutant":{ enabled:false, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
-      "2:Double Impact":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+      "2:Double Impact":{ enabled:false, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
     },
   };
   let spellEvo = {};
@@ -521,6 +521,27 @@
   ensureCoupDePiedCustom();
   ensureRouladeCustom();
   ensureSpellEffects();
+  /* Double Impact = évolution victoire, jamais équipé de base (corrige les saves seedées). */
+  (function stripDefaultDoubleImpact(){
+    const MIG = "neuro.diNotBase.v1";
+    try{ if(localStorage.getItem(MIG)==="1") return; }catch(_e){}
+    let changed=false;
+    const keys=["2:Double Impact","2:Déchirure","2:Salve"];
+    (customSpells||[]).forEach(s=>{
+      if(!s || !s.evoConfig) return;
+      keys.forEach(k=>{
+        if(s.evoConfig[k] && s.evoConfig[k].enabled){
+          s.evoConfig[k].enabled=false;
+          changed=true;
+        }
+      });
+    });
+    if(changed){
+      try{ localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+      try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+    }
+    try{ localStorage.setItem(MIG, "1"); }catch(_e){}
+  })();
   function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
   function evoState(id){
     if(!spellEvo[id]) spellEvo[id] = { tiersTaken:0, evo:{} };

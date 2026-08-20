@@ -196,7 +196,7 @@ const SAVED_COUP_BRUT = {
     "1:Rapide":{ enabled:false, anim:"Kick", slash:"None", effect:"None", fps:14, delay:0 },
     "2:Uppercut":{ enabled:true, anim:"Special1", slash:"None", effect:"Effect1", fps:17, delay:0 },
     "2:Percutant":{ enabled:true, anim:"Attack6", slash:"None", effect:"None", fps:14, delay:0 },
-    "2:Double Impact":{ enabled:true, anim:"Attack5", slash:"Slash2", effect:"None", fps:17, delay:0 },
+    "2:Double Impact":{ enabled:false, anim:"Attack5", slash:"Slash2", effect:"None", fps:17, delay:0 },
   },
 };
 /** Coup de pied : mêmes évos que Coup brut, anim Kick partout (pas d’autres sheets). */
@@ -220,7 +220,7 @@ const SAVED_COUP_DE_PIED = {
     "1:Rapide":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
     "2:Uppercut":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
     "2:Percutant":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
-    "2:Double Impact":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+    "2:Double Impact":{ enabled:false, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
   },
 };
 /** Roulade : mobilité (approche / recul). Évos = mêmes paliers que Coup brut (portée / −PA…). */
@@ -244,7 +244,7 @@ const SAVED_ROULADE = {
     "1:Rapide":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
     "2:Uppercut":{ enabled:false, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
     "2:Percutant":{ enabled:false, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
-    "2:Double Impact":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+    "2:Double Impact":{ enabled:false, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
   },
 };
 const BASE_SPELLS = [
@@ -409,6 +409,24 @@ function loadCustom(){
   ensureCoupDePied();
   ensureRoulade();
   ensureSpellEffects();
+  /* Double Impact = évolution, pas équipé de base (décocher les saves seedées). */
+  (function stripDefaultDoubleImpact(){
+    const MIG = "neuro.diNotBase.v1";
+    try{ if(localStorage.getItem(MIG)==="1") return; }catch(_e){}
+    let changed=false;
+    const keys=["2:Double Impact","2:Déchirure","2:Salve"];
+    (customSpells||[]).forEach(s=>{
+      if(!s || !s.evoConfig) return;
+      keys.forEach(k=>{
+        if(s.evoConfig[k] && s.evoConfig[k].enabled){
+          s.evoConfig[k].enabled=false;
+          changed=true;
+        }
+      });
+    });
+    if(changed) saveCustom();
+    try{ localStorage.setItem(MIG, "1"); }catch(_e){}
+  })();
 }
 function saveCustom(){
   try{

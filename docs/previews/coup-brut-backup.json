@@ -4,7 +4,10 @@
     "name": "Coup brut",
     "cost": 2,
     "range": 1,
-    "dmg": [8, 12],
+    "dmg": [
+      8,
+      12
+    ],
     "anim": "Attack2",
     "type": "damage",
     "aoe": 0,
@@ -54,7 +57,7 @@
         "delay": 0
       },
       "2:Double Impact": {
-        "enabled": true,
+        "enabled": false,
         "anim": "Attack5",
         "slash": "Slash2",
         "effect": "None",
