@@ -344,7 +344,14 @@
     { id:"double", name:"Sosie", cost:3, range:0, aoe:0, anim:"Special1", type:"clone", dmg:[8,12] },
     { id:"invisibilite", name:"Voile d’ombre", cost:3, range:0, aoe:0, anim:"Special1", type:"buff", invisTurns:2 },
   ];
-  function spellById(id){ return SPELLS.find(s=>s.id===id) || null; }
+  function spellById(id){
+    const base = SPELLS.find(s=>s.id===id) || null;
+    const custom = customSpellById(id);
+    if(!base && !custom) return null;
+    if(!custom) return base;
+    if(!base) return custom;
+    return Object.assign({}, base, custom);
+  }
 
   const KEY_EVO = "neuro.fantasySpellEvo";
   const KEY_CUSTOM_SPELLS = "neuro.customSpells";
@@ -381,8 +388,28 @@
   function reloadCustomSpells(){
     try{
       const raw = localStorage.getItem(KEY_CUSTOM_SPELLS);
-      if(raw) customSpells = JSON.parse(raw) || [];
+      if(raw){
+        const parsed = JSON.parse(raw) || [];
+        if(Array.isArray(parsed) && parsed.length) customSpells = parsed;
+      }
     }catch(_e){}
+    if(!customSpells.length){
+      try{
+        const raw = sessionStorage.getItem(KEY_CUSTOM_SPELLS);
+        if(raw) customSpells = JSON.parse(raw) || [];
+      }catch(_e){}
+    }
+  }
+  function normalizeCastStep(step){
+    if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None" };
+    return {
+      anim: step.anim || "Attack1",
+      delay: step.delay != null ? step.delay : 0,
+      fps: step.fps != null ? step.fps : 14,
+      slash: step.slash || "None",
+      effect: step.effect || "None",
+      hitTarget: !!step.hitTarget,
+    };
   }
   /** Bonus évo victoire + évolutions cochées dans l’éditeur. */
   function evoBonusesFor(sp){
@@ -396,16 +423,23 @@
     }
     return out;
   }
-  function editorEvoSteps(sp){
+  function editorCastSteps(sp){
     reloadCustomSpells();
     const custom = customSpellById(sp.id);
-    if(!custom || !custom.evoConfig) return [];
-    if(typeof FantasyBridge!=="undefined" && FantasyBridge.buildEvoAnimSteps)
-      return FantasyBridge.buildEvoAnimSteps(sp.id, custom.evoConfig) || [];
+    if(!custom) return [];
+    if(custom.evoConfig && typeof FantasyBridge!=="undefined" && FantasyBridge.buildEvoAnimSteps){
+      const evoSteps = FantasyBridge.buildEvoAnimSteps(sp.id, custom.evoConfig) || [];
+      if(evoSteps.length) return evoSteps;
+    }
+    if(Array.isArray(custom.steps) && custom.steps.length)
+      return custom.steps.map(normalizeCastStep);
     return [];
   }
+  function editorEvoSteps(sp){
+    return editorCastSteps(sp);
+  }
   function playCastAnimChain(sp, onDone){
-    const steps = editorEvoSteps(sp);
+    const steps = editorCastSteps(sp);
     if(!steps.length){
       const st = evoState(sp.id);
       playAnim(G.player, (st.evo && st.evo.anim) || animForArmed(sp));
@@ -851,7 +885,9 @@
       const n=Object.values(c.evoConfig).filter(e=>e&&e.enabled).length;
       if(n) parts.push((c.name||id)+":"+n+"évo");
     });
-    return parts.length ? " · "+parts.join(" · ") : "";
+    if(parts.length) return " · "+parts.join(" · ");
+    if(customSpells.length) return " · "+customSpells.length+" sort(s) éditeur";
+    return " · ⚠ config éditeur absente — Éditeur → Combat ▶";
   }
   function forceRestartCombat(){
     G.awaitingNext=false; G.busy=false; G.pendingEvo=null;
@@ -2003,6 +2039,7 @@
 
   async function boot(){
     importCustomSpellsFromHash();
+    window.addEventListener("hashchange", ()=>{ importCustomSpellsFromHash(); renderSpells(); });
     setStatus("Chargement…");
     G.awaitingNext = false;
     G.pendingEvo = null;
