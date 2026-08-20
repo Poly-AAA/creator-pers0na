@@ -1036,7 +1036,7 @@
       if(/^Ride/i.test(a)) tries.push(a, "RideIdle", "RideRun", "RideIdleAttack1", "RideRunAttack1");
       else if(/^Idle/i.test(a)) tries.push("RideIdle", "RideRun", a);
       else if(/Walk|Run|Strafe|Crouch/i.test(a)) tries.push("RideRun", "RideIdle", a);
-      else if(/^(TakeDamage|Die)$/i.test(a)) tries.push(a, "RideIdle");
+      else if(/^(TakeDamage|Die|Taunt)$/i.test(a)) tries.push(a, "RideIdle");
       else if(isAtk) tries.push(a, "RideIdleAttack1", "RideRunAttack1", "RideIdle", "RideRun");
       else tries.push(a, "RideIdle", "RideRun");
     } else if(isAtk){
