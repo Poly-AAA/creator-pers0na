@@ -608,6 +608,7 @@ function initEvoConfig(spell){
     if(e.delay==null) e.delay=0;
     if(!e.hitAnim) e.hitAnim="TakeDamage";
     if(e.hitAnimFps==null) e.hitAnimFps=14;
+    if(e.hitDelay === "") e.hitDelay = null;
   });
   return spell.evoConfig;
 }
@@ -856,8 +857,10 @@ function playerLayers(){
 
 /* Normalise un step : string legacy → objet riche */
 function normalizeStep(s){
-  if(typeof s==="string") return {anim:s, delay:0, move:"Idle", fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14};
-  return Object.assign({anim:"Attack1",delay:0,move:"Idle",fps:14,slash:"None",effect:"None",hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14}, s);
+  if(typeof s==="string") return {anim:s, delay:0, move:"Idle", fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null};
+  const o = Object.assign({anim:"Attack1",delay:0,move:"Idle",fps:14,slash:"None",effect:"None",hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null}, s);
+  if(o.hitDelay === "" || o.hitDelay === false) o.hitDelay = null;
+  return o;
 }
 
 /* FX catalogue : on lit les dossiers depuis catalog si dispo */
@@ -885,14 +888,6 @@ function previewAction(steps){
     player.fxSlash=(step.slash&&step.slash!=="None")?step.slash:null;
     player.fxEffect=(step.effect&&step.effect!=="None")?step.effect:null;
     /* Hit sur la cible */
-    if(step.hitTarget){
-      const ha = step.hitAnim && step.hitAnim!=="None" ? step.hitAnim : (step.hitAnim==="None" ? null : "TakeDamage");
-      if(ha){
-        enemy.anim=ha; enemy.t0=performance.now();
-        let hfps=Number(step.hitAnimFps); if(!isFinite(hfps)||hfps<1) hfps=14;
-        enemy.stepFps=hfps;
-      }
-    }
     let delay=Math.max(0, step.delay|0);
     let dur;
     if(typeof FantasyBridge!=="undefined" && FantasyBridge.animStepTiming){
@@ -902,6 +897,17 @@ function previewAction(steps){
       let fps=(step.fps!=null?step.fps:14); if(fps<1) fps=14;
       player.stepFps=fps;
       dur=Math.max(120, Math.round((COLS/fps)*1000));
+    }
+    if(step.hitTarget){
+      const ha = step.hitAnim && step.hitAnim!=="None" ? step.hitAnim : (step.hitAnim==="None" ? null : "TakeDamage");
+      const hd = step.hitDelay == null || step.hitDelay === "" ? dur : Math.max(0, Number(step.hitDelay)|0);
+      setTimeout(()=>{
+        if(ha){
+          enemy.anim=ha; enemy.t0=performance.now();
+          let hfps=Number(step.hitAnimFps); if(!isFinite(hfps)||hfps<1) hfps=14;
+          enemy.stepFps=hfps;
+        }
+      }, delay + hd);
     }
     _previewTimer=setTimeout(next, delay+dur);
   }
@@ -1022,15 +1028,16 @@ function renderEditor(){
       /* FX Effect */
       const fxSel=mkSelectRow("FX Effect", fxEffectList(), st.effect||"None", v=>{ st.effect=v; });
       box.appendChild(fxSel);
-      /* Délai avant (ms) */
-      box.appendChild(mkNumRow("Délai avant (ms)", st.delay||0, 0, 3000, 50, v=>{ st.delay=v; scheduleAutoSave(); }));
+      /* Pause avant TON anim (pas le TakeDamage ennemi) */
+      box.appendChild(mkNumRow("Pause avant ton anim (ms)", st.delay||0, 0, 3000, 50, v=>{ st.delay=v; scheduleAutoSave(); }));
       /* Vitesse (FPS) */
-      box.appendChild(mkNumRow("Vitesse (FPS)", st.fps||14, 1, 30, 1, v=>{ st.fps=v; scheduleAutoSave(); }));
+      box.appendChild(mkNumRow("Vitesse ton anim (FPS)", st.fps||14, 1, 30, 1, v=>{ st.fps=v; scheduleAutoSave(); }));
       /* Hit sur la cible */
       box.appendChild(mkCheckRow("Frappe la cible", !!st.hitTarget, v=>{ st.hitTarget=v; scheduleAutoSave(); renderSteps(); }));
       if(st.hitTarget){
         box.appendChild(mkSelectRow("Réaction ennemi", HIT_REACT_ANIMS, st.hitAnim||"TakeDamage", v=>{ st.hitAnim=v; scheduleAutoSave(); }));
         box.appendChild(mkNumRow("FPS réaction", st.hitAnimFps!=null?st.hitAnimFps:14, 1, 30, 1, v=>{ st.hitAnimFps=v; scheduleAutoSave(); }));
+        box.appendChild(mkHitDelayRow(st.hitDelay, v=>{ st.hitDelay=v; scheduleAutoSave(); }));
       }
 
       /* Preview ce step seul */
@@ -1084,7 +1091,7 @@ function renderEditor(){
   /* ── Évolutions catalogue jeu ── */
   const evoCard=card("Évolutions du jeu");
   const evHint=document.createElement("p"); evHint.className="hint";
-  evHint.textContent="Cases cochées = anim/FX (pas les stats). Réaction ennemi : TakeDamage / Taunt / None + FPS — sur le step « Frappe la cible » ou sur chaque évo. Double Impact : coup 1 et coup 2. Puis Combat ▶.";
+  evHint.textContent="Pause avant ton anim ≠ délai impact. Délai impact = ms entre le début de TON attaque et le TakeDamage ennemi (ou « fin d’anim »). Puis Combat ▶.";
   evoCard.appendChild(evHint);
 
   const sEvo = ensureEditable(activeId);
@@ -1151,6 +1158,35 @@ function mkCheckRow(label, val, onChange){
   cb.onchange=()=>onChange(cb.checked);
   d.appendChild(cb); d.appendChild(document.createTextNode(label)); return d;
 }
+/** Délai impact : null = fin de ton anim ; sinon ms après le début de ton attaque. */
+function mkHitDelayRow(val, onChange){
+  const wrap=document.createElement("div");
+  wrap.style.cssText="margin-bottom:6px;padding:6px 8px;border:1px dashed var(--line2);border-radius:8px;background:var(--bg)";
+  const tip=document.createElement("div");
+  tip.style.cssText="font-size:10px;color:var(--ink2);margin-bottom:4px;line-height:1.35";
+  tip.textContent="Délai impact = temps entre le début de TON attaque et le TakeDamage ennemi.";
+  wrap.appendChild(tip);
+  const atEnd = val==null || val==="" || val===false;
+  const row=document.createElement("label");
+  row.style.cssText="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink2);margin-bottom:4px;cursor:pointer";
+  const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=atEnd;
+  row.appendChild(cb); row.appendChild(document.createTextNode("TakeDamage à la fin de mon anim"));
+  wrap.appendChild(row);
+  const numHost=document.createElement("div");
+  const syncNum=()=>{
+    numHost.innerHTML="";
+    if(cb.checked){ onChange(null); return; }
+    const cur = (val!=null && val!=="" && !cb.checked) ? (Number(val)|0) : 200;
+    numHost.appendChild(mkNumRow("Délai impact (ms)", cur, 0, 2000, 50, v=>{ onChange(v); val=v; }));
+    onChange(cur);
+  };
+  cb.onchange=()=>{ if(cb.checked){ onChange(null); numHost.innerHTML=""; } else syncNum(); };
+  wrap.appendChild(numHost);
+  if(!atEnd){
+    numHost.appendChild(mkNumRow("Délai impact (ms)", Number(val)|0, 0, 2000, 50, v=>{ onChange(v); val=v; }));
+  }
+  return wrap;
+}
 
 function renderSeq(container, seq){
   container.innerHTML="";
@@ -1205,13 +1241,13 @@ function renderEvoChoice(spellId, tier, choice, spell){
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
     if(e){ e.effect=v; scheduleAutoSave(); }
   }));
-  div.appendChild(mkNumRow("Vitesse (FPS)", entry.fps!=null?entry.fps:14, 1, 30, 1, v=>{
-    const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
-    if(e){ e.fps=v; scheduleAutoSave(); }
-  }));
-  div.appendChild(mkNumRow("Délai avant (ms)", entry.delay!=null?entry.delay:80, 0, 3000, 50, v=>{
+  div.appendChild(mkNumRow("Pause avant ton anim (ms)", entry.delay!=null?entry.delay:0, 0, 3000, 50, v=>{
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
     if(e){ e.delay=v; scheduleAutoSave(); }
+  }));
+  div.appendChild(mkNumRow("Vitesse ton anim (FPS)", entry.fps!=null?entry.fps:14, 1, 30, 1, v=>{
+    const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+    if(e){ e.fps=v; scheduleAutoSave(); }
   }));
 
   /* Réaction ennemi à l’impact (TakeDamage / Taunt / aucune) */
@@ -1223,8 +1259,12 @@ function renderEvoChoice(spellId, tier, choice, spell){
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
     if(e){ e.hitAnimFps=v; scheduleAutoSave(); }
   }));
+  div.appendChild(mkHitDelayRow(entry.hitDelay, v=>{
+    const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+    if(e){ e.hitDelay=v; scheduleAutoSave(); }
+  }));
 
-  /* Double Impact : réaction + FPS séparés pour les 2 coups */
+  /* Double Impact : réaction + FPS + délai séparés pour les 2 coups */
   if(/Double Impact|Déchirure|Salve/i.test(choice.name||"")){
     const sep=document.createElement("div");
     sep.style.cssText="margin:6px 0 4px;padding-top:6px;border-top:1px dashed var(--line2);font-size:10px;font-weight:700;color:var(--acc)";
@@ -1238,6 +1278,10 @@ function renderEvoChoice(spellId, tier, choice, spell){
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.hitAnimFps1=v; scheduleAutoSave(); }
     }));
+    div.appendChild(mkHitDelayRow(entry.hitDelay1!=null?entry.hitDelay1:entry.hitDelay, v=>{
+      const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+      if(e){ e.hitDelay1=v; scheduleAutoSave(); }
+    }));
     div.appendChild(mkSelectRow("Coup 2 · réaction", HIT_REACT_ANIMS, entry.hitAnim2||entry.hitAnim||"TakeDamage", v=>{
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.hitAnim2=v; scheduleAutoSave(); }
@@ -1245,6 +1289,10 @@ function renderEvoChoice(spellId, tier, choice, spell){
     div.appendChild(mkNumRow("Coup 2 · FPS", entry.hitAnimFps2!=null?entry.hitAnimFps2:(entry.hitAnimFps!=null?entry.hitAnimFps:14), 1, 30, 1, v=>{
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.hitAnimFps2=v; scheduleAutoSave(); }
+    }));
+    div.appendChild(mkHitDelayRow(entry.hitDelay2!=null?entry.hitDelay2:entry.hitDelay, v=>{
+      const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+      if(e){ e.hitDelay2=v; scheduleAutoSave(); }
     }));
   }
 
@@ -1261,7 +1309,8 @@ function renderEvoChoice(spellId, tier, choice, spell){
       effect:(e&&e.effect)||"None",
       hitTarget:true,
       hitAnim:(e&&e.hitAnim)||"TakeDamage",
-      hitAnimFps:(e&&e.hitAnimFps)!=null?e.hitAnimFps:14
+      hitAnimFps:(e&&e.hitAnimFps)!=null?e.hitAnimFps:14,
+      hitDelay:(e&&e.hitDelay)!=null?e.hitDelay:null
     })]);
   };
   div.appendChild(testB);

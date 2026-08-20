@@ -568,7 +568,7 @@
     ensureSpellEffects();
   }
   function normalizeCastStep(step){
-    if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14 };
+    if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null };
     return {
       anim: step.anim || "Attack1",
       delay: step.delay != null ? step.delay : 0,
@@ -578,6 +578,8 @@
       hitTarget: !!step.hitTarget,
       hitAnim: step.hitAnim || "TakeDamage",
       hitAnimFps: step.hitAnimFps != null ? step.hitAnimFps : 14,
+      /* null = TakeDamage à la fin de ton anim ; nombre = ms après le début de ton anim */
+      hitDelay: step.hitDelay == null || step.hitDelay === "" ? null : Math.max(0, Number(step.hitDelay)|0),
     };
   }
   /** Bonus évo VICTOIRE seulement — les cases éditeur = anim/FX, pas les stats. */
@@ -663,6 +665,48 @@
       if(last) return pick(last.hitAnim || "TakeDamage", last.hitAnimFps);
     }
     return pick("TakeDamage", 14);
+  }
+  /** Délai (ms) entre le début de TON anim d’attaque et TakeDamage. null = fin de l’anim. */
+  function resolveHitDelay(sp, hitIndex, hits){
+    reloadCustomSpells();
+    const c = customSpellById(sp && sp.id);
+    const di = c && c.evoConfig
+      ? (c.evoConfig["2:Double Impact"] || c.evoConfig["2:Déchirure"] || c.evoConfig["2:Salve"])
+      : null;
+    const numOrNull = (v)=>{
+      if(v == null || v === "" || v === false) return null;
+      const n = Number(v);
+      if(!isFinite(n) || n < 0) return null;
+      return Math.min(3000, n|0);
+    };
+    if(di && hits > 1){
+      const n = (hitIndex|0) + 1;
+      const per = numOrNull(di["hitDelay"+n]);
+      if(per != null) return per;
+      const shared = numOrNull(di.hitDelay);
+      if(shared != null) return shared;
+    }
+    if(c && c.evoConfig){
+      let last = null;
+      Object.keys(c.evoConfig).sort().forEach(k=>{
+        const e = c.evoConfig[k];
+        if(e && e.enabled && e.hitDelay != null && e.hitDelay !== "") last = e;
+      });
+      if(last){
+        const v = numOrNull(last.hitDelay);
+        if(v != null) return v;
+      }
+    }
+    const steps = editorCastSteps(sp) || [];
+    for(let i = steps.length - 1; i >= 0; i--){
+      const s = steps[i];
+      if(s && (s.hitTarget || s.hitDelay != null)){
+        const v = numOrNull(s.hitDelay);
+        if(v != null) return v;
+        if(s.hitTarget) break;
+      }
+    }
+    return null; /* fin d’anim */
   }
   function playEnemyHitReact(sp, hitIndex, hits){
     if(!G.enemy || !G.enemy.alive) return { anim:"None", fps:14 };
@@ -791,10 +835,16 @@
         dur=Math.max(120, Math.round((COLS/fps)*1000));
       }
       const hitNow = onHit && (i % stepsPerHit === 0);
-      setTimeout(()=>{
-        if(hitNow) try{ onHit(Math.floor((i-1)/stepsPerHit)); }catch(_e){}
-        next();
-      }, delay+dur);
+      const hitIndex = Math.floor((i - 1) / stepsPerHit);
+      /* TakeDamage : hitDelay ms après le début de ton anim, ou fin d’anim si non réglé */
+      if(hitNow){
+        const hd = resolveHitDelay(sp, hitIndex, repeat);
+        const fromStepStart = delay + (hd != null ? hd : dur);
+        setTimeout(()=>{
+          try{ onHit(hitIndex); }catch(_e){}
+        }, fromStepStart);
+      }
+      setTimeout(()=>{ next(); }, delay + dur);
     }
     next();
   }
