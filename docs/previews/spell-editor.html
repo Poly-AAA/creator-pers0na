@@ -98,10 +98,12 @@
   <div class="editor" id="editor"></div>
 
   <!-- Footer -->
-  <div class="footer">
-    <a href="character-creator-fantasy.html" data-fcc="creator">Créateur</a>
-    <button type="button" class="ok" id="btnCombatGo">Combat ▶</button>
-    <button type="button" class="primary" id="btnSave">Sauver</button>
+  <div class="footer" style="flex-wrap:wrap">
+    <a href="character-creator-fantasy.html" data-fcc="creator" style="flex:1 1 30%">Créateur</a>
+    <button type="button" class="ok" id="btnCombatGo" style="flex:1 1 40%">Combat ▶</button>
+    <button type="button" class="primary" id="btnSave" style="flex:1 1 25%">Sauver</button>
+    <button type="button" id="btnCopySave" style="flex:1 1 48%;font-size:11px">Copier config</button>
+    <button type="button" id="btnPasteSave" style="flex:1 1 48%;font-size:11px;background:#6b4a2e;color:#fff;border-color:#6b4a2e">Coller config</button>
   </div>
 </div>
 
@@ -190,12 +192,13 @@ let customSpells = [];  // sorts créés / modifiés
 let activeId = null;    // sort en cours d'édition
 
 function loadCustom(){
-  importSpellsFromHash();
   try{ const r=localStorage.getItem(KEY_SPELLS); if(r) customSpells=JSON.parse(r)||[]; }catch(_e){}
   try{
     const bk=sessionStorage.getItem(KEY_SPELLS);
     if(bk && !customSpells.length) customSpells=JSON.parse(bk)||[];
   }catch(_e){}
+  /* Hash (#fccSpells=…) = transport explicite — doit écraser le localStorage stale */
+  importSpellsFromHash();
 }
 function saveCustom(){
   try{
@@ -206,17 +209,68 @@ function saveCustom(){
 function exportSpellsPack(){
   return btoa(unescape(encodeURIComponent(JSON.stringify(customSpells))));
 }
-function importSpellsFromHash(){
-  const m=(location.hash||"").match(/fccSpells=([^&]+)/);
-  if(!m) return false;
+function importSpellsPack(b64){
+  if(!b64) return false;
   try{
-    const raw=decodeURIComponent(m[1]);
-    const arr=JSON.parse(decodeURIComponent(escape(atob(raw))));
+    const arr=JSON.parse(decodeURIComponent(escape(atob(String(b64).trim()))));
     if(!Array.isArray(arr)) return false;
     customSpells=arr;
     saveCustom();
     return true;
   }catch(_e){ return false; }
+}
+function importSpellsFromHash(){
+  const m=(location.hash||"").match(/fccSpells=([^&]+)/);
+  if(!m) return false;
+  if(importSpellsPack(decodeURIComponent(m[1]))){
+    try{ history.replaceState(null, "", location.pathname+location.search+location.hash); }catch(_e){}
+    return true;
+  }
+  return false;
+}
+function exportSpellsJson(){ return JSON.stringify(customSpells, null, 0); }
+function importSpellsJson(raw){
+  try{
+    const arr=JSON.parse(String(raw||"").trim());
+    if(!Array.isArray(arr)) return false;
+    customSpells=arr;
+    saveCustom();
+    return true;
+  }catch(_e){ return false; }
+}
+async function pasteSpellsBackup(){
+  let raw="";
+  try{
+    if(navigator.clipboard && navigator.clipboard.readText) raw=await navigator.clipboard.readText();
+  }catch(_e){}
+  if(!raw) raw=prompt("Colle ta sauvegarde JSON (ou le bloc fccSpells) :")||"";
+  if(!raw.trim()) return false;
+  raw=raw.trim();
+  if(/^eyJ|^W3s/i.test(raw) || (raw.length>40 && !raw.startsWith("["))) return importSpellsPack(raw);
+  return importSpellsJson(raw);
+}
+function copySpellsBackup(){
+  const txt=exportSpellsJson();
+  saveCustom();
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>{
+      const st=document.getElementById("pvStatus");
+      if(st) st.textContent="Config copiée · "+customSpells.length+" sort(s) — garde ce texte !";
+    }).catch(()=> prompt("Copie ce texte :", txt));
+  } else prompt("Copie ce texte (sauvegarde) :", txt);
+}
+function combatUrlWithSaves(base){
+  saveCustom();
+  const pack=exportSpellsPack();
+  try{
+    const u=new URL(base||"fantasy-combat.html", location.href);
+    u.hash="fccSpells="+encodeURIComponent(pack);
+    return u.href;
+  }catch(_e){
+    const b=base||"fantasy-combat.html";
+    const sep=b.includes("#")?"&":"#";
+    return b+sep+"fccSpells="+encodeURIComponent(pack);
+  }
 }
 let _autoSaveT=null;
 function scheduleAutoSave(){
@@ -224,17 +278,8 @@ function scheduleAutoSave(){
   _autoSaveT=setTimeout(()=>{ saveCustom(); showSavedStatus(); }, 350);
 }
 function goCombat(){
-  saveCustom();
   const nav=wireFccNav();
-  let base=(nav&&nav.combat)||"fantasy-combat.html";
-  try{
-    const u=new URL(base, location.href);
-    u.hash="fccSpells="+encodeURIComponent(exportSpellsPack());
-    location.href=u.href;
-  }catch(_e){
-    const sep=base.includes("#")?"&":"#";
-    location.href=base+sep+"fccSpells="+encodeURIComponent(exportSpellsPack());
-  }
+  location.href=combatUrlWithSaves((nav&&nav.combat)||"fantasy-combat.html");
 }
 function allSpells(){ return [...BASE_SPELLS, ...customSpells.filter(c=>!BASE_SPELLS.find(b=>b.id===c.id))]; }
 function spellById(id){ return customSpells.find(s=>s.id===id) || BASE_SPELLS.find(s=>s.id===id) || null; }
@@ -753,7 +798,7 @@ function renderEditor(){
   /* ── Évolutions catalogue jeu ── */
   const evoCard=card("Évolutions du jeu");
   const evHint=document.createElement("p"); evHint.className="hint";
-  evHint.textContent="▶ Tester = aperçu anim ici. Pour tester le VRAI choix d’évo en combat : Combat ▶ → gagne le fight (ou bouton Évo en haut) → tu choisis Brise-Os / etc. Les cases cochées = anims cumulées au lancement du sort.";
+  evHint.textContent="Sauver ne suffit pas seul : toujours Combat ▶ (embarque ta config). Nouveau lien Cloudflare = Coller config si besoin. ▶ Tester = aperçu ici · cases cochées = anims cumulées au cast.";
   evoCard.appendChild(evHint);
 
   const sEvo = ensureEditable(activeId);
@@ -1016,6 +1061,16 @@ function boot(){
     setTimeout(()=>renderNav(),100);
   };
   document.getElementById("btnCombatGo").onclick=()=> goCombat();
+  document.getElementById("btnCopySave").onclick=()=> copySpellsBackup();
+  document.getElementById("btnPasteSave").onclick=async()=>{
+    if(await pasteSpellsBackup()){
+      if(!activeId && customSpells[0]) activeId=customSpells[0].id;
+      renderNav(); renderEditor(); showSavedStatus();
+      document.getElementById("pvStatus").textContent="Config restaurée ✓ · "+customSpells.length+" sort(s)";
+    } else {
+      document.getElementById("pvStatus").textContent="Import échoué — vérifie le JSON";
+    }
+  };
   showSavedStatus();
 
   function resizePv(){
