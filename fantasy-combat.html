@@ -387,17 +387,17 @@
     },
   };
   const DEFAULT_ROULADE = {
-    id:"roulade", name:"Roulade", cost:4, range:2, dmg:[0,0], anim:"Attack1", type:"buff",
+    id:"roulade", name:"Roulade", cost:1, range:2, dmg:[0,0], anim:"Rolling", type:"buff",
     aoe:0, animSeq:[], effect:"roulade", push:0,
     desc:"Roulade : hors corps à corps → se rapproche ; au corps à corps → recule",
-    steps:[{ anim:"Attack1", delay:0, move:"Idle", fps:14, slash:"None", effect:"None", hitTarget:false }],
+    steps:[{ anim:"Rolling", delay:0, move:"Idle", fps:16, slash:"None", effect:"None", hitTarget:false }],
     evoConfig:{
-      "1:Brise-Os":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
-      "1:Boxeur":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
-      "1:Rapide":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
-      "2:Uppercut":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
-      "2:Percutant":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
-      "2:Double Impact":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
+      "1:Brise-Os":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+      "1:Boxeur":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+      "1:Rapide":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+      "2:Uppercut":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+      "2:Percutant":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+      "2:Double Impact":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
     },
   };
   let spellEvo = {};
@@ -489,13 +489,18 @@
       if(roll){
         roll.effect="roulade";
         roll.type = roll.type || "buff";
-        if(!Array.isArray(roll.steps) || !roll.steps.length){ roll.steps=preset.steps; roll.anim=roll.anim||"Attack1"; }
+        if((roll.range|0) < 2) roll.range = 2;
+        if(!Array.isArray(roll.steps) || !roll.steps.length){ roll.steps=preset.steps; roll.anim=roll.anim||"Rolling"; }
         if(!roll.evoConfig || !Object.keys(roll.evoConfig).length) roll.evoConfig=preset.evoConfig;
       } else {
         customSpells = (customSpells||[]).filter(s=>s && s.id!=="roulade").concat([preset]);
       }
       try{ localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
       try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+    } else if(roll.steps){
+      roll.steps.forEach(st=>{
+        if(st && st.fps!=null){ const n=Number(st.fps); if(isFinite(n)) st.fps=n; }
+      });
     }
   }
   function importCustomSpellsFromHash(){
@@ -593,7 +598,7 @@
   function warmAnimForPlayer(anim){
     const a = anim || "Attack1";
     const folders = layersForRow(sheetRowForDir(G.player.dir|0, a)).map(L=>L.folder);
-    const list = [a, "Attack1", "Attack2", "Attack3", "Attack4", "Attack5", "Attack6", "Kick", "Special1", "Idle"];
+    const list = [a, "Attack1", "Attack2", "Attack3", "Attack4", "Attack5", "Attack6", "Kick", "Special1", "Rolling", "Slide", "Idle"];
     if(isPlayerMounted()){
       list.push("RideIdle", "RideRun", "RideIdleAttack1", "RideRunAttack1", toRideAnim(a));
     }
@@ -624,7 +629,9 @@
       const step = steps[i++];
       warmAnimForPlayer(step.anim);
       playAnim(G.player, step.anim);
-      G.player.stepFps = step.fps || 14;
+      let fps = Number(step.fps);
+      if(!isFinite(fps) || fps < 1) fps = 14;
+      G.player.stepFps = fps;
       G.castFx = {
         slash: step.slash && step.slash !== "None" ? step.slash : null,
         effect: step.effect && step.effect !== "None" ? step.effect : null,
@@ -635,10 +642,9 @@
       let delay=Math.max(0, step.delay|0);
       let dur;
       if(typeof FantasyBridge!=="undefined" && FantasyBridge.animStepTiming){
-        const t=FantasyBridge.animStepTiming(step, COLS);
+        const t=FantasyBridge.animStepTiming(Object.assign({}, step, { fps }), COLS);
         delay=t.delay; dur=t.dur||step.dur; G.player.stepFps=t.fps;
       } else {
-        let fps=(step.fps!=null?step.fps:14); if(fps<1) fps=14;
         G.player.stepFps=fps;
         dur=Math.max(120, Math.round((COLS/fps)*1000));
       }
@@ -920,7 +926,7 @@
   function resolveSheet(folder, anim, mounted){
     const a = anim || "Idle";
     const tries = [];
-    const isAtk = /^(Attack|Kick|Special|Taunt)/i.test(a);
+    const isAtk = /^(Attack|Kick|Special|Taunt|Rolling|Slide)/i.test(a);
     if(mounted && isMountFolder(folder)){
       tries.push(a, "RideIdleAttack1", "RideRunAttack1", "RideIdle");
       if(!isAtk) tries.push("Idle");
@@ -929,7 +935,7 @@
       if(!isAtk) tries.push("Idle");
     } else if(isAtk){
       /* Ne PAS retomber sur Idle : sinon corps Attack + stuff Idle = double perso empilé */
-      tries.push(a, "Attack1", "Attack2", "Attack3", "Attack4", "Attack5", "Attack6", "Kick", "Special1");
+      tries.push(a, "Attack1", "Attack2", "Attack3", "Attack4", "Attack5", "Attack6", "Kick", "Special1", "Rolling");
     } else {
       tries.push(a, "Idle");
       if(/Walk|Run/i.test(a)) tries.push("Walk", "Run");
@@ -1618,26 +1624,24 @@
     /* Orientation = direction du déplacement (pas vers l’ennemi) */
     faceToward(G.player, to.c, to.r);
 
-    const steps = editorCastSteps(sp);
-    const step = steps[0] || normalizeCastStep({ anim: (sp.anim||"Attack1"), fps:14 });
-    warmAnimForPlayer(step.anim);
-    let fps = step.fps != null ? step.fps : 14;
-    if(fps < 1) fps = 14;
-    let dur;
-    if(typeof FantasyBridge!=="undefined" && FantasyBridge.animStepTiming){
-      const t = FantasyBridge.animStepTiming(step, COLS);
-      fps = t.fps || fps;
-      dur = (t.delay|0) + (t.dur || Math.round((COLS/fps)*1000));
-    } else {
-      dur = Math.max(280, Math.round((COLS/fps)*1000));
-    }
-    /* Un peu plus long si on traverse plusieurs cases */
-    dur = Math.max(dur, 220 + path.length * 140);
+    reloadCustomSpells();
+    const custom = customSpellById(sp.id) || sp;
+    const rawStep = (custom.steps && custom.steps[0]) || (sp.steps && sp.steps[0]) || null;
+    const step = normalizeCastStep(rawStep || { anim: (sp.anim||"Rolling"), fps:16 });
+    /* FPS éditeur (number) — ne pas laisser une string / null retomber sur 14 */
+    let fps = Number(step.fps);
+    if(!isFinite(fps) || fps < 1) fps = 14;
+    fps = Math.max(1, Math.min(30, fps));
+
+    warmAnimForPlayer(step.anim || "Rolling");
+    /* Durée = 1 passage du sheet à ce FPS (pas de padding qui fige la dernière frame) */
+    const delay = Math.max(0, Number(step.delay)|0);
+    const dur = delay + Math.max(120, Math.round((COLS / fps) * 1000));
 
     G.busy = true;
     G.armed = null; G.armedSlot = null;
+    playAnim(G.player, step.anim || "Rolling");
     G.player.stepFps = fps;
-    playAnim(G.player, step.anim);
     G.player.slide = {
       fromC: from.c, fromR: from.r,
       toC: to.c, toR: to.r,
@@ -1645,7 +1649,7 @@
       dur,
     };
     G.combo = Math.min(100, G.combo + 18);
-    setStatus("Roulade · "+planned.mode+" "+path.length);
+    setStatus("Roulade · "+planned.mode+" "+path.length+" · "+fps+" fps");
     renderSpells(); hud();
 
     setTimeout(()=>{
