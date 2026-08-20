@@ -969,26 +969,37 @@
     const tries = [];
     const isAtk = /^(Attack|Kick|Special|Taunt|Rolling|Slide)/i.test(a);
     if(mounted && isMountFolder(folder)){
-      tries.push(a, "RideIdleAttack1", "RideRunAttack1", "RideIdle");
-      if(!isAtk) tries.push("Idle");
+      /* Mount Idle/Walk/TakeDamage/Die sont des PNG vides — toujours préférer Ride* */
+      if(/^Ride/i.test(a)) tries.push(a);
+      else if(isAtk) tries.push("RideIdleAttack1", "RideRunAttack1", "RideIdle", "RideRun");
+      else if(/Walk|Run|Strafe|Crouch/i.test(a)) tries.push("RideRun", "RideIdle");
+      else tries.push("RideIdle", "RideRun", "RideIdleAttack1", "RideRunAttack1");
     } else if(mounted){
-      tries.push(a, "RideIdleAttack1", "RideRunAttack1", "RideIdle", "RideRun");
-      if(!isAtk) tries.push("Idle");
+      /* Cavalier : Idle debout ne doit pas gagner sur RideIdle (sinon monture invisible + pose à pied) */
+      if(/^Ride/i.test(a)) tries.push(a, "RideIdle", "RideRun", "RideIdleAttack1", "RideRunAttack1");
+      else if(/^Idle/i.test(a)) tries.push("RideIdle", "RideRun", a);
+      else if(/Walk|Run|Strafe|Crouch/i.test(a)) tries.push("RideRun", "RideIdle", a);
+      else if(/^(TakeDamage|Die)$/i.test(a)) tries.push(a, "RideIdle");
+      else if(isAtk) tries.push(a, "RideIdleAttack1", "RideRunAttack1", "RideIdle", "RideRun");
+      else tries.push(a, "RideIdle", "RideRun");
     } else if(isAtk){
       /* Ne PAS retomber sur Idle : sinon corps Attack + stuff Idle = double perso empilé */
       tries.push(a, "Attack1", "Attack2", "Attack3", "Attack4", "Attack5", "Attack6", "Kick", "Special1", "Rolling");
+    } else if(/^(TakeDamage|Die)$/i.test(a)){
+      /* Pas de fallback Idle : chapeau / tête resteraient en pose debout pendant le hit/mort */
+      tries.push(a);
     } else {
       tries.push(a, "Idle");
       if(/Walk|Run/i.test(a)) tries.push("Walk", "Run");
     }
     const seen = new Set();
     for(const t of tries){
-      if(seen.has(t)) continue;
+      if(!t || seen.has(t)) continue;
       seen.add(t);
       const im = getImg(folder, t);
       if(im) return { im, sheetAnim: t };
     }
-    for(const t of tries) loadImg(folder, t);
+    for(const t of tries){ if(t) loadImg(folder, t); }
     return null;
   }
 
@@ -1089,6 +1100,8 @@
         for(const L of (G.enemy.layers||[])) loadImg(L.folder, a);
       }
     }catch(_e){}
+    /* Force RideIdle dès le spawn si monté (sinon Idle vide = monture invisible) */
+    try{ playAnim(G.enemy, "Idle"); }catch(_e){}
     const spellNames = (G.enemy.spells||[]).map(id=>{ const s=spellById(id); return s?s.name:id; }).join(" · ");
     const sty = (G.enemy.profile && G.enemy.profile.label) || G.enemy.strategy || "?";
     const mountBit = G.enemy.mount ? " · monté" : "";
@@ -1432,6 +1445,15 @@
     if(ent === G.player && isPlayerMounted()) a = toRideAnim(anim);
     else if(ent && ent.mount) a = toRideAnim(anim);
     if(ent === G.player) warmAnimForPlayer(a);
+    else if(ent && Array.isArray(ent.layers)){
+      for(const L of ent.layers){
+        if(L && L.folder) loadImg(L.folder, a);
+      }
+      if(ent.mount){
+        loadImg(ent.mount, "RideIdle");
+        loadImg(ent.mount, "RideRun");
+      }
+    }
     ent.anim = a; ent.frame = 0; ent.t0 = performance.now();
     if(/^Idle$/i.test(a) || /^RideIdle$/i.test(a)) ent.stepFps = null;
   }
@@ -2379,11 +2401,38 @@
     return s;
   }
 
+  /** À la mort : corps nu seulement (plus de chapeau / stuff flottant sur Die). */
+  function layersForDeathPose(ent, isEnemy){
+    const raw = isEnemy
+      ? (ent.layers && ent.layers.length
+          ? ent.layers
+          : [{folder:"NakedBody",tint:"#8a6060",alpha:1}])
+      : layersForRow(sheetRowForDir(ent.dir|0, "Die"));
+    const nude = [];
+    let bodyTint = isEnemy ? "#8a6060" : null;
+    try{ if(!isEnemy) bodyTint = tint("body"); }catch(_e){}
+    for(const L of raw){
+      if(!L || !L.folder) continue;
+      if(/NakedBody/i.test(L.folder)){
+        nude.push({ folder:L.folder, tint:L.tint || bodyTint, alpha:1 });
+      } else if(/Shadow/i.test(L.folder)){
+        nude.push({ folder:L.folder, tint:null, alpha:1 });
+      }
+    }
+    if(!nude.some(L=>/NakedBody/i.test(L.folder)))
+      nude.push({ folder:"NakedBody", tint:bodyTint, alpha:1 });
+    if(!nude.some(L=>/Shadow/i.test(L.folder)))
+      nude.unshift({ folder:(catalog && catalog.shadowFolder) || "Shadow", tint:null, alpha:1 });
+    return nude;
+  }
+
   function drawEntity(ent, isEnemy, opts){
     opts = opts || {};
     if(!ent.alive && ent.anim!=="Die") return;
     const anim = ent.anim||"Idle";
-    const mounted = entityMounted(ent);
+    const dying = /^Die$/i.test(anim);
+    /* Plus de monture pendant Die (équipement retiré) */
+    const mounted = dying ? false : entityMounted(ent);
     const elapsed = (performance.now()-(ent.t0||0))/1000;
     const loopAnims = /^(Idle|Walk|Run|RunBackwards|StrafeLeft|StrafeRight|CrouchRun|RideIdle|RideRun|RideIdleAttack1|RideRunAttack1)$/i;
     const pos = entityDrawPos(ent);
@@ -2403,11 +2452,16 @@
     ctx.beginPath(); ctx.ellipse(s.x, groundY+2, 13, 5, 0,0,Math.PI*2); ctx.fill();
     ctx.restore();
 
-    const layers = isEnemy
-      ? (ent.layers && ent.layers.length
+    let layers;
+    if(dying){
+      layers = layersForDeathPose(ent, isEnemy);
+    } else if(isEnemy){
+      layers = ent.layers && ent.layers.length
           ? ent.layers
-          : [{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}])
-      : layersForRow(sheetRowForDir(ent.dir|0, anim));
+          : [{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}];
+    } else {
+      layers = layersForRow(sheetRowForDir(ent.dir|0, anim));
+    }
 
     ctx.imageSmoothingEnabled=false;
     let drawn=0;
@@ -2582,7 +2636,9 @@
     cam.fx = G.player.c; cam.fy = G.player.r;
     G.fightN = 0;
     G.enemy = makeEnemy(1);
-    try{ warmFolders((G.enemy.layers||[]).map(L=>L.folder)); }catch(_e){}
+    try{ warmFolders((G.enemy.layers||[]).map(L=>L.folder), { mounted: !!G.enemy.mount }); }catch(_e){}
+    try{ playAnim(G.player, "Idle"); }catch(_e){}
+    try{ playAnim(G.enemy, "Idle"); }catch(_e){}
     G.fightN = 1;
     refreshSpellBar();
     beginPlayerTurn();
@@ -2660,6 +2716,9 @@
       G.awaitingNext=false; G.pendingEvo=null; G.busy=false;
       G.fightN = 1;
       G.enemy = makeEnemy(1);
+      try{ warmFolders((G.enemy.layers||[]).map(L=>L.folder), { mounted: !!G.enemy.mount }); }catch(_e){}
+      try{ playAnim(G.player, "Idle"); }catch(_e){}
+      try{ playAnim(G.enemy, "Idle"); }catch(_e){}
       G.turn = "player";
       beginPlayerTurn();
       renderSpells(); hud();
