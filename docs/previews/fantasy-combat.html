@@ -568,8 +568,13 @@
   function spellHitCount(sp){
     return Math.max(1, 1 + ((evoBonusesFor(sp).hits)|0));
   }
-  /** Visuel d’évo VICTOIRE seulement — les cases éditeur ne touchent PAS aux anims. */
-  function activeEvoVisual(sp){
+  /**
+   * Visuel d’attaque d’évo :
+   * 1) choix victoire (partie)
+   * 2) sinon dernière case éditeur cochée (anim/FX du catalogue)
+   * Ne mute jamais le JSON — lecture seule.
+   */
+  function activeEvoCastVisual(sp){
     if(!sp) return null;
     const st = evoState(sp.id);
     if(st.evo && st.evo.anim){
@@ -584,7 +589,28 @@
         fromVictory: true,
       };
     }
-    return null;
+    reloadCustomSpells();
+    const custom = customSpellById(sp.id);
+    if(!custom || !custom.evoConfig) return null;
+    let last = null;
+    Object.keys(custom.evoConfig).sort().forEach(k=>{
+      const e = custom.evoConfig[k];
+      if(e && e.enabled && e.anim) last = e;
+    });
+    if(!last) return null;
+    return {
+      anim: last.anim,
+      fps: last.fps != null ? last.fps : 14,
+      slash: last.slash || "None",
+      effect: last.effect || "None",
+      delay: last.delay != null ? last.delay : 0,
+      fromVictory: false,
+    };
+  }
+  /** Victoire only — pour hit react éventuel stocké au pick. */
+  function activeEvoVisual(sp){
+    const v = activeEvoCastVisual(sp);
+    return v && v.fromVictory ? v : null;
   }
   /** Réaction ennemi (TakeDamage / Taunt / None) + FPS — TOUJOURS le step en base. */
   function resolveHitReact(sp, hitIndex, hits){
@@ -727,35 +753,40 @@
     return [];
   }
   /**
-   * Chaîne d’attaque jouée en combat :
-   * - steps éditeur = source de vérité (anim / FPS / hit) — JAMAIS écrasés par une case cochée
-   * - évo victoire (partie) peut remplacer l’anim d’attaque / FX seulement
+   * Chaîne d’attaque en combat :
+   * - case éditeur cochée OU évo victoire → anim / FPS attaque / FX de l’évo
+   * - hitAnim / hitAnimFps / hitDelay → TOUJOURS ceux du step (pas touchés)
+   * - ne réécrit jamais le JSON sauvegardé
    */
   function editorCastSteps(sp){
     reloadCustomSpells();
     let steps = rawEditorSteps(sp);
-    const vis = activeEvoVisual(sp); /* victoire only */
+    const vis = activeEvoCastVisual(sp);
     if(vis && vis.anim){
       const slash = vis.slash && vis.slash !== "None" ? vis.slash : null;
       const effect = vis.effect && vis.effect !== "None" ? vis.effect : null;
       if(!steps.length){
         return [normalizeCastStep({
           anim: vis.anim,
-          delay: 0,
+          delay: vis.delay != null ? vis.delay : 0,
           fps: vis.fps != null ? vis.fps : 14,
           slash: slash || "None",
           effect: effect || "None",
           hitTarget: true,
-          hitAnim: vis.hitAnim || "TakeDamage",
-          hitAnimFps: vis.hitAnimFps != null ? vis.hitAnimFps : 14,
-          hitDelay: vis.hitDelay != null ? vis.hitDelay : null,
+          hitAnim: "TakeDamage",
+          hitAnimFps: 14,
+          hitDelay: null,
         })];
       }
       return steps.map(s=>{
-        const o = Object.assign({}, s, { anim: vis.anim });
-        if(vis.fps != null) o.fps = vis.fps;
+        const o = Object.assign({}, s, {
+          anim: vis.anim,
+          fps: vis.fps != null ? vis.fps : s.fps,
+        });
+        if(vis.delay != null) o.delay = vis.delay;
         if(slash) o.slash = slash;
         if(effect) o.effect = effect;
+        /* garde hitAnim / hitAnimFps / hitDelay du step */
         return normalizeCastStep(o);
       });
     }
