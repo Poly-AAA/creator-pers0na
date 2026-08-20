@@ -1490,7 +1490,7 @@
 
     if(sp.effect==="roulade" || sp.id==="roulade"){
       const d0 = G.enemy.alive ? dist(G.player, G.enemy) : -1;
-      const moved = applyRoulade(G.player, evo);
+      const moved = applyRoulade(G.player, sp, evo);
       const mode = d0 <= 1 ? "recul" : "approche";
       setStatus("Roulade · "+mode+(moved?(" "+moved):" · bloqué"));
     } else if(sp.id==="double"){
@@ -1520,16 +1520,18 @@
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
   }
 
-  /** Roulade : CAC → recule 1 ; sinon → se rapproche (1–2 cases, +portée évo). */
-  function applyRoulade(ent, evo){
+  /** Roulade : CAC → recule ; sinon → se rapproche.
+   *  Distance = Portée du sort (+ bonus évo range). Min 1. */
+  function applyRoulade(ent, sp, evo){
     const foe = G.enemy;
     if(!foe || !foe.alive) return 0;
+    const cells = Math.max(1, (sp && sp.range != null ? sp.range|0 : 1) + (evo.range|0));
     const d = dist(ent, foe);
     if(d <= 1){
       faceToward(ent, foe.c, foe.r);
-      return pushEntityAway(ent, foe, 1, "player");
+      return pushEntityAway(ent, foe, cells, "player");
     }
-    const steps = Math.max(1, Math.min(2 + (evo.range|0), d));
+    const steps = Math.min(cells, d);
     faceToward(ent, foe.c, foe.r);
     return stepEntityToward(ent, foe, steps, "player");
   }
