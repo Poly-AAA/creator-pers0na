@@ -266,43 +266,34 @@ function pruneLegacySpells(){
   customSpells = (customSpells||[]).filter(s=>s && s.id && (s.id==="punch" || !LEGACY_SPELL_IDS.has(s.id)));
   if(customSpells.length !== before) saveCustom();
 }
-/** Si Coup brut a perdu ses steps/évos (save vide / nouveau domaine), remettre la config sauvée. */
+/** Ajoute les clés d’évo manquantes sans jamais écraser anim/fps/enabled existants. */
+function fillMissingEvoKeys(spell, presetEvo){
+  if(!spell) return;
+  if(!spell.evoConfig) spell.evoConfig = {};
+  if(!presetEvo) return;
+  Object.keys(presetEvo).forEach(k=>{
+    if(spell.evoConfig[k]) return;
+    const e = JSON.parse(JSON.stringify(presetEvo[k]));
+    e.enabled = false;
+    spell.evoConfig[k] = e;
+  });
+}
+/** Seed minimal : crée le sort s’il manque. Ne touche JAMAIS steps/évos déjà présents. */
 function ensurePunchAnims(){
   const preset = JSON.parse(JSON.stringify(SAVED_COUP_BRUT));
   let punch = (customSpells||[]).find(s=>s && s.id==="punch");
-  const incomplete = !punch
-    || !Array.isArray(punch.steps) || !punch.steps.length
-    || !punch.evoConfig || !Object.keys(punch.evoConfig).length
-    || !Object.values(punch.evoConfig).some(e=>e && e.enabled);
   if(!punch){
     customSpells = [preset, ...(customSpells||[]).filter(s=>s && s.id!=="punch")];
-    saveCustom();
     return;
   }
-  if(incomplete){
-    /* Remet la séquence + évos anim sauvegardées, garde id/name */
-    punch.steps = preset.steps;
-    punch.anim = preset.anim;
-    punch.animSeq = [];
-    punch.aoe = preset.aoe;
-    punch.evoConfig = preset.evoConfig;
-    punch.cost = punch.cost != null ? punch.cost : preset.cost;
-    punch.range = punch.range != null ? punch.range : preset.range;
-    punch.dmg = punch.dmg || preset.dmg;
-    punch.type = punch.type || preset.type;
-    saveCustom();
-    return;
+  if(!Array.isArray(punch.steps) || !punch.steps.length){
+    punch.steps = JSON.parse(JSON.stringify(preset.steps));
   }
-  let changed = false;
-  Object.keys(preset.evoConfig).forEach(k=>{
-    if(!punch.evoConfig[k]){ punch.evoConfig[k]=preset.evoConfig[k]; changed=true; }
-  });
-  if(changed) saveCustom();
+  fillMissingEvoKeys(punch, preset.evoConfig);
 }
-/** Migre / seed Coup de pied avec les mêmes évos que Coup brut (anim Kick). */
+/** Migre / seed Coup de pied — n’écrase jamais les anims joueur. */
 function ensureCoupDePied(){
   const preset = JSON.parse(JSON.stringify(SAVED_COUP_DE_PIED));
-  /* Ancien id custom_* → id stable */
   (customSpells||[]).forEach(s=>{
     if(!s || !s.id) return;
     if(s.id==="coup_de_pied") return;
@@ -312,7 +303,6 @@ function ensureCoupDePied(){
   let kick = (customSpells||[]).find(s=>s && s.id==="coup_de_pied");
   if(!kick){
     customSpells = [...(customSpells||[]).filter(s=>s && s.id!=="coup_de_pied"), preset];
-    /* garder punch en premier si présent */
     customSpells.sort((a,b)=>{
       if(a.id==="punch") return -1;
       if(b.id==="punch") return 1;
@@ -320,43 +310,28 @@ function ensureCoupDePied(){
       if(b.id==="coup_de_pied") return 1;
       return 0;
     });
-    saveCustom();
     return;
   }
-  let changed = false;
-  if(!kick.effect || kick.effect==="none"){ kick.effect="push"; changed=true; }
-  if(kick.push==null && kick.pushDist==null){ kick.push=1; changed=true; }
+  if(!kick.effect || kick.effect==="none") kick.effect="push";
+  if(kick.push==null && kick.pushDist==null) kick.push=1;
   if(!Array.isArray(kick.steps) || !kick.steps.length){
-    kick.steps = preset.steps;
-    kick.anim = "Kick";
-    changed = true;
+    kick.steps = JSON.parse(JSON.stringify(preset.steps));
+    if(!kick.anim) kick.anim = "Kick";
   }
-  if(!kick.evoConfig || !Object.keys(kick.evoConfig).length
-      || !Object.values(kick.evoConfig).some(e=>e && e.enabled)){
-    kick.evoConfig = preset.evoConfig;
-    changed = true;
-  } else {
-    Object.keys(preset.evoConfig).forEach(k=>{
-      if(!kick.evoConfig[k]){ kick.evoConfig[k]=preset.evoConfig[k]; changed=true; }
-    });
-  }
-  if(changed) saveCustom();
+  fillMissingEvoKeys(kick, preset.evoConfig);
 }
-/** Infère effect:push depuis la description (ex. Coup de pied). */
+/** Infère effect:push depuis la description (ex. Coup de pied) — mémoire seule, pas de save. */
 function ensureSpellEffects(){
-  let changed=false;
   (customSpells||[]).forEach(s=>{
     if(!s || !s.id) return;
     if((!s.effect || s.effect==="none") && /repouss/i.test(s.desc||"")){
       s.effect="push";
       if(s.push==null && s.pushDist==null) s.push=1;
-      changed=true;
     }
-    if(s.effect==="push" && s.push==null && s.pushDist==null){ s.push=1; changed=true; }
+    if(s.effect==="push" && s.push==null && s.pushDist==null) s.push=1;
   });
-  if(changed) saveCustom();
 }
-/** Migre / seed Roulade (mobilité). */
+/** Seed Roulade — n’écrase jamais steps/évos existants. */
 function ensureRoulade(){
   const preset = JSON.parse(JSON.stringify(SAVED_ROULADE));
   (customSpells||[]).forEach(s=>{
@@ -370,33 +345,18 @@ function ensureRoulade(){
       const order = { punch:0, coup_de_pied:1, roulade:2 };
       return (order[a.id]??9) - (order[b.id]??9);
     });
-    saveCustom();
     return;
   }
-    let changed = false;
-  if(roll.effect!=="roulade"){ roll.effect="roulade"; changed=true; }
-  if((roll.range|0) < 2){ roll.range=2; changed=true; }
-  if(roll.type!=="buff" && !(roll.dmg && (roll.dmg[1]|0)>0)){ roll.type="buff"; changed=true; }
+  if(!roll.effect) roll.effect="roulade";
   if(!Array.isArray(roll.steps) || !roll.steps.length){
-    roll.steps = preset.steps;
-    roll.anim = roll.anim || "Rolling";
-    changed = true;
+    roll.steps = JSON.parse(JSON.stringify(preset.steps));
+    if(!roll.anim) roll.anim = "Rolling";
   } else {
-    /* Ne jamais écraser l’anim/FPS joueur — juste normaliser le type numérique */
     roll.steps.forEach(st=>{
-      if(!st) return;
-      if(st.fps!=null){ const n=Number(st.fps); if(isFinite(n)) st.fps=n; }
+      if(st && st.fps!=null){ const n=Number(st.fps); if(isFinite(n)) st.fps=n; }
     });
   }
-  if(!roll.evoConfig || !Object.keys(roll.evoConfig).length){
-    roll.evoConfig = preset.evoConfig;
-    changed = true;
-  } else {
-    Object.keys(preset.evoConfig).forEach(k=>{
-      if(!roll.evoConfig[k]){ roll.evoConfig[k]=preset.evoConfig[k]; changed=true; }
-    });
-  }
-  if(changed) saveCustom();
+  fillMissingEvoKeys(roll, preset.evoConfig);
 }
 function loadCustom(){
   try{ const r=localStorage.getItem(KEY_SPELLS); if(r) customSpells=JSON.parse(r)||[]; }catch(_e){}
@@ -411,30 +371,14 @@ function loadCustom(){
   ensureCoupDePied();
   ensureRoulade();
   ensureSpellEffects();
-  /* Double Impact = évolution, pas équipé de base (décocher les saves seedées). */
-  (function stripDefaultDoubleImpact(){
-    const MIG = "neuro.diNotBase.v1";
-    try{ if(localStorage.getItem(MIG)==="1") return; }catch(_e){}
-    let changed=false;
-    const keys=["2:Double Impact","2:Déchirure","2:Salve"];
-    (customSpells||[]).forEach(s=>{
-      if(!s || !s.evoConfig) return;
-      keys.forEach(k=>{
-        if(s.evoConfig[k] && s.evoConfig[k].enabled){
-          s.evoConfig[k].enabled=false;
-          changed=true;
-        }
-      });
-    });
-    if(changed) saveCustom();
-    try{ localStorage.setItem(MIG, "1"); }catch(_e){}
-  })();
+  /* Ne jamais muter / resauver automatiquement les choix joueur ici. */
 }
 function saveCustom(){
   try{
     localStorage.setItem(KEY_SPELLS, JSON.stringify(customSpells));
     sessionStorage.setItem(KEY_SPELLS, JSON.stringify(customSpells));
   }catch(_e){}
+  spellsDirty = false;
 }
 function exportSpellsPack(){
   return btoa(unescape(encodeURIComponent(JSON.stringify(customSpells))));
@@ -543,9 +487,15 @@ function combatUrlWithSaves(base){
   }
 }
 let _autoSaveT=null;
+let spellsDirty=false;
+/** N’écrit PAS le localStorage — seulement marque « non sauvé ». Sauver / Combat ▶ écrivent. */
 function scheduleAutoSave(){
+  spellsDirty = true;
   clearTimeout(_autoSaveT);
-  _autoSaveT=setTimeout(()=>{ saveCustom(); showSavedStatus(); }, 350);
+  _autoSaveT=setTimeout(()=>{
+    const st=document.getElementById("pvStatus");
+    if(st) st.textContent="Non sauvé · appuie sur Sauver (ou Combat ▶)";
+  }, 120);
 }
 function goCombat(){
   const nav=wireFccNav();
@@ -630,11 +580,17 @@ function savedEvoSummary(spellId){
   return lines.length?{spell:s, lines}:null;
 }
 function showSavedStatus(){
-  const sum=savedEvoSummary("punch")||savedEvoSummary(activeId);
   const st=document.getElementById("pvStatus");
   if(!st) return;
+  if(spellsDirty){
+    st.textContent="Non sauvé · appuie sur Sauver (ou Combat ▶)";
+    return;
+  }
+  const sum=savedEvoSummary("punch")||savedEvoSummary(activeId);
   if(sum){
     st.textContent="Sauvé · "+sum.spell.name+" · "+sum.lines.length+" évo: "+sum.lines.join(" · ");
+  } else {
+    st.textContent="Sauvé · "+(customSpells.length||0)+" sort(s)";
   }
 }
 function previewEnabledEvos(spellId){

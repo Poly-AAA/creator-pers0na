@@ -426,30 +426,29 @@
       try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
     }
   }
+  function fillMissingEvoKeysCombat(spell, presetEvo){
+    if(!spell) return;
+    if(!spell.evoConfig) spell.evoConfig = {};
+    if(!presetEvo) return;
+    Object.keys(presetEvo).forEach(k=>{
+      if(spell.evoConfig[k]) return;
+      const e = JSON.parse(JSON.stringify(presetEvo[k]));
+      e.enabled = false;
+      spell.evoConfig[k] = e;
+    });
+  }
   function ensurePunchCustom(){
     const preset = JSON.parse(JSON.stringify(DEFAULT_COUP_BRUT));
     let punch = (customSpells||[]).find(s=>s && s.id==="punch");
-    const incomplete = !punch
-      || !Array.isArray(punch.steps) || !punch.steps.length
-      || !punch.evoConfig || !Object.keys(punch.evoConfig).length
-      || !Object.values(punch.evoConfig).some(e=>e && e.enabled);
-    if(!punch || incomplete){
-      if(punch){
-        punch.steps = preset.steps;
-        punch.anim = preset.anim;
-        punch.animSeq = [];
-        punch.aoe = preset.aoe;
-        punch.evoConfig = preset.evoConfig;
-        punch.cost = punch.cost != null ? punch.cost : preset.cost;
-        punch.range = punch.range != null ? punch.range : preset.range;
-        punch.dmg = punch.dmg || preset.dmg;
-        punch.type = punch.type || preset.type;
-      } else {
-        customSpells = [preset].concat((customSpells||[]).filter(s=>s && s.id!=="punch"));
-      }
-      try{ localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
-      try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+    if(!punch){
+      customSpells = [preset].concat((customSpells||[]).filter(s=>s && s.id!=="punch"));
+      return;
     }
+    /* Ne jamais écraser steps / evoConfig / anims du joueur */
+    if(!Array.isArray(punch.steps) || !punch.steps.length){
+      punch.steps = JSON.parse(JSON.stringify(preset.steps));
+    }
+    fillMissingEvoKeysCombat(punch, preset.evoConfig);
   }
   function ensureCoupDePiedCustom(){
     const preset = JSON.parse(JSON.stringify(DEFAULT_COUP_DE_PIED));
@@ -458,22 +457,17 @@
       if(s.id==="kick" || (/^custom_/.test(s.id) && /coup\s*de\s*pied/i.test(s.name||""))) s.id="coup_de_pied";
     });
     let kick = (customSpells||[]).find(s=>s && s.id==="coup_de_pied");
-    const incomplete = !kick
-      || !Array.isArray(kick.steps) || !kick.steps.length
-      || !kick.evoConfig || !Object.keys(kick.evoConfig).length
-      || !Object.values(kick.evoConfig).some(e=>e && e.enabled);
-    if(!kick || incomplete){
-      if(kick){
-        if(!kick.effect || kick.effect==="none") kick.effect="push";
-        if(kick.push==null) kick.push=1;
-        if(!Array.isArray(kick.steps) || !kick.steps.length){ kick.steps=preset.steps; kick.anim="Kick"; }
-        kick.evoConfig = preset.evoConfig;
-      } else {
-        customSpells = (customSpells||[]).filter(s=>s && s.id!=="coup_de_pied").concat([preset]);
-      }
-      try{ localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
-      try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+    if(!kick){
+      customSpells = (customSpells||[]).filter(s=>s && s.id!=="coup_de_pied").concat([preset]);
+      return;
     }
+    if(!kick.effect || kick.effect==="none") kick.effect="push";
+    if(kick.push==null) kick.push=1;
+    if(!Array.isArray(kick.steps) || !kick.steps.length){
+      kick.steps = JSON.parse(JSON.stringify(preset.steps));
+      if(!kick.anim) kick.anim="Kick";
+    }
+    fillMissingEvoKeysCombat(kick, preset.evoConfig);
   }
   function ensureRouladeCustom(){
     const preset = JSON.parse(JSON.stringify(DEFAULT_ROULADE));
@@ -482,26 +476,20 @@
       if(/^custom_/.test(s.id) && /roulade/i.test(s.name||"")) s.id="roulade";
     });
     let roll = (customSpells||[]).find(s=>s && s.id==="roulade");
-    const incomplete = !roll
-      || roll.effect!=="roulade"
-      || !Array.isArray(roll.steps) || !roll.steps.length;
-    if(!roll || incomplete){
-      if(roll){
-        roll.effect="roulade";
-        roll.type = roll.type || "buff";
-        if((roll.range|0) < 2) roll.range = 2;
-        if(!Array.isArray(roll.steps) || !roll.steps.length){ roll.steps=preset.steps; roll.anim=roll.anim||"Rolling"; }
-        if(!roll.evoConfig || !Object.keys(roll.evoConfig).length) roll.evoConfig=preset.evoConfig;
-      } else {
-        customSpells = (customSpells||[]).filter(s=>s && s.id!=="roulade").concat([preset]);
-      }
-      try{ localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
-      try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+    if(!roll){
+      customSpells = (customSpells||[]).filter(s=>s && s.id!=="roulade").concat([preset]);
+      return;
+    }
+    if(!roll.effect) roll.effect="roulade";
+    if(!Array.isArray(roll.steps) || !roll.steps.length){
+      roll.steps = JSON.parse(JSON.stringify(preset.steps));
+      if(!roll.anim) roll.anim="Rolling";
     } else if(roll.steps){
       roll.steps.forEach(st=>{
         if(st && st.fps!=null){ const n=Number(st.fps); if(isFinite(n)) st.fps=n; }
       });
     }
+    fillMissingEvoKeysCombat(roll, preset.evoConfig);
   }
   function importCustomSpellsFromHash(){
     const m=(location.hash||"").match(/fccSpells=([^&]+)/);
@@ -521,27 +509,7 @@
   ensureCoupDePiedCustom();
   ensureRouladeCustom();
   ensureSpellEffects();
-  /* Double Impact = évolution victoire, jamais équipé de base (corrige les saves seedées). */
-  (function stripDefaultDoubleImpact(){
-    const MIG = "neuro.diNotBase.v1";
-    try{ if(localStorage.getItem(MIG)==="1") return; }catch(_e){}
-    let changed=false;
-    const keys=["2:Double Impact","2:Déchirure","2:Salve"];
-    (customSpells||[]).forEach(s=>{
-      if(!s || !s.evoConfig) return;
-      keys.forEach(k=>{
-        if(s.evoConfig[k] && s.evoConfig[k].enabled){
-          s.evoConfig[k].enabled=false;
-          changed=true;
-        }
-      });
-    });
-    if(changed){
-      try{ localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
-      try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
-    }
-    try{ localStorage.setItem(MIG, "1"); }catch(_e){}
-  })();
+  /* Pas de migration qui réécrit les saves joueur. */
   function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
   function evoState(id){
     if(!spellEvo[id]) spellEvo[id] = { tiersTaken:0, evo:{} };
