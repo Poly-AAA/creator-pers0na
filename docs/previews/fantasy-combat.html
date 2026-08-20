@@ -568,7 +568,7 @@
     ensureSpellEffects();
   }
   function normalizeCastStep(step){
-    if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None" };
+    if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14 };
     return {
       anim: step.anim || "Attack1",
       delay: step.delay != null ? step.delay : 0,
@@ -576,6 +576,8 @@
       slash: step.slash || "None",
       effect: step.effect || "None",
       hitTarget: !!step.hitTarget,
+      hitAnim: step.hitAnim || "TakeDamage",
+      hitAnimFps: step.hitAnimFps != null ? step.hitAnimFps : 14,
     };
   }
   /** Bonus évo VICTOIRE seulement — les cases éditeur = anim/FX, pas les stats. */
@@ -593,6 +595,61 @@
       if(di && di.enabled) hits = 2;
     }
     return Math.max(1, hits|0);
+  }
+  /** Réaction ennemi (TakeDamage / Taunt / None) + FPS — sort, évo, ou coup 1/2 Double Impact. */
+  function resolveHitReact(sp, hitIndex, hits){
+    reloadCustomSpells();
+    const c = customSpellById(sp && sp.id);
+    const pick = (anim, fps)=>{
+      const a = anim && anim !== "None" ? String(anim) : (anim === "None" ? "None" : "TakeDamage");
+      let f = Number(fps);
+      if(!isFinite(f) || f < 1) f = 14;
+      return { anim: a, fps: Math.min(30, f) };
+    };
+    /* Double Impact / multi-hit : overrides coup 1 / coup 2 */
+    if(c && c.evoConfig && hits > 1){
+      const di = c.evoConfig["2:Double Impact"] || c.evoConfig["2:Déchirure"] || c.evoConfig["2:Salve"];
+      if(di){
+        const n = (hitIndex|0) + 1;
+        const animN = di["hitAnim"+n];
+        const fpsN = di["hitAnimFps"+n];
+        if(animN || fpsN != null){
+          return pick(animN || di.hitAnim || "TakeDamage", fpsN != null ? fpsN : di.hitAnimFps);
+        }
+        if(di.hitAnim || di.hitAnimFps != null){
+          return pick(di.hitAnim || "TakeDamage", di.hitAnimFps);
+        }
+      }
+    }
+    /* Évos éditeur cochées (dernière avec hitAnim) */
+    if(c && c.evoConfig){
+      let last = null;
+      Object.keys(c.evoConfig).forEach(k=>{
+        const e = c.evoConfig[k];
+        if(e && e.enabled && e.hitAnim) last = e;
+      });
+      if(last) return pick(last.hitAnim, last.hitAnimFps);
+    }
+    /* Steps du sort (dernier step frappe) */
+    const steps = editorCastSteps(sp) || [];
+    for(let i = steps.length - 1; i >= 0; i--){
+      const s = steps[i];
+      if(s && (s.hitTarget || s.hitAnim)){
+        return pick(s.hitAnim || "TakeDamage", s.hitAnimFps);
+      }
+    }
+    return pick("TakeDamage", 14);
+  }
+  function playEnemyHitReact(sp, hitIndex, hits){
+    if(!G.enemy || !G.enemy.alive) return;
+    if(G.enemy.pv <= 0){
+      playAnim(G.enemy, "Die");
+      return;
+    }
+    const cfg = resolveHitReact(sp, hitIndex, hits);
+    if(!cfg.anim || cfg.anim === "None") return;
+    G.enemy.stepFps = cfg.fps;
+    playAnim(G.enemy, cfg.anim);
   }
   function spellRange(sp){
     if(!sp) return 0;
@@ -979,13 +1036,13 @@
       if(/^Ride/i.test(a)) tries.push(a, "RideIdle", "RideRun", "RideIdleAttack1", "RideRunAttack1");
       else if(/^Idle/i.test(a)) tries.push("RideIdle", "RideRun", a);
       else if(/Walk|Run|Strafe|Crouch/i.test(a)) tries.push("RideRun", "RideIdle", a);
-      else if(/^(TakeDamage|Die)$/i.test(a)) tries.push(a, "RideIdle");
+      else if(/^(TakeDamage|Die|Taunt)$/i.test(a)) tries.push(a, "RideIdle");
       else if(isAtk) tries.push(a, "RideIdleAttack1", "RideRunAttack1", "RideIdle", "RideRun");
       else tries.push(a, "RideIdle", "RideRun");
     } else if(isAtk){
       /* Ne PAS retomber sur Idle : sinon corps Attack + stuff Idle = double perso empilé */
-      tries.push(a, "Attack1", "Attack2", "Attack3", "Attack4", "Attack5", "Attack6", "Kick", "Special1", "Rolling");
-    } else if(/^(TakeDamage|Die)$/i.test(a)){
+      tries.push(a, "Attack1", "Attack2", "Attack3", "Attack4", "Attack5", "Attack6", "Kick", "Special1", "Rolling", "Taunt");
+    } else if(/^(TakeDamage|Die|Taunt)$/i.test(a)){
       /* Pas de fallback Idle : chapeau / tête resteraient en pose debout pendant le hit/mort */
       tries.push(a);
     } else {
@@ -1006,7 +1063,7 @@
   function warmFolders(folders, opts){
     opts = opts || {};
     /* léger : Idle + moves ; ride complet si monté */
-    const anims=["Idle","Walk","Run","TakeDamage","Die"];
+    const anims=["Idle","Walk","Run","TakeDamage","Die","Taunt"];
     if(opts.mounted) anims.push("RideIdle","RideRun","RideIdleAttack1","RideRunAttack1");
     for(const f of folders){
       if(!f) continue;
@@ -1891,7 +1948,7 @@
       total += dmg;
       G.enemy.flash = performance.now()+180;
       faceToward(G.enemy, G.player.c, G.player.r);
-      playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
+      playEnemyHitReact(sp, hitIndex, hits);
       /* Push une seule fois, sur le dernier coup qui touche encore vivant / fin de chaîne */
       if(pushCells > 0 && hitIndex === hits - 1 && G.enemy.pv > 0){
         pushed = pushEntityAway(G.enemy, G.player, Math.max(1, pushCells), "enemy");
@@ -2576,7 +2633,7 @@
   }
 
   function warm(){
-    const anims=["Idle","Walk","Run","TakeDamage","Die",
+    const anims=["Idle","Walk","Run","TakeDamage","Die","Taunt",
       "Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","Kick","Special1",
       "RideIdle","RideRun","RideIdleAttack1","RideRunAttack1"];
     for(const L of layersForRow(3)) for(const a of anims) loadImg(L.folder,a);

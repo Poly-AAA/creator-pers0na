@@ -827,6 +827,8 @@
       effect: fx.effect,
       fps: 14,
       delay: 0,
+      hitAnim: "TakeDamage",
+      hitAnimFps: 14,
     };
   }
 
@@ -842,6 +844,8 @@
         else {
           if (out[k].fps == null) out[k].fps = 14;
           if (out[k].delay == null) out[k].delay = 0;
+          if (!out[k].hitAnim) out[k].hitAnim = "TakeDamage";
+          if (out[k].hitAnimFps == null) out[k].hitAnimFps = 14;
         }
       });
     });
