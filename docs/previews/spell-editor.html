@@ -255,16 +255,23 @@ async function pasteSpellsBackup(){
   return importSpellsJson(raw);
 }
 /** Config Coup brut reconstruite depuis tes screenshots (août 2026). */
-const PRESET_COUP_BRUT = [{"id":"punch","name":"Coup brut","cost":2,"range":1,"dmg":[8,12],"anim":"Attack2","type":"damage","aoe":0,"animSeq":[],"steps":[{"anim":"Attack1","move":"Idle","slash":"None","effect":"None","delay":0,"fps":17,"hitTarget":true}],"evoConfig":{"1:Brise-Os":{"enabled":true,"anim":"Attack2","slash":"None","effect":"None","fps":12,"delay":0},"1:Boxeur":{"enabled":true,"anim":"Attack6","slash":"None","effect":"None","fps":17,"delay":0},"2:Uppercut":{"enabled":true,"anim":"Special1","slash":"None","effect":"Effect1","fps":17,"delay":0},"2:Percutant":{"enabled":true,"anim":"Attack6","slash":"None","effect":"None","fps":14,"delay":0},"2:Double Impact":{"enabled":true,"anim":"Attack5","slash":"Slash2","effect":"None","fps":17,"delay":0}}}];
+const PRESET_COUP_BRUT = [{"id":"punch","name":"Coup brut","cost":2,"range":1,"dmg":[8,12],"anim":"Attack2","type":"damage","aoe":0,"animSeq":[],"steps":[{"anim":"Attack1","move":"Idle","slash":"None","effect":"None","delay":0,"fps":17,"hitTarget":true}],"evoConfig":{"1:Brise-Os":{"enabled":true,"anim":"Attack2","slash":"None","effect":"None","fps":12,"delay":0},"1:Boxeur":{"enabled":false,"anim":"Attack6","slash":"None","effect":"None","fps":17,"delay":0},"2:Uppercut":{"enabled":true,"anim":"Special1","slash":"None","effect":"Effect1","fps":17,"delay":0},"2:Percutant":{"enabled":true,"anim":"Attack6","slash":"None","effect":"None","fps":14,"delay":0},"2:Double Impact":{"enabled":true,"anim":"Attack5","slash":"Slash2","effect":"None","fps":17,"delay":0}}}];
 function restorePresetCoupBrut(){
   customSpells=JSON.parse(JSON.stringify(PRESET_COUP_BRUT));
   activeId="punch";
   saveCustom();
+  /* Reset évos combat (évite Boxeur +1 portée fantôme) */
+  try{
+    const KEY_EVO="neuro.fantasySpellEvo";
+    const raw=localStorage.getItem(KEY_EVO);
+    const o=raw?JSON.parse(raw):{};
+    if(o && o.punch){ delete o.punch; localStorage.setItem(KEY_EVO, JSON.stringify(o)); }
+  }catch(_e){}
   renderNav();
   renderEditor();
   showSavedStatus();
   const st=document.getElementById("pvStatus");
-  if(st) st.textContent="Config Coup brut restaurée ✓ · 5 évos · step Attack1@17fps";
+  if(st) st.textContent="Config Coup brut restaurée ✓ · portée 1 · évos combat reset";
   return true;
 }
 function copySpellsBackup(){
@@ -816,7 +823,7 @@ function renderEditor(){
   /* ── Évolutions catalogue jeu ── */
   const evoCard=card("Évolutions du jeu");
   const evHint=document.createElement("p"); evHint.className="hint";
-  evHint.textContent="Cases cochées = bonus + anim de LA DERNIÈRE évo en combat (pas les 5 d’affilée). La « Séquence d’actions » du sort = anim au cast. ▶ Tester = aperçu ici. Combat ▶ obligatoire.";
+  evHint.textContent="Cases cochées = anim/FX seulement (pas les stats). La portée Coup brut reste 1 sauf si tu CHOISIS Boxeur après une victoire. Séquence d’actions = anim au cast. Combat ▶ obligatoire.";
   evoCard.appendChild(evHint);
 
   const sEvo = ensureEditable(activeId);

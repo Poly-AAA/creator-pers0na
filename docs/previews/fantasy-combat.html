@@ -414,17 +414,15 @@
       hitTarget: !!step.hitTarget,
     };
   }
-  /** Bonus évo victoire + évolutions cochées dans l’éditeur. */
+  /** Bonus évo VICTOIRE seulement — les cases éditeur = anim/FX, pas les stats. */
   function evoBonusesFor(sp){
     const st = evoState(sp.id);
-    const out = Object.assign({}, st.evo || {});
-    reloadCustomSpells();
-    const custom = customSpellById(sp.id);
-    if(custom && custom.evoConfig && typeof FantasyBridge!=="undefined" && FantasyBridge.editorEvoBonuses){
-      const ed = FantasyBridge.editorEvoBonuses(sp.id, custom.evoConfig);
-      Object.keys(ed).forEach(k=>{ out[k] = (out[k]|0) + (ed[k]|0); });
-    }
-    return out;
+    return Object.assign({}, st.evo || {});
+  }
+  function spellRange(sp){
+    if(!sp) return 0;
+    const evo = evoBonusesFor(sp);
+    return Math.max(0, (sp.range|0) + (evo.range|0));
   }
   function editorCastSteps(sp){
     reloadCustomSpells();
@@ -1228,7 +1226,7 @@
       return;
     }
     for(let c=0;c<GRID;c++) for(let r=0;r<GRID;r++){
-      if(dist(G.player,{c,r})<=sp.range) G.range.add(key(c,r));
+      if(dist(G.player,{c,r})<=spellRange(sp)) G.range.add(key(c,r));
     }
     if(!G.enemy.alive) return;
     if(G.range.has(key(G.enemy.c, G.enemy.r))){
@@ -1286,7 +1284,7 @@
     let goal=null;
     while(q.length){
       const cur=q.shift();
-      if(dist(cur, G.enemy) <= sp.range){ goal=cur; break; }
+      if(dist(cur, G.enemy) <= spellRange(sp)){ goal=cur; break; }
       const d=distM[key(cur.c,cur.r)];
       if(d>=maxSteps) continue;
       for(const [dc,dr] of dirs){
@@ -1447,7 +1445,7 @@
   function finishCastEnemy(sp){
     if(!G.enemy.alive){ setStatus("Plus de cible"); return; }
     const evo = evoBonusesFor(sp);
-    if(dist(G.player, G.enemy) > sp.range + (evo.range|0)){ setStatus("Toujours hors portée"); return; }
+    if(dist(G.player, G.enemy) > spellRange(sp)){ setStatus("Toujours hors portée"); return; }
     const cost = Math.max(1, sp.cost + (evo.cost|0));
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
     faceToward(G.player, G.enemy.c, G.enemy.r);
@@ -1484,7 +1482,7 @@
     }
 
     if(!G.enemy.alive || G.enemy.c!==c || G.enemy.r!==r){ setStatus("Pas de cible"); return; }
-    if(dist(G.player, G.enemy) > sp.range){
+    if(dist(G.player, G.enemy) > spellRange(sp)){
       approachThen(sp, ()=> finishCastEnemy(sp));
       return;
     }
@@ -1502,7 +1500,7 @@
       tryCastAt(G.player.c, G.player.r);
       return;
     }
-    if(G.enemy.alive && dist(G.player,G.enemy)<=sp.range){
+    if(G.enemy.alive && dist(G.player,G.enemy)<=spellRange(sp)){
       tryCastAt(G.enemy.c, G.enemy.r);
     } else if(G.enemy.alive){
       approachThen(sp, ()=> finishCastEnemy(sp));
@@ -1527,7 +1525,7 @@
     if(!sp) return;
     if(isSelfSpell(sp)){ tryCastAt(G.player.c, G.player.r); return; }
     if(G.enemy.alive){
-      if(dist(G.player, G.enemy) > sp.range) approachThen(sp, ()=> finishCastEnemy(sp));
+      if(dist(G.player, G.enemy) > spellRange(sp)) approachThen(sp, ()=> finishCastEnemy(sp));
       else tryCastAt(G.enemy.c, G.enemy.r);
     } else setStatus("Cible hors portée");
   }
