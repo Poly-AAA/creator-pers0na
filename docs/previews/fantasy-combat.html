@@ -536,9 +536,9 @@
   function normalizeCastStep(step){
     if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null };
     let hd = step.hitDelay;
-    if(hd === "end" || hd === -1) hd = "end";
+    if(hd === "end" || hd === -1) hd = null; /* null = fin d’anim */
     else if(hd == null || hd === "" || hd === false) hd = null;
-    else hd = Math.max(0, Number(hd)|0);
+    else hd = Math.max(0, Number(hd)|0); /* 0 = dès le début de ton attaque */
     return {
       anim: step.anim || "Attack1",
       delay: step.delay != null ? step.delay : 0,
@@ -548,7 +548,7 @@
       hitTarget: !!step.hitTarget,
       hitAnim: step.hitAnim || "TakeDamage",
       hitAnimFps: step.hitAnimFps != null ? step.hitAnimFps : 14,
-      /* null = pendant l’anim (avant la fin) ; "end" = fin d’anim ; nombre = ms */
+      /* null = fin d’anim ; nombre (0+) = ms après le début de ton attaque */
       hitDelay: hd,
     };
   }
@@ -672,7 +672,7 @@
     return pick(baseAnim, baseFps);
   }
   /** Délai (ms) entre le début de TON anim d’attaque et TakeDamage.
-   *  null = défaut pendant l’anim ; "end" = fin d’anim ; nombre = ms exact. */
+   *  null = fin d’anim ; nombre (0 = dès le début) = ms exact. */
   function resolveHitDelay(sp, hitIndex, hits){
     reloadCustomSpells();
     const c = customSpellById(sp && sp.id);
@@ -680,48 +680,45 @@
       ? (c.evoConfig["2:Double Impact"] || c.evoConfig["2:Déchirure"] || c.evoConfig["2:Salve"])
       : null;
     const norm = (v)=>{
-      if(v === "end" || v === -1) return "end";
+      if(v === "end" || v === -1) return null; /* fin */
       if(v == null || v === "" || v === false) return null;
       const n = Number(v);
       if(!isFinite(n) || n < 0) return null;
-      return Math.min(3000, n|0);
+      return Math.min(3000, n|0); /* 0 autorisé */
     };
+    const hasSet = (v)=> v != null && v !== "" && v !== false;
     /* Step de base d’abord */
     let baseDelay = null;
-    let sawHitStep = false;
+    let stepSetsDelay = false;
     const steps = rawEditorSteps(sp);
     for(let i = steps.length - 1; i >= 0; i--){
       const s = steps[i];
-      if(s && (s.hitTarget || s.hitDelay != null)){
-        const v = norm(s.hitDelay);
-        if(s.hitDelay != null && s.hitDelay !== ""){ baseDelay = v; sawHitStep = true; break; }
-        if(s.hitTarget){ sawHitStep = true; break; }
+      if(!s) continue;
+      if(hasSet(s.hitDelay)){
+        baseDelay = norm(s.hitDelay);
+        stepSetsDelay = true;
+        break;
       }
+      if(s.hitTarget) break;
     }
     if(di && hits > 1){
       const n = (hitIndex|0) + 1;
-      const per = norm(di["hitDelay"+n]);
-      if(di["hitDelay"+n] != null && di["hitDelay"+n] !== "") return per;
+      if(hasSet(di["hitDelay"+n])) return norm(di["hitDelay"+n]);
+      if(hasSet(di.hitDelay)) return norm(di.hitDelay);
     }
-    if(sawHitStep && baseDelay != null) return baseDelay;
-    if(sawHitStep) return null; /* step sans délai → défaut pendant l’anim */
+    if(stepSetsDelay) return baseDelay; /* peut être 0 */
     const vis = activeEvoVisual(sp);
-    if(vis && vis.fromVictory && vis.hitDelay != null && vis.hitDelay !== ""){
-      return norm(vis.hitDelay);
-    }
-    return null;
+    if(vis && vis.fromVictory && hasSet(vis.hitDelay)) return norm(vis.hitDelay);
+    return null; /* fin d’anim */
   }
   function hitDelayMsFromStart(hd, dur){
     if(typeof FantasyBridge!=="undefined" && FantasyBridge.hitDelayMsFromStart)
       return FantasyBridge.hitDelayMsFromStart(hd, dur);
     dur = Math.max(0, Number(dur)||0);
-    if(hd === "end" || hd === -1) return dur;
-    if(hd == null || hd === "" || hd === false)
-      return Math.max(0, Math.min(Math.max(0, dur-40), Math.round(dur*0.4)));
+    if(hd == null || hd === "" || hd === false || hd === "end" || hd === -1) return dur;
     const n = Number(hd);
-    if(!isFinite(n) || n < 0)
-      return Math.max(0, Math.min(Math.max(0, dur-40), Math.round(dur*0.4)));
-    return Math.min(dur, n|0);
+    if(!isFinite(n) || n < 0) return dur;
+    return Math.min(dur, Math.max(0, n|0));
   }
   function playEnemyHitReact(sp, hitIndex, hits){
     if(!G.enemy || !G.enemy.alive) return { anim:"None", fps:14 };
@@ -937,14 +934,13 @@
           hitIndex = Math.floor((i - 1) / stepsPerHit);
         }
       }
-      /* TakeDamage : pendant l’attaque par défaut (avant la fin), ou délai / fin si réglé */
+      /* TakeDamage : null = fin d’anim ; nombre (0+) = ms après le début de ton attaque */
       if(hitNow){
         const hd = resolveHitDelay(sp, hitIndex, Math.max(1, totalHits));
         const hitMs = hitDelayMsFromStart(hd, dur);
-        const fromStepStart = delay + hitMs;
         setTimeout(()=>{
           try{ onHit(hitIndex); }catch(_e){}
-        }, fromStepStart);
+        }, delay + hitMs);
       }
       setTimeout(()=>{ next(); }, delay + dur);
     }

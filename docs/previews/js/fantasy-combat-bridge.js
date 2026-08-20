@@ -882,21 +882,15 @@
 
   /**
    * Ms après le début de TON attaque avant TakeDamage.
-   * - null / absent → pendant l’anim (~40 %), avant la fin (comportement historique preview)
-   * - "end" / -1 → fin d’anim
-   * - nombre → délai exact
+   * - null / "end" → fin d’anim
+   * - nombre (y compris 0) → délai exact depuis le début de l’attaque
    */
   function hitDelayMsFromStart(hd, dur) {
     dur = Math.max(0, Number(dur) || 0);
-    if (hd === "end" || hd === -1) return dur;
-    if (hd == null || hd === "" || hd === false) {
-      return Math.max(0, Math.min(Math.max(0, dur - 40), Math.round(dur * 0.4)));
-    }
+    if (hd == null || hd === "" || hd === false || hd === "end" || hd === -1) return dur;
     const n = Number(hd);
-    if (!isFinite(n) || n < 0) {
-      return Math.max(0, Math.min(Math.max(0, dur - 40), Math.round(dur * 0.4)));
-    }
-    return Math.min(dur, n | 0);
+    if (!isFinite(n) || n < 0) return dur;
+    return Math.min(dur, Math.max(0, n | 0));
   }
 
   /** Steps pour prévisualisation / chaîne d’anim en combat. */
