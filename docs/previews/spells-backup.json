@@ -81,7 +81,7 @@
     "range": 1,
     "dmg": [
       4,
-      16
+      14
     ],
     "anim": "Kick",
     "type": "damage",
@@ -111,7 +111,7 @@
         "delay": 0
       },
       "1:Boxeur": {
-        "enabled": true,
+        "enabled": false,
         "anim": "Kick",
         "slash": "None",
         "effect": "None",
@@ -119,7 +119,7 @@
         "delay": 0
       },
       "1:Rapide": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Kick",
         "slash": "None",
         "effect": "None",
@@ -151,5 +151,85 @@
         "delay": 0
       }
     }
+  },
+  {
+    "id": "roulade",
+    "name": "Roulade",
+    "cost": 4,
+    "range": 1,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Attack1",
+    "type": "buff",
+    "animSeq": [
+      "Attack1"
+    ],
+    "evos": [],
+    "desc": "Roulade : hors corps à corps → se rapproche ; au corps à corps → recule",
+    "steps": [
+      {
+        "anim": "Attack1",
+        "delay": 0,
+        "move": "Idle",
+        "fps": 14,
+        "slash": "None",
+        "effect": "None",
+        "hitTarget": false
+      }
+    ],
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "effect": "roulade",
+    "push": 0
   }
 ]
