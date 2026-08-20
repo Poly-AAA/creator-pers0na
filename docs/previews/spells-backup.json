@@ -1,0 +1,155 @@
+[
+  {
+    "id": "punch",
+    "name": "Coup brut",
+    "cost": 2,
+    "range": 1,
+    "dmg": [
+      8,
+      12
+    ],
+    "anim": "Attack2",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [],
+    "steps": [
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 17,
+        "hitTarget": true
+      }
+    ],
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 12,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": true,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "None",
+        "fps": 17,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 17,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": true,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 17,
+        "delay": 0
+      }
+    }
+  },
+  {
+    "id": "coup_de_pied",
+    "name": "Coup de pied",
+    "cost": 4,
+    "range": 1,
+    "dmg": [
+      4,
+      16
+    ],
+    "anim": "Kick",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [],
+    "effect": "push",
+    "push": 1,
+    "desc": "Donne un coup de pied qui repousse l’ennemi de 1 case",
+    "steps": [
+      {
+        "anim": "Kick",
+        "delay": 0,
+        "move": "Idle",
+        "fps": 15,
+        "slash": "None",
+        "effect": "None",
+        "hitTarget": true
+      }
+    ],
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      }
+    }
+  }
+]
