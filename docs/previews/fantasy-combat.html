@@ -504,7 +504,7 @@
   ensureSpellEffects();
   /* Pas de migration qui réécrit les saves joueur. */
   function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
-  /** Remet les bonus d’évo combat à zéro (cases éditeur inchangées). */
+  /** Remet les évos de victoire à zéro (nouvelle partie). Cases éditeur inchangées. */
   function resetCombatEvos(){
     spellEvo = {};
     try{ localStorage.setItem(KEY_EVO, "{}"); }catch(_e){}
@@ -548,7 +548,7 @@
       hitDelay: step.hitDelay == null || step.hitDelay === "" ? null : Math.max(0, Number(step.hitDelay)|0),
     };
   }
-  /** Bonus : cases cochées éditeur + éventuelle évo victoire (reset chaque combat). */
+  /** Bonus : cases cochées éditeur + évos victoire (cumul sur la partie). */
   function evoBonusesFor(sp){
     const st = evoState(sp.id);
     const out = Object.assign({}, st.evo || {});
@@ -1200,8 +1200,7 @@
     G.castFx = null;
     G.combo = Math.max(0, Math.floor(G.combo * 0.35));
     if(!opts.keepFightN) G.fightN = (G.fightN|0) + 1;
-    /* Évos combat remises à zéro sauf juste après un choix victoire (keepEvo) */
-    if(!opts.keepEvo) resetCombatEvos();
+    /* Évos victoire : persistent toute la partie (pas reset ici). */
 
     /* joueur : soin partiel + reset PA/PM, reste en vie */
     const p = G.player;
@@ -1249,10 +1248,12 @@
     if(customSpells.length) return " · "+customSpells.length+" sort(s) éditeur";
     return " · ⚠ config éditeur absente — Éditeur → Combat ▶";
   }
+  /** Nouvelle partie : évos victoire à zéro (cases éditeur inchangées). */
   function forceRestartCombat(){
     G.awaitingNext=false; G.busy=false; G.pendingEvo=null;
     try{ closeEvo(); }catch(_e){}
     resetCombatEvos();
+    G.fightN = 0;
     G.turn="player";
     startNextFight({ force:true, keepLook:true, fullHeal:true });
   }
@@ -1286,13 +1287,15 @@
     G.armed = null; G.armedSlot = null;
     G.turn = "over";
     if(kind==="defeat"){
-      setStatus("Défaite · prochain adversaire…");
+      /* Défaite = fin de partie → évos victoire remises à zéro */
+      setStatus("Défaite · nouvelle partie…");
+      resetCombatEvos();
+      G.fightN = 0;
       setTimeout(()=> startNextFight({ force:true, fullHeal:true }), 1100);
       return;
     }
-    /* Victoire → reset évos combat, puis 1 choix (cases éditeur restent) */
+    /* Victoire → choix d’évo (cumul dans la partie), puis prochain combat */
     setTimeout(()=>{
-      resetCombatEvos();
       const offered = offerEvo(null, true);
       if(!offered){
         setStatus("Victoire · prochain adversaire…"+customSpellStatus());
@@ -2472,7 +2475,7 @@
         closeEvo();
         setStatus((sp?sp.name:pickId)+" → "+ch.name+" · "+ch.anim+(ch.fx?" +"+ch.fx:""));
         renderSpells();
-        if(wasVictory) setTimeout(()=> startNextFight({ force:true, keepEvo:true }), 450);
+        if(wasVictory) setTimeout(()=> startNextFight({ force:true }), 450);
       };
       host.appendChild(b);
     });
