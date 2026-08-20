@@ -183,7 +183,7 @@ const LEGACY_SPELL_IDS = new Set([
   "impulsion_emp","tempete_tesla","piratage_neural","rupture_synaptique",
   "compression","distorsion","armure_nanites","reconstruction","teleport",
   "dash","swap","gravjump","mine","turret","sniper","bouclier","overclock",
-  "double","invisibilite","kick",
+  "double","invisibilite",
 ]);
 /* Config anim sauvegardée (docs/previews/coup-brut-backup.json) — ne pas écraser au boot. */
 const SAVED_COUP_BRUT = {
@@ -193,12 +193,40 @@ const SAVED_COUP_BRUT = {
   evoConfig:{
     "1:Brise-Os":{ enabled:true, anim:"Attack2", slash:"None", effect:"None", fps:12, delay:0 },
     "1:Boxeur":{ enabled:true, anim:"Attack6", slash:"None", effect:"None", fps:17, delay:0 },
+    "1:Rapide":{ enabled:false, anim:"Kick", slash:"None", effect:"None", fps:14, delay:0 },
     "2:Uppercut":{ enabled:true, anim:"Special1", slash:"None", effect:"Effect1", fps:17, delay:0 },
     "2:Percutant":{ enabled:true, anim:"Attack6", slash:"None", effect:"None", fps:14, delay:0 },
     "2:Double Impact":{ enabled:true, anim:"Attack5", slash:"Slash2", effect:"None", fps:17, delay:0 },
   },
 };
-const BASE_SPELLS = [ JSON.parse(JSON.stringify(SAVED_COUP_BRUT)) ];
+/** Coup de pied : mêmes évos que Coup brut, anim Kick partout (pas d’autres sheets). */
+const SAVED_COUP_DE_PIED = {
+  id:"coup_de_pied",
+  name:"Coup de pied",
+  cost:4,
+  range:1,
+  dmg:[4,16],
+  anim:"Kick",
+  type:"damage",
+  aoe:0,
+  animSeq:[],
+  effect:"push",
+  push:1,
+  desc:"Donne un coup de pied qui repousse l’ennemi de 1 case",
+  steps:[{ anim:"Kick", delay:0, move:"Idle", fps:15, slash:"None", effect:"None", hitTarget:true }],
+  evoConfig:{
+    "1:Brise-Os":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+    "1:Boxeur":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+    "1:Rapide":{ enabled:false, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+    "2:Uppercut":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+    "2:Percutant":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+    "2:Double Impact":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+  },
+};
+const BASE_SPELLS = [
+  JSON.parse(JSON.stringify(SAVED_COUP_BRUT)),
+  JSON.parse(JSON.stringify(SAVED_COUP_DE_PIED)),
+];
 
 /* ────────────────────────────────────────────────────────────
    État
@@ -244,6 +272,49 @@ function ensurePunchAnims(){
   });
   if(changed) saveCustom();
 }
+/** Migre / seed Coup de pied avec les mêmes évos que Coup brut (anim Kick). */
+function ensureCoupDePied(){
+  const preset = JSON.parse(JSON.stringify(SAVED_COUP_DE_PIED));
+  /* Ancien id custom_* → id stable */
+  (customSpells||[]).forEach(s=>{
+    if(!s || !s.id) return;
+    if(s.id==="coup_de_pied") return;
+    const isKick = s.id==="kick" || /^custom_/.test(s.id) && /coup\s*de\s*pied/i.test(s.name||"");
+    if(isKick) s.id = "coup_de_pied";
+  });
+  let kick = (customSpells||[]).find(s=>s && s.id==="coup_de_pied");
+  if(!kick){
+    customSpells = [...(customSpells||[]).filter(s=>s && s.id!=="coup_de_pied"), preset];
+    /* garder punch en premier si présent */
+    customSpells.sort((a,b)=>{
+      if(a.id==="punch") return -1;
+      if(b.id==="punch") return 1;
+      if(a.id==="coup_de_pied") return -1;
+      if(b.id==="coup_de_pied") return 1;
+      return 0;
+    });
+    saveCustom();
+    return;
+  }
+  let changed = false;
+  if(!kick.effect || kick.effect==="none"){ kick.effect="push"; changed=true; }
+  if(kick.push==null && kick.pushDist==null){ kick.push=1; changed=true; }
+  if(!Array.isArray(kick.steps) || !kick.steps.length){
+    kick.steps = preset.steps;
+    kick.anim = "Kick";
+    changed = true;
+  }
+  if(!kick.evoConfig || !Object.keys(kick.evoConfig).length
+      || !Object.values(kick.evoConfig).some(e=>e && e.enabled)){
+    kick.evoConfig = preset.evoConfig;
+    changed = true;
+  } else {
+    Object.keys(preset.evoConfig).forEach(k=>{
+      if(!kick.evoConfig[k]){ kick.evoConfig[k]=preset.evoConfig[k]; changed=true; }
+    });
+  }
+  if(changed) saveCustom();
+}
 /** Infère effect:push depuis la description (ex. Coup de pied). */
 function ensureSpellEffects(){
   let changed=false;
@@ -268,6 +339,7 @@ function loadCustom(){
   importSpellsFromHash();
   pruneLegacySpells();
   ensurePunchAnims();
+  ensureCoupDePied();
   ensureSpellEffects();
 }
 function saveCustom(){
@@ -287,6 +359,7 @@ function importSpellsPack(b64){
     customSpells=arr;
     pruneLegacySpells();
     ensurePunchAnims();
+    ensureCoupDePied();
     ensureSpellEffects();
     saveCustom();
     return true;
@@ -309,6 +382,7 @@ function importSpellsJson(raw){
     customSpells=arr;
     pruneLegacySpells();
     ensurePunchAnims();
+    ensureCoupDePied();
     ensureSpellEffects();
     saveCustom();
     return true;
@@ -326,9 +400,13 @@ async function pasteSpellsBackup(){
   return importSpellsJson(raw);
 }
 /** Config Coup brut reconstruite depuis tes screenshots (août 2026). */
-const PRESET_COUP_BRUT = [ JSON.parse(JSON.stringify(SAVED_COUP_BRUT)) ];
+const PRESET_SPELLS = [
+  JSON.parse(JSON.stringify(SAVED_COUP_BRUT)),
+  JSON.parse(JSON.stringify(SAVED_COUP_DE_PIED)),
+];
+const PRESET_COUP_BRUT = PRESET_SPELLS; /* alias */
 function restorePresetCoupBrut(){
-  customSpells=JSON.parse(JSON.stringify(PRESET_COUP_BRUT));
+  customSpells=JSON.parse(JSON.stringify(PRESET_SPELLS));
   activeId="punch";
   saveCustom();
   /* Reset évos combat (stats victoire) — les cases éditeur = anim seulement */
@@ -336,13 +414,17 @@ function restorePresetCoupBrut(){
     const KEY_EVO="neuro.fantasySpellEvo";
     const raw=localStorage.getItem(KEY_EVO);
     const o=raw?JSON.parse(raw):{};
-    if(o && o.punch){ delete o.punch; localStorage.setItem(KEY_EVO, JSON.stringify(o)); }
+    if(o){
+      if(o.punch) delete o.punch;
+      if(o.coup_de_pied) delete o.coup_de_pied;
+      localStorage.setItem(KEY_EVO, JSON.stringify(o));
+    }
   }catch(_e){}
   renderNav();
   renderEditor();
   showSavedStatus();
   const st=document.getElementById("pvStatus");
-  if(st) st.textContent="Config Coup brut restaurée ✓ · Attack1@17 + évos anim";
+  if(st) st.textContent="Config restaurée ✓ · Coup brut + Coup de pied (évos Punch, anim Kick)";
   return true;
 }
 function copySpellsBackup(){
@@ -1176,7 +1258,7 @@ function boot(){
     }
   };
   document.getElementById("btnRestoreCoup").onclick=()=> restorePresetCoupBrut();
-  if(/(?:^|[?&])restore=coup-brut/i.test(location.search||"")) restorePresetCoupBrut();
+  if(/(?:^|[?&])restore=(coup-brut|spells)/i.test(location.search||"")) restorePresetCoupBrut();
   showSavedStatus();
 
   function resizePv(){

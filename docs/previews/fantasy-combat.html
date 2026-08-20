@@ -366,9 +366,24 @@
     evoConfig:{
       "1:Brise-Os":{ enabled:true, anim:"Attack2", slash:"None", effect:"None", fps:12, delay:0 },
       "1:Boxeur":{ enabled:true, anim:"Attack6", slash:"None", effect:"None", fps:17, delay:0 },
+      "1:Rapide":{ enabled:false, anim:"Kick", slash:"None", effect:"None", fps:14, delay:0 },
       "2:Uppercut":{ enabled:true, anim:"Special1", slash:"None", effect:"Effect1", fps:17, delay:0 },
       "2:Percutant":{ enabled:true, anim:"Attack6", slash:"None", effect:"None", fps:14, delay:0 },
       "2:Double Impact":{ enabled:true, anim:"Attack5", slash:"Slash2", effect:"None", fps:17, delay:0 },
+    },
+  };
+  const DEFAULT_COUP_DE_PIED = {
+    id:"coup_de_pied", name:"Coup de pied", cost:4, range:1, dmg:[4,16], anim:"Kick", type:"damage",
+    aoe:0, animSeq:[], effect:"push", push:1,
+    desc:"Donne un coup de pied qui repousse l’ennemi de 1 case",
+    steps:[{ anim:"Kick", delay:0, move:"Idle", fps:15, slash:"None", effect:"None", hitTarget:true }],
+    evoConfig:{
+      "1:Brise-Os":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+      "1:Boxeur":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+      "1:Rapide":{ enabled:false, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+      "2:Uppercut":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+      "2:Percutant":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+      "2:Double Impact":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
     },
   };
   let spellEvo = {};
@@ -422,6 +437,30 @@
       try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
     }
   }
+  function ensureCoupDePiedCustom(){
+    const preset = JSON.parse(JSON.stringify(DEFAULT_COUP_DE_PIED));
+    (customSpells||[]).forEach(s=>{
+      if(!s || !s.id || s.id==="coup_de_pied") return;
+      if(s.id==="kick" || (/^custom_/.test(s.id) && /coup\s*de\s*pied/i.test(s.name||""))) s.id="coup_de_pied";
+    });
+    let kick = (customSpells||[]).find(s=>s && s.id==="coup_de_pied");
+    const incomplete = !kick
+      || !Array.isArray(kick.steps) || !kick.steps.length
+      || !kick.evoConfig || !Object.keys(kick.evoConfig).length
+      || !Object.values(kick.evoConfig).some(e=>e && e.enabled);
+    if(!kick || incomplete){
+      if(kick){
+        if(!kick.effect || kick.effect==="none") kick.effect="push";
+        if(kick.push==null) kick.push=1;
+        if(!Array.isArray(kick.steps) || !kick.steps.length){ kick.steps=preset.steps; kick.anim="Kick"; }
+        kick.evoConfig = preset.evoConfig;
+      } else {
+        customSpells = (customSpells||[]).filter(s=>s && s.id!=="coup_de_pied").concat([preset]);
+      }
+      try{ localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+      try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+    }
+  }
   function importCustomSpellsFromHash(){
     const m=(location.hash||"").match(/fccSpells=([^&]+)/);
     if(!m) return false;
@@ -437,6 +476,7 @@
   }
   importCustomSpellsFromHash();
   ensurePunchCustom();
+  ensureCoupDePiedCustom();
   ensureSpellEffects();
   function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
   function evoState(id){
@@ -459,6 +499,7 @@
       }catch(_e){}
     }
     ensurePunchCustom();
+    ensureCoupDePiedCustom();
     ensureSpellEffects();
   }
   function normalizeCastStep(step){
@@ -1522,9 +1563,15 @@
     faceToward(G.enemy, G.player.c, G.player.r);
     playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
     let pushed = 0;
-    if(sp.effect==="push" && G.enemy.alive){
-      const cells = sp.push != null ? (sp.push|0) : (sp.pushDist != null ? (sp.pushDist|0) : 1);
-      pushed = pushEntityAway(G.enemy, G.player, Math.max(1, cells), "enemy");
+    {
+      let pushCells = 0;
+      if(sp.effect==="push"){
+        pushCells += sp.push != null ? (sp.push|0) : (sp.pushDist != null ? (sp.pushDist|0) : 1);
+      }
+      pushCells += (evo.push|0);
+      if(pushCells > 0 && G.enemy.alive){
+        pushed = pushEntityAway(G.enemy, G.player, Math.max(1, pushCells), "enemy");
+      }
     }
     G.combo = Math.min(100, G.combo + 22);
     setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" → "+total+(pushed?" · poussé "+pushed:""));
@@ -1940,6 +1987,11 @@
         if(ch.anim) st.evo.anim = ch.anim;
         st.evo.fx = ch.fx || null;
         applyEditorAnimOnPick(pickId, tier, ch.name, st);
+        /* Coup de pied : une seule anim dispo */
+        if(pickId==="coup_de_pied" || pickId==="kick"){
+          if(!st.evo) st.evo = {};
+          st.evo.anim = "Kick";
+        }
         saveEvo();
         const wasVictory = G.pendingEvo && G.pendingEvo.fromVictory;
         closeEvo();
