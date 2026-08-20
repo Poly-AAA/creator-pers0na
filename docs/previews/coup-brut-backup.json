@@ -1,0 +1,66 @@
+[
+  {
+    "id": "punch",
+    "name": "Coup brut",
+    "cost": 2,
+    "range": 1,
+    "dmg": [8, 12],
+    "anim": "Attack2",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [],
+    "steps": [
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 17,
+        "hitTarget": true
+      }
+    ],
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 12,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": true,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "None",
+        "fps": 17,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 17,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": true,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 17,
+        "delay": 0
+      }
+    }
+  }
+]

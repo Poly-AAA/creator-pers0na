@@ -102,8 +102,9 @@
     <a href="character-creator-fantasy.html" data-fcc="creator" style="flex:1 1 30%">Créateur</a>
     <button type="button" class="ok" id="btnCombatGo" style="flex:1 1 40%">Combat ▶</button>
     <button type="button" class="primary" id="btnSave" style="flex:1 1 25%">Sauver</button>
-    <button type="button" id="btnCopySave" style="flex:1 1 48%;font-size:11px">Copier config</button>
-    <button type="button" id="btnPasteSave" style="flex:1 1 48%;font-size:11px;background:#6b4a2e;color:#fff;border-color:#6b4a2e">Coller config</button>
+    <button type="button" id="btnCopySave" style="flex:1 1 32%;font-size:11px">Copier config</button>
+    <button type="button" id="btnPasteSave" style="flex:1 1 32%;font-size:11px;background:#6b4a2e;color:#fff;border-color:#6b4a2e">Coller config</button>
+    <button type="button" id="btnRestoreCoup" style="flex:1 1 32%;font-size:11px;background:#c45c26;color:#fff;border-color:#c45c26">Restaurer Coup brut</button>
   </div>
 </div>
 
@@ -248,6 +249,19 @@ async function pasteSpellsBackup(){
   raw=raw.trim();
   if(/^eyJ|^W3s/i.test(raw) || (raw.length>40 && !raw.startsWith("["))) return importSpellsPack(raw);
   return importSpellsJson(raw);
+}
+/** Config Coup brut reconstruite depuis tes screenshots (août 2026). */
+const PRESET_COUP_BRUT = [{"id":"punch","name":"Coup brut","cost":2,"range":1,"dmg":[8,12],"anim":"Attack2","type":"damage","aoe":0,"animSeq":[],"steps":[{"anim":"Attack1","move":"Idle","slash":"None","effect":"None","delay":0,"fps":17,"hitTarget":true}],"evoConfig":{"1:Brise-Os":{"enabled":true,"anim":"Attack2","slash":"None","effect":"None","fps":12,"delay":0},"1:Boxeur":{"enabled":true,"anim":"Attack6","slash":"None","effect":"None","fps":17,"delay":0},"2:Uppercut":{"enabled":true,"anim":"Special1","slash":"None","effect":"Effect1","fps":17,"delay":0},"2:Percutant":{"enabled":true,"anim":"Attack6","slash":"None","effect":"None","fps":14,"delay":0},"2:Double Impact":{"enabled":true,"anim":"Attack5","slash":"Slash2","effect":"None","fps":17,"delay":0}}}];
+function restorePresetCoupBrut(){
+  customSpells=JSON.parse(JSON.stringify(PRESET_COUP_BRUT));
+  activeId="punch";
+  saveCustom();
+  renderNav();
+  renderEditor();
+  showSavedStatus();
+  const st=document.getElementById("pvStatus");
+  if(st) st.textContent="Config Coup brut restaurée ✓ · 5 évos · step Attack1@17fps";
+  return true;
 }
 function copySpellsBackup(){
   const txt=exportSpellsJson();
@@ -1071,6 +1085,8 @@ function boot(){
       document.getElementById("pvStatus").textContent="Import échoué — vérifie le JSON";
     }
   };
+  document.getElementById("btnRestoreCoup").onclick=()=> restorePresetCoupBrut();
+  if(/(?:^|[?&])restore=coup-brut/i.test(location.search||"")) restorePresetCoupBrut();
   showSavedStatus();
 
   function resizePv(){
