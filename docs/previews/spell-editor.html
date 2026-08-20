@@ -753,7 +753,7 @@ function renderEditor(){
   /* ── Évolutions catalogue jeu ── */
   const evoCard=card("Évolutions du jeu");
   const evHint=document.createElement("p"); evHint.className="hint";
-  evHint.textContent="Coche chaque évolution et assigne son animation. Les évolutions actives se cumulent en combat.";
+  evHint.textContent="▶ Tester = aperçu anim ici. Pour tester le VRAI choix d’évo en combat : Combat ▶ → gagne le fight (ou bouton Évo en haut) → tu choisis Brise-Os / etc. Les cases cochées = anims cumulées au lancement du sort.";
   evoCard.appendChild(evHint);
 
   const sEvo = ensureEditable(activeId);

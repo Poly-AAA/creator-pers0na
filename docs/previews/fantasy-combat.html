@@ -859,10 +859,22 @@
     G.turn="player";
     startNextFight({ force:true, keepLook:true, fullHeal:true });
   }
+  function editorEvoEntry(spellId, tier, choiceName){
     reloadCustomSpells();
     const custom = customSpellById(spellId);
-    if(!custom || !custom.evoConfig) return false;
-    return Object.values(custom.evoConfig).some(e=> e && e.enabled);
+    if(!custom || !custom.evoConfig) return null;
+    const k = (typeof FantasyBridge!=="undefined" && FantasyBridge.evoCatalogKey)
+      ? FantasyBridge.evoCatalogKey(tier, choiceName) : (tier+":"+choiceName);
+    return custom.evoConfig[k] || null;
+  }
+  function applyEditorAnimOnPick(spellId, tier, choiceName, st){
+    const ed = editorEvoEntry(spellId, tier, choiceName);
+    if(!ed || !st) return;
+    if(!st.evo) st.evo = {};
+    if(ed.anim) st.evo.anim = ed.anim;
+    const slash = ed.slash && ed.slash!=="None" ? ed.slash : null;
+    const effect = ed.effect && ed.effect!=="None" ? ed.effect : null;
+    if(slash || effect) st.evo.fx = slash || effect;
   }
   function hasEditorEvos(spellId){
     reloadCustomSpells();
@@ -1752,14 +1764,17 @@
     choices.forEach((ch)=>{
       const b = document.createElement("button");
       b.type="button";
-      const fxLab = ch.fx ? ch.fx : "aucun";
-      b.innerHTML = "<b>"+ch.name+"</b><span>"+ch.d+"</span><span style=\"display:block;margin-top:4px;color:#5b7c99\">Anim "+(ch.anim||"?")+" · FX "+fxLab+"</span>";
+      const ed = editorEvoEntry(pickId, tier, ch.name);
+      const animShow = (ed && ed.anim) ? ed.anim : (ch.anim||"?");
+      const fxLab = (ed && ed.effect && ed.effect!=="None") ? ed.effect : (ed && ed.slash && ed.slash!=="None") ? ed.slash : (ch.fx ? ch.fx : "aucun");
+      b.innerHTML = "<b>"+ch.name+"</b><span>"+ch.d+"</span><span style=\"display:block;margin-top:4px;color:#5b7c99\">Anim "+animShow+(ed&&ed.anim?" · éditeur":"")+" · FX "+fxLab+"</span>";
       b.onclick=()=>{
         try{ ch.apply(st); }catch(_e){}
         st.tiersTaken = (st.tiersTaken|0) + 1;
         if(!st.evo) st.evo = {};
         if(ch.anim) st.evo.anim = ch.anim;
         st.evo.fx = ch.fx || null;
+        applyEditorAnimOnPick(pickId, tier, ch.name, st);
         saveEvo();
         const wasVictory = G.pendingEvo && G.pendingEvo.fromVictory;
         closeEvo();

@@ -216,11 +216,21 @@ start_cloudflared_tunnel() {
   tmux -f /exec-daemon/tmux.portal.conf new-session -d -s "$SESSION" -c /tmp -- \
     "/tmp/cloudflared tunnel --url http://127.0.0.1:${PORT} --no-autoupdate 2>&1 | tee $TUNNEL_LOG"
   local i url=""
-  for i in $(seq 1 45); do
+  for i in $(seq 1 60); do
     url="$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$TUNNEL_LOG" | tail -1 || true)"
     [[ -n "$url" ]] && break
     sleep 1
   done
+  # Cloudflare advertises the URL before the edge is reachable — retry verify.
+  if [[ -n "$url" ]]; then
+    for i in $(seq 1 30); do
+      if tunnel_alive "$url"; then
+        echo "$url"
+        return 0
+      fi
+      sleep 2
+    done
+  fi
   echo "$url"
 }
 
