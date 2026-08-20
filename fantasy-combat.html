@@ -568,7 +568,33 @@
   function spellHitCount(sp){
     return Math.max(1, 1 + ((evoBonusesFor(sp).hits)|0));
   }
-  /** Réaction ennemi (TakeDamage / Taunt / None) + FPS — sort, évo, ou coup 1/2 Double Impact. */
+  /** Visuel d’évo actif : choix victoire (partie) ou dernière case éditeur cochée. */
+  function activeEvoVisual(sp){
+    if(!sp) return null;
+    const st = evoState(sp.id);
+    if(st.evo && st.evo.anim){
+      return {
+        anim: st.evo.anim,
+        fps: st.evo.animFps != null ? st.evo.animFps : 14,
+        slash: st.evo.fx && /^Slash/i.test(st.evo.fx) ? st.evo.fx : "None",
+        effect: st.evo.fx && /^Effect/i.test(st.evo.fx) ? st.evo.fx : "None",
+        hitAnim: st.evo.hitAnim || null,
+        hitAnimFps: st.evo.hitAnimFps != null ? st.evo.hitAnimFps : null,
+        hitDelay: st.evo.hitDelay != null ? st.evo.hitDelay : null,
+        fromVictory: true,
+      };
+    }
+    reloadCustomSpells();
+    const custom = customSpellById(sp.id);
+    if(!custom || !custom.evoConfig) return null;
+    let last = null;
+    Object.keys(custom.evoConfig).sort().forEach(k=>{
+      const e = custom.evoConfig[k];
+      if(e && e.enabled) last = e;
+    });
+    return last;
+  }
+  /** Réaction ennemi (TakeDamage / Taunt / None) + FPS — step de base d’abord, puis évo. */
   function resolveHitReact(sp, hitIndex, hits){
     reloadCustomSpells();
     const c = customSpellById(sp && sp.id);
@@ -577,14 +603,13 @@
       if(a !== "None" && a !== "Taunt" && a !== "TakeDamage") a = "TakeDamage";
       let f = Number(fps);
       if(!isFinite(f) || f < 1) f = 14;
-      return { anim: a, fps: Math.min(30, f) };
+      return { anim: a, fps: Math.min(30, Math.max(1, f|0)) };
     };
-    const isExplicit = (anim)=> anim === "Taunt" || anim === "None";
     const di = c && c.evoConfig
       ? (c.evoConfig["2:Double Impact"] || c.evoConfig["2:Déchirure"] || c.evoConfig["2:Salve"])
       : null;
 
-    /* 1) Double Impact : coup 1 / coup 2 (prioritaire dès qu’il y a 2 frappes) */
+    /* 1) Double Impact : coup 1 / coup 2 si multi-frappes */
     if(di && hits > 1){
       const n = (hitIndex|0) + 1;
       if(di["hitAnim"+n] != null && di["hitAnim"+n] !== "")
@@ -593,47 +618,24 @@
         return pick(di.hitAnim, di.hitAnimFps);
     }
 
-    /* 2) Choix explicite Taunt / None (évos cochées, puis steps) — ne pas laisser un autre TakeDamage d’évo l’écraser */
-    if(c && c.evoConfig){
-      const keys = Object.keys(c.evoConfig).sort();
-      for(let i = keys.length - 1; i >= 0; i--){
-        const e = c.evoConfig[keys[i]];
-        if(e && e.enabled && isExplicit(e.hitAnim))
-          return pick(e.hitAnim, e.hitAnimFps);
-      }
-      /* DI partagé même si hits==1 (test éditeur) */
-      if(di && di.enabled && isExplicit(di.hitAnim))
-        return pick(di.hitAnim, di.hitAnimFps);
-      if(di && di.enabled){
-        const n = (hitIndex|0) + 1;
-        if(isExplicit(di["hitAnim"+n]))
-          return pick(di["hitAnim"+n], di["hitAnimFps"+n] != null ? di["hitAnimFps"+n] : di.hitAnimFps);
-      }
-    }
+    /* 2) Step de base (Coup brut etc.) — source principale pour hitAnim / FPS */
     {
-      const steps = editorCastSteps(sp) || [];
+      const steps = rawEditorSteps(sp);
       for(let i = steps.length - 1; i >= 0; i--){
         const s = steps[i];
-        if(s && isExplicit(s.hitAnim))
-          return pick(s.hitAnim, s.hitAnimFps);
-      }
-      /* 3) Step « frappe la cible » */
-      for(let i = steps.length - 1; i >= 0; i--){
-        const s = steps[i];
-        if(s && s.hitTarget)
+        if(!s) continue;
+        if(s.hitTarget)
           return pick(s.hitAnim || "TakeDamage", s.hitAnimFps);
+        if(s.hitAnim === "Taunt" || s.hitAnim === "None")
+          return pick(s.hitAnim, s.hitAnimFps);
       }
     }
 
-    /* 4) Dernière évo cochée (même TakeDamage) */
-    if(c && c.evoConfig){
-      let last = null;
-      Object.keys(c.evoConfig).sort().forEach(k=>{
-        const e = c.evoConfig[k];
-        if(e && e.enabled) last = e;
-      });
-      if(last) return pick(last.hitAnim || "TakeDamage", last.hitAnimFps);
-    }
+    /* 3) Évo cochée / victoire (si pas de step hit) */
+    const vis = activeEvoVisual(sp);
+    if(vis && (vis.hitAnim || vis.hitAnimFps != null))
+      return pick(vis.hitAnim || "TakeDamage", vis.hitAnimFps != null ? vis.hitAnimFps : 14);
+
     return pick("TakeDamage", 14);
   }
   /** Délai (ms) entre le début de TON anim d’attaque et TakeDamage. null = fin de l’anim. */
@@ -656,18 +658,8 @@
       const shared = numOrNull(di.hitDelay);
       if(shared != null) return shared;
     }
-    if(c && c.evoConfig){
-      let last = null;
-      Object.keys(c.evoConfig).sort().forEach(k=>{
-        const e = c.evoConfig[k];
-        if(e && e.enabled && e.hitDelay != null && e.hitDelay !== "") last = e;
-      });
-      if(last){
-        const v = numOrNull(last.hitDelay);
-        if(v != null) return v;
-      }
-    }
-    const steps = editorCastSteps(sp) || [];
+    /* Step de base d’abord */
+    const steps = rawEditorSteps(sp);
     for(let i = steps.length - 1; i >= 0; i--){
       const s = steps[i];
       if(s && (s.hitTarget || s.hitDelay != null)){
@@ -675,6 +667,11 @@
         if(v != null) return v;
         if(s.hitTarget) break;
       }
+    }
+    const vis = activeEvoVisual(sp);
+    if(vis){
+      const v = numOrNull(vis.hitDelay);
+      if(v != null) return v;
     }
     return null; /* fin d’anim */
   }
@@ -718,28 +715,58 @@
     const evo = evoBonusesFor(sp);
     return Math.max(0, (sp.range|0) + (evo.range|0));
   }
-  function editorCastSteps(sp){
+  /** Steps bruts de l’éditeur (sans overlay évo) — pour hitAnim / FPS / délai. */
+  function rawEditorSteps(sp){
     reloadCustomSpells();
-    const custom = customSpellById(sp.id);
-    /* 1) Séquence d'actions de l'éditeur (prioritaire) */
+    const custom = customSpellById(sp && sp.id);
     if(custom && Array.isArray(custom.steps) && custom.steps.length)
       return custom.steps.map(normalizeCastStep);
-    /* 2) Anim de l'évo déjà choisie en combat */
-    const st = evoState(sp.id);
-    if(st.evo && st.evo.anim){
-      const fx = st.evo.fx || null;
-      return [normalizeCastStep({
-        anim: st.evo.anim,
-        delay: 0,
-        fps: 14,
-        slash: fx && /^Slash/i.test(fx) ? fx : "None",
-        effect: fx && /^Effect/i.test(fx) ? fx : "None",
-      })];
+    return [];
+  }
+  /**
+   * Chaîne d’attaque jouée en combat :
+   * - steps éditeur (anim de base + hit)
+   * - si évo active (victoire ou case cochée) → remplace l’anim d’attaque / FX
+   *   mais garde hitAnim / hitAnimFps / hitDelay des steps
+   */
+  function editorCastSteps(sp){
+    reloadCustomSpells();
+    let steps = rawEditorSteps(sp);
+    const vis = activeEvoVisual(sp);
+    if(vis && vis.anim){
+      const slash = vis.slash && vis.slash !== "None" ? vis.slash : null;
+      const effect = vis.effect && vis.effect !== "None" ? vis.effect : null;
+      if(!steps.length){
+        return [normalizeCastStep({
+          anim: vis.anim,
+          delay: vis.delay != null ? vis.delay : 0,
+          fps: vis.fps != null ? vis.fps : 14,
+          slash: slash || "None",
+          effect: effect || "None",
+          hitTarget: true,
+          hitAnim: vis.hitAnim || "TakeDamage",
+          hitAnimFps: vis.hitAnimFps != null ? vis.hitAnimFps : 14,
+          hitDelay: vis.hitDelay != null ? vis.hitDelay : null,
+        })];
+      }
+      return steps.map(s=>{
+        const o = Object.assign({}, s, {
+          anim: vis.anim,
+          fps: vis.fps != null ? vis.fps : s.fps,
+        });
+        if(vis.delay != null) o.delay = vis.delay;
+        if(slash) o.slash = slash;
+        if(effect) o.effect = effect;
+        /* hit react : steps de base gagnent (réglage Coup brut) */
+        return normalizeCastStep(o);
+      });
     }
-    /* 3) Une seule évo cochée (la dernière) — PAS toute la chaîne (latence) */
+    if(steps.length) return steps;
+    /* Fallback catalogue évo cochées (sans steps) */
+    const custom = customSpellById(sp.id);
     if(custom && custom.evoConfig && typeof FantasyBridge!=="undefined" && FantasyBridge.buildEvoAnimSteps){
       const evoSteps = FantasyBridge.buildEvoAnimSteps(sp.id, custom.evoConfig) || [];
-      if(evoSteps.length) return [evoSteps[evoSteps.length - 1]];
+      if(evoSteps.length) return [normalizeCastStep(evoSteps[evoSteps.length - 1])];
     }
     return [];
   }
@@ -1270,9 +1297,13 @@
     if(!ed || !st) return;
     if(!st.evo) st.evo = {};
     if(ed.anim) st.evo.anim = ed.anim;
+    if(ed.fps != null) st.evo.animFps = ed.fps;
     const slash = ed.slash && ed.slash!=="None" ? ed.slash : null;
     const effect = ed.effect && ed.effect!=="None" ? ed.effect : null;
     if(slash || effect) st.evo.fx = slash || effect;
+    if(ed.hitAnim) st.evo.hitAnim = ed.hitAnim;
+    if(ed.hitAnimFps != null) st.evo.hitAnimFps = ed.hitAnimFps;
+    if(ed.hitDelay != null && ed.hitDelay !== "") st.evo.hitDelay = ed.hitDelay;
   }
   function hasEditorEvos(spellId){
     reloadCustomSpells();
