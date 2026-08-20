@@ -358,6 +358,19 @@
 
   const KEY_EVO = "neuro.fantasySpellEvo";
   const KEY_CUSTOM_SPELLS = "neuro.customSpells";
+  /* Fallback Coup brut (même config que docs/previews/coup-brut-backup.json) */
+  const DEFAULT_COUP_BRUT = {
+    id:"punch", name:"Coup brut", cost:2, range:1, dmg:[8,12], anim:"Attack2", type:"damage",
+    aoe:0, animSeq:[],
+    steps:[{ anim:"Attack1", move:"Idle", slash:"None", effect:"None", delay:0, fps:17, hitTarget:true }],
+    evoConfig:{
+      "1:Brise-Os":{ enabled:true, anim:"Attack2", slash:"None", effect:"None", fps:12, delay:0 },
+      "1:Boxeur":{ enabled:true, anim:"Attack6", slash:"None", effect:"None", fps:17, delay:0 },
+      "2:Uppercut":{ enabled:true, anim:"Special1", slash:"None", effect:"Effect1", fps:17, delay:0 },
+      "2:Percutant":{ enabled:true, anim:"Attack6", slash:"None", effect:"None", fps:14, delay:0 },
+      "2:Double Impact":{ enabled:true, anim:"Attack5", slash:"Slash2", effect:"None", fps:17, delay:0 },
+    },
+  };
   let spellEvo = {};
   let customSpells = [];
   try{
@@ -368,6 +381,31 @@
     const rawCs = localStorage.getItem(KEY_CUSTOM_SPELLS);
     if(rawCs) customSpells = JSON.parse(rawCs) || [];
   }catch(_e){}
+  function ensurePunchCustom(){
+    const preset = JSON.parse(JSON.stringify(DEFAULT_COUP_BRUT));
+    let punch = (customSpells||[]).find(s=>s && s.id==="punch");
+    const incomplete = !punch
+      || !Array.isArray(punch.steps) || !punch.steps.length
+      || !punch.evoConfig || !Object.keys(punch.evoConfig).length
+      || !Object.values(punch.evoConfig).some(e=>e && e.enabled);
+    if(!punch || incomplete){
+      if(punch){
+        punch.steps = preset.steps;
+        punch.anim = preset.anim;
+        punch.animSeq = [];
+        punch.aoe = preset.aoe;
+        punch.evoConfig = preset.evoConfig;
+        punch.cost = punch.cost != null ? punch.cost : preset.cost;
+        punch.range = punch.range != null ? punch.range : preset.range;
+        punch.dmg = punch.dmg || preset.dmg;
+        punch.type = punch.type || preset.type;
+      } else {
+        customSpells = [preset].concat((customSpells||[]).filter(s=>s && s.id!=="punch"));
+      }
+      try{ localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+      try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+    }
+  }
   function importCustomSpellsFromHash(){
     const m=(location.hash||"").match(/fccSpells=([^&]+)/);
     if(!m) return false;
@@ -382,6 +420,7 @@
     }catch(_e){ return false; }
   }
   importCustomSpellsFromHash();
+  ensurePunchCustom();
   function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
   function evoState(id){
     if(!spellEvo[id]) spellEvo[id] = { tiersTaken:0, evo:{} };
@@ -402,6 +441,7 @@
         if(raw) customSpells = JSON.parse(raw) || [];
       }catch(_e){}
     }
+    ensurePunchCustom();
   }
   function normalizeCastStep(step){
     if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None" };
