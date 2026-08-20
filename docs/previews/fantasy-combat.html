@@ -562,6 +562,17 @@
     const st = evoState(sp.id);
     return Object.assign({}, st.evo || {});
   }
+  /** Nombre de frappes / roulades : victoire hits, ou case « Double Impact » éditeur. */
+  function spellHitCount(sp){
+    let hits = 1 + ((evoBonusesFor(sp).hits)|0);
+    if(hits <= 1){
+      reloadCustomSpells();
+      const c = customSpellById(sp && sp.id);
+      const di = c && c.evoConfig && (c.evoConfig["2:Double Impact"] || c.evoConfig["2:Déchirure"] || c.evoConfig["2:Salve"]);
+      if(di && di.enabled) hits = 2;
+    }
+    return Math.max(1, hits|0);
+  }
   function spellRange(sp){
     if(!sp) return 0;
     const evo = evoBonusesFor(sp);
@@ -607,18 +618,23 @@
       for(const x of list) loadImg(f, x);
     }
   }
-  function playCastAnimChain(sp, onDone){
-    const steps = editorCastSteps(sp);
-    if(!steps.length){
+  function playCastAnimChain(sp, onDone, opts){
+    opts = opts || {};
+    const repeat = Math.max(1, opts.repeat|0 || 1);
+    let baseSteps = editorCastSteps(sp);
+    if(!baseSteps.length){
       const st = evoState(sp.id);
       const anim = (st.evo && st.evo.anim) || animForArmed(sp);
-      warmAnimForPlayer(anim);
-      playAnim(G.player, anim);
-      flashCastFx(sp);
-      setTimeout(onDone || (()=>{}), 650);
-      return;
+      baseSteps = [normalizeCastStep({ anim, fps:14 })];
+    }
+    /* Double Impact : rejouer toute la séquence N fois */
+    const steps = [];
+    for(let r=0;r<repeat;r++){
+      baseSteps.forEach(s=> steps.push(Object.assign({}, s)));
     }
     let i = 0;
+    const onHit = typeof opts.onHit === "function" ? opts.onHit : null;
+    const stepsPerHit = Math.max(1, baseSteps.length);
     function next(){
       if(i >= steps.length){
         playAnim(G.player, "Idle");
@@ -648,7 +664,11 @@
         G.player.stepFps=fps;
         dur=Math.max(120, Math.round((COLS/fps)*1000));
       }
-      setTimeout(next, delay+dur);
+      const hitNow = onHit && (i % stepsPerHit === 0);
+      setTimeout(()=>{
+        if(hitNow) try{ onHit(Math.floor((i-1)/stepsPerHit)); }catch(_e){}
+        next();
+      }, delay+dur);
     }
     next();
   }
@@ -1609,37 +1629,30 @@
     return false;
   }
 
-  /** Roulade animée : face destination, slide départ→arrivée pendant l’anim. */
-  function castRoulade(sp, evo){
+  /** Une roulade animée (slide + Rolling). Appelle onDone à la fin. */
+  function playOneRoulade(sp, evo, onDone){
     const planned = planRouladePath(G.player, sp, evo);
     const path = planned.path || [];
     if(!path.length){
-      setStatus("Roulade · bloqué");
-      G.armed=null; G.armedSlot=null;
-      recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+      if(typeof onDone === "function") onDone(null);
       return;
     }
     const from = { c:G.player.c, r:G.player.r };
     const to = path[path.length - 1];
-    /* Orientation = direction du déplacement (pas vers l’ennemi) */
     faceToward(G.player, to.c, to.r);
 
     reloadCustomSpells();
     const custom = customSpellById(sp.id) || sp;
     const rawStep = (custom.steps && custom.steps[0]) || (sp.steps && sp.steps[0]) || null;
     const step = normalizeCastStep(rawStep || { anim: (sp.anim||"Rolling"), fps:16 });
-    /* FPS éditeur (number) — ne pas laisser une string / null retomber sur 14 */
     let fps = Number(step.fps);
     if(!isFinite(fps) || fps < 1) fps = 14;
     fps = Math.max(1, Math.min(30, fps));
 
     warmAnimForPlayer(step.anim || "Rolling");
-    /* Durée = 1 passage du sheet à ce FPS (pas de padding qui fige la dernière frame) */
     const delay = Math.max(0, Number(step.delay)|0);
     const dur = delay + Math.max(120, Math.round((COLS / fps) * 1000));
 
-    G.busy = true;
-    G.armed = null; G.armedSlot = null;
     playAnim(G.player, step.anim || "Rolling");
     G.player.stepFps = fps;
     G.player.slide = {
@@ -1648,19 +1661,72 @@
       t0: performance.now(),
       dur,
     };
-    G.combo = Math.min(100, G.combo + 18);
-    setStatus("Roulade · "+planned.mode+" "+path.length+" · "+fps+" fps");
-    renderSpells(); hud();
 
     setTimeout(()=>{
       G.player.c = to.c;
       G.player.r = to.r;
       G.player.slide = null;
-      if(G.player.anim!=="Die") playAnim(G.player, "Idle");
       G.player.stepFps = null;
-      G.busy = false;
-      recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+      if(typeof onDone === "function") onDone(planned);
     }, dur);
+  }
+
+  /**
+   * Roulade : Double Impact = jusqu’à 2 roulades.
+   * Approche : 2e seulement si pas encore CAC après la 1re.
+   * Recul : toujours 2 si Double Impact.
+   */
+  function castRoulade(sp, evo){
+    const maxRolls = spellHitCount(sp);
+    const initialDist = G.enemy && G.enemy.alive ? dist(G.player, G.enemy) : 99;
+    const mode0 = initialDist <= 1 ? "recul" : "approche";
+
+    G.busy = true;
+    G.armed = null; G.armedSlot = null;
+    G.combo = Math.min(100, G.combo + 18);
+    renderSpells(); hud();
+
+    let rollsDone = 0;
+    let cellsMoved = 0;
+    let lastMode = mode0;
+
+    const finish = ()=>{
+      if(G.player.anim!=="Die") playAnim(G.player, "Idle");
+      G.busy = false;
+      setStatus(
+        "Roulade · "+lastMode+
+        (rollsDone > 1 ? " ×"+rollsDone : "")+
+        " · "+cellsMoved+" case"+(cellsMoved>1?"s":"")
+      );
+      recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+    };
+
+    const runRoll = (index)=>{
+      playOneRoulade(sp, evo, (planned)=>{
+        if(!planned || !planned.path || !planned.path.length){
+          if(rollsDone === 0) setStatus("Roulade · bloqué");
+          finish();
+          return;
+        }
+        rollsDone += 1;
+        cellsMoved += planned.path.length;
+        lastMode = planned.mode || lastMode;
+
+        const next = index + 1;
+        if(next >= maxRolls){
+          finish();
+          return;
+        }
+        /* Approche : stop si déjà CAC après la 1re. Recul : toujours enchaîner. */
+        if(mode0 === "approche" && G.enemy && G.enemy.alive && dist(G.player, G.enemy) <= 1){
+          finish();
+          return;
+        }
+        runRoll(next);
+      });
+    };
+
+    runRoll(0);
   }
 
   /** @deprecated kept for helpers — use castRoulade */
@@ -1758,36 +1824,57 @@
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
     faceToward(G.player, G.enemy.c, G.enemy.r);
     G.player.pa -= cost;
-    playCastAnimChain(sp, ()=>{
-      if(G.player.anim!=="Die") playAnim(G.player,"Idle");
-    });
-    let dmg = roll(sp.dmg || [6,10]) + (evo.dmg|0);
-    if(G.player.invis>0 && evo.invisBurst) dmg += evo.invisBurst|0;
-    const hits = 1 + (evo.hits|0);
+    G.busy = true;
+    const label = (G.armedSlot?G.armedSlot.label+" · ":"")+sp.name;
+    G.armed=null; G.armedSlot=null;
+    renderSpells(); hud();
+
+    const hits = spellHitCount(sp);
+    let dmgEach = roll(sp.dmg || [6,10]) + (evo.dmg|0);
+    if(G.player.invis>0 && evo.invisBurst) dmgEach += evo.invisBurst|0;
     let total = 0;
-    for(let i=0;i<hits;i++) total += dmg;
-    if(G.enemy.shield>0){ const a=Math.min(G.enemy.shield,total); G.enemy.shield-=a; total-=a; }
-    G.enemy.pv = Math.max(0, G.enemy.pv - total);
-    G.enemy.flash = performance.now()+180;
-    faceToward(G.enemy, G.player.c, G.player.r);
-    playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
     let pushed = 0;
-    {
-      let pushCells = 0;
-      if(sp.effect==="push"){
-        pushCells += sp.push != null ? (sp.push|0) : (sp.pushDist != null ? (sp.pushDist|0) : 1);
-      }
-      pushCells += (evo.push|0);
-      if(pushCells > 0 && G.enemy.alive){
+    let pushCells = 0;
+    if(sp.effect==="push"){
+      pushCells += sp.push != null ? (sp.push|0) : (sp.pushDist != null ? (sp.pushDist|0) : 1);
+    }
+    pushCells += (evo.push|0);
+
+    const applyOneHit = (hitIndex)=>{
+      if(!G.enemy.alive || G.enemy.pv <= 0) return;
+      let dmg = dmgEach;
+      if(G.enemy.shield>0){ const a=Math.min(G.enemy.shield,dmg); G.enemy.shield-=a; dmg-=a; }
+      G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
+      total += dmg;
+      G.enemy.flash = performance.now()+180;
+      faceToward(G.enemy, G.player.c, G.player.r);
+      playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
+      /* Push une seule fois, sur le dernier coup qui touche encore vivant / fin de chaîne */
+      if(pushCells > 0 && hitIndex === hits - 1 && G.enemy.pv > 0){
         pushed = pushEntityAway(G.enemy, G.player, Math.max(1, pushCells), "enemy");
       }
-    }
-    G.combo = Math.min(100, G.combo + 22);
-    setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" → "+total+(pushed?" · poussé "+pushed:""));
-    if(G.player.invis>0) G.player.invis = 0;
-    if(G.enemy.pv<=0){ G.enemy.alive=false; setStatus("Victoire"); onCombatEnd("win"); }
-    G.armed=null; G.armedSlot=null;
-    recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+      setStatus(label+" → "+dmg+(hits>1?" ("+(hitIndex+1)+"/"+hits+")":"")+(pushed?" · poussé "+pushed:""));
+      hud();
+    };
+
+    playCastAnimChain(sp, ()=>{
+      if(G.player.anim!=="Die") playAnim(G.player,"Idle");
+      G.combo = Math.min(100, G.combo + 22);
+      if(G.player.invis>0) G.player.invis = 0;
+      if(G.enemy.pv<=0){
+        G.enemy.alive=false;
+        setStatus("Victoire · "+label+" → "+total+(hits>1?" ×"+hits:""));
+        G.busy = false;
+        onCombatEnd("win");
+      } else {
+        setStatus(label+" → "+total+(hits>1?" ×"+hits:"")+(pushed?" · poussé "+pushed:""));
+        G.busy = false;
+      }
+      recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+    }, {
+      repeat: hits,
+      onHit: applyOneHit
+    });
   }
 
   /** Repousse `ent` loin de `from` sur N cases (si libre). */
