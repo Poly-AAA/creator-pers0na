@@ -661,83 +661,28 @@
   }
 
   /**
-   * Barre de sorts.
-   *
-   * Règle de départ : le personnage n'a PAS d'arme → uniquement
-   * Poing (Attack2) + Pied (Kick), les 4 autres slots verrouillés.
-   *
-   * Avec une arme équipée, les sorts bonus se débloquent selon le
-   * loadout habituel.  Les sorts supplémentaires débloqués via
-   * l'éditeur de sorts (neuro.unlockedSpells) s'ajoutent aux
-   * slots Bonus.
+   * Barre de sorts — temporaire : uniquement Coup brut (punch).
+   * Les autres slots restent verrouillés le temps de refaire les sorts.
    */
   function buildSpellBar(look) {
     const L = look || currentLook();
     const weapon = L.weapon && L.weapon !== "None" ? L.weapon : "None";
-    const offhand = L.offhand && L.offhand !== "None" ? L.offhand : "None";
-    const bag = L.backpack && L.backpack !== "None" ? L.backpack : "None";
-    const seed = lookSeed(L);
-    const wLoad = loadoutForWeapon(weapon);
     const hasWeapon = weapon !== "None";
-
-    /* Sorts débloqués via éditeur */
-    let unlocked = [];
-    try {
-      const raw = typeof localStorage !== "undefined" && localStorage.getItem("neuro.unlockedSpells");
-      if (raw) unlocked = JSON.parse(raw) || [];
-    } catch (_e) {}
-
-    const slots = [
+    return [
       {
         slot: "weapon",
-        label: "Poing",
-        spellId: hasWeapon ? wLoad.baseSpell : "punch",
+        label: "Coup brut",
+        spellId: "punch",
         anim: hasWeapon ? animForGear("weapon", weapon) : "Attack2",
         source: weapon,
         locked: false,
       },
-      {
-        slot: "kick",
-        label: "Pied",
-        spellId: "punch",  /* même sort, anim différente */
-        anim: "Kick",
-        source: "bare",
-        locked: false,
-      },
-      {
-        slot: "offhand",
-        label: "Gauche",
-        spellId: OFFHAND_SPELL[offhand] || null,
-        anim: animForGear("offhand", offhand),
-        source: offhand,
-        locked: !hasWeapon || offhand === "None",
-      },
-      {
-        slot: "hero",
-        label: "Perso",
-        spellId: hasWeapon ? pickStable(HERO_SPELL_POOL, seed, "hero") : (unlocked[0] || null),
-        anim: "Special1",
-        source: "hero",
-        locked: !hasWeapon && !unlocked[0],
-      },
-      {
-        slot: "bonusA",
-        label: "Bonus",
-        spellId: hasWeapon ? pickStable(BONUS_A_POOL, seed, "bonusA") : (unlocked[1] || null),
-        anim: pickStable(["Attack2", "Attack4", "Kick"], seed, "bonusAanim"),
-        source: "bonusA",
-        locked: !hasWeapon && !unlocked[1],
-      },
-      {
-        slot: "bonusB",
-        label: "Bonus",
-        spellId: hasWeapon ? pickStable(BONUS_B_POOL, seed, "bonusB") : (unlocked[2] || null),
-        anim: pickStable(["Special1", "Attack5", "Attack3"], seed, "bonusBanim"),
-        source: "bonusB",
-        locked: !hasWeapon && !unlocked[2],
-      },
+      { slot: "kick", label: "—", spellId: null, anim: null, source: null, locked: true },
+      { slot: "offhand", label: "—", spellId: null, anim: null, source: null, locked: true },
+      { slot: "hero", label: "—", spellId: null, anim: null, source: null, locked: true },
+      { slot: "bonusA", label: "—", spellId: null, anim: null, source: null, locked: true },
+      { slot: "bonusB", label: "—", spellId: null, anim: null, source: null, locked: true },
     ];
-    return slots;
   }
 
   function isSelfSpellId(spellId) {

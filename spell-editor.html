@@ -176,18 +176,17 @@ const BODY_OVERLAYS = ["Aucun","NakedBody2","NakedBody3"]; // squelette/éthér�
 /* ────────────────────────────────────────────────────────────
    SPELLS catalogue de base (mêmes que combat)
 ──────────────────────────────────────────────────────────── */
+/* Pour l’instant : seul Coup brut. Les anciens sorts sont retirés — tu pourras tout refaire via « + Nouveau ». */
+const LEGACY_SPELL_IDS = new Set([
+  "monofil","arc","surchauffe","parasite","gravite","nanites","drone",
+  "tir_magnetique","impact_cinetique","bombe_thermique","lance_flammes",
+  "impulsion_emp","tempete_tesla","piratage_neural","rupture_synaptique",
+  "compression","distorsion","armure_nanites","reconstruction","teleport",
+  "dash","swap","gravjump","mine","turret","sniper","bouclier","overclock",
+  "double","invisibilite","kick",
+]);
 const BASE_SPELLS = [
-  { id:"punch",   name:"Coup brut",        cost:2, range:1, dmg:[8,12],   anim:"Attack2", type:"damage" },
-  { id:"monofil", name:"Lame spectrale",   cost:3, range:1, dmg:[14,18],  anim:"Attack3", type:"damage" },
-  { id:"arc",     name:"Éclair runique",   cost:3, range:4, dmg:[10,15],  anim:"Attack1", type:"damage" },
-  { id:"surchauffe",name:"Brasier",        cost:4, range:3, dmg:[16,22],  anim:"Attack5", type:"damage" },
-  { id:"gravite", name:"Poussée tellurique",cost:4,range:3, dmg:[8,12],   anim:"Special1",type:"damage" },
-  { id:"nanites", name:"Soin de lumière",  cost:4, range:0, heal:[15,15], anim:"Special1",type:"heal" },
-  { id:"dash",    name:"Charge",           cost:2, range:4, dmg:[10,14],  anim:"AttackRun",type:"damage"},
-  { id:"mine",    name:"Rune piégée",      cost:2, range:2, dmg:[12,16],  anim:"Kick",    type:"damage" },
-  { id:"bouclier",name:"Égide",            cost:3, range:0, heal:[8,12],  anim:"Special1",type:"shield" },
-  { id:"double",  name:"Sosie",            cost:3, range:0, anim:"Special1",type:"clone",  dmg:[8,12]   },
-  { id:"invisibilite",name:"Voile d'ombre",cost:3,range:0, anim:"Special1",type:"buff",   invisTurns:2 },
+  { id:"punch", name:"Coup brut", cost:2, range:1, dmg:[8,12], anim:"Attack2", type:"damage" },
 ];
 
 /* ────────────────────────────────────────────────────────────
@@ -196,6 +195,11 @@ const BASE_SPELLS = [
 let customSpells = [];  // sorts créés / modifiés
 let activeId = null;    // sort en cours d'édition
 
+function pruneLegacySpells(){
+  const before = customSpells.length;
+  customSpells = (customSpells||[]).filter(s=>s && s.id && (s.id==="punch" || !LEGACY_SPELL_IDS.has(s.id)));
+  if(customSpells.length !== before) saveCustom();
+}
 function loadCustom(){
   try{ const r=localStorage.getItem(KEY_SPELLS); if(r) customSpells=JSON.parse(r)||[]; }catch(_e){}
   try{
@@ -204,6 +208,7 @@ function loadCustom(){
   }catch(_e){}
   /* Hash (#fccSpells=…) = transport explicite — doit écraser le localStorage stale */
   importSpellsFromHash();
+  pruneLegacySpells();
 }
 function saveCustom(){
   try{
@@ -220,6 +225,7 @@ function importSpellsPack(b64){
     const arr=JSON.parse(decodeURIComponent(escape(atob(String(b64).trim()))));
     if(!Array.isArray(arr)) return false;
     customSpells=arr;
+    pruneLegacySpells();
     saveCustom();
     return true;
   }catch(_e){ return false; }
@@ -239,6 +245,7 @@ function importSpellsJson(raw){
     const arr=JSON.parse(String(raw||"").trim());
     if(!Array.isArray(arr)) return false;
     customSpells=arr;
+    pruneLegacySpells();
     saveCustom();
     return true;
   }catch(_e){ return false; }
