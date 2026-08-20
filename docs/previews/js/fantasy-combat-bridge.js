@@ -873,8 +873,9 @@
   function animStepTiming(step, cols) {
     cols = cols || 15;
     const delay = Math.max(0, step.delay != null ? (step.delay | 0) : 0);
-    let fps = step.fps != null ? step.fps : 14;
-    if (fps < 1) fps = 14;
+    let fps = step.fps != null ? Number(step.fps) : 14;
+    if (!isFinite(fps) || fps < 1) fps = 14;
+    fps = Math.max(1, Math.min(60, fps));
     const dur = Math.max(120, Math.round((cols / fps) * 1000));
     return { delay: delay, dur: dur, fps: fps };
   }

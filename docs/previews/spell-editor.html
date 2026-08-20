@@ -151,6 +151,7 @@ const BASE_LOCAL = "assets/packs/fantasy-cc/";
 /** Hébergement sans dossier assets (Litterbox, etc.) → CDN en priorité */
 const HOST_STANDALONE = /litter\.(catbox|box)\.moe|catbox\.moe|trycloudflare\.com|htmlpreview\.github\.io/i.test(location.hostname);
 const FW=128, FH=128, COLS=15, FPS=14;
+const FPS_MAX=60; /* TakeDamage / attaques : au-delà de 30 autorisé */
 const KEY_SPELLS = "neuro.customSpells";
 const KEY_LOOK   = "neuro.fantasyLook";
 
@@ -987,12 +988,12 @@ function renderEditor(){
       /* Pause avant TON anim (pas le TakeDamage ennemi) */
       box.appendChild(mkNumRow("Pause avant ton anim (ms)", st.delay||0, 0, 3000, 50, v=>{ st.delay=v; scheduleAutoSave(); }));
       /* Vitesse (FPS) */
-      box.appendChild(mkNumRow("Vitesse ton anim (FPS)", st.fps||14, 1, 30, 1, v=>{ st.fps=v; scheduleAutoSave(); }));
+      box.appendChild(mkNumRow("Vitesse ton anim (FPS)", st.fps||14, 1, FPS_MAX, 1, v=>{ st.fps=v; scheduleAutoSave(); }));
       /* Hit sur la cible */
       box.appendChild(mkCheckRow("Frappe la cible", !!st.hitTarget, v=>{ st.hitTarget=v; scheduleAutoSave(); renderSteps(); }));
       if(st.hitTarget){
         box.appendChild(mkSelectRow("Réaction ennemi", HIT_REACT_ANIMS, st.hitAnim||"TakeDamage", v=>{ st.hitAnim=v; scheduleAutoSave(); }));
-        box.appendChild(mkNumRow("FPS réaction", st.hitAnimFps!=null?st.hitAnimFps:14, 1, 30, 1, v=>{ st.hitAnimFps=v; scheduleAutoSave(); }));
+        box.appendChild(mkNumRow("FPS réaction", st.hitAnimFps!=null?st.hitAnimFps:14, 1, FPS_MAX, 1, v=>{ st.hitAnimFps=v; scheduleAutoSave(); }));
         box.appendChild(mkHitDelayRow(st.hitDelay, v=>{ st.hitDelay=v; scheduleAutoSave(); }));
       }
 
@@ -1120,7 +1121,7 @@ function mkHitDelayRow(val, onChange){
   wrap.style.cssText="margin-bottom:6px;padding:6px 8px;border:1px dashed var(--line2);border-radius:8px;background:var(--bg)";
   const tip=document.createElement("div");
   tip.style.cssText="font-size:10px;color:var(--ink2);margin-bottom:4px;line-height:1.35";
-  tip.textContent="Délai impact = temps entre le début de TON attaque et le TakeDamage ennemi.";
+  tip.textContent="Délai impact = début de TON attaque → TakeDamage. Décoche « fin d’anim » et mets un petit ms pour démarrer TakeDamage AVANT la fin.";
   wrap.appendChild(tip);
   const atEnd = val==null || val==="" || val===false;
   const row=document.createElement("label");
@@ -1201,7 +1202,7 @@ function renderEvoChoice(spellId, tier, choice, spell){
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
     if(e){ e.delay=v; scheduleAutoSave(); }
   }));
-  div.appendChild(mkNumRow("Vitesse ton anim (FPS)", entry.fps!=null?entry.fps:14, 1, 30, 1, v=>{
+  div.appendChild(mkNumRow("Vitesse ton anim (FPS)", entry.fps!=null?entry.fps:14, 1, FPS_MAX, 1, v=>{
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
     if(e){ e.fps=v; scheduleAutoSave(); }
   }));
@@ -1211,7 +1212,7 @@ function renderEvoChoice(spellId, tier, choice, spell){
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
     if(e){ e.hitAnim=v; scheduleAutoSave(); }
   }));
-  div.appendChild(mkNumRow("FPS réaction", entry.hitAnimFps!=null?entry.hitAnimFps:14, 1, 30, 1, v=>{
+  div.appendChild(mkNumRow("FPS réaction", entry.hitAnimFps!=null?entry.hitAnimFps:14, 1, FPS_MAX, 1, v=>{
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
     if(e){ e.hitAnimFps=v; scheduleAutoSave(); }
   }));
@@ -1220,17 +1221,29 @@ function renderEvoChoice(spellId, tier, choice, spell){
     if(e){ e.hitDelay=v; scheduleAutoSave(); }
   }));
 
-  /* Double Impact : réaction + FPS + délai séparés pour les 2 coups */
+  /* Double Impact : 2 anims d’attaque + réaction / FPS / délai par coup */
   if(/Double Impact|Déchirure|Salve/i.test(choice.name||"")){
     const sep=document.createElement("div");
     sep.style.cssText="margin:6px 0 4px;padding-top:6px;border-top:1px dashed var(--line2);font-size:10px;font-weight:700;color:var(--acc)";
-    sep.textContent="Double Impact — par coup";
+    sep.textContent="Double Impact — 2 coups (anims combinables)";
     div.appendChild(sep);
+    const hint=document.createElement("div");
+    hint.style.cssText="font-size:10px;color:var(--ink2);margin-bottom:6px;line-height:1.35";
+    hint.textContent="Choisis une anim différente par coup (sinon la même est rejouée ×2).";
+    div.appendChild(hint);
+    div.appendChild(mkSelectRow("Coup 1 · anim attaque", ALL_ANIMS, entry.anim1||entry.anim||choice.anim||"Attack1", v=>{
+      const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+      if(e){ e.anim1=v; scheduleAutoSave(); }
+    }));
+    div.appendChild(mkNumRow("Coup 1 · FPS attaque", entry.fps1!=null?entry.fps1:(entry.fps!=null?entry.fps:14), 1, FPS_MAX, 1, v=>{
+      const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+      if(e){ e.fps1=v; scheduleAutoSave(); }
+    }));
     div.appendChild(mkSelectRow("Coup 1 · réaction", HIT_REACT_ANIMS, entry.hitAnim1||entry.hitAnim||"TakeDamage", v=>{
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.hitAnim1=v; scheduleAutoSave(); }
     }));
-    div.appendChild(mkNumRow("Coup 1 · FPS", entry.hitAnimFps1!=null?entry.hitAnimFps1:(entry.hitAnimFps!=null?entry.hitAnimFps:14), 1, 30, 1, v=>{
+    div.appendChild(mkNumRow("Coup 1 · FPS réaction", entry.hitAnimFps1!=null?entry.hitAnimFps1:(entry.hitAnimFps!=null?entry.hitAnimFps:14), 1, FPS_MAX, 1, v=>{
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.hitAnimFps1=v; scheduleAutoSave(); }
     }));
@@ -1238,11 +1251,19 @@ function renderEvoChoice(spellId, tier, choice, spell){
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.hitDelay1=v; scheduleAutoSave(); }
     }));
+    div.appendChild(mkSelectRow("Coup 2 · anim attaque", ALL_ANIMS, entry.anim2||entry.anim||choice.anim||"Attack1", v=>{
+      const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+      if(e){ e.anim2=v; scheduleAutoSave(); }
+    }));
+    div.appendChild(mkNumRow("Coup 2 · FPS attaque", entry.fps2!=null?entry.fps2:(entry.fps!=null?entry.fps:14), 1, FPS_MAX, 1, v=>{
+      const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
+      if(e){ e.fps2=v; scheduleAutoSave(); }
+    }));
     div.appendChild(mkSelectRow("Coup 2 · réaction", HIT_REACT_ANIMS, entry.hitAnim2||entry.hitAnim||"TakeDamage", v=>{
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.hitAnim2=v; scheduleAutoSave(); }
     }));
-    div.appendChild(mkNumRow("Coup 2 · FPS", entry.hitAnimFps2!=null?entry.hitAnimFps2:(entry.hitAnimFps!=null?entry.hitAnimFps:14), 1, 30, 1, v=>{
+    div.appendChild(mkNumRow("Coup 2 · FPS réaction", entry.hitAnimFps2!=null?entry.hitAnimFps2:(entry.hitAnimFps!=null?entry.hitAnimFps:14), 1, FPS_MAX, 1, v=>{
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.hitAnimFps2=v; scheduleAutoSave(); }
     }));
@@ -1257,6 +1278,22 @@ function renderEvoChoice(spellId, tier, choice, spell){
   testB.onclick=()=>{
     const s2=ensureEditable(spellId);
     const e=evoEntry(s2, tier, choice);
+    const isDI=/Double Impact|Déchirure|Salve/i.test(choice.name||"");
+    if(isDI){
+      const mk=(n)=>({
+        anim: (e&&(e["anim"+n]||e.anim))||choice.anim||"Attack1",
+        delay: n===1 ? ((e&&e.delay)||0) : 0,
+        fps: (e&&(e["fps"+n]!=null?e["fps"+n]:e.fps))!=null?(e["fps"+n]!=null?e["fps"+n]:e.fps):14,
+        slash: (e&&e.slash)||"None",
+        effect: (e&&e.effect)||"None",
+        hitTarget:true,
+        hitAnim: (e&&(e["hitAnim"+n]||e.hitAnim))||"TakeDamage",
+        hitAnimFps: (e&&(e["hitAnimFps"+n]!=null?e["hitAnimFps"+n]:e.hitAnimFps))!=null?(e["hitAnimFps"+n]!=null?e["hitAnimFps"+n]:e.hitAnimFps):14,
+        hitDelay: (e&&(e["hitDelay"+n]!=null?e["hitDelay"+n]:e.hitDelay))!=null?(e["hitDelay"+n]!=null?e["hitDelay"+n]:e.hitDelay):null,
+      });
+      previewAction([normalizeStep(mk(1)), normalizeStep(mk(2))]);
+      return;
+    }
     previewAction([normalizeStep({
       anim: (e&&e.anim)||choice.anim||"Attack1",
       delay:(e&&e.delay)||0,
