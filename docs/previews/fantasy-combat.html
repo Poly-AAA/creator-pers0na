@@ -586,7 +586,7 @@
     }
     return null;
   }
-  /** Réaction ennemi (TakeDamage / Taunt / None) + FPS — step de base d’abord, puis évo. */
+  /** Réaction ennemi (TakeDamage / Taunt / None) + FPS — TOUJOURS le step en base. */
   function resolveHitReact(sp, hitIndex, hits){
     reloadCustomSpells();
     const c = customSpellById(sp && sp.id);
@@ -597,38 +597,49 @@
       if(!isFinite(f) || f < 1) f = 14;
       return { anim: a, fps: Math.min(30, Math.max(1, f|0)) };
     };
+    /* Base = step Coup brut (source de vérité joueur) */
+    let baseAnim = "TakeDamage";
+    let baseFps = 14;
+    const steps = rawEditorSteps(sp);
+    for(let i = steps.length - 1; i >= 0; i--){
+      const s = steps[i];
+      if(!s) continue;
+      if(s.hitTarget){
+        baseAnim = s.hitAnim || "TakeDamage";
+        baseFps = s.hitAnimFps != null ? Number(s.hitAnimFps) : 14;
+        break;
+      }
+      if(s.hitAnim === "Taunt" || s.hitAnim === "None"){
+        baseAnim = s.hitAnim;
+        baseFps = s.hitAnimFps != null ? Number(s.hitAnimFps) : 14;
+        break;
+      }
+    }
+    if(!isFinite(baseFps) || baseFps < 1) baseFps = 14;
+
     const di = c && c.evoConfig
       ? (c.evoConfig["2:Double Impact"] || c.evoConfig["2:Déchirure"] || c.evoConfig["2:Salve"])
       : null;
 
-    /* 1) Double Impact : coup 1 / coup 2 si multi-frappes */
+    /* Multi-frappes : override UNIQUEMENT si coup1/coup2 est rempli — sinon garder le step */
     if(di && hits > 1){
       const n = (hitIndex|0) + 1;
-      if(di["hitAnim"+n] != null && di["hitAnim"+n] !== "")
-        return pick(di["hitAnim"+n], di["hitAnimFps"+n] != null ? di["hitAnimFps"+n] : di.hitAnimFps);
-      if(di.hitAnim != null && di.hitAnim !== "")
-        return pick(di.hitAnim, di.hitAnimFps);
-    }
-
-    /* 2) Step de base (Coup brut etc.) — source principale pour hitAnim / FPS */
-    {
-      const steps = rawEditorSteps(sp);
-      for(let i = steps.length - 1; i >= 0; i--){
-        const s = steps[i];
-        if(!s) continue;
-        if(s.hitTarget)
-          return pick(s.hitAnim || "TakeDamage", s.hitAnimFps);
-        if(s.hitAnim === "Taunt" || s.hitAnim === "None")
-          return pick(s.hitAnim, s.hitAnimFps);
+      const animN = di["hitAnim"+n];
+      const fpsN = di["hitAnimFps"+n];
+      if((animN != null && animN !== "") || (fpsN != null && fpsN !== "")){
+        return pick(
+          (animN != null && animN !== "") ? animN : baseAnim,
+          fpsN != null && fpsN !== "" ? fpsN : baseFps
+        );
       }
     }
 
-    /* 3) Évo cochée / victoire (si pas de step hit) */
+    /* Victoire (partie) : hitAnim stocké au pick — seulement si présent */
     const vis = activeEvoVisual(sp);
-    if(vis && (vis.hitAnim || vis.hitAnimFps != null))
-      return pick(vis.hitAnim || "TakeDamage", vis.hitAnimFps != null ? vis.hitAnimFps : 14);
+    if(vis && vis.fromVictory && (vis.hitAnim || vis.hitAnimFps != null))
+      return pick(vis.hitAnim || baseAnim, vis.hitAnimFps != null ? vis.hitAnimFps : baseFps);
 
-    return pick("TakeDamage", 14);
+    return pick(baseAnim, baseFps);
   }
   /** Délai (ms) entre le début de TON anim d’attaque et TakeDamage. null = fin de l’anim. */
   function resolveHitDelay(sp, hitIndex, hits){
@@ -643,25 +654,25 @@
       if(!isFinite(n) || n < 0) return null;
       return Math.min(3000, n|0);
     };
-    if(di && hits > 1){
-      const n = (hitIndex|0) + 1;
-      const per = numOrNull(di["hitDelay"+n]);
-      if(per != null) return per;
-      const shared = numOrNull(di.hitDelay);
-      if(shared != null) return shared;
-    }
     /* Step de base d’abord */
+    let baseDelay = null;
     const steps = rawEditorSteps(sp);
     for(let i = steps.length - 1; i >= 0; i--){
       const s = steps[i];
       if(s && (s.hitTarget || s.hitDelay != null)){
         const v = numOrNull(s.hitDelay);
-        if(v != null) return v;
+        if(v != null){ baseDelay = v; break; }
         if(s.hitTarget) break;
       }
     }
+    if(di && hits > 1){
+      const n = (hitIndex|0) + 1;
+      const per = numOrNull(di["hitDelay"+n]);
+      if(per != null) return per;
+    }
+    if(baseDelay != null) return baseDelay;
     const vis = activeEvoVisual(sp);
-    if(vis){
+    if(vis && vis.fromVictory){
       const v = numOrNull(vis.hitDelay);
       if(v != null) return v;
     }
