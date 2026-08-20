@@ -409,20 +409,15 @@
     if(rawCs) customSpells = JSON.parse(rawCs) || [];
   }catch(_e){}
   function ensureSpellEffects(){
-    let changed=false;
     (customSpells||[]).forEach(s=>{
       if(!s || !s.id) return;
       if((!s.effect || s.effect==="none") && /repouss/i.test(s.desc||"")){
         s.effect="push";
         if(s.push==null && s.pushDist==null) s.push=1;
-        changed=true;
       }
-      if(s.effect==="push" && s.push==null && s.pushDist==null){ s.push=1; changed=true; }
+      if(s.effect==="push" && s.push==null && s.pushDist==null) s.push=1;
     });
-    if(changed){
-      try{ localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
-      try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
-    }
+    /* Ne pas réécrire localStorage ici. */
   }
   function fillMissingEvoKeysCombat(spell, presetEvo){
     if(!spell) return;
@@ -553,12 +548,23 @@
       hitDelay: step.hitDelay == null || step.hitDelay === "" ? null : Math.max(0, Number(step.hitDelay)|0),
     };
   }
-  /** Bonus évo VICTOIRE seulement — les cases éditeur = anim/FX, pas les stats. */
+  /** Bonus : cases cochées éditeur + éventuelle évo victoire (reset chaque combat). */
   function evoBonusesFor(sp){
     const st = evoState(sp.id);
-    return Object.assign({}, st.evo || {});
+    const out = Object.assign({}, st.evo || {});
+    reloadCustomSpells();
+    const custom = customSpellById(sp.id);
+    if(custom && custom.evoConfig && typeof FantasyBridge!=="undefined" && FantasyBridge.editorEvoBonuses){
+      const ed = FantasyBridge.editorEvoBonuses(sp.id, custom.evoConfig);
+      Object.keys(ed).forEach(k=>{
+        /* anim/fx = config visuelle, pas des stats numériques */
+        if(k==="anim" || k==="fx" || k==="spectacle") return;
+        out[k] = (out[k]|0) + (ed[k]|0);
+      });
+    }
+    return out;
   }
-  /** Nombre de frappes : uniquement si l’évo victoire a donné des hits (pas les cases éditeur). */
+  /** Nombre de frappes / roulades : hits éditeur (Double Impact coché) + hits victoire. */
   function spellHitCount(sp){
     return Math.max(1, 1 + ((evoBonusesFor(sp).hits)|0));
   }
@@ -1233,6 +1239,13 @@
 
   function customSpellStatus(){
     reloadCustomSpells();
+    const parts=[];
+    (customSpells||[]).forEach(c=>{
+      if(!c||!c.id||!c.evoConfig) return;
+      const n=Object.values(c.evoConfig).filter(e=>e&&e.enabled).length;
+      if(n) parts.push((c.name||c.id)+":"+n+"évo");
+    });
+    if(parts.length) return " · "+parts.join(" · ");
     if(customSpells.length) return " · "+customSpells.length+" sort(s) éditeur";
     return " · ⚠ config éditeur absente — Éditeur → Combat ▶";
   }
@@ -1277,8 +1290,9 @@
       setTimeout(()=> startNextFight({ force:true, fullHeal:true }), 1100);
       return;
     }
-    /* Victoire → choix d’évolution (comme avant) puis prochain combat */
+    /* Victoire → reset évos combat, puis 1 choix (cases éditeur restent) */
     setTimeout(()=>{
+      resetCombatEvos();
       const offered = offerEvo(null, true);
       if(!offered){
         setStatus("Victoire · prochain adversaire…"+customSpellStatus());
