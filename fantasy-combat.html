@@ -1445,6 +1445,15 @@
     if(ent === G.player && isPlayerMounted()) a = toRideAnim(anim);
     else if(ent && ent.mount) a = toRideAnim(anim);
     if(ent === G.player) warmAnimForPlayer(a);
+    else if(ent && Array.isArray(ent.layers)){
+      for(const L of ent.layers){
+        if(L && L.folder) loadImg(L.folder, a);
+      }
+      if(ent.mount){
+        loadImg(ent.mount, "RideIdle");
+        loadImg(ent.mount, "RideRun");
+      }
+    }
     ent.anim = a; ent.frame = 0; ent.t0 = performance.now();
     if(/^Idle$/i.test(a) || /^RideIdle$/i.test(a)) ent.stepFps = null;
   }
