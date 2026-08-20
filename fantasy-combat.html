@@ -665,16 +665,16 @@
     return pick("TakeDamage", 14);
   }
   function playEnemyHitReact(sp, hitIndex, hits){
-    if(!G.enemy || !G.enemy.alive) return;
+    if(!G.enemy || !G.enemy.alive) return { anim:"None", fps:14 };
     if(G.enemy.pv <= 0){
       playAnim(G.enemy, "Die");
       G.enemy.stepFps = null;
-      return;
+      return { anim:"Die", fps:14 };
     }
     const cfg = resolveHitReact(sp, hitIndex, hits);
     if(!cfg.anim || cfg.anim === "None"){
       G.enemy.stepFps = null;
-      return;
+      return cfg;
     }
     /* Taunt ne doit PAS être remappé en RideIdleAttack1 */
     G.enemy.stepFps = cfg.fps;
@@ -683,6 +683,7 @@
     } else {
       playAnim(G.enemy, cfg.anim);
     }
+    return cfg;
   }
   /** Joue TakeDamage/Taunt sans conversion monture (sinon Taunt → RideIdleAttack1). */
   function entPlayHitAnim(ent, anim){
@@ -1995,12 +1996,15 @@
       total += dmg;
       G.enemy.flash = performance.now()+180;
       faceToward(G.enemy, G.player.c, G.player.r);
-      playEnemyHitReact(sp, hitIndex, hits);
+      const react = playEnemyHitReact(sp, hitIndex, hits);
       /* Push une seule fois, sur le dernier coup qui touche encore vivant / fin de chaîne */
       if(pushCells > 0 && hitIndex === hits - 1 && G.enemy.pv > 0){
         pushed = pushEntityAway(G.enemy, G.player, Math.max(1, pushCells), "enemy");
       }
-      setStatus(label+" → "+dmg+(hits>1?" ("+(hitIndex+1)+"/"+hits+")":"")+(pushed?" · poussé "+pushed:""));
+      const reactTxt = react && react.anim && react.anim!=="Die"
+        ? " · "+react.anim+" @"+react.fps+"fps"
+        : "";
+      setStatus(label+" → "+dmg+(hits>1?" ("+(hitIndex+1)+"/"+hits+")":"")+reactTxt+(pushed?" · poussé "+pushed:""));
       hud();
     };
 

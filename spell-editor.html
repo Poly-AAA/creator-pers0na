@@ -1084,7 +1084,7 @@ function renderEditor(){
   /* ── Évolutions catalogue jeu ── */
   const evoCard=card("Évolutions du jeu");
   const evHint=document.createElement("p"); evHint.className="hint";
-  evHint.textContent="Cases cochées = anim/FX seulement (pas les stats). La portée Coup brut reste 1 sauf si tu CHOISIS Boxeur après une victoire. Séquence d’actions = anim au cast. Combat ▶ obligatoire.";
+  evHint.textContent="Cases cochées = anim/FX (pas les stats). Réaction ennemi : TakeDamage / Taunt / None + FPS — sur le step « Frappe la cible » ou sur chaque évo. Double Impact : coup 1 et coup 2. Puis Combat ▶.";
   evoCard.appendChild(evHint);
 
   const sEvo = ensureEditable(activeId);
