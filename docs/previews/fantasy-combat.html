@@ -387,7 +387,7 @@
     },
   };
   const DEFAULT_ROULADE = {
-    id:"roulade", name:"Roulade", cost:4, range:1, dmg:[0,0], anim:"Attack1", type:"buff",
+    id:"roulade", name:"Roulade", cost:4, range:2, dmg:[0,0], anim:"Attack1", type:"buff",
     aoe:0, animSeq:[], effect:"roulade", push:0,
     desc:"Roulade : hors corps à corps → se rapproche ; au corps à corps → recule",
     steps:[{ anim:"Attack1", delay:0, move:"Idle", fps:14, slash:"None", effect:"None", hitTarget:false }],
@@ -1285,9 +1285,10 @@
     return { c, r };
   }
   function updateCamera(){
-    const focus = G.player && G.player.alive
+    const focusEnt = G.player && G.player.alive
       ? G.player
       : (G.enemy && G.enemy.alive ? G.enemy : { c:cam.fx, r:cam.fy });
+    const focus = (focusEnt === G.player) ? entityDrawPos(focusEnt) : { c:focusEnt.c, r:focusEnt.r };
     const tc = focus.c, tr = focus.r;
     cam.fx += (tc - cam.fx) * cam.smooth;
     cam.fy += (tr - cam.fy) * cam.smooth;
@@ -1484,16 +1485,17 @@
     const cost = Math.max(1, sp.cost + (evo.cost|0));
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
     G.player.pa -= cost;
+
+    if(sp.effect==="roulade" || sp.id==="roulade"){
+      castRoulade(sp, evo);
+      return;
+    }
+
     playCastAnimChain(sp, ()=>{
       if(G.player.anim!=="Die") playAnim(G.player,"Idle");
     });
 
-    if(sp.effect==="roulade" || sp.id==="roulade"){
-      const d0 = G.enemy.alive ? dist(G.player, G.enemy) : -1;
-      const moved = applyRoulade(G.player, sp, evo);
-      const mode = d0 <= 1 ? "recul" : "approche";
-      setStatus("Roulade · "+mode+(moved?(" "+moved):" · bloqué"));
-    } else if(sp.id==="double"){
+    if(sp.id==="double"){
       spawnClone(sp, evo);
       setStatus("Sosie invoqué");
     } else if(sp.id==="invisibilite"){
@@ -1520,20 +1522,151 @@
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
   }
 
-  /** Roulade : CAC → recule ; sinon → se rapproche.
-   *  Distance = Portée du sort (+ bonus évo range). Min 1. */
-  function applyRoulade(ent, sp, evo){
-    const foe = G.enemy;
-    if(!foe || !foe.alive) return 0;
-    const cells = Math.max(1, (sp && sp.range != null ? sp.range|0 : 1) + (evo.range|0));
-    const d = dist(ent, foe);
-    if(d <= 1){
-      faceToward(ent, foe.c, foe.r);
-      return pushEntityAway(ent, foe, cells, "player");
+  function entityDrawPos(ent){
+    if(ent && ent.slide){
+      const s = ent.slide;
+      const u = Math.max(0, Math.min(1, (performance.now() - s.t0) / Math.max(1, s.dur)));
+      const e = u*u*(3-2*u);
+      return {
+        c: s.fromC + (s.toC - s.fromC) * e,
+        r: s.fromR + (s.toR - s.fromR) * e,
+      };
     }
-    const steps = Math.min(cells, d);
-    faceToward(ent, foe.c, foe.r);
-    return stepEntityToward(ent, foe, steps, "player");
+    return { c: ent.c, r: ent.r };
+  }
+
+  /** Planifie le chemin roulade sans muter la position (sauf ghost). */
+  function planRouladePath(ent, sp, evo){
+    const foe = G.enemy;
+    if(!foe || !foe.alive) return { path:[], mode:"none" };
+    const cells = Math.max(1, (sp && sp.range != null ? sp.range|0 : 2) + (evo.range|0));
+    const d = dist(ent, foe);
+    const ghost = { c:ent.c, r:ent.r };
+    const path = [];
+    const mode = d <= 1 ? "recul" : "approche";
+    if(mode === "recul"){
+      for(let i=0;i<cells;i++){
+        if(!stepEntityAwayOnce(ghost, foe, "player")) break;
+        path.push({ c:ghost.c, r:ghost.r });
+      }
+    } else {
+      const steps = Math.min(cells, Math.max(1, d));
+      for(let i=0;i<steps;i++){
+        if(!stepEntityTowardOnce(ghost, foe, "player")) break;
+        path.push({ c:ghost.c, r:ghost.r });
+      }
+    }
+    return { path, mode };
+  }
+
+  function stepEntityTowardOnce(ent, target, skipKey){
+    if(dist(ent, target) <= 0) return false;
+    const dc = Math.sign(target.c - ent.c);
+    const dr = Math.sign(target.r - ent.r);
+    const tries = [];
+    if(dc && dr) tries.push([dc,dr],[dc,0],[0,dr]);
+    else if(dc) tries.push([dc,0],[0,1],[0,-1]);
+    else tries.push([0,dr],[1,0],[-1,0]);
+    for(const [tdc,tdr] of tries){
+      const nc = ent.c + tdc, nr = ent.r + tdr;
+      if(!inBounds(nc,nr)) continue;
+      if(occupied(nc,nr, skipKey)) continue;
+      if(G.enemy.alive && G.enemy.c===nc && G.enemy.r===nr) continue;
+      if(G.clone && G.clone.alive && G.clone.c===nc && G.clone.r===nr) continue;
+      ent.c = nc; ent.r = nr;
+      return true;
+    }
+    return false;
+  }
+
+  function stepEntityAwayOnce(ent, from, skipKey){
+    let dc = Math.sign(ent.c - from.c);
+    let dr = Math.sign(ent.r - from.r);
+    if(dc===0 && dr===0){
+      const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
+      const d = dirs[(from.dir|0) % 4] || [0,1];
+      dc = d[0]; dr = d[1];
+    }
+    const tries = [];
+    if(dc && dr) tries.push([dc,dr],[dc,0],[0,dr]);
+    else if(dc) tries.push([dc,0],[0,1],[0,-1]);
+    else tries.push([0,dr],[1,0],[-1,0]);
+    for(const [tdc,tdr] of tries){
+      const nc = ent.c + tdc, nr = ent.r + tdr;
+      if(!inBounds(nc,nr)) continue;
+      if(occupied(nc,nr, skipKey)) continue;
+      if(G.enemy.alive && G.enemy.c===nc && G.enemy.r===nr) continue;
+      if(G.clone && G.clone.alive && G.clone.c===nc && G.clone.r===nr) continue;
+      ent.c = nc; ent.r = nr;
+      return true;
+    }
+    return false;
+  }
+
+  /** Roulade animée : face destination, slide départ→arrivée pendant l’anim. */
+  function castRoulade(sp, evo){
+    const planned = planRouladePath(G.player, sp, evo);
+    const path = planned.path || [];
+    if(!path.length){
+      setStatus("Roulade · bloqué");
+      G.armed=null; G.armedSlot=null;
+      recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+      return;
+    }
+    const from = { c:G.player.c, r:G.player.r };
+    const to = path[path.length - 1];
+    /* Orientation = direction du déplacement (pas vers l’ennemi) */
+    faceToward(G.player, to.c, to.r);
+
+    const steps = editorCastSteps(sp);
+    const step = steps[0] || normalizeCastStep({ anim: (sp.anim||"Attack1"), fps:14 });
+    warmAnimForPlayer(step.anim);
+    let fps = step.fps != null ? step.fps : 14;
+    if(fps < 1) fps = 14;
+    let dur;
+    if(typeof FantasyBridge!=="undefined" && FantasyBridge.animStepTiming){
+      const t = FantasyBridge.animStepTiming(step, COLS);
+      fps = t.fps || fps;
+      dur = (t.delay|0) + (t.dur || Math.round((COLS/fps)*1000));
+    } else {
+      dur = Math.max(280, Math.round((COLS/fps)*1000));
+    }
+    /* Un peu plus long si on traverse plusieurs cases */
+    dur = Math.max(dur, 220 + path.length * 140);
+
+    G.busy = true;
+    G.armed = null; G.armedSlot = null;
+    G.player.stepFps = fps;
+    playAnim(G.player, step.anim);
+    G.player.slide = {
+      fromC: from.c, fromR: from.r,
+      toC: to.c, toR: to.r,
+      t0: performance.now(),
+      dur,
+    };
+    G.combo = Math.min(100, G.combo + 18);
+    setStatus("Roulade · "+planned.mode+" "+path.length);
+    renderSpells(); hud();
+
+    setTimeout(()=>{
+      G.player.c = to.c;
+      G.player.r = to.r;
+      G.player.slide = null;
+      if(G.player.anim!=="Die") playAnim(G.player, "Idle");
+      G.player.stepFps = null;
+      G.busy = false;
+      recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+    }, dur);
+  }
+
+  /** @deprecated kept for helpers — use castRoulade */
+  function applyRoulade(ent, sp, evo){
+    const planned = planRouladePath(ent, sp, evo);
+    if(!planned.path.length) return 0;
+    const to = planned.path[planned.path.length-1];
+    faceToward(ent, to.c, to.r);
+    ent.c = to.c; ent.r = to.r;
+    return planned.path.length;
   }
 
   /** Avance `ent` vers `target` sur N cases (cases libres, sans marcher sur l’ennemi). */
@@ -1541,24 +1674,8 @@
     let moved = 0;
     const n = Math.max(0, cells|0);
     for(let i=0;i<n;i++){
-      if(dist(ent, target) <= 0) break;
-      const dc = Math.sign(target.c - ent.c);
-      const dr = Math.sign(target.r - ent.r);
-      const tries = [];
-      if(dc && dr) tries.push([dc,dr],[dc,0],[0,dr]);
-      else if(dc) tries.push([dc,0],[0,1],[0,-1]);
-      else tries.push([0,dr],[1,0],[-1,0]);
-      let ok = false;
-      for(const [tdc,tdr] of tries){
-        const nc = ent.c + tdc, nr = ent.r + tdr;
-        if(!inBounds(nc,nr)) continue;
-        if(occupied(nc,nr, skipKey)) continue;
-        if(G.enemy.alive && G.enemy.c===nc && G.enemy.r===nr) continue;
-        if(G.clone && G.clone.alive && G.clone.c===nc && G.clone.r===nr) continue;
-        ent.c = nc; ent.r = nr; moved++; ok = true;
-        break;
-      }
-      if(!ok) break;
+      if(!stepEntityTowardOnce(ent, target, skipKey)) break;
+      moved++;
     }
     return moved;
   }
@@ -2157,7 +2274,8 @@
     const mounted = entityMounted(ent);
     const elapsed = (performance.now()-(ent.t0||0))/1000;
     const loopAnims = /^(Idle|Walk|Run|RunBackwards|StrafeLeft|StrafeRight|CrouchRun|RideIdle|RideRun|RideIdleAttack1|RideRunAttack1)$/i;
-    const s = toScreen(ent.c, ent.r);
+    const pos = entityDrawPos(ent);
+    const s = toScreen(pos.c, pos.r);
     const scale = 1.15;
     const dw=FW*scale, dh=FH*scale;
     const FOOT_Y = 88;
@@ -2262,7 +2380,10 @@
     if(G.enemy.alive || G.enemy.anim==="Die") ents.push({e:G.enemy, enemy:true});
     if(G.clone && G.clone.alive) ents.push({e:G.clone, enemy:false, clone:true});
     if(G.player.alive || G.player.anim==="Die") ents.push({e:G.player, enemy:false});
-    ents.sort((a,b)=> (a.e.c+a.e.r)-(b.e.c+b.e.r) || a.e.c-b.e.c);
+    ents.sort((a,b)=>{
+      const pa = entityDrawPos(a.e), pb = entityDrawPos(b.e);
+      return (pa.c+pa.r)-(pb.c+pb.r) || pa.c-pb.c;
+    });
     for(const o of ents) drawEntity(o.e, o.enemy, o.clone ? {clone:true, alpha:o.e.alpha||0.42} : null);
 
     ctx.restore();
