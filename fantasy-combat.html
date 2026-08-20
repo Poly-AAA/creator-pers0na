@@ -429,23 +429,50 @@
   function editorCastSteps(sp){
     reloadCustomSpells();
     const custom = customSpellById(sp.id);
-    if(!custom) return [];
-    if(custom.evoConfig && typeof FantasyBridge!=="undefined" && FantasyBridge.buildEvoAnimSteps){
-      const evoSteps = FantasyBridge.buildEvoAnimSteps(sp.id, custom.evoConfig) || [];
-      if(evoSteps.length) return evoSteps;
-    }
-    if(Array.isArray(custom.steps) && custom.steps.length)
+    /* 1) Séquence d'actions de l'éditeur (prioritaire) */
+    if(custom && Array.isArray(custom.steps) && custom.steps.length)
       return custom.steps.map(normalizeCastStep);
+    /* 2) Anim de l'évo déjà choisie en combat */
+    const st = evoState(sp.id);
+    if(st.evo && st.evo.anim){
+      const fx = st.evo.fx || null;
+      return [normalizeCastStep({
+        anim: st.evo.anim,
+        delay: 0,
+        fps: 14,
+        slash: fx && /^Slash/i.test(fx) ? fx : "None",
+        effect: fx && /^Effect/i.test(fx) ? fx : "None",
+      })];
+    }
+    /* 3) Une seule évo cochée (la dernière) — PAS toute la chaîne (latence) */
+    if(custom && custom.evoConfig && typeof FantasyBridge!=="undefined" && FantasyBridge.buildEvoAnimSteps){
+      const evoSteps = FantasyBridge.buildEvoAnimSteps(sp.id, custom.evoConfig) || [];
+      if(evoSteps.length) return [evoSteps[evoSteps.length - 1]];
+    }
     return [];
   }
   function editorEvoSteps(sp){
     return editorCastSteps(sp);
   }
+  function warmAnimForPlayer(anim){
+    const a = anim || "Attack1";
+    const folders = layersForRow(sheetRowForDir(G.player.dir|0, a)).map(L=>L.folder);
+    const list = [a, "Attack1", "Attack2", "Attack3", "Attack4", "Attack5", "Attack6", "Kick", "Special1", "Idle"];
+    if(isPlayerMounted()){
+      list.push("RideIdle", "RideRun", "RideIdleAttack1", "RideRunAttack1", toRideAnim(a));
+    }
+    for(const f of folders){
+      if(!f) continue;
+      for(const x of list) loadImg(f, x);
+    }
+  }
   function playCastAnimChain(sp, onDone){
     const steps = editorCastSteps(sp);
     if(!steps.length){
       const st = evoState(sp.id);
-      playAnim(G.player, (st.evo && st.evo.anim) || animForArmed(sp));
+      const anim = (st.evo && st.evo.anim) || animForArmed(sp);
+      warmAnimForPlayer(anim);
+      playAnim(G.player, anim);
       flashCastFx(sp);
       setTimeout(onDone || (()=>{}), 650);
       return;
@@ -459,6 +486,7 @@
         return;
       }
       const step = steps[i++];
+      warmAnimForPlayer(step.anim);
       playAnim(G.player, step.anim);
       G.player.stepFps = step.fps || 14;
       G.castFx = {
@@ -755,10 +783,16 @@
   function resolveSheet(folder, anim, mounted){
     const a = anim || "Idle";
     const tries = [];
+    const isAtk = /^(Attack|Kick|Special|Taunt)/i.test(a);
     if(mounted && isMountFolder(folder)){
-      tries.push(a, "RideIdle", "Idle");
+      tries.push(a, "RideIdleAttack1", "RideRunAttack1", "RideIdle");
+      if(!isAtk) tries.push("Idle");
     } else if(mounted){
-      tries.push(a, "RideIdle", "RideRun", "Idle");
+      tries.push(a, "RideIdleAttack1", "RideRunAttack1", "RideIdle", "RideRun");
+      if(!isAtk) tries.push("Idle");
+    } else if(isAtk){
+      /* Ne PAS retomber sur Idle : sinon corps Attack + stuff Idle = double perso empilé */
+      tries.push(a, "Attack1", "Attack2", "Attack3", "Attack4", "Attack5", "Attack6", "Kick", "Special1");
     } else {
       tries.push(a, "Idle");
       if(/Walk|Run/i.test(a)) tries.push("Walk", "Run");
@@ -1212,8 +1246,9 @@
     let a = anim;
     if(ent === G.player && isPlayerMounted()) a = toRideAnim(anim);
     else if(ent && ent.mount) a = toRideAnim(anim);
+    if(ent === G.player) warmAnimForPlayer(a);
     ent.anim = a; ent.frame = 0; ent.t0 = performance.now();
-    if(/^Idle$/i.test(a)) ent.stepFps = null;
+    if(/^Idle$/i.test(a) || /^RideIdle$/i.test(a)) ent.stepFps = null;
   }
   function faceToward(ent, tc, tr){
     const d = dirFromIsoDelta(tc-ent.c, tr-ent.r);
@@ -2018,7 +2053,9 @@
   }
 
   function warm(){
-    const anims=["Idle","Walk","Run","TakeDamage","Die","Attack1","RideIdle","RideRun","RideIdleAttack1","RideRunAttack1"];
+    const anims=["Idle","Walk","Run","TakeDamage","Die",
+      "Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","Kick","Special1",
+      "RideIdle","RideRun","RideIdleAttack1","RideRunAttack1"];
     for(const L of layersForRow(3)) for(const a of anims) loadImg(L.folder,a);
     if(G.enemy && G.enemy.layers){
       for(const L of G.enemy.layers) for(const a of anims) loadImg(L.folder,a);

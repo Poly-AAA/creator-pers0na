@@ -816,7 +816,7 @@ function renderEditor(){
   /* ── Évolutions catalogue jeu ── */
   const evoCard=card("Évolutions du jeu");
   const evHint=document.createElement("p"); evHint.className="hint";
-  evHint.textContent="Sauver ne suffit pas seul : toujours Combat ▶ (embarque ta config). Nouveau lien Cloudflare = Coller config si besoin. ▶ Tester = aperçu ici · cases cochées = anims cumulées au cast.";
+  evHint.textContent="Cases cochées = bonus + anim de LA DERNIÈRE évo en combat (pas les 5 d’affilée). La « Séquence d’actions » du sort = anim au cast. ▶ Tester = aperçu ici. Combat ▶ obligatoire.";
   evoCard.appendChild(evHint);
 
   const sEvo = ensureEditable(activeId);
