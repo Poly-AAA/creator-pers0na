@@ -568,7 +568,7 @@
   function spellHitCount(sp){
     return Math.max(1, 1 + ((evoBonusesFor(sp).hits)|0));
   }
-  /** Visuel d’évo actif : choix victoire (partie) ou dernière case éditeur cochée. */
+  /** Visuel d’évo VICTOIRE seulement — les cases éditeur ne touchent PAS aux anims. */
   function activeEvoVisual(sp){
     if(!sp) return null;
     const st = evoState(sp.id);
@@ -584,15 +584,7 @@
         fromVictory: true,
       };
     }
-    reloadCustomSpells();
-    const custom = customSpellById(sp.id);
-    if(!custom || !custom.evoConfig) return null;
-    let last = null;
-    Object.keys(custom.evoConfig).sort().forEach(k=>{
-      const e = custom.evoConfig[k];
-      if(e && e.enabled) last = e;
-    });
-    return last;
+    return null;
   }
   /** Réaction ennemi (TakeDamage / Taunt / None) + FPS — step de base d’abord, puis évo. */
   function resolveHitReact(sp, hitIndex, hits){
@@ -725,21 +717,20 @@
   }
   /**
    * Chaîne d’attaque jouée en combat :
-   * - steps éditeur (anim de base + hit)
-   * - si évo active (victoire ou case cochée) → remplace l’anim d’attaque / FX
-   *   mais garde hitAnim / hitAnimFps / hitDelay des steps
+   * - steps éditeur = source de vérité (anim / FPS / hit) — JAMAIS écrasés par une case cochée
+   * - évo victoire (partie) peut remplacer l’anim d’attaque / FX seulement
    */
   function editorCastSteps(sp){
     reloadCustomSpells();
     let steps = rawEditorSteps(sp);
-    const vis = activeEvoVisual(sp);
+    const vis = activeEvoVisual(sp); /* victoire only */
     if(vis && vis.anim){
       const slash = vis.slash && vis.slash !== "None" ? vis.slash : null;
       const effect = vis.effect && vis.effect !== "None" ? vis.effect : null;
       if(!steps.length){
         return [normalizeCastStep({
           anim: vis.anim,
-          delay: vis.delay != null ? vis.delay : 0,
+          delay: 0,
           fps: vis.fps != null ? vis.fps : 14,
           slash: slash || "None",
           effect: effect || "None",
@@ -750,24 +741,14 @@
         })];
       }
       return steps.map(s=>{
-        const o = Object.assign({}, s, {
-          anim: vis.anim,
-          fps: vis.fps != null ? vis.fps : s.fps,
-        });
-        if(vis.delay != null) o.delay = vis.delay;
+        const o = Object.assign({}, s, { anim: vis.anim });
+        if(vis.fps != null) o.fps = vis.fps;
         if(slash) o.slash = slash;
         if(effect) o.effect = effect;
-        /* hit react : steps de base gagnent (réglage Coup brut) */
         return normalizeCastStep(o);
       });
     }
     if(steps.length) return steps;
-    /* Fallback catalogue évo cochées (sans steps) */
-    const custom = customSpellById(sp.id);
-    if(custom && custom.evoConfig && typeof FantasyBridge!=="undefined" && FantasyBridge.buildEvoAnimSteps){
-      const evoSteps = FantasyBridge.buildEvoAnimSteps(sp.id, custom.evoConfig) || [];
-      if(evoSteps.length) return [normalizeCastStep(evoSteps[evoSteps.length - 1])];
-    }
     return [];
   }
   function editorEvoSteps(sp){
