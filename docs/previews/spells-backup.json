@@ -4,10 +4,7 @@
     "name": "Coup brut",
     "cost": 2,
     "range": 1,
-    "dmg": [
-      8,
-      12
-    ],
+    "dmg": [8, 12],
     "anim": "Attack2",
     "type": "damage",
     "aoe": 0,
@@ -15,74 +12,96 @@
     "steps": [
       {
         "anim": "Attack1",
+        "delay": 0,
         "move": "Idle",
+        "fps": 17,
         "slash": "None",
         "effect": "None",
-        "delay": 0,
-        "fps": 17,
-        "hitTarget": true
+        "hitTarget": true,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 24,
+        "hitDelay": 300
       }
     ],
     "evoConfig": {
       "1:Brise-Os": {
-        "enabled": true,
+        "enabled": false,
         "anim": "Attack2",
         "slash": "None",
         "effect": "None",
-        "fps": 12,
-        "delay": 0
+        "fps": 17,
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 24
       },
       "1:Boxeur": {
-        "enabled": true,
+        "enabled": false,
         "anim": "Attack6",
         "slash": "None",
         "effect": "None",
         "fps": 17,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 24,
+        "hitDelay": 0
       },
       "1:Rapide": {
         "enabled": false,
-        "anim": "Kick",
+        "anim": "Attack6",
         "slash": "None",
         "effect": "None",
-        "fps": 14,
-        "delay": 0
+        "fps": 17,
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 24,
+        "hitDelay": 0
       },
       "2:Uppercut": {
-        "enabled": true,
-        "anim": "Special1",
+        "enabled": false,
+        "anim": "Attack6",
         "slash": "None",
         "effect": "Effect1",
         "fps": 17,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 24,
+        "hitDelay": 0
       },
       "2:Percutant": {
-        "enabled": true,
+        "enabled": false,
         "anim": "Attack6",
         "slash": "None",
         "effect": "None",
         "fps": 14,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 14
       },
       "2:Double Impact": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Attack5",
-        "slash": "Slash2",
+        "slash": "None",
         "effect": "None",
         "fps": 17,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 24,
+        "anim1": "Attack5",
+        "anim2": "Attack6",
+        "hitAnimFps2": 20,
+        "fps1": 60,
+        "hitAnimFps1": 35,
+        "hitDelay2": 150,
+        "hitDelay1": 0
       }
     }
   },
   {
     "id": "coup_de_pied",
     "name": "Coup de pied",
-    "cost": 4,
+    "cost": 1,
     "range": 1,
-    "dmg": [
-      4,
-      14
-    ],
+    "dmg": [4, 14],
     "anim": "Kick",
     "type": "damage",
     "aoe": 0,
@@ -98,17 +117,22 @@
         "fps": 15,
         "slash": "None",
         "effect": "None",
-        "hitTarget": true
+        "hitTarget": true,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 24,
+        "hitDelay": 370
       }
     ],
     "evoConfig": {
       "1:Brise-Os": {
-        "enabled": true,
+        "enabled": false,
         "anim": "Kick",
         "slash": "None",
         "effect": "None",
         "fps": 15,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 14
       },
       "1:Boxeur": {
         "enabled": false,
@@ -116,31 +140,40 @@
         "slash": "None",
         "effect": "None",
         "fps": 15,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 14
       },
       "1:Rapide": {
-        "enabled": true,
+        "enabled": false,
         "anim": "Kick",
         "slash": "None",
         "effect": "None",
         "fps": 15,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 14
       },
       "2:Uppercut": {
-        "enabled": true,
+        "enabled": false,
         "anim": "Kick",
         "slash": "None",
         "effect": "None",
         "fps": 15,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 14
       },
       "2:Percutant": {
-        "enabled": true,
+        "enabled": false,
         "anim": "Kick",
         "slash": "None",
         "effect": "None",
-        "fps": 15,
-        "delay": 0
+        "fps": 17,
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 24,
+        "hitDelay": 400
       },
       "2:Double Impact": {
         "enabled": false,
@@ -148,19 +181,18 @@
         "slash": "None",
         "effect": "None",
         "fps": 15,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 14
       }
     }
   },
   {
     "id": "roulade",
     "name": "Roulade",
-    "cost": 4,
+    "cost": 1,
     "range": 2,
-    "dmg": [
-      0,
-      0
-    ],
+    "dmg": [0, 0],
     "anim": "Rolling",
     "type": "buff",
     "aoe": 0,
@@ -176,7 +208,10 @@
         "fps": 17,
         "slash": "None",
         "effect": "None",
-        "hitTarget": false
+        "hitTarget": false,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 14,
+        "hitDelay": null
       }
     ],
     "evoConfig": {
@@ -186,7 +221,9 @@
         "slash": "None",
         "effect": "None",
         "fps": 16,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 14
       },
       "1:Boxeur": {
         "enabled": true,
@@ -194,7 +231,9 @@
         "slash": "None",
         "effect": "None",
         "fps": 16,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 14
       },
       "1:Rapide": {
         "enabled": true,
@@ -202,7 +241,9 @@
         "slash": "None",
         "effect": "None",
         "fps": 16,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 14
       },
       "2:Uppercut": {
         "enabled": false,
@@ -210,7 +251,9 @@
         "slash": "None",
         "effect": "None",
         "fps": 16,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 14
       },
       "2:Percutant": {
         "enabled": false,
@@ -218,7 +261,9 @@
         "slash": "None",
         "effect": "None",
         "fps": 16,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 14
       },
       "2:Double Impact": {
         "enabled": false,
@@ -226,7 +271,9 @@
         "slash": "None",
         "effect": "None",
         "fps": 16,
-        "delay": 0
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 14
       }
     }
   }

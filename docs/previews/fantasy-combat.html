@@ -360,45 +360,282 @@
   const KEY_CUSTOM_SPELLS = "neuro.customSpells";
   /* Fallback Coup brut (même config que docs/previews/coup-brut-backup.json) */
   const DEFAULT_COUP_BRUT = {
-    id:"punch", name:"Coup brut", cost:2, range:1, dmg:[8,12], anim:"Attack2", type:"damage",
-    aoe:0, animSeq:[],
-    steps:[{ anim:"Attack1", move:"Idle", slash:"None", effect:"None", delay:0, fps:17, hitTarget:true }],
+    id:"punch",
+    name:"Coup brut",
+    cost:2,
+    range:1,
+    dmg:[8,12],
+    anim:"Attack2",
+    type:"damage",
+    aoe:0,
+    animSeq:[],
+    steps:[
+      {
+        anim:"Attack1",
+        delay:0,
+        move:"Idle",
+        fps:17,
+        slash:"None",
+        effect:"None",
+        hitTarget:true,
+        hitAnim:"TakeDamage",
+        hitAnimFps:24,
+        hitDelay:300
+      }
+    ],
     evoConfig:{
-      "1:Brise-Os":{ enabled:true, anim:"Attack2", slash:"None", effect:"None", fps:12, delay:0 },
-      "1:Boxeur":{ enabled:true, anim:"Attack6", slash:"None", effect:"None", fps:17, delay:0 },
-      "1:Rapide":{ enabled:false, anim:"Kick", slash:"None", effect:"None", fps:14, delay:0 },
-      "2:Uppercut":{ enabled:true, anim:"Special1", slash:"None", effect:"Effect1", fps:17, delay:0 },
-      "2:Percutant":{ enabled:true, anim:"Attack6", slash:"None", effect:"None", fps:14, delay:0 },
-      "2:Double Impact":{ enabled:false, anim:"Attack5", slash:"Slash2", effect:"None", fps:17, delay:0 },
-    },
+      "1:Brise-Os":{
+        enabled:false,
+        anim:"Attack2",
+        slash:"None",
+        effect:"None",
+        fps:17,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:24
+      },
+      "1:Boxeur":{
+        enabled:false,
+        anim:"Attack6",
+        slash:"None",
+        effect:"None",
+        fps:17,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:24,
+        hitDelay:0
+      },
+      "1:Rapide":{
+        enabled:false,
+        anim:"Attack6",
+        slash:"None",
+        effect:"None",
+        fps:17,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:24,
+        hitDelay:0
+      },
+      "2:Uppercut":{
+        enabled:false,
+        anim:"Attack6",
+        slash:"None",
+        effect:"Effect1",
+        fps:17,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:24,
+        hitDelay:0
+      },
+      "2:Percutant":{
+        enabled:false,
+        anim:"Attack6",
+        slash:"None",
+        effect:"None",
+        fps:14,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:14
+      },
+      "2:Double Impact":{
+        enabled:true,
+        anim:"Attack5",
+        slash:"None",
+        effect:"None",
+        fps:17,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:24,
+        anim1:"Attack5",
+        anim2:"Attack6",
+        hitAnimFps2:20,
+        fps1:60,
+        hitAnimFps1:35,
+        hitDelay2:150,
+        hitDelay1:0
+      }
+    }
   };
   const DEFAULT_COUP_DE_PIED = {
-    id:"coup_de_pied", name:"Coup de pied", cost:4, range:1, dmg:[4,14], anim:"Kick", type:"damage",
-    aoe:0, animSeq:[], effect:"push", push:1,
+    id:"coup_de_pied",
+    name:"Coup de pied",
+    cost:1,
+    range:1,
+    dmg:[4,14],
+    anim:"Kick",
+    type:"damage",
+    aoe:0,
+    animSeq:[],
+    effect:"push",
+    push:1,
     desc:"Donne un coup de pied qui repousse l’ennemi de 1 case",
-    steps:[{ anim:"Kick", delay:0, move:"Idle", fps:15, slash:"None", effect:"None", hitTarget:true }],
+    steps:[
+      {
+        anim:"Kick",
+        delay:0,
+        move:"Idle",
+        fps:15,
+        slash:"None",
+        effect:"None",
+        hitTarget:true,
+        hitAnim:"TakeDamage",
+        hitAnimFps:24,
+        hitDelay:370
+      }
+    ],
     evoConfig:{
-      "1:Brise-Os":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
-      "1:Boxeur":{ enabled:false, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
-      "1:Rapide":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
-      "2:Uppercut":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
-      "2:Percutant":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
-      "2:Double Impact":{ enabled:false, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
-    },
+      "1:Brise-Os":{
+        enabled:false,
+        anim:"Kick",
+        slash:"None",
+        effect:"None",
+        fps:15,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:14
+      },
+      "1:Boxeur":{
+        enabled:false,
+        anim:"Kick",
+        slash:"None",
+        effect:"None",
+        fps:15,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:14
+      },
+      "1:Rapide":{
+        enabled:false,
+        anim:"Kick",
+        slash:"None",
+        effect:"None",
+        fps:15,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:14
+      },
+      "2:Uppercut":{
+        enabled:false,
+        anim:"Kick",
+        slash:"None",
+        effect:"None",
+        fps:15,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:14
+      },
+      "2:Percutant":{
+        enabled:false,
+        anim:"Kick",
+        slash:"None",
+        effect:"None",
+        fps:17,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:24,
+        hitDelay:400
+      },
+      "2:Double Impact":{
+        enabled:false,
+        anim:"Kick",
+        slash:"None",
+        effect:"None",
+        fps:15,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:14
+      }
+    }
   };
   const DEFAULT_ROULADE = {
-    id:"roulade", name:"Roulade", cost:4, range:2, dmg:[0,0], anim:"Rolling", type:"buff",
-    aoe:0, animSeq:[], effect:"roulade", push:0,
+    id:"roulade",
+    name:"Roulade",
+    cost:1,
+    range:2,
+    dmg:[0,0],
+    anim:"Rolling",
+    type:"buff",
+    aoe:0,
+    animSeq:[],
+    effect:"roulade",
+    push:0,
     desc:"Roulade : hors corps à corps → se rapproche ; au corps à corps → recule",
-    steps:[{ anim:"Rolling", delay:0, move:"Idle", fps:17, slash:"None", effect:"None", hitTarget:false }],
+    steps:[
+      {
+        anim:"Rolling",
+        delay:0,
+        move:"Idle",
+        fps:17,
+        slash:"None",
+        effect:"None",
+        hitTarget:false,
+        hitAnim:"TakeDamage",
+        hitAnimFps:14,
+        hitDelay:null
+      }
+    ],
     evoConfig:{
-      "1:Brise-Os":{ enabled:false, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
-      "1:Boxeur":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
-      "1:Rapide":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
-      "2:Uppercut":{ enabled:false, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
-      "2:Percutant":{ enabled:false, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
-      "2:Double Impact":{ enabled:false, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
-    },
+      "1:Brise-Os":{
+        enabled:false,
+        anim:"Rolling",
+        slash:"None",
+        effect:"None",
+        fps:16,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:14
+      },
+      "1:Boxeur":{
+        enabled:true,
+        anim:"Rolling",
+        slash:"None",
+        effect:"None",
+        fps:16,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:14
+      },
+      "1:Rapide":{
+        enabled:true,
+        anim:"Rolling",
+        slash:"None",
+        effect:"None",
+        fps:16,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:14
+      },
+      "2:Uppercut":{
+        enabled:false,
+        anim:"Rolling",
+        slash:"None",
+        effect:"None",
+        fps:16,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:14
+      },
+      "2:Percutant":{
+        enabled:false,
+        anim:"Rolling",
+        slash:"None",
+        effect:"None",
+        fps:16,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:14
+      },
+      "2:Double Impact":{
+        enabled:false,
+        anim:"Rolling",
+        slash:"None",
+        effect:"None",
+        fps:16,
+        delay:0,
+        hitAnim:"TakeDamage",
+        hitAnimFps:14
+      }
+    }
   };
   let spellEvo = {};
   let customSpells = [];
