@@ -601,55 +601,103 @@
     reloadCustomSpells();
     const c = customSpellById(sp && sp.id);
     const pick = (anim, fps)=>{
-      const a = anim && anim !== "None" ? String(anim) : (anim === "None" ? "None" : "TakeDamage");
+      let a = anim == null || anim === "" ? "TakeDamage" : String(anim);
+      if(a !== "None" && a !== "Taunt" && a !== "TakeDamage") a = "TakeDamage";
       let f = Number(fps);
       if(!isFinite(f) || f < 1) f = 14;
       return { anim: a, fps: Math.min(30, f) };
     };
-    /* Double Impact / multi-hit : overrides coup 1 / coup 2 */
-    if(c && c.evoConfig && hits > 1){
-      const di = c.evoConfig["2:Double Impact"] || c.evoConfig["2:Déchirure"] || c.evoConfig["2:Salve"];
-      if(di){
+    const isExplicit = (anim)=> anim === "Taunt" || anim === "None";
+    const di = c && c.evoConfig
+      ? (c.evoConfig["2:Double Impact"] || c.evoConfig["2:Déchirure"] || c.evoConfig["2:Salve"])
+      : null;
+
+    /* 1) Double Impact : coup 1 / coup 2 (prioritaire dès qu’il y a 2 frappes) */
+    if(di && hits > 1){
+      const n = (hitIndex|0) + 1;
+      if(di["hitAnim"+n] != null && di["hitAnim"+n] !== "")
+        return pick(di["hitAnim"+n], di["hitAnimFps"+n] != null ? di["hitAnimFps"+n] : di.hitAnimFps);
+      if(di.hitAnim != null && di.hitAnim !== "")
+        return pick(di.hitAnim, di.hitAnimFps);
+    }
+
+    /* 2) Choix explicite Taunt / None (évos cochées, puis steps) — ne pas laisser un autre TakeDamage d’évo l’écraser */
+    if(c && c.evoConfig){
+      const keys = Object.keys(c.evoConfig).sort();
+      for(let i = keys.length - 1; i >= 0; i--){
+        const e = c.evoConfig[keys[i]];
+        if(e && e.enabled && isExplicit(e.hitAnim))
+          return pick(e.hitAnim, e.hitAnimFps);
+      }
+      /* DI partagé même si hits==1 (test éditeur) */
+      if(di && di.enabled && isExplicit(di.hitAnim))
+        return pick(di.hitAnim, di.hitAnimFps);
+      if(di && di.enabled){
         const n = (hitIndex|0) + 1;
-        const animN = di["hitAnim"+n];
-        const fpsN = di["hitAnimFps"+n];
-        if(animN || fpsN != null){
-          return pick(animN || di.hitAnim || "TakeDamage", fpsN != null ? fpsN : di.hitAnimFps);
-        }
-        if(di.hitAnim || di.hitAnimFps != null){
-          return pick(di.hitAnim || "TakeDamage", di.hitAnimFps);
-        }
+        if(isExplicit(di["hitAnim"+n]))
+          return pick(di["hitAnim"+n], di["hitAnimFps"+n] != null ? di["hitAnimFps"+n] : di.hitAnimFps);
       }
     }
-    /* Évos éditeur cochées (dernière avec hitAnim) */
+    {
+      const steps = editorCastSteps(sp) || [];
+      for(let i = steps.length - 1; i >= 0; i--){
+        const s = steps[i];
+        if(s && isExplicit(s.hitAnim))
+          return pick(s.hitAnim, s.hitAnimFps);
+      }
+      /* 3) Step « frappe la cible » */
+      for(let i = steps.length - 1; i >= 0; i--){
+        const s = steps[i];
+        if(s && s.hitTarget)
+          return pick(s.hitAnim || "TakeDamage", s.hitAnimFps);
+      }
+    }
+
+    /* 4) Dernière évo cochée (même TakeDamage) */
     if(c && c.evoConfig){
       let last = null;
-      Object.keys(c.evoConfig).forEach(k=>{
+      Object.keys(c.evoConfig).sort().forEach(k=>{
         const e = c.evoConfig[k];
-        if(e && e.enabled && e.hitAnim) last = e;
+        if(e && e.enabled) last = e;
       });
-      if(last) return pick(last.hitAnim, last.hitAnimFps);
-    }
-    /* Steps du sort (dernier step frappe) */
-    const steps = editorCastSteps(sp) || [];
-    for(let i = steps.length - 1; i >= 0; i--){
-      const s = steps[i];
-      if(s && (s.hitTarget || s.hitAnim)){
-        return pick(s.hitAnim || "TakeDamage", s.hitAnimFps);
-      }
+      if(last) return pick(last.hitAnim || "TakeDamage", last.hitAnimFps);
     }
     return pick("TakeDamage", 14);
   }
   function playEnemyHitReact(sp, hitIndex, hits){
-    if(!G.enemy || !G.enemy.alive) return;
+    if(!G.enemy || !G.enemy.alive) return { anim:"None", fps:14 };
     if(G.enemy.pv <= 0){
       playAnim(G.enemy, "Die");
-      return;
+      G.enemy.stepFps = null;
+      return { anim:"Die", fps:14 };
     }
     const cfg = resolveHitReact(sp, hitIndex, hits);
-    if(!cfg.anim || cfg.anim === "None") return;
+    if(!cfg.anim || cfg.anim === "None"){
+      G.enemy.stepFps = null;
+      return cfg;
+    }
+    /* Taunt ne doit PAS être remappé en RideIdleAttack1 */
     G.enemy.stepFps = cfg.fps;
-    playAnim(G.enemy, cfg.anim);
+    if(cfg.anim === "Taunt" || cfg.anim === "TakeDamage"){
+      entPlayHitAnim(G.enemy, cfg.anim);
+    } else {
+      playAnim(G.enemy, cfg.anim);
+    }
+    return cfg;
+  }
+  /** Joue TakeDamage/Taunt sans conversion monture (sinon Taunt → RideIdleAttack1). */
+  function entPlayHitAnim(ent, anim){
+    if(!ent) return;
+    const a = anim || "TakeDamage";
+    if(ent.layers){
+      for(const L of ent.layers){
+        if(L && L.folder) loadImg(L.folder, a);
+      }
+    }
+    if(ent.mount) loadImg(ent.mount, "RideIdle");
+    ent.anim = a;
+    ent.frame = 0;
+    ent.t0 = performance.now();
   }
   function spellRange(sp){
     if(!sp) return 0;
@@ -836,11 +884,11 @@
       if(typeof FantasyBridge!=="undefined" && FantasyBridge.toRideAnim)
         return FantasyBridge.toRideAnim(anim);
     }catch(_e){}
-    if(!anim || anim==="Die" || anim==="TakeDamage") return anim;
+    if(!anim || anim==="Die" || anim==="TakeDamage" || anim==="Taunt") return anim;
     if(anim==="Idle") return "RideIdle";
     if(/Walk|Run|Strafe|Crouch/i.test(anim)) return "RideRun";
     if(/AttackRun/i.test(anim)) return "RideRunAttack1";
-    if(/Attack|Kick|Special|Taunt/i.test(anim)) return "RideIdleAttack1";
+    if(/Attack|Kick|Special/i.test(anim)) return "RideIdleAttack1";
     return anim;
   }
   function playerBasePm(){ return 3 + mountPmBonus(); }
@@ -1948,12 +1996,15 @@
       total += dmg;
       G.enemy.flash = performance.now()+180;
       faceToward(G.enemy, G.player.c, G.player.r);
-      playEnemyHitReact(sp, hitIndex, hits);
+      const react = playEnemyHitReact(sp, hitIndex, hits);
       /* Push une seule fois, sur le dernier coup qui touche encore vivant / fin de chaîne */
       if(pushCells > 0 && hitIndex === hits - 1 && G.enemy.pv > 0){
         pushed = pushEntityAway(G.enemy, G.player, Math.max(1, pushCells), "enemy");
       }
-      setStatus(label+" → "+dmg+(hits>1?" ("+(hitIndex+1)+"/"+hits+")":"")+(pushed?" · poussé "+pushed:""));
+      const reactTxt = react && react.anim && react.anim!=="Die"
+        ? " · "+react.anim+" @"+react.fps+"fps"
+        : "";
+      setStatus(label+" → "+dmg+(hits>1?" ("+(hitIndex+1)+"/"+hits+")":"")+reactTxt+(pushed?" · poussé "+pushed:""));
       hud();
     };
 

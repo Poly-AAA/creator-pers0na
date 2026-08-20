@@ -654,11 +654,11 @@
   }
 
   function toRideAnim(anim) {
-    if (!anim || anim === "Die" || anim === "TakeDamage") return anim;
+    if (!anim || anim === "Die" || anim === "TakeDamage" || anim === "Taunt") return anim;
     if (anim === "Idle" || anim === "RideIdle") return "RideIdle";
     if (/Walk|Run|Strafe|Crouch|RideRun$/i.test(anim)) return "RideRun";
     if (/AttackRun/i.test(anim)) return "RideRunAttack1";
-    if (/Attack|Kick|Special|Taunt/i.test(anim)) return "RideIdleAttack1";
+    if (/Attack|Kick|Special/i.test(anim)) return "RideIdleAttack1";
     return anim;
   }
 
