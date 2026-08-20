@@ -205,7 +205,7 @@ const SAVED_COUP_DE_PIED = {
   name:"Coup de pied",
   cost:4,
   range:1,
-  dmg:[4,16],
+  dmg:[4,14],
   anim:"Kick",
   type:"damage",
   aoe:0,
@@ -216,16 +216,41 @@ const SAVED_COUP_DE_PIED = {
   steps:[{ anim:"Kick", delay:0, move:"Idle", fps:15, slash:"None", effect:"None", hitTarget:true }],
   evoConfig:{
     "1:Brise-Os":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
-    "1:Boxeur":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
-    "1:Rapide":{ enabled:false, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+    "1:Boxeur":{ enabled:false, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
+    "1:Rapide":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
     "2:Uppercut":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
     "2:Percutant":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
     "2:Double Impact":{ enabled:true, anim:"Kick", slash:"None", effect:"None", fps:15, delay:0 },
   },
 };
+/** Roulade : mobilité (approche / recul). Évos = mêmes paliers que Coup brut (portée / −PA…). */
+const SAVED_ROULADE = {
+  id:"roulade",
+  name:"Roulade",
+  cost:4,
+  range:1,
+  dmg:[0,0],
+  anim:"Attack1",
+  type:"buff",
+  aoe:0,
+  animSeq:[],
+  effect:"roulade",
+  push:0,
+  desc:"Roulade : hors corps à corps → se rapproche ; au corps à corps → recule",
+  steps:[{ anim:"Attack1", delay:0, move:"Idle", fps:14, slash:"None", effect:"None", hitTarget:false }],
+  evoConfig:{
+    "1:Brise-Os":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
+    "1:Boxeur":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
+    "1:Rapide":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
+    "2:Uppercut":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
+    "2:Percutant":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
+    "2:Double Impact":{ enabled:true, anim:"Attack1", slash:"None", effect:"None", fps:14, delay:0 },
+  },
+};
 const BASE_SPELLS = [
   JSON.parse(JSON.stringify(SAVED_COUP_BRUT)),
   JSON.parse(JSON.stringify(SAVED_COUP_DE_PIED)),
+  JSON.parse(JSON.stringify(SAVED_ROULADE)),
 ];
 
 /* ────────────────────────────────────────────────────────────
@@ -329,6 +354,41 @@ function ensureSpellEffects(){
   });
   if(changed) saveCustom();
 }
+/** Migre / seed Roulade (mobilité). */
+function ensureRoulade(){
+  const preset = JSON.parse(JSON.stringify(SAVED_ROULADE));
+  (customSpells||[]).forEach(s=>{
+    if(!s || !s.id || s.id==="roulade") return;
+    if(/^custom_/.test(s.id) && /roulade/i.test(s.name||"")) s.id = "roulade";
+  });
+  let roll = (customSpells||[]).find(s=>s && s.id==="roulade");
+  if(!roll){
+    customSpells = [...(customSpells||[]).filter(s=>s && s.id!=="roulade"), preset];
+    customSpells.sort((a,b)=>{
+      const order = { punch:0, coup_de_pied:1, roulade:2 };
+      return (order[a.id]??9) - (order[b.id]??9);
+    });
+    saveCustom();
+    return;
+  }
+  let changed = false;
+  if(roll.effect!=="roulade"){ roll.effect="roulade"; changed=true; }
+  if(roll.type!=="buff" && !(roll.dmg && (roll.dmg[1]|0)>0)){ roll.type="buff"; changed=true; }
+  if(!Array.isArray(roll.steps) || !roll.steps.length){
+    roll.steps = preset.steps;
+    roll.anim = roll.anim || "Attack1";
+    changed = true;
+  }
+  if(!roll.evoConfig || !Object.keys(roll.evoConfig).length){
+    roll.evoConfig = preset.evoConfig;
+    changed = true;
+  } else {
+    Object.keys(preset.evoConfig).forEach(k=>{
+      if(!roll.evoConfig[k]){ roll.evoConfig[k]=preset.evoConfig[k]; changed=true; }
+    });
+  }
+  if(changed) saveCustom();
+}
 function loadCustom(){
   try{ const r=localStorage.getItem(KEY_SPELLS); if(r) customSpells=JSON.parse(r)||[]; }catch(_e){}
   try{
@@ -340,6 +400,7 @@ function loadCustom(){
   pruneLegacySpells();
   ensurePunchAnims();
   ensureCoupDePied();
+  ensureRoulade();
   ensureSpellEffects();
 }
 function saveCustom(){
@@ -360,6 +421,7 @@ function importSpellsPack(b64){
     pruneLegacySpells();
     ensurePunchAnims();
     ensureCoupDePied();
+    ensureRoulade();
     ensureSpellEffects();
     saveCustom();
     return true;
@@ -383,6 +445,7 @@ function importSpellsJson(raw){
     pruneLegacySpells();
     ensurePunchAnims();
     ensureCoupDePied();
+    ensureRoulade();
     ensureSpellEffects();
     saveCustom();
     return true;
@@ -403,6 +466,7 @@ async function pasteSpellsBackup(){
 const PRESET_SPELLS = [
   JSON.parse(JSON.stringify(SAVED_COUP_BRUT)),
   JSON.parse(JSON.stringify(SAVED_COUP_DE_PIED)),
+  JSON.parse(JSON.stringify(SAVED_ROULADE)),
 ];
 const PRESET_COUP_BRUT = PRESET_SPELLS; /* alias */
 function restorePresetCoupBrut(){
@@ -417,6 +481,7 @@ function restorePresetCoupBrut(){
     if(o){
       if(o.punch) delete o.punch;
       if(o.coup_de_pied) delete o.coup_de_pied;
+      if(o.roulade) delete o.roulade;
       localStorage.setItem(KEY_EVO, JSON.stringify(o));
     }
   }catch(_e){}
@@ -424,7 +489,7 @@ function restorePresetCoupBrut(){
   renderEditor();
   showSavedStatus();
   const st=document.getElementById("pvStatus");
-  if(st) st.textContent="Config restaurée ✓ · Coup brut + Coup de pied (évos Punch, anim Kick)";
+  if(st) st.textContent="Config restaurée ✓ · Coup brut + Coup de pied + Roulade";
   return true;
 }
 function copySpellsBackup(){
@@ -870,7 +935,7 @@ function renderEditor(){
       fieldNum("AoE rayon",sp.aoe||0,"aoe",0,3)
     ),
     mkRow2(
-      fieldSelect("Effet", sp.effect||"none", "effect", ["none","push","drainPA"]),
+      fieldSelect("Effet", sp.effect||"none", "effect", ["none","push","roulade","drainPA"]),
       fieldNum("Push (cases)", sp.push!=null?sp.push:1, "push", 0, 4)
     )
   );

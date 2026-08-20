@@ -24,6 +24,7 @@
     punch: { name: "Coup brut", school: "Force", desc: "Frappe au corps à corps." },
     coup_de_pied: { name: "Coup de pied", school: "Force", desc: "Coup de pied qui repousse." },
     kick: { name: "Coup de pied", school: "Force", desc: "Coup de pied qui repousse." },
+    roulade: { name: "Roulade", school: "Force", desc: "Rapproche ou recule selon la distance." },
     monofil: { name: "Lame spectrale", school: "Force", desc: "Entaille magique à courte portée." },
     arc: { name: "Éclair runique", school: "Foudre", desc: "Décharge d’énergie arcane." },
     surchauffe: { name: "Brasier", school: "Feu", desc: "Pic de flammes." },
@@ -613,9 +614,10 @@
   EVO_TREE.bombe_thermique = EVO_TREE.surchauffe;
   EVO_TREE.gravite = EVO_TREE.dash;
   EVO_TREE.parasite = EVO_TREE.monofil;
-  /* Coup de pied = mêmes paliers mécaniques que Coup brut */
+  /* Coup de pied / Roulade = mêmes paliers mécaniques que Coup brut */
   EVO_TREE.coup_de_pied = EVO_TREE.punch;
   EVO_TREE.kick = EVO_TREE.punch;
+  EVO_TREE.roulade = EVO_TREE.punch;
 
   function evoChoicesFor(spellId, tier) {
     const tree = EVO_TREE[spellId];
@@ -743,7 +745,8 @@
       spellId === "reconstruction" ||
       spellId === "overclock" ||
       spellId === "invisibilite" ||
-      spellId === "double"
+      spellId === "double" ||
+      spellId === "roulade"
     );
   }
 
