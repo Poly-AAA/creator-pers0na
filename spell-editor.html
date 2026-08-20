@@ -227,7 +227,7 @@ const SAVED_COUP_DE_PIED = {
 const SAVED_ROULADE = {
   id:"roulade",
   name:"Roulade",
-  cost:1,
+  cost:4,
   range:2,
   dmg:[0,0],
   anim:"Rolling",
@@ -237,13 +237,13 @@ const SAVED_ROULADE = {
   effect:"roulade",
   push:0,
   desc:"Roulade : hors corps à corps → se rapproche ; au corps à corps → recule",
-  steps:[{ anim:"Rolling", delay:0, move:"Idle", fps:16, slash:"None", effect:"None", hitTarget:false }],
+  steps:[{ anim:"Rolling", delay:0, move:"Idle", fps:17, slash:"None", effect:"None", hitTarget:false }],
   evoConfig:{
-    "1:Brise-Os":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+    "1:Brise-Os":{ enabled:false, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
     "1:Boxeur":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
     "1:Rapide":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
-    "2:Uppercut":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
-    "2:Percutant":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+    "2:Uppercut":{ enabled:false, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
+    "2:Percutant":{ enabled:false, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
     "2:Double Impact":{ enabled:true, anim:"Rolling", slash:"None", effect:"None", fps:16, delay:0 },
   },
 };

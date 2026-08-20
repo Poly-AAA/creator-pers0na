@@ -155,7 +155,7 @@
   {
     "id": "roulade",
     "name": "Roulade",
-    "cost": 1,
+    "cost": 4,
     "range": 2,
     "dmg": [
       0,
@@ -173,7 +173,7 @@
         "anim": "Rolling",
         "delay": 0,
         "move": "Idle",
-        "fps": 16,
+        "fps": 17,
         "slash": "None",
         "effect": "None",
         "hitTarget": false
@@ -181,7 +181,7 @@
     ],
     "evoConfig": {
       "1:Brise-Os": {
-        "enabled": true,
+        "enabled": false,
         "anim": "Rolling",
         "slash": "None",
         "effect": "None",
@@ -205,7 +205,7 @@
         "delay": 0
       },
       "2:Uppercut": {
-        "enabled": true,
+        "enabled": false,
         "anim": "Rolling",
         "slash": "None",
         "effect": "None",
@@ -213,7 +213,7 @@
         "delay": 0
       },
       "2:Percutant": {
-        "enabled": true,
+        "enabled": false,
         "anim": "Rolling",
         "slash": "None",
         "effect": "None",
