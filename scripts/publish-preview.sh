@@ -356,13 +356,12 @@ if [[ "$CF_OK" -ne 1 ]]; then
   LIT_ANIMS="$(litter_upload /tmp/fcc-weapon-anim-litter.html || true)"
   if [[ "$LIT_COMBAT" == https://* ]]; then
     wire_fcc_nav /tmp/fcc-spell-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS" ""
+    inject_fcc_nav /tmp/fcc-spell-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "" "$LIT_ANIMS" "$LIT_DIRS"
     LIT_SPELL="$(litter_upload /tmp/fcc-spell-litter.html || true)"
     if [[ "$LIT_SPELL" == https://* ]]; then
       wire_fcc_nav /tmp/fcc-combat-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_ANIMS" "$LIT_DIRS" "$LIT_SPELL"
-      inject_fcc_nav /tmp/fcc-spell-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_SPELL" "$LIT_ANIMS" "$LIT_DIRS"
       inject_fcc_nav /tmp/fcc-combat-litter.html "$LIT_COMBAT" "$LIT_CREATOR" "$LIT_SPELL" "$LIT_ANIMS" "$LIT_DIRS"
-      LIT_SPELL="$(litter_upload /tmp/fcc-spell-litter.html || true)"
-      LIT_COMBAT="$(litter_upload /tmp/fcc-combat-litter.html || true)"
+      # Ne pas re-uploader combat après wiring — sinon l’URL change et Combat ▶ → 404.
     fi
   fi
   if [[ "$LIT_COMBAT" == https://* ]] && verify_url "$LIT_COMBAT" "Combat Fantasy"; then
@@ -394,6 +393,26 @@ PY
     echo "COMBAT=$LIT_COMBAT"
     echo "CREATOR=$LIT_CREATOR"
     if [[ "$LIT_SPELL" == https://* ]]; then echo "SPELL=$LIT_SPELL"; fi
+    cat > "$ROOT/docs/previews/live-links.json" <<EOF
+{"updated":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","combat":"$LIT_COMBAT","spell":"$LIT_SPELL","creator":"$LIT_CREATOR","restoreSpell":"${LIT_SPELL}?restore=coup-brut"}
+EOF
+    sed -i "s|href=\"https://[^\"]*\"|href=\"$LIT_CREATOR\"|" "$ROOT/docs/previews/portail.html" 2>/dev/null || true
+    python3 - "$ROOT/docs/previews/portail.html" "$LIT_CREATOR" "$LIT_COMBAT" "$LIT_SPELL" <<'PY'
+from pathlib import Path
+import sys, re
+p = Path(sys.argv[1])
+creator, combat, spell = sys.argv[2:5]
+t = p.read_text()
+t = re.sub(r'(id="lnkCreator" href=")[^"]*"', rf'\1{creator}"', t)
+t = re.sub(r'(id="lnkCombat" href=")[^"]*"', rf'\1{combat}"', t)
+t = re.sub(r'(id="lnkSpell" href=")[^"]*"', rf'\1{spell}"', t)
+t = re.sub(r'Dernière mise à jour : [^<]+<', f'Dernière mise à jour : {__import__("datetime").datetime.now().strftime("%H:%M le %d/%m/%Y")}<', t)
+p.write_text(t)
+PY
+    git -C "$ROOT" add docs/previews/live-links.json docs/previews/portail.html 2>/dev/null || true
+    git -C "$ROOT" commit -m "Update live-links.json (litterbox)" 2>/dev/null || true
+    git -C "$ROOT" push origin HEAD 2>/dev/null || true
+    echo "PORTAIL=https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/cursor/strict-regen-idle-66c0/docs/previews/portail.html"
   else
     echo "WARN: Litterbox unavailable — use Cloudflare links only" >&2
   fi

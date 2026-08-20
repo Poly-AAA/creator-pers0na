@@ -203,7 +203,10 @@
   "use strict";
   function wireFccNav(){
     const nav=Object.assign({}, window.FCC_NAV||{});
-    try{ Object.assign(nav, JSON.parse(localStorage.getItem("neuro.fccNav")||"{}")); }catch(_e){}
+    try{
+      const stored=JSON.parse(localStorage.getItem("neuro.fccNav")||"{}");
+      Object.keys(stored).forEach(k=>{ if(!nav[k]) nav[k]=stored[k]; });
+    }catch(_e){}
     document.querySelectorAll("[data-fcc]").forEach(el=>{
       const k=el.getAttribute("data-fcc");
       if(nav[k]) el.href=nav[k];
