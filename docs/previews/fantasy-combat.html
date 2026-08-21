@@ -779,7 +779,7 @@
     ensureSpellEffects();
   }
   function normalizeCastStep(step){
-    if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null };
+    if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null, fxHold:false };
     let hd = step.hitDelay;
     if(hd === "end" || hd === -1) hd = null; /* null = fin d’anim */
     else if(hd == null || hd === "" || hd === false) hd = null;
@@ -795,6 +795,8 @@
       hitAnimFps: step.hitAnimFps != null ? step.hitAnimFps : 14,
       /* null = fin d’anim ; nombre (0+) = ms après le début de ton attaque */
       hitDelay: hd,
+      /* FX slash/effect prolongé au-delà de l’anim (effet « bug stylé ») */
+      fxHold: !!step.fxHold,
     };
   }
   /** Bonus : cases cochées éditeur + évos victoire (cumul sur la partie). */
@@ -1014,20 +1016,10 @@
     return [];
   }
   /**
-   * Double Impact / multi-frappe : 2 steps d’attaque (anim1 puis anim2), pas la même ×2.
-   * null si pas multi-frappe.
+   * Double Impact / multi-frappe : 2 steps d’attaque (anim1 puis anim2).
+   * Utilisé aussi dans la chaîne d’évos cumulée.
    */
-  function doubleImpactCastSteps(sp){
-    const hits = spellHitCount(sp);
-    if(hits < 2) return null;
-    reloadCustomSpells();
-    const c = customSpellById(sp && sp.id);
-    const di = c && c.evoConfig
-      ? (c.evoConfig["2:Double Impact"] || c.evoConfig["2:Déchirure"] || c.evoConfig["2:Salve"])
-      : null;
-    const vis = activeEvoCastVisual(sp);
-    const raw = rawEditorSteps(sp);
-    const base = raw[0] || normalizeCastStep({ anim:"Attack1", fps:14, hitTarget:true });
+  function doubleImpactStepsFromEntry(di, base, vis){
     const fallbackAnim = (di && di.anim) || (vis && vis.anim) || base.anim;
     const fallbackFps = (di && di.fps != null) ? di.fps
       : (vis && vis.fps != null) ? vis.fps
@@ -1048,59 +1040,119 @@
         slash: slash || "None",
         effect: effect || "None",
         hitTarget: true,
-        hitAnim: base.hitAnim || "TakeDamage",
-        hitAnimFps: base.hitAnimFps != null ? base.hitAnimFps : 14,
-        hitDelay: base.hitDelay,
+        hitAnim: (di && di["hitAnim"+n]) || (di && di.hitAnim) || base.hitAnim || "TakeDamage",
+        hitAnimFps: (di && di["hitAnimFps"+n] != null) ? di["hitAnimFps"+n]
+          : (di && di.hitAnimFps != null) ? di.hitAnimFps
+          : (base.hitAnimFps != null ? base.hitAnimFps : 14),
+        hitDelay: (di && di["hitDelay"+n] != null) ? di["hitDelay"+n]
+          : (di && di.hitDelay != null) ? di.hitDelay
+          : base.hitDelay,
+        fxHold: !!(di && di.fxHold),
       });
     };
-    /* Autant de coups que hits (max 2 configs éditeur anim1/anim2, puis fallback) */
+    return [mk(1), mk(2)];
+  }
+  function doubleImpactCastSteps(sp){
+    const hits = spellHitCount(sp);
+    if(hits < 2) return null;
+    reloadCustomSpells();
+    const c = customSpellById(sp && sp.id);
+    const di = c && c.evoConfig
+      ? (c.evoConfig["2:Double Impact"] || c.evoConfig["2:Déchirure"] || c.evoConfig["2:Salve"])
+      : null;
+    const vis = activeEvoCastVisual(sp);
+    const raw = rawEditorSteps(sp);
+    const base = raw[0] || normalizeCastStep({ anim:"Attack1", fps:14, hitTarget:true });
+    const pair = doubleImpactStepsFromEntry(di, base, vis);
     const out = [];
     for(let n = 1; n <= hits; n++){
-      out.push(mk(Math.min(2, n)));
+      out.push(Object.assign({}, pair[Math.min(2, n) - 1]));
     }
     return out;
   }
+  function isMultiHitEvoKey(key){
+    return /:(Double Impact|Déchirure|Salve)$/i.test(key || "");
+  }
   /**
-   * Chaîne d’attaque en combat :
-   * - Double Impact → anim1 puis anim2 (1 hit chacun)
-   * - sinon case éditeur / victoire overlay
-   * - hitAnim / hitAnimFps / hitDelay → ceux du step / DI
+   * Chaîne d’attaque : step de base + CHAQUE évo cochée (DI = 2 anims).
+   * Victoire (partie) ajoute aussi son anim si présente.
    */
   function editorCastSteps(sp){
     reloadCustomSpells();
-    const diSeq = doubleImpactCastSteps(sp);
-    if(diSeq && diSeq.length) return diSeq;
-    let steps = rawEditorSteps(sp);
-    const vis = activeEvoCastVisual(sp);
-    if(vis && vis.anim){
-      const slash = vis.slash && vis.slash !== "None" ? vis.slash : null;
-      const effect = vis.effect && vis.effect !== "None" ? vis.effect : null;
-      if(!steps.length){
-        return [normalizeCastStep({
-          anim: vis.anim,
-          delay: vis.delay != null ? vis.delay : 0,
-          fps: vis.fps != null ? vis.fps : 14,
-          slash: slash || "None",
-          effect: effect || "None",
-          hitTarget: true,
-          hitAnim: "TakeDamage",
-          hitAnimFps: 14,
-          hitDelay: null,
-        })];
-      }
-      return steps.map(s=>{
-        const o = Object.assign({}, s, {
-          anim: vis.anim,
-          fps: vis.fps != null ? vis.fps : s.fps,
-        });
-        if(vis.delay != null) o.delay = vis.delay;
-        if(slash) o.slash = slash;
-        if(effect) o.effect = effect;
-        return normalizeCastStep(o);
+    const raw = rawEditorSteps(sp);
+    const base = raw[0] || normalizeCastStep({
+      anim: (sp && sp.anim) || "Attack1",
+      fps: 14,
+      hitTarget: true,
+    });
+    const custom = customSpellById(sp && sp.id);
+    const enabled = [];
+    if(custom && custom.evoConfig){
+      Object.keys(custom.evoConfig).sort().forEach(k=>{
+        const e = custom.evoConfig[k];
+        if(e && e.enabled) enabled.push({ key:k, entry:e });
       });
     }
-    if(steps.length) return steps;
-    return [];
+    const st = evoState(sp.id);
+    const victoryAnim = st.evo && st.evo.anim ? st.evo.anim : null;
+    const victoryFx = st.evo && st.evo.fx ? st.evo.fx : null;
+
+    if(!enabled.length && !victoryAnim){
+      if(raw.length) return raw;
+      return [normalizeCastStep(Object.assign({}, base, { hitTarget:true }))];
+    }
+
+    const chain = [];
+    /* Step de base d’abord (le sort « nu ») */
+    chain.push(normalizeCastStep(Object.assign({}, base, {
+      hitTarget: true,
+      fxHold: !!base.fxHold,
+    })));
+
+    const visStub = {
+      anim: victoryAnim,
+      slash: victoryFx && /^Slash/i.test(victoryFx) ? victoryFx : "None",
+      effect: victoryFx && /^Effect/i.test(victoryFx) ? victoryFx : "None",
+      fps: st.evo && st.evo.animFps != null ? st.evo.animFps : 14,
+    };
+
+    enabled.forEach(({ key, entry:e })=>{
+      if(isMultiHitEvoKey(key)){
+        doubleImpactStepsFromEntry(e, base, visStub).forEach(s=> chain.push(s));
+        return;
+      }
+      chain.push(normalizeCastStep({
+        anim: e.anim || base.anim,
+        delay: e.delay != null ? e.delay : 0,
+        fps: e.fps != null ? e.fps : (base.fps != null ? base.fps : 14),
+        slash: e.slash || "None",
+        effect: e.effect || "None",
+        hitTarget: true,
+        hitAnim: e.hitAnim || base.hitAnim || "TakeDamage",
+        hitAnimFps: e.hitAnimFps != null ? e.hitAnimFps : (base.hitAnimFps != null ? base.hitAnimFps : 14),
+        hitDelay: e.hitDelay != null ? e.hitDelay : base.hitDelay,
+        fxHold: !!e.fxHold,
+      }));
+    });
+
+    /* Anim de victoire en plus si elle n’est pas déjà la dernière */
+    if(victoryAnim){
+      const last = chain[chain.length - 1];
+      if(!last || last.anim !== victoryAnim){
+        chain.push(normalizeCastStep({
+          anim: victoryAnim,
+          fps: visStub.fps,
+          slash: visStub.slash,
+          effect: visStub.effect,
+          hitTarget: true,
+          hitAnim: st.evo.hitAnim || base.hitAnim || "TakeDamage",
+          hitAnimFps: st.evo.hitAnimFps != null ? st.evo.hitAnimFps : 14,
+          hitDelay: st.evo.hitDelay != null ? st.evo.hitDelay : base.hitDelay,
+          fxHold: !!st.evo.fxHold,
+        }));
+      }
+    }
+    return chain;
   }
   function editorEvoSteps(sp){
     return editorCastSteps(sp);
@@ -1151,7 +1203,10 @@
     };
     const finishChain = ()=>{
       if(G.player.anim!=="Die") playAnim(G.player, "Idle");
-      G.castFx = null;
+      /* Ne coupe pas un FX prolongé encore actif */
+      if(!(G.castFx && G.castFx.hold && performance.now() < G.castFx.until)){
+        G.castFx = null;
+      }
       if(onDone) onDone();
     };
     function next(){
@@ -1167,13 +1222,6 @@
       if(!isFinite(fps) || fps < 1) fps = 14;
       fps = Math.max(1, Math.min(60, fps));
       G.player.stepFps = fps;
-      G.castFx = {
-        slash: step.slash && step.slash !== "None" ? step.slash : null,
-        effect: step.effect && step.effect !== "None" ? step.effect : null,
-        until: performance.now() + 520,
-      };
-      if(G.castFx.slash) loadImg(G.castFx.slash, step.anim || "Attack1");
-      if(G.castFx.effect) loadImg(G.castFx.effect, step.anim || "Special1");
       let delay=Math.max(0, step.delay|0);
       let dur;
       if(typeof FantasyBridge!=="undefined" && FantasyBridge.animStepTiming){
@@ -1183,6 +1231,31 @@
         G.player.stepFps=fps;
         dur=Math.max(120, Math.round((COLS/fps)*1000));
       }
+      const now = performance.now();
+      const wantSlash = step.slash && step.slash !== "None" ? step.slash : null;
+      const wantEffect = step.effect && step.effect !== "None" ? step.effect : null;
+      const hold = !!step.fxHold || !!(G.castFx && G.castFx.hold && now < G.castFx.until);
+      /* FX prolongé : dure plus longtemps que l’anim et survit au step suivant */
+      const linger = hold
+        ? Math.max(dur + 600, Math.round(dur * 1.85), 1100)
+        : Math.max(520, Math.round(dur * 0.9));
+      if(hold && G.castFx && now < G.castFx.until){
+        G.castFx = {
+          slash: wantSlash || G.castFx.slash || null,
+          effect: wantEffect || G.castFx.effect || null,
+          until: Math.max(G.castFx.until, now + linger),
+          hold: true,
+        };
+      } else {
+        G.castFx = {
+          slash: wantSlash,
+          effect: wantEffect,
+          until: now + linger,
+          hold: !!step.fxHold,
+        };
+      }
+      if(G.castFx.slash) loadImg(G.castFx.slash, step.anim || "Attack1");
+      if(G.castFx.effect) loadImg(G.castFx.effect, step.anim || "Special1");
       let hitNow = false;
       let hitIndex = 0;
       if(onHit){
@@ -1194,9 +1267,11 @@
           hitIndex = Math.floor((i - 1) / stepsPerHit);
         }
       }
-      /* TakeDamage : null = fin d’anim ; nombre (0+) = ms après le début de ton attaque */
+      /* TakeDamage : priorité au délai du step (chaîne d’évos), sinon resolve global */
       if(hitNow){
-        const hd = resolveHitDelay(sp, hitIndex, Math.max(1, totalHits));
+        const hd = (step.hitDelay != null && step.hitDelay !== "")
+          ? step.hitDelay
+          : resolveHitDelay(sp, hitIndex, Math.max(1, totalHits));
         const hitMs = hitDelayMsFromStart(hd, dur);
         schedule(()=>{
           if(aborted) return;
@@ -1245,7 +1320,9 @@
     combo: 0,
     hover: null,
     pendingEvo: null,
-    castFx: null, /* { slash, effect, until } */
+    castFx: null, /* { slash, effect, until, hold } */
+    castPlaying: false, /* anim de sort en cours — UI reste libre */
+    castQueue: [], /* sorts lancés pendant une anim */
     fightN: 1,
     awaitingNext: false,
   };
@@ -1682,6 +1759,8 @@
     if(G.awaitingNext) return;
     G.awaitingNext = true;
     G.busy = false;
+    G.castPlaying = false;
+    G.castQueue = [];
     G.armed = null; G.armedSlot = null;
     G.turn = "over";
     if(kind==="defeat"){
@@ -1719,7 +1798,7 @@
     el("chipPm").classList.toggle("low", G.player.pm<=1);
     el("chipPm").classList.toggle("zero", G.player.pm<=0);
     el("comboFill").style.width = Math.min(100, G.combo)+"%";
-    el("btnEnd").disabled = G.turn!=="player" || G.busy;
+    el("btnEnd").disabled = G.turn!=="player" || G.busy || G.castPlaying || (G.castQueue && G.castQueue.length>0);
   }
 
   function lookSig(){
@@ -2078,10 +2157,18 @@
   }
 
   function finishCastSelf(sp){
-    const st = evoState(sp.id);
     const evo = evoBonusesFor(sp);
     const cost = Math.max(1, sp.cost + (evo.cost|0));
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
+
+    if(G.castPlaying){
+      G.castQueue.push({ kind:"self", spellId: sp.id });
+      G.armed=null; G.armedSlot=null;
+      setStatus("Combo en file · "+sp.name+" ("+G.castQueue.length+")");
+      renderSpells(); hud();
+      return;
+    }
+
     G.player.pa -= cost;
 
     if(sp.effect==="roulade" || sp.id==="roulade"){
@@ -2089,8 +2176,11 @@
       return;
     }
 
+    G.castPlaying = true;
     playCastAnimChain(sp, ()=>{
       if(G.player.anim!=="Die") playAnim(G.player,"Idle");
+      G.castPlaying = false;
+      drainCastQueue();
     });
 
     if(sp.id==="double"){
@@ -2383,6 +2473,7 @@
     const mode0 = initialDist <= 1 ? "recul" : "approche";
 
     G.busy = true;
+    G.castPlaying = true;
     G.armed = null; G.armedSlot = null;
     G.combo = Math.min(100, G.combo + 18);
     renderSpells(); hud();
@@ -2394,12 +2485,14 @@
     const finish = ()=>{
       if(G.player.anim!=="Die") playAnim(G.player, "Idle");
       G.busy = false;
+      G.castPlaying = false;
       setStatus(
         "Roulade · "+lastMode+
         (rollsDone > 1 ? " ×"+rollsDone : "")+
         " · "+cellsMoved+" case"+(cellsMoved>1?"s":"")
       );
       recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+      drainCastQueue();
     };
 
     const runRoll = (index)=>{
@@ -2524,14 +2617,26 @@
     if(dist(G.player, G.enemy) > spellRange(sp)){ setStatus("Toujours hors portée"); return; }
     const cost = Math.max(1, sp.cost + (evo.cost|0));
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
+
+    /* Pendant une anim : enfile le sort — fluidité / combos */
+    if(G.castPlaying){
+      G.castQueue.push({ kind:"enemy", spellId: sp.id, label: (G.armedSlot?G.armedSlot.label+" · ":"")+sp.name });
+      G.armed=null; G.armedSlot=null;
+      setStatus("Combo en file · "+sp.name+" ("+G.castQueue.length+")");
+      renderSpells(); hud();
+      return;
+    }
+
     faceToward(G.player, G.enemy.c, G.enemy.r);
     G.player.pa -= cost;
-    G.busy = true;
+    G.castPlaying = true;
+    /* Pas de G.busy ici : les sorts restent cliquables pendant l’anim */
     const label = (G.armedSlot?G.armedSlot.label+" · ":"")+sp.name;
     G.armed=null; G.armedSlot=null;
     renderSpells(); hud();
 
-    const hits = spellHitCount(sp);
+    const chain = editorCastSteps(sp);
+    const hits = Math.max(1, chain.filter(s=>s && s.hitTarget).length || spellHitCount(sp));
     let dmgEach = roll(sp.dmg || [6,10]) + (evo.dmg|0);
     if(G.player.invis>0 && evo.invisBurst) dmgEach += evo.invisBurst|0;
     let total = 0;
@@ -2554,7 +2659,6 @@
       if(G.enemy.pv <= 0){
         G.enemy.alive = false;
       }
-      /* Push une seule fois, sur le dernier coup qui touche encore vivant / fin de chaîne */
       if(pushCells > 0 && hitIndex === hits - 1 && G.enemy.pv > 0){
         pushed = pushEntityAway(G.enemy, G.player, Math.max(1, pushCells), "enemy");
       }
@@ -2569,32 +2673,55 @@
       if(G.player.anim!=="Die") playAnim(G.player,"Idle");
       G.combo = Math.min(100, G.combo + 22);
       if(G.player.invis>0) G.player.invis = 0;
+      G.castPlaying = false;
       if(G.enemy.pv<=0){
         G.enemy.alive=false;
+        G.castQueue = [];
         setStatus("Victoire · "+label+" → "+total+(hits>1?" ×"+hits:""));
         G.busy = false;
         onCombatEnd("win");
-      } else {
-        setStatus(label+" → "+total+(hits>1?" ×"+hits:"")+(pushed?" · poussé "+pushed:""));
-        G.busy = false;
+        recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+        return;
       }
+      setStatus(label+" → "+total+(hits>1?" ×"+hits:"")+(pushed?" · poussé "+pushed:""));
+      G.busy = false;
       recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+      drainCastQueue();
     };
-    /* Multi-frappe : enchaîne anim1 + anim2 (configs distinctes), 1 hit par step — pas ×N la même */
-    const diSeq = doubleImpactCastSteps(sp);
-    if(diSeq && diSeq.length){
-      playCastAnimChain(sp, afterCast, {
-        steps: diSeq,
-        repeat: 1,
-        hitEachStep: true,
-        onHit: applyOneHit
-      });
-    } else {
-      playCastAnimChain(sp, afterCast, {
-        repeat: hits,
-        onHit: applyOneHit
-      });
+
+    playCastAnimChain(sp, afterCast, {
+      steps: chain.length ? chain : null,
+      repeat: 1,
+      hitEachStep: true,
+      onHit: applyOneHit
+    });
+  }
+
+  /** Lance le prochain sort mis en file pendant une anim. */
+  function drainCastQueue(){
+    if(G.castPlaying || G.busy || G.turn!=="player") return;
+    if(!G.castQueue.length) return;
+    const next = G.castQueue.shift();
+    if(!next || !next.spellId){ drainCastQueue(); return; }
+    const sp = spellById(next.spellId);
+    if(!sp){ drainCastQueue(); return; }
+    const evo = evoBonusesFor(sp);
+    const cost = Math.max(1, sp.cost + (evo.cost|0));
+    if(G.player.pa < cost){
+      setStatus("File · pas assez de PA pour "+sp.name);
+      drainCastQueue();
+      return;
     }
+    if(isSelfSpell(sp) || sp.effect==="roulade" || sp.id==="roulade"){
+      finishCastSelf(sp);
+      return;
+    }
+    if(!G.enemy.alive){ G.castQueue = []; return; }
+    if(dist(G.player, G.enemy) > spellRange(sp)){
+      approachThen(sp, ()=> finishCastEnemy(sp));
+      return;
+    }
+    finishCastEnemy(sp);
   }
 
   /** Repousse `ent` loin de `from` sur N cases (si libre). */
@@ -2639,6 +2766,14 @@
 
     if(!G.enemy.alive || G.enemy.c!==c || G.enemy.r!==r){ setStatus("Pas de cible"); return; }
     if(dist(G.player, G.enemy) > spellRange(sp)){
+      if(G.castPlaying){
+        /* En file : on tentera l’approche au moment du drain */
+        G.castQueue.push({ kind:"enemy", spellId: sp.id });
+        G.armed=null; G.armedSlot=null;
+        setStatus("Combo en file · "+sp.name);
+        renderSpells(); hud();
+        return;
+      }
       approachThen(sp, ()=> finishCastEnemy(sp));
       return;
     }
@@ -2688,6 +2823,10 @@
 
   function endTurn(){
     if(G.turn!=="player" || G.busy) return;
+    if(G.castPlaying || (G.castQueue && G.castQueue.length)){
+      setStatus("Attends la fin du combo…");
+      return;
+    }
     G.armed=null; G.armedSlot=null; G.turn="enemy";
     G.combo = Math.max(0, G.combo - 12);
     tickClone();
@@ -2944,6 +3083,8 @@
 
   function beginPlayerTurn(){
     G.busy = false;
+    G.castPlaying = false;
+    G.castQueue = [];
     G.player.pmMax = playerBasePm();
     G.player.pa = G.player.paMax;
     G.player.pm = G.player.pmMax;
@@ -3049,6 +3190,7 @@
         const evoAnim = st.evo && st.evo.anim;
         line.textContent = name+" ·"+sp.cost+(evoAnim?" ·"+evoAnim.replace("Attack","A"):"");
         b.className = (G.armed===sp.id && G.armedSlot && G.armedSlot.slot===slot.slot) ? "on" : "";
+        /* Pendant l’anim (castPlaying) les sorts restent cliquables si assez de PA */
         b.disabled = G.turn!=="player" || G.busy || G.player.pa<sp.cost;
         b.onclick=()=>{
           if(G.busy || G.turn!=="player") return;

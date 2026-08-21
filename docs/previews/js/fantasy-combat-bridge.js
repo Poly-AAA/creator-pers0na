@@ -830,6 +830,7 @@
       hitAnim: "TakeDamage",
       hitAnimFps: 14,
       hitDelay: null,
+      fxHold: false,
     };
   }
 
@@ -848,6 +849,7 @@
           if (!out[k].hitAnim) out[k].hitAnim = "TakeDamage";
           if (out[k].hitAnimFps == null) out[k].hitAnimFps = 14;
           if (out[k].hitDelay === "") out[k].hitDelay = null;
+          if (out[k].fxHold == null) out[k].fxHold = false;
         }
       });
     });
