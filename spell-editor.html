@@ -88,12 +88,14 @@
     background:var(--soft);font-size:12px;font-weight:700;color:var(--ink);border-bottom:none}
   .editor-tabs button.on{background:var(--card);color:var(--acc);border-color:var(--acc);position:relative;z-index:1}
 
-  /* boutons +/- (remplacent les barres) */
-  .step-btns{display:inline-flex;align-items:center;gap:4px;flex:1;justify-content:flex-end}
-  .step-btns button{min-width:36px;min-height:36px;padding:0 10px;border:1.5px solid var(--line);border-radius:8px;
-    background:var(--soft);font-size:18px;font-weight:700;color:var(--ink);line-height:1;cursor:pointer}
+  /* boutons +/- (remplacent les barres / champs difficiles au doigt) */
+  .step-btns{display:inline-flex;align-items:center;gap:6px;flex:1;justify-content:flex-end}
+  .step-btns button{min-width:44px;min-height:44px;padding:0 12px;border:1.5px solid var(--line);border-radius:10px;
+    background:var(--soft);font-size:22px;font-weight:700;color:var(--ink);line-height:1;cursor:pointer;
+    touch-action:manipulation;-webkit-user-select:none;user-select:none}
   .step-btns button:active{background:var(--acc);color:#fff;border-color:var(--acc)}
-  .step-btns .val{min-width:48px;text-align:center;font-size:13px;font-weight:700;color:var(--ink)}
+  .step-btns .val{min-width:52px;text-align:center;font-size:15px;font-weight:700;color:var(--ink);
+    font-variant-numeric:tabular-nums}
 
   /* bande de frames */
   .frame-strip{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0}
@@ -1407,23 +1409,17 @@ function renderEditor(){
   const idCard=card("Identité & paramètres");
   idCard.append(
     fieldText("Nom",sp.name,"name"),
-    mkRow2(
-      fieldNum("Coût PA",sp.cost,"cost",1,8),
-      fieldNum("Portée",sp.range,"range",0,8)
-    ),
+    fieldNum("Coût PA",sp.cost,"cost",1,8),
+    fieldNum("Portée",sp.range,"range",0,8),
     fieldText("Description libre",sp.desc||"","desc","Décris ce que fait le sort, l'effet visuel…",true),
     mkRow2(
       fieldSelect("Type",sp.type,"type",["damage","heal","shield","buff","clone","summon"]),
       fieldText("Dégâts min",sp.dmg?String(sp.dmg[0]):"0","dmgMin")
     ),
-    mkRow2(
-      fieldText("Dégâts max",sp.dmg?String(sp.dmg[1]):"0","dmgMax"),
-      fieldNum("AoE rayon",sp.aoe||0,"aoe",0,3)
-    ),
-    mkRow2(
-      fieldSelect("Effet", sp.effect||"none", "effect", ["none","push","roulade","drainPA"]),
-      fieldNum("Push (cases)", sp.push!=null?sp.push:1, "push", 0, 4)
-    )
+    fieldText("Dégâts max",sp.dmg?String(sp.dmg[1]):"0","dmgMax"),
+    fieldNum("AoE rayon",sp.aoe||0,"aoe",0,3),
+    fieldSelect("Effet", sp.effect||"none", "effect", ["none","push","roulade","drainPA"]),
+    fieldNum("Push (cases)", sp.push!=null?sp.push:1, "push", 0, 4)
   );
   host.appendChild(idCard);
 
@@ -2108,11 +2104,12 @@ function fieldText(label, val, key, placeholder, textarea){
   lbl.appendChild(inp); return lbl;
 }
 function fieldNum(label, val, key, min, max){
-  const lbl=document.createElement("label"); lbl.className="field";
-  lbl.innerHTML=`<span>${label}</span>`;
-  const inp=document.createElement("input"); inp.type="number"; inp.min=min; inp.max=max; inp.value=val||0;
-  inp.oninput=()=>{ const s2=ensureEditable(activeId); s2[key]=parseInt(inp.value)||0; scheduleAutoSave(); };
-  lbl.appendChild(inp); return lbl;
+  /* Même UX −/+ que FPS/délais (pas de champ number / barre au doigt) */
+  return mkNumRow(label, val||0, min, max, 1, v=>{
+    const s2=ensureEditable(activeId);
+    s2[key]=v;
+    scheduleAutoSave();
+  });
 }
 function fieldSelect(label, val, key, opts){
   const lbl=document.createElement("label"); lbl.className="field";
