@@ -87,6 +87,24 @@
   .editor-tabs button{flex:1;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px 10px 0 0;
     background:var(--soft);font-size:12px;font-weight:700;color:var(--ink);border-bottom:none}
   .editor-tabs button.on{background:var(--card);color:var(--acc);border-color:var(--acc);position:relative;z-index:1}
+
+  /* boutons +/- (remplacent les barres) */
+  .step-btns{display:inline-flex;align-items:center;gap:4px;flex:1;justify-content:flex-end}
+  .step-btns button{min-width:36px;min-height:36px;padding:0 10px;border:1.5px solid var(--line);border-radius:8px;
+    background:var(--soft);font-size:18px;font-weight:700;color:var(--ink);line-height:1;cursor:pointer}
+  .step-btns button:active{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .step-btns .val{min-width:48px;text-align:center;font-size:13px;font-weight:700;color:var(--ink)}
+
+  /* bande de frames */
+  .frame-strip{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0}
+  .frame-strip button{width:28px;height:28px;padding:0;border:1.5px solid var(--line);border-radius:6px;
+    background:var(--soft);font-size:10px;font-weight:700;color:var(--ink2);cursor:pointer}
+  .frame-strip button.in{background:#dfe8ff;border-color:var(--acc);color:var(--acc)}
+  .frame-strip button.start{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .frame-strip button.end{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .frame-scrub{display:flex;gap:6px;align-items:center;margin-top:4px}
+  .frame-scrub button{min-width:40px;min-height:32px;border:1.5px solid var(--line);border-radius:8px;
+    background:var(--soft);font-weight:700;cursor:pointer}
 </style>
 </head>
 <body>
@@ -1025,13 +1043,32 @@ function drawLoop(){
     const fs = ent.frameStart != null ? (ent.frameStart|0) : 0;
     const fe = ent.frameEnd != null ? (ent.frameEnd|0) : FRAME_MAX;
     const span = Math.max(1, fe - fs + 1);
-    let col = fs + Math.floor(elapsed*fps);
-    if(loop) col = fs + ((col - fs) % span);
-    else col = Math.min(col, fe);
+    let col;
+    if(ent.freezeFrame != null){
+      col = Math.max(0, Math.min(FRAME_MAX, ent.freezeFrame|0));
+    } else {
+      col = fs + Math.floor(elapsed*Math.max(0.0001, fps));
+      if(loop) col = fs + ((col - fs) % span);
+      else col = Math.min(col, fe);
+    }
     const s=toScreen(ent.c,ent.r);
     const sc2=1.15, dw=FW*sc2, dh=FH*sc2, FOOT=88;
     const dx=s.x-dw/2, dy=s.y-FOOT*sc2;
     const isEnemy=(ent===enemy);
+    /* Monture sous le perso (preview onglet dégâts monture) */
+    const wantMount = !isEnemy && (ent.showMount || (editorTab==="mount" && !ent.hideMount && previewMountOn!==false)) && !ent.hideMount;
+    if(wantMount){
+      const mf = previewMountFolder();
+      const mountAnim = /^Ride/i.test(anim) ? anim : "RideIdle";
+      const mim = getImg(mf, mountAnim) || getImg(mf, "RideIdle") || getImg(mf, "Idle");
+      if(mim){
+        ctx.save(); ctx.globalAlpha=1;
+        ctx.drawImage(mim, col*FW, row*FH, FW, FH, dx, dy, dw, dh);
+        ctx.restore();
+      } else {
+        loadImg(mf, "RideIdle");
+      }
+    }
     /* Build layers: base + optional FX for player */
     let layers=isEnemy
       ? [{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1}]
@@ -1190,34 +1227,90 @@ function fxEffectList(){ return FX_EFFECT_LIST; }
 
 /* Preview d'une action (chaîne de steps riches sur le joueur) */
 let _previewTimer=null;
+/** Freeze une entité sur une frame précise (pour le scrub ◀▶). */
+function freezePreviewFrame(ent, anim, frame, fs, fe, step){
+  if(_previewTimer){ clearTimeout(_previewTimer); _previewTimer=null; }
+  ent.anim = anim || "Idle";
+  ent.t0 = performance.now();
+  ent.stepFps = 0.0001; /* quasi gelé */
+  ent.frameStart = frame|0;
+  ent.frameEnd = frame|0;
+  ent.freezeFrame = frame|0;
+  if(step){
+    ent.hideMount = !!(step.hideMount || step.clearMount);
+    ent.forceGround = !!step.forceGround;
+    ent.showMount = !(step.hideMount || step.clearMount) && (editorTab === "mount" || previewMountOn);
+  } else {
+    ent.hideMount = false;
+  }
+  const st=document.getElementById("pvStatus");
+  if(st) st.textContent="Frame "+frame+" · "+anim+(fs!=null?" ("+fs+"→"+fe+")":"");
+}
+
+let previewMountOn = false;
+function previewMountFolder(){
+  const m = lookState.look && lookState.look.mount;
+  if(m && m!=="None") return m;
+  return "Mount1";
+}
+
 function applyPreviewClip(ent, step, isHit){
   const fs = isHit ? (step.hitFrameStart|0) : (step.frameStart|0);
   const fe = isHit ? (step.hitFrameEnd!=null?step.hitFrameEnd:FRAME_MAX) : (step.frameEnd!=null?step.frameEnd:FRAME_MAX);
   ent.frameStart = Math.max(0, Math.min(FRAME_MAX, fs));
   ent.frameEnd = Math.max(ent.frameStart, Math.min(FRAME_MAX, fe));
-  ent.hideMount = !!(step.hideMount || step.clearMount || step.forceGround);
+  ent.freezeFrame = null;
+  ent.hideMount = !!(step.hideMount || step.clearMount);
+  ent.forceGround = !!step.forceGround;
+  if(previewMountOn || editorTab === "mount"){
+    ent.showMount = !(step.hideMount || step.clearMount);
+  }
 }
-function previewAction(steps){
+function previewAction(steps, opts){
+  opts = opts || {};
   if(_previewTimer){ clearTimeout(_previewTimer); _previewTimer=null; }
+  previewMountOn = !!opts.asMount || editorTab === "mount";
   const seq=(steps&&steps.length?steps:["Attack1"]).map(normalizeStep);
   let i=0;
+  let mountGone = false;
+  const stEl=document.getElementById("pvStatus");
+  if(stEl) stEl.textContent = previewMountOn ? "Preview monture · à cheval" : "Preview sort";
+  /* Warm monture */
+  if(previewMountOn){
+    const mf = previewMountFolder();
+    loadImg(mf, "RideIdle"); loadImg(mf, "RideRun");
+    player.showMount = true; player.hideMount = false; player._mountCleared = false;
+  }
   function next(){
     if(i>=seq.length){
-      player.anim="Idle"; player.t0=performance.now();
+      player.anim = previewMountOn && !mountGone ? "RideIdle" : "Idle";
+      player.t0=performance.now();
       player.fxSlash=null; player.fxEffect=null;
-      player.frameStart=0; player.frameEnd=FRAME_MAX; player.hideMount=false;
+      player.frameStart=0; player.frameEnd=FRAME_MAX; player.freezeFrame=null;
+      player.hideMount = mountGone;
+      player.showMount = previewMountOn && !mountGone;
+      player.stepFps = null;
       enemy.anim="Idle"; enemy.t0=performance.now();
-      enemy.frameStart=0; enemy.frameEnd=FRAME_MAX;
+      enemy.frameStart=0; enemy.frameEnd=FRAME_MAX; enemy.freezeFrame=null;
+      if(stEl) stEl.textContent = previewMountOn ? "Fin séquence monture" : "Idle";
       return;
     }
     const step=seq[i++];
-    /* déplacement joueur */
-    player.anim=step.anim; player.t0=performance.now();
+    if(step.clearMount) mountGone = true;
+    /* anim joueur */
+    let anim = step.anim || "Idle";
+    if(previewMountOn && !step.forceGround && !step.hideMount && !step.clearMount && !mountGone){
+      /* rester en Ride* si Idle demandé */
+      if(/^Idle$/i.test(anim)) anim = "RideIdle";
+    }
+    player.anim=anim; player.t0=performance.now();
     player.stepFps=step.fps||14;
     applyPreviewClip(player, step, false);
+    if(mountGone){ player.hideMount = true; player.showMount = false; }
     /* FX */
     player.fxSlash=(step.slash&&step.slash!=="None")?step.slash:null;
     player.fxEffect=(step.effect&&step.effect!=="None")?step.effect:null;
+    if(stEl) stEl.textContent = (previewMountOn?"Monture · ":"")+anim+(player.hideMount?" · sans monture":"");
     /* Hit sur la cible */
     let delay=Math.max(0, step.delay|0);
     let dur;
@@ -1468,15 +1561,69 @@ function renderEditor(){
 }
 
 /* ── Helpers UI pour les steps ── */
-function mkFrameTrimRow(label, startVal, endVal, onStart, onEnd){
+/** Bande frame-par-frame : 1er tap = début, 2e tap = fin. ◀▶ pour avancer. */
+function mkFrameTrimRow(label, startVal, endVal, onStart, onEnd, opts){
+  opts = opts || {};
+  let fs = startVal!=null?startVal:0;
+  let fe = endVal!=null?endVal:FRAME_MAX;
+  if(fe < fs){ const t=fs; fs=fe; fe=t; }
+  let pickMode = "start"; /* prochain tap */
+  let scrub = fs;
+
   const wrap=document.createElement("div");
   wrap.style.cssText="margin:4px 0 6px;padding:6px 8px;border:1px dashed var(--line2);border-radius:8px;background:var(--bg)";
   const tip=document.createElement("div");
   tip.style.cssText="font-size:10px;color:var(--ink2);margin-bottom:4px;line-height:1.35";
-  tip.textContent=label+" — frames 0→"+FRAME_MAX+" (début / fin de la portion jouée).";
+  tip.textContent=label+" — tape une case = début (violet), une autre = fin (vert). ◀▶ = frame par frame.";
   wrap.appendChild(tip);
-  wrap.appendChild(mkNumRow("Frame début", startVal!=null?startVal:0, 0, FRAME_MAX, 1, onStart));
-  wrap.appendChild(mkNumRow("Frame fin", endVal!=null?endVal:FRAME_MAX, 0, FRAME_MAX, 1, onEnd));
+
+  const status=document.createElement("div");
+  status.style.cssText="font-size:11px;font-weight:700;color:var(--acc);margin-bottom:4px";
+  const strip=document.createElement("div"); strip.className="frame-strip";
+
+  function paint(){
+    status.textContent="Début "+fs+" → Fin "+fe+"  ·  prochain tap = "+(pickMode==="start"?"début":"fin");
+    strip.innerHTML="";
+    for(let i=0;i<=FRAME_MAX;i++){
+      const b=document.createElement("button"); b.type="button"; b.textContent=String(i);
+      if(i===fs) b.classList.add("start");
+      else if(i===fe) b.classList.add("end");
+      else if(i>fs && i<fe) b.classList.add("in");
+      b.onclick=()=>{
+        if(pickMode==="start"){
+          fs=i; if(fe<fs) fe=fs; pickMode="end";
+          onStart(fs); onEnd(fe);
+        } else {
+          fe=i; if(fe<fs){ const t=fs; fs=fe; fe=t; onStart(fs); }
+          onEnd(fe); pickMode="start";
+        }
+        scrub = Math.max(fs, Math.min(fe, scrub));
+        paint();
+        if(typeof opts.onScrub==="function") opts.onScrub(scrub, fs, fe);
+      };
+      strip.appendChild(b);
+    }
+  }
+  wrap.appendChild(status);
+  wrap.appendChild(strip);
+
+  const scrubRow=document.createElement("div"); scrubRow.className="frame-scrub";
+  const prevB=document.createElement("button"); prevB.type="button"; prevB.textContent="◀";
+  const scrubLab=document.createElement("span");
+  scrubLab.style.cssText="font-size:12px;font-weight:700;min-width:72px;text-align:center";
+  const nextB=document.createElement("button"); nextB.type="button"; nextB.textContent="▶";
+  function setScrub(v){
+    scrub = Math.max(fs, Math.min(fe, v));
+    scrubLab.textContent="Frame "+scrub;
+    if(typeof opts.onScrub==="function") opts.onScrub(scrub, fs, fe);
+  }
+  prevB.onclick=()=>setScrub(scrub-1);
+  nextB.onclick=()=>setScrub(scrub+1);
+  scrubRow.appendChild(prevB); scrubRow.appendChild(scrubLab); scrubRow.appendChild(nextB);
+  wrap.appendChild(scrubRow);
+
+  paint();
+  setScrub(fs);
   return wrap;
 }
 /** Remplit les contrôles anim communs (FX, FPS, trim, hit…). opts.mountExtra = hideMount/clearMount/forceGround */
@@ -1497,7 +1644,10 @@ function fillAnimStepControls(box, st, opts){
   box.appendChild(mkNumRow("Vitesse ton anim (FPS)", st.fps||14, 1, FPS_MAX, 1, v=>{ st.fps=v; onSave(); }));
   box.appendChild(mkFrameTrimRow("Portion d’anim (toi)", st.frameStart, st.frameEnd,
     v=>{ st.frameStart=v; if(st.frameEnd < v) st.frameEnd=v; onSave(); onRerender(); },
-    v=>{ st.frameEnd=v; if(st.frameStart > v) st.frameStart=v; onSave(); onRerender(); }
+    v=>{ st.frameEnd=v; if(st.frameStart > v) st.frameStart=v; onSave(); onRerender(); },
+    { onScrub:(frame, a, b)=>{
+        freezePreviewFrame(player, st.anim||"Idle", frame, a, b, st);
+      }}
   ));
 
   if(opts.mountExtra){
@@ -1514,7 +1664,10 @@ function fillAnimStepControls(box, st, opts){
       box.appendChild(mkHitDelayRow(st.hitDelay, v=>{ st.hitDelay=v; onSave(); }));
       box.appendChild(mkFrameTrimRow("Portion réaction (ennemi)", st.hitFrameStart, st.hitFrameEnd,
         v=>{ st.hitFrameStart=v; if(st.hitFrameEnd < v) st.hitFrameEnd=v; onSave(); onRerender(); },
-        v=>{ st.hitFrameEnd=v; if(st.hitFrameStart > v) st.hitFrameStart=v; onSave(); onRerender(); }
+        v=>{ st.hitFrameEnd=v; if(st.hitFrameStart > v) st.hitFrameStart=v; onSave(); onRerender(); },
+        { onScrub:(frame, a, b)=>{
+            freezePreviewFrame(enemy, st.hitAnim||"TakeDamage", frame, a, b, null);
+          }}
       ));
     }
   }
@@ -1531,23 +1684,37 @@ function mkSelectRow(label, opts, val, onChange){
   d.appendChild(lb); d.appendChild(sel); return d;
 }
 function mkNumRow(label, val, min, max, step, onChange){
+  let cur = Number(val); if(!isFinite(cur)) cur = min;
+  cur = Math.max(min, Math.min(max, cur));
   const d=document.createElement("div");
-  d.style.cssText="display:flex;align-items:center;gap:6px;margin-bottom:4px";
+  d.style.cssText="display:flex;align-items:center;gap:6px;margin-bottom:6px";
   const lb=document.createElement("span"); lb.style.cssText="font-size:11px;color:var(--ink2);min-width:90px;flex-shrink:0"; lb.textContent=label;
-  const inp=document.createElement("input"); inp.type="range"; inp.min=min; inp.max=max; inp.step=step; inp.value=val;
-  inp.style.cssText="flex:1";
-  const num=document.createElement("input"); num.type="number"; num.min=min; num.max=max; num.step=step; num.value=val;
-  num.style.cssText="width:64px;padding:3px 4px;border:1px solid var(--line);border-radius:6px;background:var(--soft);font-size:11px";
-  const apply=(raw)=>{
-    let v=parseInt(raw,10);
+  const btns=document.createElement("div"); btns.className="step-btns";
+  const minus=document.createElement("button"); minus.type="button"; minus.textContent="−";
+  const disp=document.createElement("span"); disp.className="val"; disp.textContent=String(cur);
+  const plus=document.createElement("button"); plus.type="button"; plus.textContent="+";
+  const apply=(v)=>{
     if(!isFinite(v)) v=min;
     v=Math.max(min, Math.min(max, v));
-    inp.value=v; num.value=v; onChange(v);
+    /* aligner sur le step */
+    const st = step > 0 ? step : 1;
+    v = Math.round(v / st) * st;
+    v=Math.max(min, Math.min(max, v));
+    cur=v; disp.textContent=String(cur); onChange(cur);
   };
-  inp.oninput=()=>apply(inp.value);
-  num.onchange=()=>apply(num.value);
-  num.oninput=()=>{ if(num.value!=="" && num.value!=null) apply(num.value); };
-  d.appendChild(lb); d.appendChild(inp); d.appendChild(num); return d;
+  minus.onclick=()=>apply(cur - (step||1));
+  plus.onclick=()=>apply(cur + (step||1));
+  /* appui long = répéter */
+  function hold(btn, dir){
+    let t=null, iv=null;
+    const go=()=>apply(cur + dir*(step||1));
+    btn.onpointerdown=(e)=>{ e.preventDefault(); go(); t=setTimeout(()=>{ iv=setInterval(go, 80); }, 350); };
+    const stop=()=>{ clearTimeout(t); clearInterval(iv); };
+    btn.onpointerup=stop; btn.onpointerleave=stop; btn.onpointercancel=stop;
+  }
+  hold(minus, -1); hold(plus, 1);
+  btns.appendChild(minus); btns.appendChild(disp); btns.appendChild(plus);
+  d.appendChild(lb); d.appendChild(btns); return d;
 }
 function mkCheckRow(label, val, onChange){
   const d=document.createElement("label");
@@ -1806,12 +1973,23 @@ function renderEvoChoice(spellId, tier, choice, spell){
 function renderMountHitEditor(host){
   const cardEl=card("Dégâts reçus sur monture");
   const hint=document.createElement("p"); hint.className="hint";
-  hint.textContent="Quand le joueur (ou un ennemi) est touché à cheval : enchaîne ces steps (tomber, cacher/retirer la monture, Die, se relever…). Mêmes réglages que les sorts + trim de frames.";
+  hint.textContent="Preview en haut = perso À CHEVAL. ► Voir la chute joue toute la séquence. Sur chaque step : cases 0–14 = début/fin frame par frame. Boutons − / + pour FPS et délais (plus de barres).";
   cardEl.appendChild(hint);
 
   cardEl.appendChild(mkCheckRow("Activer la séquence monture", !!mountHit.enabled, v=>{
     mountHit.enabled=v; saveMountHit();
   }));
+
+  /* Gros bouton preview immédiatement visible */
+  const bigPv=document.createElement("button"); bigPv.type="button";
+  bigPv.textContent="▶ Voir la chute";
+  bigPv.style.cssText="margin:8px 0;padding:12px;border-radius:10px;background:var(--ok);color:#fff;border:none;font-weight:800;cursor:pointer;width:100%;font-size:14px";
+  bigPv.onclick=()=>{
+    previewMountOn = true;
+    player.showMount = true; player.hideMount = false;
+    previewAction(mountHit.steps||[], { asMount:true });
+  };
+  cardEl.appendChild(bigPv);
 
   function renderMountSteps(){
     const existing=cardEl.querySelector(".steps-wrap");
@@ -1839,9 +2017,9 @@ function renderMountHitEditor(host){
         mountExtra: true,
       });
 
-      const pvB=document.createElement("button"); pvB.type="button"; pvB.textContent="▶ Tester ce step";
+      const pvB=document.createElement("button"); pvB.type="button"; pvB.textContent="▶ Tester ce step (à cheval)";
       pvB.style.cssText="margin-top:6px;padding:5px 12px;border-radius:8px;background:var(--acc);color:#fff;border:none;font-weight:700;cursor:pointer;font-size:11px";
-      pvB.onclick=()=>previewAction([st]);
+      pvB.onclick=()=>previewAction([st], { asMount:true });
       box.appendChild(pvB);
       wrap.appendChild(box);
     });
@@ -1856,9 +2034,9 @@ function renderMountHitEditor(host){
     };
     wrap.appendChild(addB);
 
-    const allB=document.createElement("button"); allB.type="button"; allB.textContent="▶ Prévisualiser la séquence";
+    const allB=document.createElement("button"); allB.type="button"; allB.textContent="▶ Voir la chute (toute la séquence)";
     allB.style.cssText="margin-top:4px;padding:9px;border-radius:9px;background:var(--acc);color:#fff;border:none;font-weight:700;cursor:pointer;width:100%";
-    allB.onclick=()=>previewAction(mountHit.steps||[]);
+    allB.onclick=()=>previewAction(mountHit.steps||[], { asMount:true });
     wrap.appendChild(allB);
 
     const resetB=document.createElement("button"); resetB.type="button"; resetB.textContent="↩ Remettre la séquence par défaut";
@@ -1884,6 +2062,24 @@ function wireEditorTabs(){
   document.querySelectorAll("#editorTabs button").forEach(b=>{
     b.onclick=()=>{
       editorTab = b.getAttribute("data-tab") || "spell";
+      if(editorTab === "mount"){
+        previewMountOn = true;
+        player.showMount = true;
+        player.hideMount = false;
+        player.anim = "RideIdle";
+        player.t0 = performance.now();
+        player.frameStart = 0; player.frameEnd = FRAME_MAX; player.freezeFrame = null;
+        const mf = previewMountFolder();
+        loadImg(mf, "RideIdle"); loadImg(mf, "RideRun");
+        const st=document.getElementById("pvStatus");
+        if(st) st.textContent="Preview · à cheval — règle tes steps puis ▶ Voir la chute";
+      } else {
+        previewMountOn = false;
+        player.showMount = false;
+        player.hideMount = false;
+        player.anim = "Idle";
+        player.t0 = performance.now();
+      }
       renderEditor();
     };
   });
