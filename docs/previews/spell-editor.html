@@ -1155,17 +1155,23 @@ function normalizeFrameRange(o){
   o.hitFrameEnd = hfe;
   return o;
 }
+function clampPosCell(v){
+  const n = Number(v); if(!isFinite(n)) return 0;
+  return Math.max(-3, Math.min(3, n|0));
+}
 function normalizeStep(s){
   if(typeof s==="string") return normalizeFrameRange({
     anim:s, delay:0, move:"Idle", fps:14, slash:"None", effect:"None",
     hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
     fxHold:false, hideMount:false, clearMount:false, forceGround:false,
+    posDc:0, posDr:0,
     frameStart:0, frameEnd:FRAME_MAX, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
   });
   const o = Object.assign({
     anim:"Attack1",delay:0,move:"Idle",fps:14,slash:"None",effect:"None",
     hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
     fxHold:false, hideMount:false, clearMount:false, forceGround:false,
+    posDc:0, posDr:0,
     frameStart:0, frameEnd:FRAME_MAX, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
   }, s);
   if(o.hitDelay === "end" || o.hitDelay === -1) o.hitDelay = null;
@@ -1175,29 +1181,29 @@ function normalizeStep(s){
   o.hideMount = !!o.hideMount;
   o.clearMount = !!o.clearMount;
   o.forceGround = !!o.forceGround;
+  o.posDc = clampPosCell(o.posDc);
+  o.posDr = clampPosCell(o.posDr);
   return normalizeFrameRange(o);
 }
 
-/** Séquence globale : réaction quand on est touché à cheval. */
+/** Séquence globale : touché à cheval → monture off + Die@20 → Idle@FPS jeu. */
+const MOUNT_HIT_VERSION = 2;
 const DEFAULT_MOUNT_HIT = {
   enabled: true,
+  version: MOUNT_HIT_VERSION,
   steps: [
     {
-      anim:"TakeDamage", delay:0, fps:18, slash:"None", effect:"None",
-      hitTarget:false, forceGround:true, hideMount:false, clearMount:false,
-      frameStart:0, frameEnd:8, move:"Idle", hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
-      fxHold:false, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
-    },
-    {
-      anim:"Die", delay:0, fps:16, slash:"None", effect:"None",
+      anim:"Die", delay:0, fps:20, slash:"None", effect:"None",
       hitTarget:false, forceGround:true, hideMount:true, clearMount:true,
-      frameStart:0, frameEnd:12, move:"Idle", hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
+      posDc:0, posDr:0,
+      frameStart:0, frameEnd:FRAME_MAX, move:"Idle", hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
       fxHold:false, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
     },
     {
-      anim:"Idle", delay:80, fps:14, slash:"None", effect:"None",
+      anim:"Idle", delay:0, fps:FPS, slash:"None", effect:"None",
       hitTarget:false, forceGround:true, hideMount:true, clearMount:false,
-      frameStart:0, frameEnd:4, move:"Idle", hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
+      posDc:0, posDr:0,
+      frameStart:0, frameEnd:FRAME_MAX, move:"Idle", hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
       fxHold:false, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
     },
   ].map(normalizeStep),
@@ -1209,13 +1215,22 @@ function loadMountHit(){
     if(!raw) return;
     const o = JSON.parse(raw);
     if(!o || typeof o !== "object") return;
+    /* v2 : Die immédiat (plus de TakeDamage). Ancienne config → défaut. */
+    if((o.version|0) < MOUNT_HIT_VERSION){
+      mountHit = JSON.parse(JSON.stringify(DEFAULT_MOUNT_HIT));
+      mountHit.enabled = o.enabled !== false;
+      saveMountHit();
+      return;
+    }
     mountHit.enabled = o.enabled !== false;
+    mountHit.version = MOUNT_HIT_VERSION;
     if(Array.isArray(o.steps) && o.steps.length){
       mountHit.steps = o.steps.map(normalizeStep);
     }
   }catch(_e){}
 }
 function saveMountHit(){
+  mountHit.version = MOUNT_HIT_VERSION;
   try{ localStorage.setItem(KEY_MOUNT_HIT, JSON.stringify(mountHit)); }catch(_e){}
   try{ sessionStorage.setItem(KEY_MOUNT_HIT, JSON.stringify(mountHit)); }catch(_e){}
 }
@@ -1268,6 +1283,17 @@ function applyPreviewClip(ent, step, isHit){
     ent.showMount = !(step.hideMount || step.clearMount);
   }
 }
+function applyPreviewPosShift(ent, step, base){
+  if(!ent || !step) return;
+  const dc = clampPosCell(step.posDc);
+  const dr = clampPosCell(step.posDr);
+  if(!dc && !dr) return;
+  let nc = (base ? base.c : ent.c) + dc;
+  let nr = (base ? base.r : ent.r) + dr;
+  nc = Math.max(0, Math.min(GRID-1, nc|0));
+  nr = Math.max(0, Math.min(GRID-1, nr|0));
+  ent.c = nc; ent.r = nr;
+}
 function previewAction(steps, opts){
   opts = opts || {};
   if(_previewTimer){ clearTimeout(_previewTimer); _previewTimer=null; }
@@ -1275,6 +1301,7 @@ function previewAction(steps, opts){
   const seq=(steps&&steps.length?steps:["Attack1"]).map(normalizeStep);
   let i=0;
   let mountGone = false;
+  const basePos = { c: player.c|0, r: player.r|0 };
   const stEl=document.getElementById("pvStatus");
   if(stEl) stEl.textContent = previewMountOn ? "Preview monture · à cheval" : "Preview sort";
   /* Warm monture */
@@ -1292,13 +1319,17 @@ function previewAction(steps, opts){
       player.hideMount = mountGone;
       player.showMount = previewMountOn && !mountGone;
       player.stepFps = null;
+      /* garder la case finale après décalage (utile pour régler Die) */
       enemy.anim="Idle"; enemy.t0=performance.now();
       enemy.frameStart=0; enemy.frameEnd=FRAME_MAX; enemy.freezeFrame=null;
-      if(stEl) stEl.textContent = previewMountOn ? "Fin séquence monture" : "Idle";
+      if(stEl) stEl.textContent = previewMountOn ? "Fin séquence monture · case "+player.c+","+player.r : "Idle";
       return;
     }
     const step=seq[i++];
-    if(step.clearMount) mountGone = true;
+    if(step.clearMount || step.hideMount) mountGone = true;
+    /* décalage cases (depuis la case de départ de la preview) */
+    player.c = basePos.c; player.r = basePos.r;
+    applyPreviewPosShift(player, step, basePos);
     /* anim joueur */
     let anim = step.anim || "Idle";
     if(previewMountOn && !step.forceGround && !step.hideMount && !step.clearMount && !mountGone){
@@ -1308,7 +1339,7 @@ function previewAction(steps, opts){
     player.anim=anim; player.t0=performance.now();
     player.stepFps=step.fps||14;
     applyPreviewClip(player, step, false);
-    if(mountGone){ player.hideMount = true; player.showMount = false; }
+    if(mountGone){ player.hideMount = true; player.showMount = false; player._mountCleared = true; }
     /* FX */
     player.fxSlash=(step.slash&&step.slash!=="None")?step.slash:null;
     player.fxEffect=(step.effect&&step.effect!=="None")?step.effect:null;
@@ -1650,6 +1681,13 @@ function fillAnimStepControls(box, st, opts){
     box.appendChild(mkCheckRow("Forcer anim à pied (pas Ride*)", !!st.forceGround, v=>{ st.forceGround=v; onSave(); }));
     box.appendChild(mkCheckRow("Cacher la monture (ce step)", !!st.hideMount, v=>{ st.hideMount=v; onSave(); }));
     box.appendChild(mkCheckRow("Désarçonner (retire la monture)", !!st.clearMount, v=>{ st.clearMount=v; onSave(); }));
+    const posTip=document.createElement("p");
+    posTip.className="hint";
+    posTip.style.cssText="margin:6px 0 2px;font-size:10px;line-height:1.35";
+    posTip.textContent="Décalage sur les cases (corrige le recul visuel de Die). 0 = case actuelle. −/+ = 1 case.";
+    box.appendChild(posTip);
+    box.appendChild(mkNumRow("Décalage cases → (c)", st.posDc!=null?st.posDc:0, -3, 3, 1, v=>{ st.posDc=v; onSave(); }));
+    box.appendChild(mkNumRow("Décalage cases ↓ (r)", st.posDr!=null?st.posDr:0, -3, 3, 1, v=>{ st.posDr=v; onSave(); }));
   }
 
   if(opts.showHit !== false){
@@ -1969,7 +2007,7 @@ function renderEvoChoice(spellId, tier, choice, spell){
 function renderMountHitEditor(host){
   const cardEl=card("Dégâts reçus sur monture");
   const hint=document.createElement("p"); hint.className="hint";
-  hint.textContent="Preview en haut = perso À CHEVAL. ► Voir la chute joue toute la séquence. Sur chaque step : cases 0–14 = début/fin frame par frame. Boutons − / + pour FPS et délais (plus de barres).";
+  hint.textContent="Preview = perso À CHEVAL. ► Voir la chute = Die@20 (monture off immédiat) puis Idle. Sur chaque step : frames 0–14, FPS −/+, et décalage cases si Die te fait reculer.";
   cardEl.appendChild(hint);
 
   cardEl.appendChild(mkCheckRow("Activer la séquence monture", !!mountHit.enabled, v=>{
@@ -2024,7 +2062,7 @@ function renderMountHitEditor(host){
     addB.style.cssText="padding:9px;border-radius:9px;border:1.5px dashed var(--acc);background:none;color:var(--acc);font-weight:700;cursor:pointer;width:100%";
     addB.onclick=()=>{
       mountHit.steps.push(normalizeStep({
-        anim:"TakeDamage", forceGround:true, hideMount:false, clearMount:false, fps:16,
+        anim:"Die", forceGround:true, hideMount:true, clearMount:true, fps:20, posDc:0, posDr:0,
       }));
       saveMountHit(); renderMountSteps();
     };
@@ -2050,7 +2088,7 @@ function renderMountHitEditor(host){
 
   const tip=document.createElement("p");
   tip.style.cssText="font-size:11px;color:var(--ink2);text-align:center;padding:8px";
-  tip.textContent="Astuce : Die + « Cacher/Désarçonner » pour faire tomber, puis Idle (à pied) pour se relever. Trim les frames pour ne jouer qu’un bout de chaque anim.";
+  tip.textContent="Par défaut : monture disparaît tout de suite + Die@20 fps, puis Idle@14. Utilise « Décalage cases » si Die te fait reculer sur la map.";
   host.appendChild(tip);
 }
 
