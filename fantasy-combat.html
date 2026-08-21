@@ -813,8 +813,12 @@
     ensureRouladeCustom();
     ensureSpellEffects();
   }
+  function clampPosCell(v){
+    const n = Number(v); if(!isFinite(n)) return 0;
+    return Math.max(-3, Math.min(3, n|0));
+  }
   function normalizeCastStep(step){
-    if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null, fxHold:false, frameStart:0, frameEnd:COLS-1, hitFrameStart:0, hitFrameEnd:COLS-1, hideMount:false, clearMount:false, forceGround:false };
+    if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null, fxHold:false, frameStart:0, frameEnd:COLS-1, hitFrameStart:0, hitFrameEnd:COLS-1, hideMount:false, clearMount:false, forceGround:false, posDc:0, posDr:0 };
     let hd = step.hitDelay;
     if(hd === "end" || hd === -1) hd = null; /* null = fin d’anim */
     else if(hd == null || hd === "" || hd === false) hd = null;
@@ -843,6 +847,8 @@
       hideMount: !!step.hideMount,
       clearMount: !!step.clearMount,
       forceGround: !!step.forceGround,
+      posDc: clampPosCell(step.posDc),
+      posDr: clampPosCell(step.posDr),
     };
   }
   /** Bonus : cases cochées éditeur + évos victoire (cumul sur la partie). */
@@ -1681,6 +1687,20 @@
     ent.hideMount = !!ent._mountCleared;
   }
   /** Joue un step avec trim + options monture (forceGround / hide / clear). */
+
+  function applyStepPosShift(ent, step){
+    if(!ent || !step) return;
+    const dc = typeof clampPosCell==="function" ? clampPosCell(step.posDc) : (step.posDc|0);
+    const dr = typeof clampPosCell==="function" ? clampPosCell(step.posDr) : (step.posDr|0);
+    if(!dc && !dr) return;
+    const nc = (ent.c|0) + dc;
+    const nr = (ent.r|0) + dr;
+    if(!inBounds(nc, nr)) return;
+    const skip = (ent === G.player) ? "player" : (ent === G.enemy ? "enemy" : (ent === G.clone ? "clone" : null));
+    if(occupied(nc, nr, skip)) return;
+    ent.c = nc; ent.r = nr;
+  }
+
   function playClipStep(ent, step, opts){
     opts = opts || {};
     step = normalizeCastStep(step || {});
@@ -1709,6 +1729,8 @@
       if(ent !== G.player) ent.mount = null;
       ent.hideMount = true;
     }
+    /* Décalage cases (éditeur monture — corrige le recul Die) */
+    applyStepPosShift(ent, step);
     if(step.slash && step.slash !== "None") loadImg(step.slash, anim);
     if(step.effect && step.effect !== "None") loadImg(step.effect, anim);
     return step;
@@ -1730,6 +1752,10 @@
       return false;
     }
     const steps = mountHitCfg.steps.map(normalizeCastStep);
+    /* Monture off immédiatement dès le hit (avant même Die) */
+    ent.hideMount = true;
+    ent._mountCleared = true;
+    if(ent !== G.player) ent.mount = null;
     let i = 0;
     const next = ()=>{
       if(i >= steps.length){
