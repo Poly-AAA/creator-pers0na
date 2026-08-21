@@ -871,15 +871,45 @@
     return out;
   }
 
-  /** Délai avant + durée complète d’une anim (toutes les frames du sheet). */
+  /** Clamp frame index 0..(cols-1). */
+  function clampAnimFrame(n, cols) {
+    cols = cols || 15;
+    const x = Number(n);
+    if (!isFinite(x)) return 0;
+    return Math.max(0, Math.min(cols - 1, x | 0));
+  }
+
+  /**
+   * Plage de frames jouée (début/fin inclus).
+   * frameStart défaut 0 ; frameEnd null/absent = dernière frame (cols-1).
+   */
+  function animFrameRange(step, cols) {
+    cols = cols || 15;
+    let fs = step && step.frameStart != null && step.frameStart !== ""
+      ? clampAnimFrame(step.frameStart, cols) : 0;
+    let fe = step && step.frameEnd != null && step.frameEnd !== ""
+      ? clampAnimFrame(step.frameEnd, cols) : (cols - 1);
+    if (fe < fs) { const t = fs; fs = fe; fe = t; }
+    return { frameStart: fs, frameEnd: fe, frames: fe - fs + 1 };
+  }
+
+  /** Délai avant + durée d’une anim (sur la plage frameStart..frameEnd). */
   function animStepTiming(step, cols) {
     cols = cols || 15;
     const delay = Math.max(0, step.delay != null ? (step.delay | 0) : 0);
     let fps = step.fps != null ? Number(step.fps) : 14;
     if (!isFinite(fps) || fps < 1) fps = 14;
     fps = Math.max(1, Math.min(60, fps));
-    const dur = Math.max(120, Math.round((cols / fps) * 1000));
-    return { delay: delay, dur: dur, fps: fps };
+    const range = animFrameRange(step, cols);
+    const dur = Math.max(120, Math.round((range.frames / fps) * 1000));
+    return {
+      delay: delay,
+      dur: dur,
+      fps: fps,
+      frameStart: range.frameStart,
+      frameEnd: range.frameEnd,
+      frames: range.frames,
+    };
   }
 
   /**
@@ -1023,6 +1053,8 @@
     enabledEvoChoices,
     buildEvoAnimSteps,
     animStepTiming,
+    animFrameRange,
+    clampAnimFrame,
     hitDelayMsFromStart,
     applyEvoConfig,
     editorEvoBonuses,

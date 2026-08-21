@@ -81,6 +81,12 @@
 
   /* hint */
   .hint{font-size:11px;color:var(--ink2);margin:3px 0 0}
+
+  /* onglets éditeur */
+  .editor-tabs{display:flex;gap:6px;padding:8px 10px 0;background:var(--bg2);flex-shrink:0;border-bottom:1px solid var(--line2)}
+  .editor-tabs button{flex:1;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px 10px 0 0;
+    background:var(--soft);font-size:12px;font-weight:700;color:var(--ink);border-bottom:none}
+  .editor-tabs button.on{background:var(--card);color:var(--acc);border-color:var(--acc);position:relative;z-index:1}
 </style>
 </head>
 <body>
@@ -93,6 +99,12 @@
 
   <!-- Navigation sorts -->
   <div class="spell-nav" id="spellNav"></div>
+
+  <!-- Onglets : Sort / Dégâts monture -->
+  <div class="editor-tabs" id="editorTabs">
+    <button type="button" class="on" data-tab="spell" id="tabSpell">Sort</button>
+    <button type="button" data-tab="mount" id="tabMount">Dégâts monture</button>
+  </div>
 
   <!-- Panneau éditeur -->
   <div class="editor" id="editor"></div>
@@ -154,6 +166,8 @@ const FW=128, FH=128, COLS=15, FPS=14;
 const FPS_MAX=60; /* TakeDamage / attaques : au-delà de 30 autorisé */
 const KEY_SPELLS = "neuro.customSpells";
 const KEY_LOOK   = "neuro.fantasyLook";
+const KEY_MOUNT_HIT = "neuro.mountHit";
+const FRAME_MAX = COLS - 1; /* 0..14 */
 
 /* ────────────────────────────────────────────────────────────
    Anims disponibles pour chaîner
@@ -822,6 +836,11 @@ function initEvoConfig(spell){
     if(!e.hitAnim) e.hitAnim="TakeDamage";
     if(e.hitAnimFps==null) e.hitAnimFps=14;
     if(e.hitDelay === "") e.hitDelay = null;
+    if(e.frameStart==null) e.frameStart=0;
+    if(e.frameEnd==null) e.frameEnd=FRAME_MAX;
+    if(e.hitFrameStart==null) e.hitFrameStart=0;
+    if(e.hitFrameEnd==null) e.hitFrameEnd=FRAME_MAX;
+    if(e.fxHold==null) e.fxHold=false;
   });
   return spell.evoConfig;
 }
@@ -1003,8 +1022,12 @@ function drawLoop(){
     const elapsed=(now-ent.t0)/1000;
     const fps=ent.stepFps||FPS;
     const loop=/^(Idle|Walk|Run|RideIdle|RideRun)$/i.test(anim);
-    let col=Math.floor(elapsed*fps);
-    col=loop?col%COLS:Math.min(col,COLS-1);
+    const fs = ent.frameStart != null ? (ent.frameStart|0) : 0;
+    const fe = ent.frameEnd != null ? (ent.frameEnd|0) : FRAME_MAX;
+    const span = Math.max(1, fe - fs + 1);
+    let col = fs + Math.floor(elapsed*fps);
+    if(loop) col = fs + ((col - fs) % span);
+    else col = Math.min(col, fe);
     const s=toScreen(ent.c,ent.r);
     const sc2=1.15, dw=FW*sc2, dh=FH*sc2, FOOT=88;
     const dx=s.x-dw/2, dy=s.y-FOOT*sc2;
@@ -1075,14 +1098,91 @@ function playerLayers(){
 }
 
 /* Normalise un step : string legacy → objet riche */
+function clampFrame(n){
+  const x = Number(n);
+  if(!isFinite(x)) return 0;
+  return Math.max(0, Math.min(FRAME_MAX, x|0));
+}
+function normalizeFrameRange(o){
+  let fs = o.frameStart != null && o.frameStart !== "" ? clampFrame(o.frameStart) : 0;
+  let fe = o.frameEnd != null && o.frameEnd !== "" ? clampFrame(o.frameEnd) : FRAME_MAX;
+  if(fe < fs){ const t=fs; fs=fe; fe=t; }
+  o.frameStart = fs;
+  o.frameEnd = fe;
+  let hfs = o.hitFrameStart != null && o.hitFrameStart !== "" ? clampFrame(o.hitFrameStart) : 0;
+  let hfe = o.hitFrameEnd != null && o.hitFrameEnd !== "" ? clampFrame(o.hitFrameEnd) : FRAME_MAX;
+  if(hfe < hfs){ const t=hfs; hfs=hfe; hfe=t; }
+  o.hitFrameStart = hfs;
+  o.hitFrameEnd = hfe;
+  return o;
+}
 function normalizeStep(s){
-  if(typeof s==="string") return {anim:s, delay:0, move:"Idle", fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null};
-  const o = Object.assign({anim:"Attack1",delay:0,move:"Idle",fps:14,slash:"None",effect:"None",hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null}, s);
+  if(typeof s==="string") return normalizeFrameRange({
+    anim:s, delay:0, move:"Idle", fps:14, slash:"None", effect:"None",
+    hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
+    fxHold:false, hideMount:false, clearMount:false, forceGround:false,
+    frameStart:0, frameEnd:FRAME_MAX, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
+  });
+  const o = Object.assign({
+    anim:"Attack1",delay:0,move:"Idle",fps:14,slash:"None",effect:"None",
+    hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
+    fxHold:false, hideMount:false, clearMount:false, forceGround:false,
+    frameStart:0, frameEnd:FRAME_MAX, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
+  }, s);
   if(o.hitDelay === "end" || o.hitDelay === -1) o.hitDelay = null;
   else if(o.hitDelay === "" || o.hitDelay === false) o.hitDelay = null;
   else if(o.hitDelay != null) o.hitDelay = Math.max(0, Number(o.hitDelay)|0);
-  return o;
+  o.fxHold = !!o.fxHold;
+  o.hideMount = !!o.hideMount;
+  o.clearMount = !!o.clearMount;
+  o.forceGround = !!o.forceGround;
+  return normalizeFrameRange(o);
 }
+
+/** Séquence globale : réaction quand on est touché à cheval. */
+const DEFAULT_MOUNT_HIT = {
+  enabled: true,
+  steps: [
+    {
+      anim:"TakeDamage", delay:0, fps:18, slash:"None", effect:"None",
+      hitTarget:false, forceGround:true, hideMount:false, clearMount:false,
+      frameStart:0, frameEnd:8, move:"Idle", hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
+      fxHold:false, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
+    },
+    {
+      anim:"Die", delay:0, fps:16, slash:"None", effect:"None",
+      hitTarget:false, forceGround:true, hideMount:true, clearMount:true,
+      frameStart:0, frameEnd:12, move:"Idle", hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
+      fxHold:false, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
+    },
+    {
+      anim:"Idle", delay:80, fps:14, slash:"None", effect:"None",
+      hitTarget:false, forceGround:true, hideMount:true, clearMount:false,
+      frameStart:0, frameEnd:4, move:"Idle", hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
+      fxHold:false, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
+    },
+  ].map(normalizeStep),
+};
+let mountHit = JSON.parse(JSON.stringify(DEFAULT_MOUNT_HIT));
+function loadMountHit(){
+  try{
+    const raw = localStorage.getItem(KEY_MOUNT_HIT);
+    if(!raw) return;
+    const o = JSON.parse(raw);
+    if(!o || typeof o !== "object") return;
+    mountHit.enabled = o.enabled !== false;
+    if(Array.isArray(o.steps) && o.steps.length){
+      mountHit.steps = o.steps.map(normalizeStep);
+    }
+  }catch(_e){}
+}
+function saveMountHit(){
+  try{ localStorage.setItem(KEY_MOUNT_HIT, JSON.stringify(mountHit)); }catch(_e){}
+  try{ sessionStorage.setItem(KEY_MOUNT_HIT, JSON.stringify(mountHit)); }catch(_e){}
+}
+loadMountHit();
+
+let editorTab = "spell"; /* spell | mount */
 
 /* FX catalogue : on lit les dossiers depuis catalog si dispo */
 function fxSlashList(){ return FX_SLASH_LIST; }
@@ -1090,6 +1190,13 @@ function fxEffectList(){ return FX_EFFECT_LIST; }
 
 /* Preview d'une action (chaîne de steps riches sur le joueur) */
 let _previewTimer=null;
+function applyPreviewClip(ent, step, isHit){
+  const fs = isHit ? (step.hitFrameStart|0) : (step.frameStart|0);
+  const fe = isHit ? (step.hitFrameEnd!=null?step.hitFrameEnd:FRAME_MAX) : (step.frameEnd!=null?step.frameEnd:FRAME_MAX);
+  ent.frameStart = Math.max(0, Math.min(FRAME_MAX, fs));
+  ent.frameEnd = Math.max(ent.frameStart, Math.min(FRAME_MAX, fe));
+  ent.hideMount = !!(step.hideMount || step.clearMount || step.forceGround);
+}
 function previewAction(steps){
   if(_previewTimer){ clearTimeout(_previewTimer); _previewTimer=null; }
   const seq=(steps&&steps.length?steps:["Attack1"]).map(normalizeStep);
@@ -1098,13 +1205,16 @@ function previewAction(steps){
     if(i>=seq.length){
       player.anim="Idle"; player.t0=performance.now();
       player.fxSlash=null; player.fxEffect=null;
+      player.frameStart=0; player.frameEnd=FRAME_MAX; player.hideMount=false;
       enemy.anim="Idle"; enemy.t0=performance.now();
+      enemy.frameStart=0; enemy.frameEnd=FRAME_MAX;
       return;
     }
     const step=seq[i++];
     /* déplacement joueur */
     player.anim=step.anim; player.t0=performance.now();
     player.stepFps=step.fps||14;
+    applyPreviewClip(player, step, false);
     /* FX */
     player.fxSlash=(step.slash&&step.slash!=="None")?step.slash:null;
     player.fxEffect=(step.effect&&step.effect!=="None")?step.effect:null;
@@ -1117,7 +1227,8 @@ function previewAction(steps){
     } else {
       let fps=(step.fps!=null?step.fps:14); if(fps<1) fps=14;
       player.stepFps=fps;
-      dur=Math.max(120, Math.round((COLS/fps)*1000));
+      const nFrames = Math.max(1, (step.frameEnd|0) - (step.frameStart|0) + 1);
+      dur=Math.max(120, Math.round((nFrames/fps)*1000));
     }
     if(step.hitTarget){
       const ha = step.hitAnim && step.hitAnim!=="None" ? step.hitAnim : (step.hitAnim==="None" ? null : "TakeDamage");
@@ -1134,6 +1245,7 @@ function previewAction(steps){
           enemy.anim=ha; enemy.t0=performance.now();
           let hfps=Number(step.hitAnimFps); if(!isFinite(hfps)||hfps<1) hfps=14;
           enemy.stepFps=hfps;
+          applyPreviewClip(enemy, step, true);
         }
       }, delay + hitMs);
     }
@@ -1170,7 +1282,9 @@ function createSpell(){
   const id="custom_"+Date.now();
   customSpells.push({
     id, name:"Nouveau sort", cost:2, range:1, dmg:[8,12],
-    anim:"Attack1", type:"damage", animSeq:["Attack1"], evos:[],
+    anim:"Attack1", type:"damage", animSeq:["Attack1"],
+    steps:[normalizeStep("Attack1")],
+    evos:[], evoConfig:{},
     desc:"Décris ce sort ici…"
   });
   activeId=id; saveCustom(); renderNav(); renderEditor();
@@ -1181,6 +1295,16 @@ function createSpell(){
 ──────────────────────────────────────────────────────────── */
 function renderEditor(){
   const host=document.getElementById("editor"); host.innerHTML="";
+  /* Sync tab buttons */
+  document.querySelectorAll("#editorTabs button").forEach(b=>{
+    b.classList.toggle("on", b.getAttribute("data-tab")===editorTab);
+  });
+
+  if(editorTab === "mount"){
+    renderMountHitEditor(host);
+    return;
+  }
+
   if(!activeId){ host.innerHTML='<p style="color:var(--ink2);text-align:center;padding:24px">Sélectionne un sort</p>'; return; }
   const sp=editableSpell(activeId);
   if(!sp) return;
@@ -1244,29 +1368,14 @@ function renderEditor(){
       delB.onclick=()=>{ s2.steps.splice(idx,1); renderSteps(); };
       hdr.appendChild(num); hdr.appendChild(delB); box.appendChild(hdr);
 
-      /* Anim */
-      const animSel=mkSelectRow("Animation", ALL_ANIMS, st.anim, v=>{ st.anim=v; });
-      box.appendChild(animSel);
-      /* Mouvement joueur */
-      const moveSel=mkSelectRow("Mouvement joueur", MOVE_ANIMS_LIST, st.move||"Idle", v=>{ st.move=v; });
-      box.appendChild(moveSel);
-      /* FX Slash */
-      const slashSel=mkSelectRow("FX Slash", fxSlashList(), st.slash||"None", v=>{ st.slash=v; });
-      box.appendChild(slashSel);
-      /* FX Effect */
-      const fxSel=mkSelectRow("FX Effect", fxEffectList(), st.effect||"None", v=>{ st.effect=v; });
-      box.appendChild(fxSel);
-      /* Pause avant TON anim (pas le TakeDamage ennemi) */
-      box.appendChild(mkNumRow("Pause avant ton anim (ms)", st.delay||0, 0, 3000, 50, v=>{ st.delay=v; scheduleAutoSave(); }));
-      /* Vitesse (FPS) */
-      box.appendChild(mkNumRow("Vitesse ton anim (FPS)", st.fps||14, 1, FPS_MAX, 1, v=>{ st.fps=v; scheduleAutoSave(); }));
-      /* Hit sur la cible */
-      box.appendChild(mkCheckRow("Frappe la cible", !!st.hitTarget, v=>{ st.hitTarget=v; scheduleAutoSave(); renderSteps(); }));
-      if(st.hitTarget){
-        box.appendChild(mkSelectRow("Réaction ennemi", HIT_REACT_ANIMS, st.hitAnim||"TakeDamage", v=>{ st.hitAnim=v; scheduleAutoSave(); }));
-        box.appendChild(mkNumRow("FPS réaction", st.hitAnimFps!=null?st.hitAnimFps:14, 1, FPS_MAX, 1, v=>{ st.hitAnimFps=v; scheduleAutoSave(); }));
-        box.appendChild(mkHitDelayRow(st.hitDelay, v=>{ st.hitDelay=v; scheduleAutoSave(); }));
-      }
+      /* Anim + réglages communs (dont trim frames) */
+      fillAnimStepControls(box, st, {
+        onSave: ()=> scheduleAutoSave(),
+        onRerender: ()=> renderSteps(),
+        showMove: true,
+        showHit: true,
+        mountExtra: false,
+      });
 
       /* Preview ce step seul */
       const pvB=document.createElement("button"); pvB.type="button"; pvB.textContent="▶ Tester ce step";
@@ -1359,6 +1468,58 @@ function renderEditor(){
 }
 
 /* ── Helpers UI pour les steps ── */
+function mkFrameTrimRow(label, startVal, endVal, onStart, onEnd){
+  const wrap=document.createElement("div");
+  wrap.style.cssText="margin:4px 0 6px;padding:6px 8px;border:1px dashed var(--line2);border-radius:8px;background:var(--bg)";
+  const tip=document.createElement("div");
+  tip.style.cssText="font-size:10px;color:var(--ink2);margin-bottom:4px;line-height:1.35";
+  tip.textContent=label+" — frames 0→"+FRAME_MAX+" (début / fin de la portion jouée).";
+  wrap.appendChild(tip);
+  wrap.appendChild(mkNumRow("Frame début", startVal!=null?startVal:0, 0, FRAME_MAX, 1, onStart));
+  wrap.appendChild(mkNumRow("Frame fin", endVal!=null?endVal:FRAME_MAX, 0, FRAME_MAX, 1, onEnd));
+  return wrap;
+}
+/** Remplit les contrôles anim communs (FX, FPS, trim, hit…). opts.mountExtra = hideMount/clearMount/forceGround */
+function fillAnimStepControls(box, st, opts){
+  opts = opts || {};
+  const onSave = opts.onSave || (()=> scheduleAutoSave());
+  const onRerender = opts.onRerender || (()=>{});
+  const anims = opts.anims || ALL_ANIMS;
+
+  box.appendChild(mkSelectRow("Animation", anims, st.anim, v=>{ st.anim=v; onSave(); }));
+  if(opts.showMove !== false){
+    box.appendChild(mkSelectRow("Mouvement joueur", MOVE_ANIMS_LIST, st.move||"Idle", v=>{ st.move=v; onSave(); }));
+  }
+  box.appendChild(mkSelectRow("FX Slash", fxSlashList(), st.slash||"None", v=>{ st.slash=v; onSave(); }));
+  box.appendChild(mkSelectRow("FX Effect", fxEffectList(), st.effect||"None", v=>{ st.effect=v; onSave(); }));
+  box.appendChild(mkCheckRow("FX prolongé (slash ne coupe pas)", !!st.fxHold, v=>{ st.fxHold=v; onSave(); }));
+  box.appendChild(mkNumRow("Pause avant ton anim (ms)", st.delay||0, 0, 3000, 50, v=>{ st.delay=v; onSave(); }));
+  box.appendChild(mkNumRow("Vitesse ton anim (FPS)", st.fps||14, 1, FPS_MAX, 1, v=>{ st.fps=v; onSave(); }));
+  box.appendChild(mkFrameTrimRow("Portion d’anim (toi)", st.frameStart, st.frameEnd,
+    v=>{ st.frameStart=v; if(st.frameEnd < v) st.frameEnd=v; onSave(); onRerender(); },
+    v=>{ st.frameEnd=v; if(st.frameStart > v) st.frameStart=v; onSave(); onRerender(); }
+  ));
+
+  if(opts.mountExtra){
+    box.appendChild(mkCheckRow("Forcer anim à pied (pas Ride*)", !!st.forceGround, v=>{ st.forceGround=v; onSave(); }));
+    box.appendChild(mkCheckRow("Cacher la monture (ce step)", !!st.hideMount, v=>{ st.hideMount=v; onSave(); }));
+    box.appendChild(mkCheckRow("Désarçonner (retire la monture)", !!st.clearMount, v=>{ st.clearMount=v; onSave(); }));
+  }
+
+  if(opts.showHit !== false){
+    box.appendChild(mkCheckRow("Frappe la cible", !!st.hitTarget, v=>{ st.hitTarget=v; onSave(); onRerender(); }));
+    if(st.hitTarget){
+      box.appendChild(mkSelectRow("Réaction ennemi", HIT_REACT_ANIMS, st.hitAnim||"TakeDamage", v=>{ st.hitAnim=v; onSave(); }));
+      box.appendChild(mkNumRow("FPS réaction", st.hitAnimFps!=null?st.hitAnimFps:14, 1, FPS_MAX, 1, v=>{ st.hitAnimFps=v; onSave(); }));
+      box.appendChild(mkHitDelayRow(st.hitDelay, v=>{ st.hitDelay=v; onSave(); }));
+      box.appendChild(mkFrameTrimRow("Portion réaction (ennemi)", st.hitFrameStart, st.hitFrameEnd,
+        v=>{ st.hitFrameStart=v; if(st.hitFrameEnd < v) st.hitFrameEnd=v; onSave(); onRerender(); },
+        v=>{ st.hitFrameEnd=v; if(st.hitFrameStart > v) st.hitFrameStart=v; onSave(); onRerender(); }
+      ));
+    }
+  }
+}
+
 function mkSelectRow(label, opts, val, onChange){
   const d=document.createElement("div");
   d.style.cssText="display:flex;align-items:center;gap:6px;margin-bottom:4px";
@@ -1491,6 +1652,12 @@ function renderEvoChoice(spellId, tier, choice, spell){
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
     if(e){ e.fps=v; scheduleAutoSave(); }
   }));
+  div.appendChild(mkFrameTrimRow("Portion d’anim (toi)",
+    entry.frameStart!=null?entry.frameStart:0,
+    entry.frameEnd!=null?entry.frameEnd:FRAME_MAX,
+    v=>{ const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice); if(e){ e.frameStart=v; if((e.frameEnd|0)<v) e.frameEnd=v; scheduleAutoSave(); } },
+    v=>{ const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice); if(e){ e.frameEnd=v; if((e.frameStart|0)>v) e.frameStart=v; scheduleAutoSave(); } }
+  ));
 
   /* Réaction ennemi à l’impact (TakeDamage / Taunt / aucune) */
   div.appendChild(mkSelectRow("Réaction ennemi", HIT_REACT_ANIMS, entry.hitAnim||"TakeDamage", v=>{
@@ -1505,6 +1672,12 @@ function renderEvoChoice(spellId, tier, choice, spell){
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
     if(e){ e.hitDelay=v; scheduleAutoSave(); }
   }));
+  div.appendChild(mkFrameTrimRow("Portion réaction (ennemi)",
+    entry.hitFrameStart!=null?entry.hitFrameStart:0,
+    entry.hitFrameEnd!=null?entry.hitFrameEnd:FRAME_MAX,
+    v=>{ const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice); if(e){ e.hitFrameStart=v; if((e.hitFrameEnd|0)<v) e.hitFrameEnd=v; scheduleAutoSave(); } },
+    v=>{ const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice); if(e){ e.hitFrameEnd=v; if((e.hitFrameStart|0)>v) e.hitFrameStart=v; scheduleAutoSave(); } }
+  ));
 
   /* Double Impact : 2 anims d’attaque + réaction / FPS / délai par coup */
   if(/Double Impact|Déchirure|Salve/i.test(choice.name||"")){
@@ -1524,6 +1697,12 @@ function renderEvoChoice(spellId, tier, choice, spell){
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.fps1=v; scheduleAutoSave(); }
     }));
+    div.appendChild(mkFrameTrimRow("Coup 1 · portion anim",
+      entry.frameStart1!=null?entry.frameStart1:(entry.frameStart|0),
+      entry.frameEnd1!=null?entry.frameEnd1:(entry.frameEnd!=null?entry.frameEnd:FRAME_MAX),
+      v=>{ const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice); if(e){ e.frameStart1=v; scheduleAutoSave(); } },
+      v=>{ const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice); if(e){ e.frameEnd1=v; scheduleAutoSave(); } }
+    ));
     div.appendChild(mkSelectRow("Coup 1 · réaction", HIT_REACT_ANIMS, entry.hitAnim1||entry.hitAnim||"TakeDamage", v=>{
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.hitAnim1=v; scheduleAutoSave(); }
@@ -1536,6 +1715,12 @@ function renderEvoChoice(spellId, tier, choice, spell){
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.hitDelay1=v; scheduleAutoSave(); }
     }));
+    div.appendChild(mkFrameTrimRow("Coup 1 · portion réaction",
+      entry.hitFrameStart1!=null?entry.hitFrameStart1:0,
+      entry.hitFrameEnd1!=null?entry.hitFrameEnd1:FRAME_MAX,
+      v=>{ const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice); if(e){ e.hitFrameStart1=v; scheduleAutoSave(); } },
+      v=>{ const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice); if(e){ e.hitFrameEnd1=v; scheduleAutoSave(); } }
+    ));
     div.appendChild(mkSelectRow("Coup 2 · anim attaque", ALL_ANIMS, entry.anim2||entry.anim||choice.anim||"Attack1", v=>{
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.anim2=v; scheduleAutoSave(); }
@@ -1544,6 +1729,12 @@ function renderEvoChoice(spellId, tier, choice, spell){
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.fps2=v; scheduleAutoSave(); }
     }));
+    div.appendChild(mkFrameTrimRow("Coup 2 · portion anim",
+      entry.frameStart2!=null?entry.frameStart2:(entry.frameStart|0),
+      entry.frameEnd2!=null?entry.frameEnd2:(entry.frameEnd!=null?entry.frameEnd:FRAME_MAX),
+      v=>{ const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice); if(e){ e.frameStart2=v; scheduleAutoSave(); } },
+      v=>{ const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice); if(e){ e.frameEnd2=v; scheduleAutoSave(); } }
+    ));
     div.appendChild(mkSelectRow("Coup 2 · réaction", HIT_REACT_ANIMS, entry.hitAnim2||entry.hitAnim||"TakeDamage", v=>{
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.hitAnim2=v; scheduleAutoSave(); }
@@ -1556,6 +1747,12 @@ function renderEvoChoice(spellId, tier, choice, spell){
       const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
       if(e){ e.hitDelay2=v; scheduleAutoSave(); }
     }));
+    div.appendChild(mkFrameTrimRow("Coup 2 · portion réaction",
+      entry.hitFrameStart2!=null?entry.hitFrameStart2:0,
+      entry.hitFrameEnd2!=null?entry.hitFrameEnd2:FRAME_MAX,
+      v=>{ const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice); if(e){ e.hitFrameStart2=v; scheduleAutoSave(); } },
+      v=>{ const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice); if(e){ e.hitFrameEnd2=v; scheduleAutoSave(); } }
+    ));
   }
 
   const testB=document.createElement("button"); testB.type="button"; testB.className="test-btn";
@@ -1575,6 +1772,11 @@ function renderEvoChoice(spellId, tier, choice, spell){
         hitAnim: (e&&(e["hitAnim"+n]||e.hitAnim))||"TakeDamage",
         hitAnimFps: (e&&(e["hitAnimFps"+n]!=null?e["hitAnimFps"+n]:e.hitAnimFps))!=null?(e["hitAnimFps"+n]!=null?e["hitAnimFps"+n]:e.hitAnimFps):14,
         hitDelay: (e&&(e["hitDelay"+n]!=null?e["hitDelay"+n]:e.hitDelay))!=null?(e["hitDelay"+n]!=null?e["hitDelay"+n]:e.hitDelay):null,
+        frameStart: (e&&(e["frameStart"+n]!=null?e["frameStart"+n]:e.frameStart))!=null?(e["frameStart"+n]!=null?e["frameStart"+n]:e.frameStart):0,
+        frameEnd: (e&&(e["frameEnd"+n]!=null?e["frameEnd"+n]:e.frameEnd))!=null?(e["frameEnd"+n]!=null?e["frameEnd"+n]:e.frameEnd):FRAME_MAX,
+        hitFrameStart: (e&&(e["hitFrameStart"+n]!=null?e["hitFrameStart"+n]:e.hitFrameStart))!=null?(e["hitFrameStart"+n]!=null?e["hitFrameStart"+n]:e.hitFrameStart):0,
+        hitFrameEnd: (e&&(e["hitFrameEnd"+n]!=null?e["hitFrameEnd"+n]:e.hitFrameEnd))!=null?(e["hitFrameEnd"+n]!=null?e["hitFrameEnd"+n]:e.hitFrameEnd):FRAME_MAX,
+        fxHold: !!(e&&e.fxHold),
       });
       previewAction([normalizeStep(mk(1)), normalizeStep(mk(2))]);
       return;
@@ -1588,7 +1790,12 @@ function renderEvoChoice(spellId, tier, choice, spell){
       hitTarget:true,
       hitAnim:(e&&e.hitAnim)||"TakeDamage",
       hitAnimFps:(e&&e.hitAnimFps)!=null?e.hitAnimFps:14,
-      hitDelay:(e&&e.hitDelay)!=null?e.hitDelay:null
+      hitDelay:(e&&e.hitDelay)!=null?e.hitDelay:null,
+      frameStart:(e&&e.frameStart)!=null?e.frameStart:0,
+      frameEnd:(e&&e.frameEnd)!=null?e.frameEnd:FRAME_MAX,
+      hitFrameStart:(e&&e.hitFrameStart)!=null?e.hitFrameStart:0,
+      hitFrameEnd:(e&&e.hitFrameEnd)!=null?e.hitFrameEnd:FRAME_MAX,
+      fxHold:!!(e&&e.fxHold),
     })]);
   };
   div.appendChild(testB);
@@ -1596,6 +1803,91 @@ function renderEvoChoice(spellId, tier, choice, spell){
 }
 
 /* ── Helpers UI ── */
+function renderMountHitEditor(host){
+  const cardEl=card("Dégâts reçus sur monture");
+  const hint=document.createElement("p"); hint.className="hint";
+  hint.textContent="Quand le joueur (ou un ennemi) est touché à cheval : enchaîne ces steps (tomber, cacher/retirer la monture, Die, se relever…). Mêmes réglages que les sorts + trim de frames.";
+  cardEl.appendChild(hint);
+
+  cardEl.appendChild(mkCheckRow("Activer la séquence monture", !!mountHit.enabled, v=>{
+    mountHit.enabled=v; saveMountHit();
+  }));
+
+  function renderMountSteps(){
+    const existing=cardEl.querySelector(".steps-wrap");
+    if(existing) existing.remove();
+    const wrap=document.createElement("div"); wrap.className="steps-wrap";
+    wrap.style.cssText="display:flex;flex-direction:column;gap:8px;margin-top:6px";
+    if(!Array.isArray(mountHit.steps)) mountHit.steps=[];
+    mountHit.steps.forEach((step,idx)=>{
+      const st=normalizeStep(step); mountHit.steps[idx]=st;
+      const box=document.createElement("div");
+      box.style.cssText="border:1.5px solid var(--line2);border-radius:10px;padding:8px;background:var(--soft);position:relative";
+      const hdr=document.createElement("div"); hdr.style.cssText="display:flex;align-items:center;gap:6px;margin-bottom:6px";
+      const num=document.createElement("span"); num.style.cssText="font-size:10px;font-weight:700;color:var(--acc);min-width:18px";
+      num.textContent="Step "+(idx+1);
+      const delB=document.createElement("button"); delB.type="button"; delB.textContent="×";
+      delB.style.cssText="margin-left:auto;background:#fee;border:1px solid #fcc;color:#c00;border-radius:6px;padding:0 7px;cursor:pointer;font-weight:700";
+      delB.onclick=()=>{ mountHit.steps.splice(idx,1); saveMountHit(); renderMountSteps(); };
+      hdr.appendChild(num); hdr.appendChild(delB); box.appendChild(hdr);
+
+      fillAnimStepControls(box, st, {
+        onSave: ()=> saveMountHit(),
+        onRerender: ()=> renderMountSteps(),
+        showMove: false,
+        showHit: false,
+        mountExtra: true,
+      });
+
+      const pvB=document.createElement("button"); pvB.type="button"; pvB.textContent="▶ Tester ce step";
+      pvB.style.cssText="margin-top:6px;padding:5px 12px;border-radius:8px;background:var(--acc);color:#fff;border:none;font-weight:700;cursor:pointer;font-size:11px";
+      pvB.onclick=()=>previewAction([st]);
+      box.appendChild(pvB);
+      wrap.appendChild(box);
+    });
+
+    const addB=document.createElement("button"); addB.type="button"; addB.textContent="+ Ajouter une étape";
+    addB.style.cssText="padding:9px;border-radius:9px;border:1.5px dashed var(--acc);background:none;color:var(--acc);font-weight:700;cursor:pointer;width:100%";
+    addB.onclick=()=>{
+      mountHit.steps.push(normalizeStep({
+        anim:"TakeDamage", forceGround:true, hideMount:false, clearMount:false, fps:16,
+      }));
+      saveMountHit(); renderMountSteps();
+    };
+    wrap.appendChild(addB);
+
+    const allB=document.createElement("button"); allB.type="button"; allB.textContent="▶ Prévisualiser la séquence";
+    allB.style.cssText="margin-top:4px;padding:9px;border-radius:9px;background:var(--acc);color:#fff;border:none;font-weight:700;cursor:pointer;width:100%";
+    allB.onclick=()=>previewAction(mountHit.steps||[]);
+    wrap.appendChild(allB);
+
+    const resetB=document.createElement("button"); resetB.type="button"; resetB.textContent="↩ Remettre la séquence par défaut";
+    resetB.style.cssText="margin-top:4px;padding:8px;border-radius:9px;border:1px solid var(--line);background:var(--soft);font-weight:700;cursor:pointer;width:100%;font-size:11px";
+    resetB.onclick=()=>{
+      mountHit = JSON.parse(JSON.stringify(DEFAULT_MOUNT_HIT));
+      saveMountHit(); renderEditor();
+    };
+    wrap.appendChild(resetB);
+
+    cardEl.appendChild(wrap);
+  }
+  renderMountSteps();
+  host.appendChild(cardEl);
+
+  const tip=document.createElement("p");
+  tip.style.cssText="font-size:11px;color:var(--ink2);text-align:center;padding:8px";
+  tip.textContent="Astuce : Die + « Cacher/Désarçonner » pour faire tomber, puis Idle (à pied) pour se relever. Trim les frames pour ne jouer qu’un bout de chaque anim.";
+  host.appendChild(tip);
+}
+
+function wireEditorTabs(){
+  document.querySelectorAll("#editorTabs button").forEach(b=>{
+    b.onclick=()=>{
+      editorTab = b.getAttribute("data-tab") || "spell";
+      renderEditor();
+    };
+  });
+}
 function card(title){
   const d=document.createElement("div"); d.className="card";
   const h=document.createElement("h3"); h.textContent=title; d.appendChild(h);
@@ -1671,6 +1963,7 @@ function boot(){
   })();
 
   renderNav(); renderEditor();
+  wireEditorTabs();
 
   /* Démarrer la boucle immédiatement — les sprites arrivent au fur et à mesure */
   document.getElementById("pvStatus").textContent = "Chargement…";
@@ -1709,11 +2002,12 @@ function boot(){
 
   document.getElementById("btnSave").onclick=()=>{
     saveCustom();
+    saveMountHit();
     showSavedStatus();
     setTimeout(()=>{ document.getElementById("pvStatus").textContent="Sauvé ✓"; showSavedStatus(); }, 800);
     setTimeout(()=>renderNav(),100);
   };
-  document.getElementById("btnCombatGo").onclick=()=> goCombat();
+  document.getElementById("btnCombatGo").onclick=()=>{ saveMountHit(); goCombat(); };
   document.getElementById("btnCopySave").onclick=()=> copySpellsBackup();
   document.getElementById("btnPasteSave").onclick=async()=>{
     if(await pasteSpellsBackup()){

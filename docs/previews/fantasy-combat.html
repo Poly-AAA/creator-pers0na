@@ -814,11 +814,17 @@
     ensureSpellEffects();
   }
   function normalizeCastStep(step){
-    if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null, fxHold:false };
+    if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null, fxHold:false, frameStart:0, frameEnd:COLS-1, hitFrameStart:0, hitFrameEnd:COLS-1, hideMount:false, clearMount:false, forceGround:false };
     let hd = step.hitDelay;
     if(hd === "end" || hd === -1) hd = null; /* null = fin d’anim */
     else if(hd == null || hd === "" || hd === false) hd = null;
     else hd = Math.max(0, Number(hd)|0); /* 0 = dès le début de ton attaque */
+    let fs = step.frameStart != null && step.frameStart !== "" ? Math.max(0, Math.min(COLS-1, Number(step.frameStart)|0)) : 0;
+    let fe = step.frameEnd != null && step.frameEnd !== "" ? Math.max(0, Math.min(COLS-1, Number(step.frameEnd)|0)) : (COLS-1);
+    if(fe < fs){ const t=fs; fs=fe; fe=t; }
+    let hfs = step.hitFrameStart != null && step.hitFrameStart !== "" ? Math.max(0, Math.min(COLS-1, Number(step.hitFrameStart)|0)) : 0;
+    let hfe = step.hitFrameEnd != null && step.hitFrameEnd !== "" ? Math.max(0, Math.min(COLS-1, Number(step.hitFrameEnd)|0)) : (COLS-1);
+    if(hfe < hfs){ const t=hfs; hfs=hfe; hfe=t; }
     return {
       anim: step.anim || "Attack1",
       delay: step.delay != null ? step.delay : 0,
@@ -828,10 +834,15 @@
       hitTarget: !!step.hitTarget,
       hitAnim: step.hitAnim || "TakeDamage",
       hitAnimFps: step.hitAnimFps != null ? step.hitAnimFps : 14,
-      /* null = fin d’anim ; nombre (0+) = ms après le début de ton attaque */
       hitDelay: hd,
-      /* FX slash/effect prolongé au-delà de l’anim (effet « bug stylé ») */
       fxHold: !!step.fxHold,
+      frameStart: fs,
+      frameEnd: fe,
+      hitFrameStart: hfs,
+      hitFrameEnd: hfe,
+      hideMount: !!step.hideMount,
+      clearMount: !!step.clearMount,
+      forceGround: !!step.forceGround,
     };
   }
   /** Bonus : cases cochées éditeur + évos victoire (cumul sur la partie). */
@@ -1009,18 +1020,28 @@
       G.enemy.stepFps = null;
       return { anim:"Die", fps:14 };
     }
+    /* Touché à cheval → séquence éditeur « Dégâts monture » */
+    if(entityMounted(G.enemy) || G.enemy.mount){
+      const started = playMountHitSequence(G.enemy, null);
+      if(started) return { anim:"MountHit", fps:14 };
+    }
     const cfg = resolveHitReact(sp, hitIndex, hits);
     if(!cfg.anim || cfg.anim === "None"){
       G.enemy.stepFps = null;
       return cfg;
     }
-    /* Taunt ne doit PAS être remappé en RideIdleAttack1 */
     G.enemy.stepFps = cfg.fps;
     if(cfg.anim === "Taunt" || cfg.anim === "TakeDamage"){
       entPlayHitAnim(G.enemy, cfg.anim);
     } else {
       playAnim(G.enemy, cfg.anim);
     }
+    /* Trim frames de la réaction (depuis le step d’attaque) */
+    try{
+      const raw = rawEditorSteps(sp);
+      const st = raw[Math.min(hitIndex, Math.max(0, raw.length-1))] || raw[0];
+      if(st) applyAnimClip(G.enemy, st, true);
+    }catch(_e){}
     return cfg;
   }
   /** Joue TakeDamage/Taunt sans conversion monture (sinon Taunt → RideIdleAttack1). */
@@ -1083,6 +1104,18 @@
           : (di && di.hitDelay != null) ? di.hitDelay
           : base.hitDelay,
         fxHold: !!(di && di.fxHold),
+        frameStart: (di && di["frameStart"+n] != null) ? di["frameStart"+n]
+          : (di && di.frameStart != null) ? di.frameStart
+          : (base.frameStart != null ? base.frameStart : 0),
+        frameEnd: (di && di["frameEnd"+n] != null) ? di["frameEnd"+n]
+          : (di && di.frameEnd != null) ? di.frameEnd
+          : (base.frameEnd != null ? base.frameEnd : COLS-1),
+        hitFrameStart: (di && di["hitFrameStart"+n] != null) ? di["hitFrameStart"+n]
+          : (di && di.hitFrameStart != null) ? di.hitFrameStart
+          : (base.hitFrameStart != null ? base.hitFrameStart : 0),
+        hitFrameEnd: (di && di["hitFrameEnd"+n] != null) ? di["hitFrameEnd"+n]
+          : (di && di.hitFrameEnd != null) ? di.hitFrameEnd
+          : (base.hitFrameEnd != null ? base.hitFrameEnd : COLS-1),
       });
     };
     return [mk(1), mk(2)];
@@ -1174,6 +1207,10 @@
         hitAnimFps: e.hitAnimFps != null ? e.hitAnimFps : (base.hitAnimFps != null ? base.hitAnimFps : 14),
         hitDelay: e.hitDelay != null ? e.hitDelay : base.hitDelay,
         fxHold: !!e.fxHold,
+        frameStart: e.frameStart != null ? e.frameStart : (base.frameStart != null ? base.frameStart : 0),
+        frameEnd: e.frameEnd != null ? e.frameEnd : (base.frameEnd != null ? base.frameEnd : COLS-1),
+        hitFrameStart: e.hitFrameStart != null ? e.hitFrameStart : 0,
+        hitFrameEnd: e.hitFrameEnd != null ? e.hitFrameEnd : COLS-1,
       }));
     });
 
@@ -1259,7 +1296,7 @@
       }
       const step = steps[i++];
       warmAnimForPlayer(step.anim);
-      playAnim(G.player, step.anim);
+      playClipStep(G.player, step, { forceGround: false });
       let fps = Number(step.fps);
       if(!isFinite(fps) || fps < 1) fps = 14;
       fps = Math.max(1, Math.min(60, fps));
@@ -1269,9 +1306,12 @@
       if(typeof FantasyBridge!=="undefined" && FantasyBridge.animStepTiming){
         const t=FantasyBridge.animStepTiming(Object.assign({}, step, { fps }), COLS);
         delay=t.delay; dur=t.dur||step.dur; G.player.stepFps=t.fps;
+        applyAnimClip(G.player, Object.assign({}, step, { frameStart:t.frameStart, frameEnd:t.frameEnd }), false);
       } else {
         G.player.stepFps=fps;
-        dur=Math.max(120, Math.round((COLS/fps)*1000));
+        const nFrames = Math.max(1, (step.frameEnd|0) - (step.frameStart|0) + 1);
+        dur=Math.max(120, Math.round((nFrames/fps)*1000));
+        applyAnimClip(G.player, step, false);
       }
       const now = performance.now();
       const wantSlash = step.slash && step.slash !== "None" ? step.slash : null;
@@ -1394,7 +1434,21 @@
   function randomMoveAnim(){ return pick(MOVE_ANIMS); }
 
   const MOUNT_PM = { Mount1:1, Mount2:1, Mount3:2, Mount4:1, Mount5:2 };
+  const KEY_MOUNT_HIT = "neuro.mountHit";
+  let mountHitCfg = { enabled:true, steps:[] };
+  function loadMountHitCfg(){
+    try{
+      const raw = localStorage.getItem(KEY_MOUNT_HIT) || sessionStorage.getItem(KEY_MOUNT_HIT);
+      if(!raw) return;
+      const o = JSON.parse(raw);
+      if(!o || typeof o !== "object") return;
+      mountHitCfg.enabled = o.enabled !== false;
+      mountHitCfg.steps = Array.isArray(o.steps) ? o.steps.map(normalizeCastStep) : [];
+    }catch(_e){}
+  }
+  loadMountHitCfg();
   function mountFolder(){
+    if(G.player && G.player._mountCleared) return null;
     try{
       if(typeof FantasyBridge!=="undefined" && FantasyBridge.currentMountFolder){
         const m = FantasyBridge.currentMountFolder();
@@ -1593,8 +1647,113 @@
   function isMountFolder(folder){ return /^Mount\d/i.test(folder||""); }
   function entityMounted(ent){
     if(!ent) return false;
+    if(ent.hideMount || ent._mountCleared) return false;
     if(ent === G.player) return isPlayerMounted();
     return !!ent.mount;
+  }
+
+  /** Applique frameStart/frameEnd (+ hideMount) sur une entité. */
+  function applyAnimClip(ent, step, isHit){
+    if(!ent) return;
+    const src = step || {};
+    let fs = isHit
+      ? (src.hitFrameStart != null ? src.hitFrameStart : 0)
+      : (src.frameStart != null ? src.frameStart : 0);
+    let fe = isHit
+      ? (src.hitFrameEnd != null ? src.hitFrameEnd : COLS-1)
+      : (src.frameEnd != null ? src.frameEnd : COLS-1);
+    if(typeof FantasyBridge!=="undefined" && FantasyBridge.animFrameRange){
+      const r = FantasyBridge.animFrameRange({
+        frameStart: fs, frameEnd: fe
+      }, COLS);
+      fs = r.frameStart; fe = r.frameEnd;
+    } else {
+      fs = Math.max(0, Math.min(COLS-1, fs|0));
+      fe = Math.max(fs, Math.min(COLS-1, fe|0));
+    }
+    ent.frameStart = fs;
+    ent.frameEnd = fe;
+  }
+  function clearAnimClip(ent){
+    if(!ent) return;
+    ent.frameStart = 0;
+    ent.frameEnd = COLS-1;
+    ent.hideMount = !!ent._mountCleared;
+  }
+  /** Joue un step avec trim + options monture (forceGround / hide / clear). */
+  function playClipStep(ent, step, opts){
+    opts = opts || {};
+    step = normalizeCastStep(step || {});
+    const forceGround = !!(step.forceGround || step.hideMount || step.clearMount || opts.forceGround);
+    let fps = Number(step.fps); if(!isFinite(fps)||fps<1) fps=14;
+    fps = Math.max(1, Math.min(60, fps));
+    const anim = step.anim || "Idle";
+    if(forceGround){
+      /* Pas de remap Ride* — anim à pied même si monture encore présente */
+      if(ent.layers){
+        for(const L of ent.layers){ if(L&&L.folder) loadImg(L.folder, anim); }
+      } else if(ent === G.player){
+        warmAnimForPlayer(anim);
+      }
+      ent.anim = anim;
+      ent.frame = 0;
+      ent.t0 = performance.now();
+    } else {
+      playAnim(ent, anim);
+    }
+    ent.stepFps = fps;
+    applyAnimClip(ent, step, !!opts.isHit);
+    if(step.hideMount || step.clearMount) ent.hideMount = true;
+    if(step.clearMount){
+      ent._mountCleared = true;
+      if(ent !== G.player) ent.mount = null;
+      ent.hideMount = true;
+    }
+    if(step.slash && step.slash !== "None") loadImg(step.slash, anim);
+    if(step.effect && step.effect !== "None") loadImg(step.effect, anim);
+    return step;
+  }
+
+  /**
+   * Séquence éditeur « Dégâts monture ». Retourne true si lancée.
+   * Sinon false → le caller joue TakeDamage classique.
+   */
+  function playMountHitSequence(ent, onDone){
+    loadMountHitCfg();
+    if(!ent || !mountHitCfg.enabled || !mountHitCfg.steps || !mountHitCfg.steps.length){
+      if(onDone) onDone(false);
+      return false;
+    }
+    const wasMounted = (ent === G.player) ? isPlayerMounted() : !!ent.mount;
+    if(!wasMounted && !ent.hideMount){
+      if(onDone) onDone(false);
+      return false;
+    }
+    const steps = mountHitCfg.steps.map(normalizeCastStep);
+    let i = 0;
+    const next = ()=>{
+      if(i >= steps.length){
+        clearAnimClip(ent);
+        if(ent.anim !== "Die" && ent.pv > 0) playAnim(ent, "Idle");
+        if(onDone) onDone(true);
+        return;
+      }
+      const step = steps[i++];
+      playClipStep(ent, step, { forceGround:true });
+      let delay = 0, dur = 300;
+      if(typeof FantasyBridge!=="undefined" && FantasyBridge.animStepTiming){
+        const t = FantasyBridge.animStepTiming(step, COLS);
+        delay = t.delay; dur = t.dur;
+        ent.stepFps = t.fps;
+      } else {
+        delay = Math.max(0, step.delay|0);
+        const n = Math.max(1, (step.frameEnd|0) - (step.frameStart|0) + 1);
+        dur = Math.max(120, Math.round((n / (ent.stepFps||14)) * 1000));
+      }
+      setTimeout(next, delay + dur);
+    };
+    next();
+    return true;
   }
   function stopMoveAnim(ent){
     if(!ent || !ent.alive) return;
@@ -1718,6 +1877,9 @@
     /* joueur : soin partiel + reset PA/PM, reste en vie */
     const p = G.player;
     p.alive = true;
+    p._mountCleared = false;
+    p.hideMount = false;
+    clearAnimClip(p);
     if(p.anim==="Die") playAnim(p,"Idle");
     const heal = opts.fullHeal ? p.pvMax : Math.max(12, Math.floor(p.pvMax*0.35));
     p.pv = Math.min(p.pvMax, Math.max(p.pv, 1) + (opts.fullHeal ? p.pvMax : heal));
@@ -2093,7 +2255,7 @@
   function playAnim(ent, anim){
     let a = anim;
     if(ent === G.player && isPlayerMounted()) a = toRideAnim(anim);
-    else if(ent && ent.mount) a = toRideAnim(anim);
+    else if(ent && ent.mount && !ent._mountCleared && !ent.hideMount) a = toRideAnim(anim);
     if(ent === G.player) warmAnimForPlayer(a);
     else if(ent && Array.isArray(ent.layers)){
       for(const L of ent.layers){
@@ -2105,6 +2267,9 @@
       }
     }
     ent.anim = a; ent.frame = 0; ent.t0 = performance.now();
+    ent.frameStart = 0;
+    ent.frameEnd = COLS - 1;
+    if(!(ent._mountCleared || ent.hideMount)) ent.hideMount = false;
     if(/^Idle$/i.test(a) || /^RideIdle$/i.test(a)) ent.stepFps = null;
   }
   function faceToward(ent, tc, tr){
@@ -3046,7 +3211,18 @@
     }
     setStatus(e.name+" · "+sp.name+(dmg?" → "+dmg:"")+(e.pa>0?" · …":""));
     hud();
-    if(p.pv<=0){ p.alive=false; playAnim(p,"Die"); onCombatEnd("defeat"); return true; }
+    if(p.pv<=0){
+      p.alive=false;
+      playAnim(p,"Die");
+      onCombatEnd("defeat");
+      return true;
+    }
+    /* Joueur touché à cheval → séquence monture */
+    if(dmg && isPlayerMounted()){
+      playMountHitSequence(p, null);
+    } else if(dmg){
+      entPlayHitAnim(p, "TakeDamage");
+    }
     return false;
   }
 
@@ -3370,14 +3546,17 @@
     ctx.imageSmoothingEnabled=false;
     let drawn=0;
     const animFps = ent.stepFps || FPS;
+    const fs = ent.frameStart != null ? (ent.frameStart|0) : 0;
+    const fe = ent.frameEnd != null ? (ent.frameEnd|0) : (COLS-1);
+    const span = Math.max(1, fe - fs + 1);
     for(const L of layers){
       const resolved = resolveSheet(L.folder, anim, mounted);
       if(!resolved) continue;
       const { im, sheetAnim } = resolved;
       const row = sheetRowForDir(ent.dir|0, sheetAnim);
-      let col = Math.floor(elapsed*animFps);
-      if(loopAnims.test(sheetAnim)) col = col % COLS;
-      else col = Math.min(col, COLS-1);
+      let col = fs + Math.floor(elapsed*animFps);
+      if(loopAnims.test(sheetAnim)) col = fs + ((col - fs) % span);
+      else col = Math.min(col, fe);
       try{ tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, (L.alpha||1)*baseAlpha); drawn++; }catch(_e){}
     }
     if(!drawn){
@@ -3395,9 +3574,9 @@
         if(!resolved) continue;
         const { im, sheetAnim } = resolved;
         const row = sheetRowForDir(ent.dir|0, sheetAnim);
-        let col = Math.floor(elapsed*animFps);
-        if(loopAnims.test(sheetAnim)) col = col % COLS;
-        else col = Math.min(col, COLS-1);
+        let col = fs + Math.floor(elapsed*animFps);
+        if(loopAnims.test(sheetAnim)) col = fs + ((col - fs) % span);
+        else col = Math.min(col, fe);
         try{ ctx.drawImage(im,col*FW,row*FH,FW,FH,dx,dy,dw,dh); }catch(_e){}
       }
       ctx.restore();
