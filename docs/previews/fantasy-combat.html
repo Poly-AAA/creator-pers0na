@@ -359,7 +359,7 @@
   const KEY_EVO = "neuro.fantasySpellEvo";
   const KEY_CUSTOM_SPELLS = "neuro.customSpells";
   /* Fallback Coup brut (même config que docs/previews/coup-brut-backup.json) */
-  const DEFAULT_COUP_BRUT = {
+    const DEFAULT_COUP_BRUT = {
     id:"punch",
     name:"Coup brut",
     cost:2,
@@ -448,15 +448,16 @@
         hitAnimFps:24,
         anim1:"Attack5",
         anim2:"Attack6",
-        hitAnimFps2:20,
+        hitAnimFps2:24,
         fps1:60,
         hitAnimFps1:35,
         hitDelay2:150,
-        hitDelay1:0
+        hitDelay1:0,
+        fps2:20
       }
     }
   };
-  const DEFAULT_COUP_DE_PIED = {
+    const DEFAULT_COUP_DE_PIED = {
     id:"coup_de_pied",
     name:"Coup de pied",
     cost:1,
@@ -547,11 +548,11 @@
       }
     }
   };
-  const DEFAULT_ROULADE = {
+    const DEFAULT_ROULADE = {
     id:"roulade",
     name:"Roulade",
     cost:1,
-    range:2,
+    range:5,
     dmg:[0,0],
     anim:"Rolling",
     type:"buff",
@@ -565,7 +566,7 @@
         anim:"Rolling",
         delay:0,
         move:"Idle",
-        fps:17,
+        fps:19,
         slash:"None",
         effect:"None",
         hitTarget:false,
@@ -580,60 +581,67 @@
         anim:"Rolling",
         slash:"None",
         effect:"None",
-        fps:16,
+        fps:19,
         delay:0,
         hitAnim:"TakeDamage",
-        hitAnimFps:14
+        hitAnimFps:24,
+        hitDelay:0
       },
       "1:Boxeur":{
-        enabled:true,
+        enabled:false,
         anim:"Rolling",
         slash:"None",
         effect:"None",
-        fps:16,
+        fps:19,
         delay:0,
         hitAnim:"TakeDamage",
-        hitAnimFps:14
+        hitAnimFps:24,
+        hitDelay:null
       },
       "1:Rapide":{
-        enabled:true,
+        enabled:false,
         anim:"Rolling",
         slash:"None",
         effect:"None",
-        fps:16,
+        fps:19,
         delay:0,
         hitAnim:"TakeDamage",
-        hitAnimFps:14
+        hitAnimFps:24,
+        hitDelay:null
       },
       "2:Uppercut":{
         enabled:false,
         anim:"Rolling",
         slash:"None",
         effect:"None",
-        fps:16,
+        fps:19,
         delay:0,
         hitAnim:"TakeDamage",
-        hitAnimFps:14
+        hitAnimFps:24
       },
       "2:Percutant":{
         enabled:false,
         anim:"Rolling",
         slash:"None",
         effect:"None",
-        fps:16,
+        fps:19,
         delay:0,
         hitAnim:"TakeDamage",
-        hitAnimFps:14
+        hitAnimFps:25
       },
       "2:Double Impact":{
-        enabled:false,
+        enabled:true,
         anim:"Rolling",
         slash:"None",
         effect:"None",
-        fps:16,
+        fps:19,
         delay:0,
         hitAnim:"TakeDamage",
-        hitAnimFps:14
+        hitAnimFps:14,
+        fps1:19,
+        hitAnimFps1:1,
+        fps2:19,
+        hitAnimFps2:24
       }
     }
   };
@@ -1124,17 +1132,32 @@
     }
     let i = 0;
     let hitSeq = 0;
+    let aborted = false;
+    const timers = [];
     const onHit = typeof opts.onHit === "function" ? opts.onHit : null;
+    const abortIfDead = opts.abortIfDead !== false; /* défaut : stop si cible morte */
     const hitEachStep = !!opts.hitEachStep;
     const stepsPerHit = Math.max(1, baseSteps.length);
     const totalHits = hitEachStep
       ? steps.filter(s=>s && s.hitTarget).length
       : repeat;
+    const clearTimers = ()=>{
+      while(timers.length) clearTimeout(timers.pop());
+    };
+    const schedule = (fn, ms)=>{
+      const id = setTimeout(fn, ms);
+      timers.push(id);
+      return id;
+    };
+    const finishChain = ()=>{
+      if(G.player.anim!=="Die") playAnim(G.player, "Idle");
+      G.castFx = null;
+      if(onDone) onDone();
+    };
     function next(){
+      if(aborted) return;
       if(i >= steps.length){
-        playAnim(G.player, "Idle");
-        G.castFx = null;
-        if(onDone) onDone();
+        finishChain();
         return;
       }
       const step = steps[i++];
@@ -1175,11 +1198,17 @@
       if(hitNow){
         const hd = resolveHitDelay(sp, hitIndex, Math.max(1, totalHits));
         const hitMs = hitDelayMsFromStart(hd, dur);
-        setTimeout(()=>{
+        schedule(()=>{
+          if(aborted) return;
           try{ onHit(hitIndex); }catch(_e){}
+          if(abortIfDead && G.enemy && (G.enemy.pv <= 0 || !G.enemy.alive)){
+            aborted = true;
+            clearTimers();
+            finishChain();
+          }
         }, delay + hitMs);
       }
-      setTimeout(()=>{ next(); }, delay + dur);
+      schedule(()=>{ next(); }, delay + dur);
     }
     next();
   }
@@ -2104,28 +2133,162 @@
     return { c: ent.c, r: ent.r };
   }
 
-  /** Planifie le chemin roulade sans muter la position (sauf ghost). */
-  function planRouladePath(ent, sp, evo){
+  /** Planifie le chemin roulade sans muter la position (sauf ghost).
+   *  forcedMode: "approche"|"recul" — fige le sens (ex. Double Impact recul ×2). */
+  function planRouladePath(ent, sp, evo, forcedMode){
     const foe = G.enemy;
     if(!foe || !foe.alive) return { path:[], mode:"none" };
     const cells = Math.max(1, (sp && sp.range != null ? sp.range|0 : 2) + (evo.range|0));
-    const d = dist(ent, foe);
-    const ghost = { c:ent.c, r:ent.r };
-    const path = [];
-    const mode = d <= 1 ? "recul" : "approche";
+    const d0 = dist(ent, foe);
+    const mode = forcedMode || (d0 <= 1 ? "recul" : "approche");
     if(mode === "recul"){
+      return { path: planRouladeRetreatPath(ent, foe, cells), mode };
+    }
+    return { path: planRouladeApproachPath(ent, foe, cells), mode };
+  }
+
+  /** Case libre ? (ne marche pas sur ennemi / clone / obstacles). */
+  function rouladeCellFree(c, r, skipKey){
+    if(!inBounds(c,r)) return false;
+    if(occupied(c,r, skipKey)) return false;
+    if(G.enemy && G.enemy.alive && G.enemy.c===c && G.enemy.r===r) return false;
+    if(G.clone && G.clone.alive && G.clone.c===c && G.clone.r===r) return false;
+    return true;
+  }
+
+  /**
+   * Score collision future : depuis la case joueur (pc,pr), pousser l’ennemi
+   * loin du joueur — plus il y a mur / perso sur la trajectoire, mieux c’est.
+   */
+  function collisionPushScore(pc, pr, foe){
+    let dc = Math.sign(foe.c - pc);
+    let dr = Math.sign(foe.r - pr);
+    if(dc===0 && dr===0) return 0;
+    let score = 0;
+    let c = foe.c, r = foe.r;
+    for(let i=0;i<8;i++){
+      c += dc; r += dr;
+      if(!inBounds(c,r)){ score += 5; break; } /* bord de map = collision */
+      if(occupied(c,r, "enemy")){ score += 6; break; } /* autre perso / obstacle */
+      /* case libre : poussée possible plus loin, pas de choc immédiat */
+    }
+    return score;
+  }
+
+  /** Alignement « en face » (cardinal) plutôt que diagonale. */
+  function faceAlignScore(c, r, foe){
+    const man = Math.abs(c - foe.c) + Math.abs(r - foe.r);
+    const cheb = Math.max(Math.abs(c - foe.c), Math.abs(r - foe.r));
+    let s = 0;
+    if(c === foe.c || r === foe.r) s += 40; /* même ligne / colonne = face */
+    if(cheb === 1 && man === 1) s += 80; /* adjacent cardinal */
+    else if(cheb === 1 && man === 2) s += 10; /* adjacent diagonal */
+    else if(cheb === 1) s += 30;
+    /* préférer se rapprocher */
+    s += Math.max(0, 12 - cheb);
+    return s;
+  }
+
+  function reconstructPath(prev, startKey, goalKey){
+    const path = [];
+    let k = goalKey;
+    while(k && k !== startKey){
+      const [c,r] = k.split(",").map(Number);
+      path.push({ c, r });
+      k = prev[k];
+    }
+    path.reverse();
+    return path;
+  }
+
+  /** Approche : BFS jusqu’à `cells`, atterrir sur la meilleure case (face + collision). */
+  function planRouladeApproachPath(ent, foe, cells){
+    const startKey = ent.c+","+ent.r;
+    const q = [{ c:ent.c, r:ent.r, steps:0 }];
+    const prev = {};
+    const distM = { [startKey]: 0 };
+    let qi = 0;
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]; /* cardinaux d’abord */
+    while(qi < q.length){
+      const cur = q[qi++];
+      if(cur.steps >= cells) continue;
+      for(const [dc,dr] of dirs){
+        const nc = cur.c + dc, nr = cur.r + dr;
+        const k = nc+","+nr;
+        if(distM[k] != null) continue;
+        if(!rouladeCellFree(nc, nr, "player")) continue;
+        distM[k] = cur.steps + 1;
+        prev[k] = cur.c+","+cur.r;
+        q.push({ c:nc, r:nr, steps:cur.steps + 1 });
+      }
+    }
+    let best = null, bestScore = -1e9;
+    Object.keys(distM).forEach(k=>{
+      if(k === startKey) return;
+      const [c,r] = k.split(",").map(Number);
+      const dFoe = dist({c,r}, foe);
+      if(dFoe > dist(ent, foe)) return; /* ne pas s’éloigner en « approche » */
+      let score = faceAlignScore(c, r, foe) + collisionPushScore(c, r, foe) * 3;
+      score -= distM[k] * 0.15; /* léger biais chemins courts */
+      if(dFoe === 1) score += 25; /* CAC */
+      if(score > bestScore){ bestScore = score; best = k; }
+    });
+    if(!best){
+      /* fallback : un pas cardinal vers la cible */
+      const ghost = { c:ent.c, r:ent.r };
+      const path = [];
+      const n = Math.min(cells, Math.max(1, dist(ent, foe)));
+      for(let i=0;i<n;i++){
+        if(!stepEntityTowardOnce(ghost, foe, "player")) break;
+        path.push({ c:ghost.c, r:ghost.r });
+      }
+      return path;
+    }
+    return reconstructPath(prev, startKey, best);
+  }
+
+  /** Recul : BFS, atterrir le plus loin possible (cardinal préféré). */
+  function planRouladeRetreatPath(ent, foe, cells){
+    const startKey = ent.c+","+ent.r;
+    const q = [{ c:ent.c, r:ent.r, steps:0 }];
+    const prev = {};
+    const distM = { [startKey]: 0 };
+    let qi = 0;
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    while(qi < q.length){
+      const cur = q[qi++];
+      if(cur.steps >= cells) continue;
+      for(const [dc,dr] of dirs){
+        const nc = cur.c + dc, nr = cur.r + dr;
+        const k = nc+","+nr;
+        if(distM[k] != null) continue;
+        if(!rouladeCellFree(nc, nr, "player")) continue;
+        distM[k] = cur.steps + 1;
+        prev[k] = cur.c+","+cur.r;
+        q.push({ c:nc, r:nr, steps:cur.steps + 1 });
+      }
+    }
+    let best = null, bestScore = -1e9;
+    const d0 = dist(ent, foe);
+    Object.keys(distM).forEach(k=>{
+      if(k === startKey) return;
+      const [c,r] = k.split(",").map(Number);
+      const dFoe = dist({c,r}, foe);
+      if(dFoe < d0) return; /* doit s’éloigner ou au moins pas se rapprocher */
+      let score = dFoe * 20 + distM[k];
+      if(c === foe.c || r === foe.r) score += 8; /* rester aligné face en reculant */
+      if(score > bestScore){ bestScore = score; best = k; }
+    });
+    if(!best){
+      const ghost = { c:ent.c, r:ent.r };
+      const path = [];
       for(let i=0;i<cells;i++){
         if(!stepEntityAwayOnce(ghost, foe, "player")) break;
         path.push({ c:ghost.c, r:ghost.r });
       }
-    } else {
-      const steps = Math.min(cells, Math.max(1, d));
-      for(let i=0;i<steps;i++){
-        if(!stepEntityTowardOnce(ghost, foe, "player")) break;
-        path.push({ c:ghost.c, r:ghost.r });
-      }
+      return path;
     }
-    return { path, mode };
+    return reconstructPath(prev, startKey, best);
   }
 
   function stepEntityTowardOnce(ent, target, skipKey){
@@ -2133,15 +2296,13 @@
     const dc = Math.sign(target.c - ent.c);
     const dr = Math.sign(target.r - ent.r);
     const tries = [];
-    if(dc && dr) tries.push([dc,dr],[dc,0],[0,dr]);
+    /* Cardinaux avant diagonale → atterrissage « en face » */
+    if(dc && dr) tries.push([dc,0],[0,dr],[dc,dr]);
     else if(dc) tries.push([dc,0],[0,1],[0,-1]);
     else tries.push([0,dr],[1,0],[-1,0]);
     for(const [tdc,tdr] of tries){
       const nc = ent.c + tdc, nr = ent.r + tdr;
-      if(!inBounds(nc,nr)) continue;
-      if(occupied(nc,nr, skipKey)) continue;
-      if(G.enemy.alive && G.enemy.c===nc && G.enemy.r===nr) continue;
-      if(G.clone && G.clone.alive && G.clone.c===nc && G.clone.r===nr) continue;
+      if(!rouladeCellFree(nc, nr, skipKey)) continue;
       ent.c = nc; ent.r = nr;
       return true;
     }
@@ -2157,15 +2318,12 @@
       dc = d[0]; dr = d[1];
     }
     const tries = [];
-    if(dc && dr) tries.push([dc,dr],[dc,0],[0,dr]);
+    if(dc && dr) tries.push([dc,0],[0,dr],[dc,dr]);
     else if(dc) tries.push([dc,0],[0,1],[0,-1]);
     else tries.push([0,dr],[1,0],[-1,0]);
     for(const [tdc,tdr] of tries){
       const nc = ent.c + tdc, nr = ent.r + tdr;
-      if(!inBounds(nc,nr)) continue;
-      if(occupied(nc,nr, skipKey)) continue;
-      if(G.enemy.alive && G.enemy.c===nc && G.enemy.r===nr) continue;
-      if(G.clone && G.clone.alive && G.clone.c===nc && G.clone.r===nr) continue;
+      if(!rouladeCellFree(nc, nr, skipKey)) continue;
       ent.c = nc; ent.r = nr;
       return true;
     }
@@ -2173,8 +2331,8 @@
   }
 
   /** Une roulade animée (slide + Rolling). Appelle onDone à la fin. */
-  function playOneRoulade(sp, evo, onDone){
-    const planned = planRouladePath(G.player, sp, evo);
+  function playOneRoulade(sp, evo, onDone, forcedMode){
+    const planned = planRouladePath(G.player, sp, evo, forcedMode);
     const path = planned.path || [];
     if(!path.length){
       if(typeof onDone === "function") onDone(null);
@@ -2215,9 +2373,9 @@
   }
 
   /**
-   * Roulade : Double Impact = jusqu’à 2 roulades.
+   * Roulade : Double Impact = jusqu’à 2 roulades dans le MÊME sens.
+   * Recul ×2 ne redevient pas une approche après le 1er recul.
    * Approche : 2e seulement si pas encore CAC après la 1re.
-   * Recul : toujours 2 si Double Impact.
    */
   function castRoulade(sp, evo){
     const maxRolls = spellHitCount(sp);
@@ -2245,6 +2403,7 @@
     };
 
     const runRoll = (index)=>{
+      /* mode figé = mode0 → Double Impact recul reste un double recul */
       playOneRoulade(sp, evo, (planned)=>{
         if(!planned || !planned.path || !planned.path.length){
           if(rollsDone === 0) setStatus("Roulade · bloqué");
@@ -2266,7 +2425,7 @@
           return;
         }
         runRoll(next);
-      });
+      }, mode0);
     };
 
     runRoll(0);
@@ -2392,6 +2551,9 @@
       G.enemy.flash = performance.now()+180;
       faceToward(G.enemy, G.player.c, G.player.r);
       const react = playEnemyHitReact(sp, hitIndex, hits);
+      if(G.enemy.pv <= 0){
+        G.enemy.alive = false;
+      }
       /* Push une seule fois, sur le dernier coup qui touche encore vivant / fin de chaîne */
       if(pushCells > 0 && hitIndex === hits - 1 && G.enemy.pv > 0){
         pushed = pushEntityAway(G.enemy, G.player, Math.max(1, pushCells), "enemy");

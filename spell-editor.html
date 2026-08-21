@@ -188,7 +188,7 @@ const LEGACY_SPELL_IDS = new Set([
   "dash","swap","gravjump","mine","turret","sniper","bouclier","overclock",
   "double","invisibilite",
 ]);
-/* Config anim sauvegardée (docs/previews/spells-backup.json) — session 20 août 2026. */
+/* Config anim sauvegardée (docs/previews/spells-backup.json) — session 21 août 2026. */
 const SAVED_COUP_BRUT = {
   id:"punch",
   name:"Coup brut",
@@ -278,11 +278,12 @@ const SAVED_COUP_BRUT = {
       hitAnimFps:24,
       anim1:"Attack5",
       anim2:"Attack6",
-      hitAnimFps2:20,
+      hitAnimFps2:24,
       fps1:60,
       hitAnimFps1:35,
       hitDelay2:150,
-      hitDelay1:0
+      hitDelay1:0,
+      fps2:20
     }
   }
 };
@@ -383,7 +384,7 @@ const SAVED_ROULADE = {
   id:"roulade",
   name:"Roulade",
   cost:1,
-  range:2,
+  range:5,
   dmg:[0,0],
   anim:"Rolling",
   type:"buff",
@@ -397,7 +398,7 @@ const SAVED_ROULADE = {
       anim:"Rolling",
       delay:0,
       move:"Idle",
-      fps:17,
+      fps:19,
       slash:"None",
       effect:"None",
       hitTarget:false,
@@ -412,60 +413,67 @@ const SAVED_ROULADE = {
       anim:"Rolling",
       slash:"None",
       effect:"None",
-      fps:16,
+      fps:19,
       delay:0,
       hitAnim:"TakeDamage",
-      hitAnimFps:14
+      hitAnimFps:24,
+      hitDelay:0
     },
     "1:Boxeur":{
-      enabled:true,
+      enabled:false,
       anim:"Rolling",
       slash:"None",
       effect:"None",
-      fps:16,
+      fps:19,
       delay:0,
       hitAnim:"TakeDamage",
-      hitAnimFps:14
+      hitAnimFps:24,
+      hitDelay:null
     },
     "1:Rapide":{
-      enabled:true,
+      enabled:false,
       anim:"Rolling",
       slash:"None",
       effect:"None",
-      fps:16,
+      fps:19,
       delay:0,
       hitAnim:"TakeDamage",
-      hitAnimFps:14
+      hitAnimFps:24,
+      hitDelay:null
     },
     "2:Uppercut":{
       enabled:false,
       anim:"Rolling",
       slash:"None",
       effect:"None",
-      fps:16,
+      fps:19,
       delay:0,
       hitAnim:"TakeDamage",
-      hitAnimFps:14
+      hitAnimFps:24
     },
     "2:Percutant":{
       enabled:false,
       anim:"Rolling",
       slash:"None",
       effect:"None",
-      fps:16,
+      fps:19,
       delay:0,
       hitAnim:"TakeDamage",
-      hitAnimFps:14
+      hitAnimFps:25
     },
     "2:Double Impact":{
-      enabled:false,
+      enabled:true,
       anim:"Rolling",
       slash:"None",
       effect:"None",
-      fps:16,
+      fps:19,
       delay:0,
       hitAnim:"TakeDamage",
-      hitAnimFps:14
+      hitAnimFps:14,
+      fps1:19,
+      hitAnimFps1:1,
+      fps2:19,
+      hitAnimFps2:24
     }
   }
 };
