@@ -2787,7 +2787,11 @@
     if(dist(G.player, G.enemy) > spellRange(sp)){
       if(G.castPlaying){
         /* En file : on tentera l’approche au moment du drain */
-        G.castQueue.push({ kind:"enemy", spellId: sp.id });
+        const evoQ = evoBonusesFor(sp);
+        const costQ = Math.max(1, sp.cost + (evoQ.cost|0));
+        if(G.player.pa < costQ){ setStatus("Pas assez de PA"); return; }
+        G.player.pa -= costQ;
+        G.castQueue.push({ kind:"enemy", spellId: sp.id, paid:true });
         G.armed=null; G.armedSlot=null;
         setStatus("Combo en file · "+sp.name);
         renderSpells(); hud();
@@ -2815,7 +2819,11 @@
     } else if(G.enemy.alive){
       /* Pendant une anim : enfile (pas d’approche busy qui bloque les combos) */
       if(G.castPlaying){
-        G.castQueue.push({ kind:"enemy", spellId: sp.id });
+        const evoQ = evoBonusesFor(sp);
+        const costQ = Math.max(1, sp.cost + (evoQ.cost|0));
+        if(G.player.pa < costQ){ setStatus("Pas assez de PA"); return; }
+        G.player.pa -= costQ;
+        G.castQueue.push({ kind:"enemy", spellId: sp.id, paid:true });
         G.armed=null; G.armedSlot=null;
         setStatus("Combo en file · "+sp.name+" ("+G.castQueue.length+")");
         renderSpells(); hud();
@@ -2846,7 +2854,11 @@
     if(G.enemy.alive){
       if(dist(G.player, G.enemy) > spellRange(sp)){
         if(G.castPlaying){
-          G.castQueue.push({ kind:"enemy", spellId: sp.id });
+          const evoQ = evoBonusesFor(sp);
+          const costQ = Math.max(1, sp.cost + (evoQ.cost|0));
+          if(G.player.pa < costQ){ setStatus("Pas assez de PA"); return; }
+          G.player.pa -= costQ;
+          G.castQueue.push({ kind:"enemy", spellId: sp.id, paid:true });
           G.armed=null; G.armedSlot=null;
           setStatus("Combo en file · "+sp.name+" ("+G.castQueue.length+")");
           renderSpells(); hud();
