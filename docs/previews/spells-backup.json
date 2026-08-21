@@ -25,64 +25,69 @@
     ],
     "evoConfig": {
       "1:Brise-Os": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Attack2",
         "slash": "None",
         "effect": "None",
-        "fps": 17,
+        "fps": 20,
         "delay": 0,
         "hitAnim": "TakeDamage",
-        "hitAnimFps": 24
+        "hitAnimFps": 24,
+        "fxHold": false
       },
       "1:Boxeur": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Attack6",
         "slash": "None",
         "effect": "None",
-        "fps": 17,
+        "fps": 20,
         "delay": 0,
         "hitAnim": "TakeDamage",
         "hitAnimFps": 24,
-        "hitDelay": 0
+        "hitDelay": 0,
+        "fxHold": false
       },
       "1:Rapide": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Attack6",
         "slash": "None",
         "effect": "None",
-        "fps": 17,
+        "fps": 19,
         "delay": 0,
         "hitAnim": "TakeDamage",
         "hitAnimFps": 24,
-        "hitDelay": 0
+        "hitDelay": 0,
+        "fxHold": false
       },
       "2:Uppercut": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Attack6",
         "slash": "None",
-        "effect": "Effect1",
+        "effect": "None",
+        "fps": 19,
+        "delay": 0,
+        "hitAnim": "TakeDamage",
+        "hitAnimFps": 24,
+        "hitDelay": 0,
+        "fxHold": false
+      },
+      "2:Percutant": {
+        "enabled": true,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "None",
         "fps": 17,
         "delay": 0,
         "hitAnim": "TakeDamage",
         "hitAnimFps": 24,
-        "hitDelay": 0
-      },
-      "2:Percutant": {
-        "enabled": false,
-        "anim": "Attack6",
-        "slash": "None",
-        "effect": "None",
-        "fps": 14,
-        "delay": 0,
-        "hitAnim": "TakeDamage",
-        "hitAnimFps": 14
+        "fxHold": false
       },
       "2:Double Impact": {
         "enabled": true,
         "anim": "Attack5",
-        "slash": "None",
+        "slash": "Slash1",
         "effect": "None",
-        "fps": 17,
+        "fps": 19,
         "delay": 0,
         "hitAnim": "TakeDamage",
         "hitAnimFps": 24,
@@ -93,7 +98,8 @@
         "hitAnimFps1": 35,
         "hitDelay2": 150,
         "hitDelay1": 0,
-        "fps2": 20
+        "fps2": 20,
+        "fxHold": false
       }
     }
   },
@@ -115,7 +121,7 @@
         "anim": "Kick",
         "delay": 0,
         "move": "Idle",
-        "fps": 15,
+        "fps": 18,
         "slash": "None",
         "effect": "None",
         "hitTarget": true,
@@ -126,47 +132,52 @@
     ],
     "evoConfig": {
       "1:Brise-Os": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Kick",
         "slash": "None",
         "effect": "None",
-        "fps": 15,
+        "fps": 18,
         "delay": 0,
         "hitAnim": "TakeDamage",
-        "hitAnimFps": 14
+        "hitAnimFps": 14,
+        "fxHold": false
       },
       "1:Boxeur": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Kick",
         "slash": "None",
         "effect": "None",
-        "fps": 15,
+        "fps": 18,
         "delay": 0,
         "hitAnim": "TakeDamage",
-        "hitAnimFps": 14
+        "hitAnimFps": 24,
+        "fxHold": false
       },
       "1:Rapide": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Kick",
         "slash": "None",
         "effect": "None",
-        "fps": 15,
+        "fps": 18,
         "delay": 0,
         "hitAnim": "TakeDamage",
-        "hitAnimFps": 14
+        "hitAnimFps": 24,
+        "fxHold": false
       },
       "2:Uppercut": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Kick",
         "slash": "None",
         "effect": "None",
-        "fps": 15,
+        "fps": 20,
         "delay": 0,
         "hitAnim": "TakeDamage",
-        "hitAnimFps": 14
+        "hitAnimFps": 24,
+        "fxHold": false,
+        "hitDelay": 190
       },
       "2:Percutant": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Kick",
         "slash": "None",
         "effect": "None",
@@ -174,17 +185,26 @@
         "delay": 0,
         "hitAnim": "TakeDamage",
         "hitAnimFps": 24,
-        "hitDelay": 400
+        "hitDelay": 400,
+        "fxHold": false
       },
       "2:Double Impact": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Kick",
-        "slash": "None",
+        "slash": "Slash1",
         "effect": "None",
-        "fps": 15,
+        "fps": 19,
         "delay": 0,
         "hitAnim": "TakeDamage",
-        "hitAnimFps": 14
+        "hitAnimFps": 14,
+        "fxHold": false,
+        "hitDelay": 0,
+        "hitAnimFps1": 24,
+        "fps1": 22,
+        "hitDelay2": 120,
+        "hitAnimFps2": 24,
+        "fps2": 35,
+        "hitDelay1": 100
       }
     }
   },
@@ -217,7 +237,7 @@
     ],
     "evoConfig": {
       "1:Brise-Os": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Rolling",
         "slash": "None",
         "effect": "None",
@@ -225,10 +245,11 @@
         "delay": 0,
         "hitAnim": "TakeDamage",
         "hitAnimFps": 24,
-        "hitDelay": 0
+        "hitDelay": 0,
+        "fxHold": false
       },
       "1:Boxeur": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Rolling",
         "slash": "None",
         "effect": "None",
@@ -236,10 +257,11 @@
         "delay": 0,
         "hitAnim": "TakeDamage",
         "hitAnimFps": 24,
-        "hitDelay": null
+        "hitDelay": null,
+        "fxHold": false
       },
       "1:Rapide": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Rolling",
         "slash": "None",
         "effect": "None",
@@ -247,27 +269,30 @@
         "delay": 0,
         "hitAnim": "TakeDamage",
         "hitAnimFps": 24,
-        "hitDelay": null
+        "hitDelay": null,
+        "fxHold": false
       },
       "2:Uppercut": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Rolling",
         "slash": "None",
         "effect": "None",
         "fps": 19,
         "delay": 0,
         "hitAnim": "TakeDamage",
-        "hitAnimFps": 24
+        "hitAnimFps": 24,
+        "fxHold": false
       },
       "2:Percutant": {
-        "enabled": false,
+        "enabled": true,
         "anim": "Rolling",
         "slash": "None",
         "effect": "None",
         "fps": 19,
         "delay": 0,
         "hitAnim": "TakeDamage",
-        "hitAnimFps": 25
+        "hitAnimFps": 25,
+        "fxHold": false
       },
       "2:Double Impact": {
         "enabled": true,
@@ -281,7 +306,8 @@
         "fps1": 19,
         "hitAnimFps1": 1,
         "fps2": 19,
-        "hitAnimFps2": 24
+        "hitAnimFps2": 24,
+        "fxHold": false
       }
     }
   }

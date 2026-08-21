@@ -1,107 +1,108 @@
 {
-  "id": "punch",
-  "name": "Coup brut",
-  "cost": 2,
+  "id": "coup_de_pied",
+  "name": "Coup de pied",
+  "cost": 1,
   "range": 1,
   "dmg": [
-    8,
-    12
+    4,
+    14
   ],
-  "anim": "Attack2",
+  "anim": "Kick",
   "type": "damage",
   "aoe": 0,
   "animSeq": [],
+  "effect": "push",
+  "push": 1,
+  "desc": "Donne un coup de pied qui repousse l’ennemi de 1 case",
   "steps": [
     {
-      "anim": "Attack1",
+      "anim": "Kick",
       "delay": 0,
       "move": "Idle",
-      "fps": 17,
+      "fps": 18,
       "slash": "None",
       "effect": "None",
       "hitTarget": true,
       "hitAnim": "TakeDamage",
       "hitAnimFps": 24,
-      "hitDelay": 300
+      "hitDelay": 370
     }
   ],
   "evoConfig": {
     "1:Brise-Os": {
       "enabled": true,
-      "anim": "Attack2",
+      "anim": "Kick",
       "slash": "None",
       "effect": "None",
-      "fps": 20,
+      "fps": 18,
       "delay": 0,
       "hitAnim": "TakeDamage",
-      "hitAnimFps": 24,
+      "hitAnimFps": 14,
       "fxHold": false
     },
     "1:Boxeur": {
       "enabled": true,
-      "anim": "Attack6",
+      "anim": "Kick",
+      "slash": "None",
+      "effect": "None",
+      "fps": 18,
+      "delay": 0,
+      "hitAnim": "TakeDamage",
+      "hitAnimFps": 24,
+      "fxHold": false
+    },
+    "1:Rapide": {
+      "enabled": true,
+      "anim": "Kick",
+      "slash": "None",
+      "effect": "None",
+      "fps": 18,
+      "delay": 0,
+      "hitAnim": "TakeDamage",
+      "hitAnimFps": 24,
+      "fxHold": false
+    },
+    "2:Uppercut": {
+      "enabled": true,
+      "anim": "Kick",
       "slash": "None",
       "effect": "None",
       "fps": 20,
       "delay": 0,
       "hitAnim": "TakeDamage",
       "hitAnimFps": 24,
-      "hitDelay": 0,
-      "fxHold": false
-    },
-    "1:Rapide": {
-      "enabled": true,
-      "anim": "Attack6",
-      "slash": "None",
-      "effect": "None",
-      "fps": 19,
-      "delay": 0,
-      "hitAnim": "TakeDamage",
-      "hitAnimFps": 24,
-      "hitDelay": 0,
-      "fxHold": false
-    },
-    "2:Uppercut": {
-      "enabled": true,
-      "anim": "Attack6",
-      "slash": "None",
-      "effect": "None",
-      "fps": 19,
-      "delay": 0,
-      "hitAnim": "TakeDamage",
-      "hitAnimFps": 24,
-      "hitDelay": 0,
-      "fxHold": false
+      "fxHold": false,
+      "hitDelay": 190
     },
     "2:Percutant": {
       "enabled": true,
-      "anim": "Attack6",
+      "anim": "Kick",
       "slash": "None",
       "effect": "None",
       "fps": 17,
       "delay": 0,
       "hitAnim": "TakeDamage",
       "hitAnimFps": 24,
+      "hitDelay": 400,
       "fxHold": false
     },
     "2:Double Impact": {
       "enabled": true,
-      "anim": "Attack5",
+      "anim": "Kick",
       "slash": "Slash1",
       "effect": "None",
       "fps": 19,
       "delay": 0,
       "hitAnim": "TakeDamage",
-      "hitAnimFps": 24,
-      "anim1": "Attack5",
-      "anim2": "Attack6",
+      "hitAnimFps": 14,
+      "fxHold": false,
+      "hitDelay": 0,
+      "hitAnimFps1": 24,
+      "fps1": 22,
+      "hitDelay2": 120,
       "hitAnimFps2": 24,
-      "fps1": 60,
-      "hitAnimFps1": 35,
-      "hitDelay2": 150,
-      "hitDelay1": 0,
-      "fps2": 20,
-      "fxHold": false
+      "fps2": 35,
+      "hitDelay1": 100
     }
   }
 }
