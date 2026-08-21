@@ -1284,7 +1284,7 @@ function renderEditor(){
   /* ── Évolutions catalogue jeu ── */
   const evoCard=card("Évolutions du jeu");
   const evHint=document.createElement("p"); evHint.className="hint";
-  evHint.textContent="Chaque case cochée s’ajoute à la chaîne d’anims (DI = 2 coups). « FX prolongé » = slash qui ne coupe pas. En combat tu peux lancer d’autres sorts pendant l’anim. Puis Combat ▶.";
+  evHint.textContent="Chaque évo cochée s’ajoute à la chaîne (DI = 2 coups à la place de la base, puis les autres). « FX prolongé » = slash qui ne coupe pas. En combat : lance d’autres sorts pendant l’anim (combo en file). Puis Combat ▶.";
   evoCard.appendChild(evHint);
 
   const sEvo = ensureEditable(activeId);

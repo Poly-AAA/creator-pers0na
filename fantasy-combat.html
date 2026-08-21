@@ -1074,8 +1074,10 @@
     return /:(Double Impact|Déchirure|Salve)$/i.test(key || "");
   }
   /**
-   * Chaîne d’attaque : step de base + CHAQUE évo cochée (DI = 2 anims).
-   * Victoire (partie) ajoute aussi son anim si présente.
+   * Chaîne d’attaque cumulée :
+   * - sans DI : step de base, puis chaque évo cochée ajoute son anim
+   * - avec DI : les 2 anims DI remplacent la base, puis les autres évos s’ajoutent
+   * - à l’infini (N évos → N steps, DI = 2)
    */
   function editorCastSteps(sp){
     reloadCustomSpells();
@@ -1102,13 +1104,6 @@
       return [normalizeCastStep(Object.assign({}, base, { hitTarget:true }))];
     }
 
-    const chain = [];
-    /* Step de base d’abord (le sort « nu ») */
-    chain.push(normalizeCastStep(Object.assign({}, base, {
-      hitTarget: true,
-      fxHold: !!base.fxHold,
-    })));
-
     const visStub = {
       anim: victoryAnim,
       slash: victoryFx && /^Slash/i.test(victoryFx) ? victoryFx : "None",
@@ -1116,11 +1111,23 @@
       fps: st.evo && st.evo.animFps != null ? st.evo.animFps : 14,
     };
 
-    enabled.forEach(({ key, entry:e })=>{
-      if(isMultiHitEvoKey(key)){
+    const diItems = enabled.filter(({ key })=> isMultiHitEvoKey(key));
+    const otherItems = enabled.filter(({ key })=> !isMultiHitEvoKey(key));
+    const chain = [];
+
+    if(diItems.length){
+      /* DI remplace la base (2 coups), pas base+DI */
+      diItems.forEach(({ entry:e })=>{
         doubleImpactStepsFromEntry(e, base, visStub).forEach(s=> chain.push(s));
-        return;
-      }
+      });
+    } else {
+      chain.push(normalizeCastStep(Object.assign({}, base, {
+        hitTarget: true,
+        fxHold: !!base.fxHold,
+      })));
+    }
+
+    otherItems.forEach(({ entry:e })=>{
       chain.push(normalizeCastStep({
         anim: e.anim || base.anim,
         delay: e.delay != null ? e.delay : 0,
@@ -2162,7 +2169,11 @@
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
 
     if(G.castPlaying){
-      G.castQueue.push({ kind:"self", spellId: sp.id });
+      const evoQ = evoBonusesFor(sp);
+      const costQ = Math.max(1, sp.cost + (evoQ.cost|0));
+      if(G.player.pa < costQ){ setStatus("Pas assez de PA"); return; }
+      G.player.pa -= costQ;
+      G.castQueue.push({ kind:"self", spellId: sp.id, paid:true });
       G.armed=null; G.armedSlot=null;
       setStatus("Combo en file · "+sp.name+" ("+G.castQueue.length+")");
       renderSpells(); hud();
@@ -2618,9 +2629,10 @@
     const cost = Math.max(1, sp.cost + (evo.cost|0));
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
 
-    /* Pendant une anim : enfile le sort — fluidité / combos */
+    /* Pendant une anim : enfile le sort — fluidité / combos (PA réservés tout de suite) */
     if(G.castPlaying){
-      G.castQueue.push({ kind:"enemy", spellId: sp.id, label: (G.armedSlot?G.armedSlot.label+" · ":"")+sp.name });
+      G.player.pa -= cost;
+      G.castQueue.push({ kind:"enemy", spellId: sp.id, label: (G.armedSlot?G.armedSlot.label+" · ":"")+sp.name, paid:true });
       G.armed=null; G.armedSlot=null;
       setStatus("Combo en file · "+sp.name+" ("+G.castQueue.length+")");
       renderSpells(); hud();
@@ -2707,10 +2719,16 @@
     if(!sp){ drainCastQueue(); return; }
     const evo = evoBonusesFor(sp);
     const cost = Math.max(1, sp.cost + (evo.cost|0));
-    if(G.player.pa < cost){
-      setStatus("File · pas assez de PA pour "+sp.name);
-      drainCastQueue();
-      return;
+    /* paid:true = PA déjà réservés à l’enfilement */
+    if(!next.paid){
+      if(G.player.pa < cost){
+        setStatus("File · pas assez de PA pour "+sp.name);
+        drainCastQueue();
+        return;
+      }
+    } else {
+      /* Remet les PA pour que finishCast* les re-déduise proprement */
+      G.player.pa = Math.min(G.player.paMax, G.player.pa + cost);
     }
     if(isSelfSpell(sp) || sp.effect==="roulade" || sp.id==="roulade"){
       finishCastSelf(sp);
@@ -2755,7 +2773,8 @@
   }
 
   function tryCastAt(c, r){
-    if(G.busy || G.turn!=="player" || !G.armed) return;
+    if(G.turn!=="player" || !G.armed) return;
+    if(G.busy && !G.castPlaying) return;
     const sp = spellById(G.armed); if(!sp) return;
     if(G.player.pa < sp.cost){ setStatus("Pas assez de PA"); return; }
 
@@ -2794,13 +2813,22 @@
     if(G.enemy.alive && dist(G.player,G.enemy)<=spellRange(sp)){
       tryCastAt(G.enemy.c, G.enemy.r);
     } else if(G.enemy.alive){
+      /* Pendant une anim : enfile (pas d’approche busy qui bloque les combos) */
+      if(G.castPlaying){
+        G.castQueue.push({ kind:"enemy", spellId: sp.id });
+        G.armed=null; G.armedSlot=null;
+        setStatus("Combo en file · "+sp.name+" ("+G.castQueue.length+")");
+        renderSpells(); hud();
+        return;
+      }
       approachThen(sp, ()=> finishCastEnemy(sp));
     } else setStatus(sp.name+" armé");
   }
 
   /** Centre dpad : sort armé, sinon sort d’arme */
   function autoAttack(){
-    if(G.busy || G.turn!=="player" || !G.player.alive) return;
+    if(G.turn!=="player" || !G.player.alive) return;
+    if(G.busy && !G.castPlaying) return;
     if(G.armed){ castArmed(); return; }
     const bar = G.spellBar.length ? G.spellBar : refreshSpellBar();
     const slot = bar.find(s=>!s.locked && s.spellId && spellById(s.spellId) && G.player.pa>=spellById(s.spellId).cost)
@@ -2810,14 +2838,22 @@
   }
 
   function castArmed(){
-    if(G.busy) return;
+    if(G.busy && !G.castPlaying) return;
     if(!G.armed){ autoAttack(); return; }
     const sp = spellById(G.armed);
     if(!sp) return;
     if(isSelfSpell(sp)){ tryCastAt(G.player.c, G.player.r); return; }
     if(G.enemy.alive){
-      if(dist(G.player, G.enemy) > spellRange(sp)) approachThen(sp, ()=> finishCastEnemy(sp));
-      else tryCastAt(G.enemy.c, G.enemy.r);
+      if(dist(G.player, G.enemy) > spellRange(sp)){
+        if(G.castPlaying){
+          G.castQueue.push({ kind:"enemy", spellId: sp.id });
+          G.armed=null; G.armedSlot=null;
+          setStatus("Combo en file · "+sp.name+" ("+G.castQueue.length+")");
+          renderSpells(); hud();
+          return;
+        }
+        approachThen(sp, ()=> finishCastEnemy(sp));
+      } else tryCastAt(G.enemy.c, G.enemy.r);
     } else setStatus("Cible hors portée");
   }
 
@@ -3190,10 +3226,12 @@
         const evoAnim = st.evo && st.evo.anim;
         line.textContent = name+" ·"+sp.cost+(evoAnim?" ·"+evoAnim.replace("Attack","A"):"");
         b.className = (G.armed===sp.id && G.armedSlot && G.armedSlot.slot===slot.slot) ? "on" : "";
-        /* Pendant l’anim (castPlaying) les sorts restent cliquables si assez de PA */
-        b.disabled = G.turn!=="player" || G.busy || G.player.pa<sp.cost;
+        /* Pendant l’anim (castPlaying) : boutons libres pour enfiler des combos */
+        const blockUi = G.turn!=="player" || (G.busy && !G.castPlaying) || G.player.pa<sp.cost;
+        b.disabled = blockUi;
         b.onclick=()=>{
-          if(G.busy || G.turn!=="player") return;
+          if(G.turn!=="player") return;
+          if(G.busy && !G.castPlaying) return;
           if(G.armed===sp.id && G.armedSlot && G.armedSlot.slot===slot.slot){
             castArmed();
             return;
