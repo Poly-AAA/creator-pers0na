@@ -819,7 +819,13 @@
     return Math.max(-3, Math.min(3, n|0));
   }
   function normalizeCastStep(step){
-    if(typeof step==="string") return { anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false, hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null, fxHold:false, frameStart:0, frameEnd:COLS-1, hitFrameStart:0, hitFrameEnd:COLS-1, hideMount:false, clearMount:false, forceGround:false, posDc:0, posDr:0 };
+    if(typeof step==="string") return {
+      anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false,
+      hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null, fxHold:false,
+      frameStart:0, frameEnd:COLS-1, hitFrameStart:0, hitFrameEnd:COLS-1,
+      hideMount:false, clearMount:false, forceGround:false, posDc:0, posDr:0,
+      projectile:"none", projSpeed:8, projSize:36, projCount:1,
+    };
     let hd = step.hitDelay;
     if(hd === "end" || hd === -1) hd = null; /* null = fin d’anim */
     else if(hd == null || hd === "" || hd === false) hd = null;
@@ -830,6 +836,15 @@
     let hfs = step.hitFrameStart != null && step.hitFrameStart !== "" ? Math.max(0, Math.min(COLS-1, Number(step.hitFrameStart)|0)) : 0;
     let hfe = step.hitFrameEnd != null && step.hitFrameEnd !== "" ? Math.max(0, Math.min(COLS-1, Number(step.hitFrameEnd)|0)) : (COLS-1);
     if(hfe < hfs){ const t=hfs; hfs=hfe; hfe=t; }
+    let proj = step.projectile || "none";
+    if(proj === true || proj === "arrow") proj = "arrow";
+    else proj = "none";
+    let projSpeed = Number(step.projSpeed); if(!isFinite(projSpeed) || projSpeed < 1) projSpeed = 8;
+    projSpeed = Math.max(1, Math.min(24, projSpeed));
+    let projSize = Number(step.projSize); if(!isFinite(projSize) || projSize < 12) projSize = 36;
+    projSize = Math.max(12, Math.min(96, Math.round(projSize)));
+    let projCount = Number(step.projCount); if(!isFinite(projCount)) projCount = 1;
+    projCount = Math.max(1, Math.min(5, projCount|0));
     return {
       anim: step.anim || "Attack1",
       delay: step.delay != null ? step.delay : 0,
@@ -850,6 +865,10 @@
       forceGround: !!step.forceGround,
       posDc: clampPosCell(step.posDc),
       posDr: clampPosCell(step.posDr),
+      projectile: proj,
+      projSpeed,
+      projSize,
+      projCount,
     };
   }
   /** Bonus : cases cochées éditeur + évos victoire (cumul sur la partie). */
@@ -1364,7 +1383,7 @@
         const hitMs = hitDelayMsFromStart(hd, dur);
         schedule(()=>{
           if(aborted) return;
-          try{ onHit(hitIndex); }catch(_e){}
+          try{ onHit(hitIndex, step); }catch(_e){}
           if(abortIfDead && G.enemy && (G.enemy.pv <= 0 || !G.enemy.alive)){
             aborted = true;
             clearTimers();
@@ -1549,8 +1568,10 @@
     const travelMs = Math.max(60, Math.round((cheb / speed) * 1000));
     const faceDir = dirFromIsoDelta(dc, dr);
     const face = faceDir!=null ? faceDir : ((fromEnt.dir|0)&7);
-    const n = Math.max(1, Math.min(5, (cfg && cfg.count)|0 || 1));
-    const release = Math.max(0, (cfg && cfg.releaseMs)|0 || 0);
+    if(fromEnt) fromEnt.dir = face;
+    const n = Math.max(1, Math.min(5, (cfg && (cfg.count!=null?cfg.count:cfg.projCount))|0 || 1));
+    const release = Math.max(0, (cfg && (cfg.releaseMs!=null?cfg.releaseMs:cfg.projReleaseMs))|0 || 0);
+    const size = Math.max(12, Math.min(96, Number(cfg && (cfg.size!=null?cfg.size:cfg.projSize)) || 36));
     let first = true;
     for(let i=0;i<n;i++){
       const isLead = first;
@@ -1561,6 +1582,7 @@
         t0: performance.now() + release + i*55,
         dur: travelMs,
         dir: face,
+        size,
         alive: true,
         onArrive: isLead && typeof onArrive==="function" ? onArrive : null,
       });
@@ -1580,8 +1602,8 @@
       const s = toScreen(c, r);
       const fi = arrowDirToFrame ? (arrowDirToFrame[p.dir&7]|0) : (p.dir&7);
       const im = arrowImgs[fi];
+      const sz = p.size || 36;
       if(im){
-        const sz = 36;
         ctx.drawImage(im, s.x - sz/2, s.y - sz/2 - 10, sz, sz);
       } else {
         ctx.fillStyle = "#6a6a68";
@@ -3019,18 +3041,8 @@
     G.armed=null; G.armedSlot=null;
     renderSpells(); hud();
 
-    loadArrowProjectileCfg();
-    const acfg = currentArrowCfg();
-    const useArrow = !!(acfg && acfg.enabled);
-
-    let chain = editorCastSteps(sp);
-    if(useArrow && acfg.anim){
-      if(chain.length){
-        chain = chain.map(s=> Object.assign({}, s, { anim: acfg.anim }));
-      } else {
-        chain = [normalizeCastStep({ anim: acfg.anim, fps:14, hitTarget:true })];
-      }
-    }
+    loadArrowProjectileCfg(); /* dir map flèche */
+    const chain = editorCastSteps(sp);
     const hits = Math.max(1, chain.filter(s=>s && s.hitTarget).length || spellHitCount(sp));
     let dmgEach = roll(sp.dmg || [6,10]) + (evo.dmg|0);
     if(G.player.invis>0 && evo.invisBurst) dmgEach += evo.invisBurst|0;
@@ -3067,10 +3079,17 @@
       hud();
     };
 
-    const applyOneHit = (hitIndex)=>{
+    const applyOneHit = (hitIndex, step)=>{
+      faceToward(G.player, G.enemy.c, G.enemy.r);
+      const useArrow = !!(step && step.projectile === "arrow");
       if(useArrow){
         pendingArrows++;
-        spawnStraightArrow(G.player, G.enemy, acfg, ()=>{
+        spawnStraightArrow(G.player, G.enemy, {
+          speed: step.projSpeed,
+          size: step.projSize,
+          count: step.projCount,
+          releaseMs: 0, /* hitDelay de la chaîne = déjà le départ */
+        }, ()=>{
           applyDamageHit(hitIndex);
           pendingArrows = Math.max(0, pendingArrows - 1);
           tryAfterCast();

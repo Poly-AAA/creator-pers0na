@@ -697,8 +697,15 @@
     const L = look || currentLook();
     const weapon = L.weapon && L.weapon !== "None" ? L.weapon : "None";
     const hasWeapon = weapon !== "None";
+    const arch = (WEAPON_ARCHETYPE[weapon] || "bare");
     const customs = readCustomSpells().filter(function (s) {
-      return s && s.id && s.id !== "punch";
+      if (!s || !s.id || s.id === "punch") return false;
+      const need = s.requireArchetype || s.requireWeapon || null;
+      if (!need || need === "none" || need === "any") return true;
+      if (need === "bow") return arch === "bow";
+      if (need === arch) return true;
+      if (typeof need === "string" && need.indexOf("Ranged") === 0) return weapon === need;
+      return true;
     });
     const slots = [
       {

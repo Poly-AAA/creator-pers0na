@@ -120,11 +120,10 @@
   <!-- Navigation sorts -->
   <div class="spell-nav" id="spellNav"></div>
 
-  <!-- Onglets : Sort / Monture / Arc -->
+  <!-- Onglets : Sort / Monture -->
   <div class="editor-tabs" id="editorTabs">
     <button type="button" class="on" data-tab="spell" id="tabSpell">Sort</button>
     <button type="button" data-tab="mount" id="tabMount">Dégâts monture</button>
-    <button type="button" data-tab="arrow" id="tabArrow">Arc / flèche</button>
   </div>
 
   <!-- Panneau éditeur -->
@@ -658,6 +657,64 @@ function ensureRoulade(){
   }
   fillMissingEvoKeys(roll, preset.evoConfig);
 }
+
+/** Seed / upgrade « Tir arc tendu » — flèche sur le step, réservé aux arcs. */
+const SAVED_TIR_ARC = {
+  id: "tir_arc_tendu",
+  name: "Tir arc tendu",
+  cost: 2,
+  range: 5,
+  dmg: [8, 12],
+  anim: "Attack3",
+  type: "damage",
+  aoe: 0,
+  animSeq: [],
+  requireArchetype: "bow",
+  desc: "Tir à l’arc tendu moyenne et courte portée",
+  steps: [{
+    anim: "Attack3", delay: 0, move: "Idle", fps: 14,
+    slash: "None", effect: "None", hitTarget: true,
+    hitAnim: "TakeDamage", hitAnimFps: 24, hitDelay: 180,
+    fxHold: false, hideMount: false, clearMount: false, forceGround: false,
+    posDc: 0, posDr: 0, frameStart: 0, frameEnd: 14,
+    hitFrameStart: 0, hitFrameEnd: 14,
+    projectile: "arrow", projSpeed: 8, projSize: 36, projCount: 1,
+  }],
+  evos: [],
+  evoConfig: {},
+};
+function ensureTirArcTendu(){
+  const preset = JSON.parse(JSON.stringify(SAVED_TIR_ARC));
+  (customSpells||[]).forEach(s=>{
+    if(!s || !s.id) return;
+    if(s.id === "tir_arc_tendu") return;
+    if(/^custom_/.test(s.id) && /tir\s*arc|arc\s*tendu/i.test(s.name||"")){
+      s.id = "tir_arc_tendu";
+    }
+  });
+  let sp = (customSpells||[]).find(s=>s && s.id==="tir_arc_tendu");
+  if(!sp){
+    customSpells = [...(customSpells||[]), preset];
+    return;
+  }
+  sp.requireArchetype = "bow";
+  if(!sp.desc) sp.desc = preset.desc;
+  if(!Array.isArray(sp.steps) || !sp.steps.length){
+    sp.steps = JSON.parse(JSON.stringify(preset.steps));
+  } else {
+    sp.steps.forEach(st=>{
+      if(!st) return;
+      if(!st.projectile || st.projectile === "none"){
+        st.projectile = "arrow";
+        if(st.projSpeed == null) st.projSpeed = 8;
+        if(st.projSize == null) st.projSize = 36;
+        if(st.projCount == null) st.projCount = 1;
+        if(st.hitDelay == null) st.hitDelay = 180;
+      }
+    });
+  }
+}
+
 function loadCustom(){
   try{ const r=localStorage.getItem(KEY_SPELLS); if(r) customSpells=JSON.parse(r)||[]; }catch(_e){}
   try{
@@ -670,6 +727,7 @@ function loadCustom(){
   ensurePunchAnims();
   ensureCoupDePied();
   ensureRoulade();
+  ensureTirArcTendu();
   ensureSpellEffects();
   /* Ne jamais muter / resauver automatiquement les choix joueur ici. */
 }
@@ -693,6 +751,7 @@ function importSpellsPack(b64){
     ensurePunchAnims();
     ensureCoupDePied();
     ensureRoulade();
+    ensureTirArcTendu();
     ensureSpellEffects();
     saveCustom();
     return true;
@@ -717,6 +776,7 @@ function importSpellsJson(raw){
     ensurePunchAnims();
     ensureCoupDePied();
     ensureRoulade();
+    ensureTirArcTendu();
     ensureSpellEffects();
     saveCustom();
     return true;
@@ -738,6 +798,7 @@ const PRESET_SPELLS = [
   JSON.parse(JSON.stringify(SAVED_COUP_BRUT)),
   JSON.parse(JSON.stringify(SAVED_COUP_DE_PIED)),
   JSON.parse(JSON.stringify(SAVED_ROULADE)),
+  JSON.parse(JSON.stringify(SAVED_TIR_ARC)),
 ];
 const PRESET_COUP_BRUT = PRESET_SPELLS; /* alias */
 function restorePresetCoupBrut(){
@@ -1170,6 +1231,7 @@ function normalizeStep(s){
     fxHold:false, hideMount:false, clearMount:false, forceGround:false,
     posDc:0, posDr:0,
     frameStart:0, frameEnd:FRAME_MAX, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
+    projectile:"none", projSpeed:8, projSize:36, projCount:1,
   });
   const o = Object.assign({
     anim:"Attack1",delay:0,move:"Idle",fps:14,slash:"None",effect:"None",
@@ -1177,6 +1239,7 @@ function normalizeStep(s){
     fxHold:false, hideMount:false, clearMount:false, forceGround:false,
     posDc:0, posDr:0,
     frameStart:0, frameEnd:FRAME_MAX, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
+    projectile:"none", projSpeed:8, projSize:36, projCount:1,
   }, s);
   if(o.hitDelay === "end" || o.hitDelay === -1) o.hitDelay = null;
   else if(o.hitDelay === "" || o.hitDelay === false) o.hitDelay = null;
@@ -1187,6 +1250,14 @@ function normalizeStep(s){
   o.forceGround = !!o.forceGround;
   o.posDc = clampPosCell(o.posDc);
   o.posDr = clampPosCell(o.posDr);
+  if(o.projectile === true || o.projectile === "arrow") o.projectile = "arrow";
+  else o.projectile = "none";
+  let ps = Number(o.projSpeed); if(!isFinite(ps) || ps < 1) ps = 8;
+  o.projSpeed = Math.max(1, Math.min(24, Math.round(ps)));
+  let psz = Number(o.projSize); if(!isFinite(psz) || psz < 12) psz = 36;
+  o.projSize = Math.max(12, Math.min(96, Math.round(psz)));
+  let pc = Number(o.projCount); if(!isFinite(pc)) pc = 1;
+  o.projCount = Math.max(1, Math.min(5, pc|0));
   return normalizeFrameRange(o);
 }
 
@@ -1233,46 +1304,16 @@ function saveMountHit(){
 }
 loadMountHit();
 
-/* —— Arc / flèche (trajectoire tendue) —— */
-const ARROW_RANGED = ["Ranged1","Ranged2","Ranged3","Ranged4","Ranged5","Ranged6","Ranged7"];
-const ARROW_BOWS = new Set(["Ranged1","Ranged4"]);
-const ARROW_ANIMS = ["Attack1","Attack2","Attack3","Attack4","Attack5","Attack6","AttackRun","AttackRun2","Special1","Kick"];
-function defaultArrowWeaponCfg(w){
-  return {
-    enabled: ARROW_BOWS.has(w),
-    speed: 8,
-    releaseMs: 180,
-    count: 1,
-    trajectory: "straight",
-    anim: null,
-  };
-}
-let arrowProj = { ver:"arrow-proj-2026-08-26", active:"Ranged1", weapons:{} };
-ARROW_RANGED.forEach(w=>{ arrowProj.weapons[w] = defaultArrowWeaponCfg(w); });
+/* —— Flèches 8 dir (preview steps projectile) —— */
 let arrowFrameToDir = [4,3,2,1,0,7,6,5];
 let arrowDirToFrame = null;
 const arrowImgs = new Array(8).fill(null);
 let previewProjectiles = [];
-
 function rebuildArrowDirMap(){
   arrowDirToFrame = new Array(8).fill(0);
   for(let f=0;f<8;f++) arrowDirToFrame[arrowFrameToDir[f]&7] = f;
 }
-function loadArrowProjectile(){
-  ARROW_RANGED.forEach(w=>{ arrowProj.weapons[w] = defaultArrowWeaponCfg(w); });
-  try{
-    const raw = localStorage.getItem(KEY_ARROW_PROJ) || sessionStorage.getItem(KEY_ARROW_PROJ);
-    if(raw){
-      const o = JSON.parse(raw);
-      if(o && o.weapons){
-        if(o.active && ARROW_RANGED.includes(o.active)) arrowProj.active = o.active;
-        ARROW_RANGED.forEach(w=>{
-          arrowProj.weapons[w] = Object.assign(defaultArrowWeaponCfg(w), o.weapons[w]||{});
-          arrowProj.weapons[w].trajectory = "straight";
-        });
-      }
-    }
-  }catch(_e){}
+function loadArrowDirMap(){
   try{
     const raw = localStorage.getItem(KEY_ARROW_DIR);
     if(raw){
@@ -1283,11 +1324,6 @@ function loadArrowProjectile(){
   }catch(_e){}
   rebuildArrowDirMap();
 }
-function saveArrowProjectile(){
-  try{ localStorage.setItem(KEY_ARROW_PROJ, JSON.stringify(arrowProj)); }catch(_e){}
-  try{ sessionStorage.setItem(KEY_ARROW_PROJ, JSON.stringify(arrowProj)); }catch(_e){}
-}
-function arrowCfg(){ return arrowProj.weapons[arrowProj.active] || defaultArrowWeaponCfg(arrowProj.active); }
 function loadArrowImgs(){
   const bases = [
     BASE_LOCAL+"projectiles/arrow-8dir/",
@@ -1316,34 +1352,35 @@ function dirFromIsoDelta(dc, dr){
   if(i < 0) i += 8;
   return i & 7;
 }
-function spawnPreviewArrowVolley(){
-  const cfg = arrowCfg();
+function facePlayerToEnemy(){
+  const d = dirFromIsoDelta((enemy.c|0)-(player.c|0), (enemy.r|0)-(player.r|0));
+  if(d!=null) player.dir = d;
+}
+function spawnStepArrow(step, onArrive){
+  facePlayerToEnemy();
   const fromC = player.c|0, fromR = player.r|0;
   const toC = enemy.c|0, toR = enemy.r|0;
   const dc = toC - fromC, dr = toR - fromR;
   const cheb = Math.max(Math.abs(dc), Math.abs(dr), 0.5);
-  const speed = Math.max(1, Number(cfg.speed)||8);
+  const speed = Math.max(1, Number(step.projSpeed)||8);
   const travelMs = Math.max(60, Math.round((cheb / speed) * 1000));
   const face = dirFromIsoDelta(dc, dr);
   const dir = face!=null ? face : ((player.dir|0)&7);
   player.dir = dir;
-  const n = Math.max(1, Math.min(5, cfg.count|0 || 1));
-  const release = Math.max(0, cfg.releaseMs|0 || 0);
-  const anim = cfg.anim || "Attack1";
-  player.anim = anim; player.t0 = performance.now();
-  player.frameStart=0; player.frameEnd=FRAME_MAX; player.freezeFrame=null;
-  previewProjectiles = [];
+  const n = Math.max(1, Math.min(5, step.projCount|0 || 1));
+  const size = Math.max(12, Math.min(96, Number(step.projSize)||36));
+  let first = true;
   for(let i=0;i<n;i++){
+    const lead = first; if(first) first=false;
     previewProjectiles.push({
       fromC, fromR, toC, toR,
-      t0: performance.now() + release + i*55,
+      t0: performance.now() + i*55,
       dur: travelMs,
-      dir,
+      dir, size,
       alive: true,
+      onArrive: lead && typeof onArrive==="function" ? onArrive : null,
     });
   }
-  const st=document.getElementById("pvStatus");
-  if(st) st.textContent = "Tir tendu · "+arrowProj.active+" · "+speed+" c/s · "+travelMs+" ms";
 }
 function updateDrawPreviewProjectiles(){
   if(!previewProjectiles.length) return;
@@ -1358,22 +1395,22 @@ function updateDrawPreviewProjectiles(){
     const s = toScreen(c, r);
     const fi = arrowDirToFrame ? (arrowDirToFrame[p.dir&7]|0) : (p.dir&7);
     const im = arrowImgs[fi];
-    if(im){
-      const sz = 36;
-      ctx.drawImage(im, s.x - sz/2, s.y - sz/2 - 10, sz, sz);
-    } else {
-      ctx.fillStyle = "#6a6a68";
-      ctx.fillRect(s.x - 7, s.y - 2, 14, 3);
+    const sz = p.size || 36;
+    if(im) ctx.drawImage(im, s.x - sz/2, s.y - sz/2 - 10, sz, sz);
+    else { ctx.fillStyle="#6a6a68"; ctx.fillRect(s.x-7,s.y-2,14,3); }
+    if(u >= 1){
+      p.alive=false;
+      if(typeof p.onArrive==="function"){ try{ p.onArrive(); }catch(_e){} p.onArrive=null; }
+      continue;
     }
-    if(u >= 1){ p.alive=false; continue; }
     next.push(p);
   }
   previewProjectiles = next;
 }
-loadArrowProjectile();
+loadArrowDirMap();
 loadArrowImgs();
 
-let editorTab = "spell"; /* spell | mount | arrow */
+let editorTab = "spell"; /* spell | mount */
 
 /* FX catalogue : on lit les dossiers depuis catalog si dispo */
 function fxSlashList(){ return FX_SLASH_LIST; }
@@ -1467,6 +1504,7 @@ function previewAction(steps, opts){
     /* décalage cases (depuis la case de départ de la preview) */
     player.c = basePos.c; player.r = basePos.r;
     applyPreviewPosShift(player, step, basePos);
+    facePlayerToEnemy();
     /* anim joueur */
     let anim = step.anim || "Idle";
     if(previewMountOn && !step.forceGround && !step.hideMount && !step.clearMount && !mountGone){
@@ -1503,12 +1541,20 @@ function previewAction(steps, opts){
         if(hd == null || hd === "" || hd === "end" || hd === -1) hitMs = dur;
         else hitMs = Math.min(dur, Math.max(0, Number(hd)|0));
       }
-      setTimeout(()=>{
+      const applyEnemyHit = ()=>{
         if(ha){
           enemy.anim=ha; enemy.t0=performance.now();
           let hfps=Number(step.hitAnimFps); if(!isFinite(hfps)||hfps<1) hfps=14;
           enemy.stepFps=hfps;
           applyPreviewClip(enemy, step, true);
+        }
+      };
+      setTimeout(()=>{
+        facePlayerToEnemy();
+        if(step.projectile === "arrow"){
+          spawnStepArrow(step, applyEnemyHit);
+        } else {
+          applyEnemyHit();
         }
       }, delay + hitMs);
     }
@@ -1567,10 +1613,6 @@ function renderEditor(){
     renderMountHitEditor(host);
     return;
   }
-  if(editorTab === "arrow"){
-    renderArrowProjectileEditor(host);
-    return;
-  }
 
   if(!activeId){ host.innerHTML='<p style="color:var(--ink2);text-align:center;padding:24px">Sélectionne un sort</p>'; return; }
   const sp=editableSpell(activeId);
@@ -1591,8 +1633,12 @@ function renderEditor(){
     fieldText("Dégâts max",sp.dmg?String(sp.dmg[1]):"0","dmgMax"),
     fieldNum("AoE rayon",sp.aoe||0,"aoe",0,3),
     fieldSelect("Effet", sp.effect||"none", "effect", ["none","push","roulade","drainPA"]),
-    fieldNum("Push (cases)", sp.push!=null?sp.push:1, "push", 0, 4)
+    fieldNum("Push (cases)", sp.push!=null?sp.push:1, "push", 0, 4),
+    fieldSelect("Arme requise", sp.requireArchetype||"none", "requireArchetype", ["none","bow"])
   );
+  const reqHint=document.createElement("p"); reqHint.className="hint";
+  reqHint.textContent="bow = visible en combat seulement si un arc est équipé (Ranged1 / Ranged4).";
+  idCard.appendChild(reqHint);
   host.appendChild(idCard);
 
   /* ── Chaîne de steps ── */
@@ -1834,9 +1880,26 @@ function fillAnimStepControls(box, st, opts){
   if(opts.showHit !== false){
     box.appendChild(mkCheckRow("Frappe la cible", !!st.hitTarget, v=>{ st.hitTarget=v; onSave(); onRerender(); }));
     if(st.hitTarget){
+      box.appendChild(mkSelectRow("Projectile", ["none","arrow"], st.projectile||"none", v=>{
+        st.projectile=v; onSave(); onRerender();
+      }));
+      if(st.projectile === "arrow"){
+        const pTip=document.createElement("p"); pTip.className="hint";
+        pTip.style.cssText="margin:4px 0;font-size:10px;line-height:1.35";
+        pTip.textContent="Flèche tendue : le tireur se tourne vers la cible. Direction sprite = calibrage 8 dir. TakeDamage = à l’arrivée. Le délai ci-dessous = départ de la flèche.";
+        box.appendChild(pTip);
+        box.appendChild(mkNumRow("Vitesse flèche (c/s)", st.projSpeed!=null?st.projSpeed:8, 2, 24, 1, v=>{ st.projSpeed=v; onSave(); }));
+        box.appendChild(mkNumRow("Taille flèche (px)", st.projSize!=null?st.projSize:36, 12, 96, 2, v=>{ st.projSize=v; onSave(); }));
+        box.appendChild(mkNumRow("Nb flèches", st.projCount!=null?st.projCount:1, 1, 5, 1, v=>{ st.projCount=v; onSave(); }));
+        const cal=document.createElement("a");
+        cal.href="arrow-dir-calibrate.html"; cal.setAttribute("data-fcc","arrowdir");
+        cal.textContent="Calibrer vues flèche 8 dir →";
+        cal.style.cssText="display:block;margin:4px 0 8px;font-size:11px;font-weight:700;color:var(--acc)";
+        box.appendChild(cal);
+      }
       box.appendChild(mkSelectRow("Réaction ennemi", HIT_REACT_ANIMS, st.hitAnim||"TakeDamage", v=>{ st.hitAnim=v; onSave(); }));
       box.appendChild(mkNumRow("FPS réaction", st.hitAnimFps!=null?st.hitAnimFps:14, 1, FPS_MAX, 1, v=>{ st.hitAnimFps=v; onSave(); }));
-      box.appendChild(mkHitDelayRow(st.hitDelay, v=>{ st.hitDelay=v; onSave(); }));
+      box.appendChild(mkHitDelayRow(st.hitDelay, v=>{ st.hitDelay=v; onSave(); }, st.projectile==="arrow"));
       box.appendChild(mkFrameTrimRow("Portion réaction (ennemi)", st.hitFrameStart, st.hitFrameEnd,
         v=>{ st.hitFrameStart=v; if(st.hitFrameEnd < v) st.hitFrameEnd=v; onSave(); onRerender(); },
         v=>{ st.hitFrameEnd=v; if(st.hitFrameStart > v) st.hitFrameStart=v; onSave(); onRerender(); },
@@ -1899,24 +1962,27 @@ function mkCheckRow(label, val, onChange){
   d.appendChild(cb); d.appendChild(document.createTextNode(label)); return d;
 }
 /** Délai impact : null = fin d’anim ; nombre (0+) = ms après le début de ton attaque. */
-function mkHitDelayRow(val, onChange){
+function mkHitDelayRow(val, onChange, isArrow){
   const wrap=document.createElement("div");
   wrap.style.cssText="margin-bottom:6px;padding:6px 8px;border:1px dashed var(--line2);border-radius:8px;background:var(--bg)";
   const tip=document.createElement("div");
   tip.style.cssText="font-size:10px;color:var(--ink2);margin-bottom:4px;line-height:1.35";
-  tip.textContent="Quand TakeDamage commence : ms après le début de TON attaque. 0 = tout de suite. Décoche « fin d’anim » pour régler avant la fin.";
+  tip.textContent = isArrow
+    ? "Départ de la flèche : ms après le début de TON tir. TakeDamage se joue à l’arrivée."
+    : "Quand TakeDamage commence : ms après le début de TON attaque. 0 = tout de suite. Décoche « fin d’anim » pour régler avant la fin.";
   wrap.appendChild(tip);
   const atEnd = val == null || val === "" || val === false || val === "end" || val === -1;
   const row=document.createElement("label");
   row.style.cssText="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink2);margin-bottom:4px;cursor:pointer";
   const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=atEnd;
-  row.appendChild(cb); row.appendChild(document.createTextNode("TakeDamage à la fin de mon anim"));
+  row.appendChild(cb);
+  row.appendChild(document.createTextNode(isArrow ? "Flèche part à la fin de mon anim" : "TakeDamage à la fin de mon anim"));
   wrap.appendChild(row);
   const numHost=document.createElement("div");
   const paintNum=()=>{
     numHost.innerHTML="";
     const cur = (val != null && val !== "" && val !== "end" && val !== false) ? (Number(val)|0) : 0;
-    numHost.appendChild(mkNumRow("Délai impact (ms)", cur, 0, 2000, 10, v=>{
+    numHost.appendChild(mkNumRow(isArrow ? "Départ flèche (ms)" : "Délai impact (ms)", cur, 0, 2000, 10, v=>{
       onChange(v); val=v;
     }));
   };
@@ -2233,100 +2299,6 @@ function renderMountHitEditor(host){
   host.appendChild(tip);
 }
 
-function applyArrowWeaponLook(folderName){
-  if(!lookState.look) lookState.look = {};
-  lookState.look.weapon = folderName;
-  /* warm weapon sheets */
-  ["Idle","Attack1","Attack2","Special1"].forEach(a=> loadImg(folderName, a));
-}
-
-function renderArrowProjectileEditor(host){
-  const cardEl = card("Arc & flèche · trajectoire tendue");
-  const hint = document.createElement("p"); hint.className="hint";
-  hint.textContent="Choisis une arme Ranged, active la flèche, règle la vitesse (cases/s). ▶ Tirer utilise le preview en haut. Courbe = plus tard.";
-  cardEl.appendChild(hint);
-
-  const weapons = document.createElement("div");
-  weapons.style.cssText="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0";
-  ARROW_RANGED.forEach(w=>{
-    const b=document.createElement("button"); b.type="button";
-    b.textContent = w + (ARROW_BOWS.has(w) ? " · arc" : "");
-    b.style.cssText="min-height:40px;padding:6px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--soft);font-size:12px;font-weight:700;cursor:pointer";
-    if(ARROW_BOWS.has(w)) b.style.boxShadow="inset 0 0 0 1.5px #5b7c99";
-    if(w===arrowProj.active){ b.style.background="var(--sel,#3d3d3a)"; b.style.color="#fff"; b.style.borderColor="var(--sel,#3d3d3a)"; }
-    b.onclick=()=>{
-      arrowProj.active=w;
-      applyArrowWeaponLook(w);
-      saveArrowProjectile();
-      renderEditor();
-    };
-    weapons.appendChild(b);
-  });
-  cardEl.appendChild(weapons);
-
-  const meta=document.createElement("p"); meta.className="hint";
-  const c=arrowCfg();
-  meta.textContent = arrowProj.active+(ARROW_BOWS.has(arrowProj.active)?" (archétype arc)":"")+" · flèche "+(c.enabled?"ON":"OFF")+" · "+c.speed+" c/s · tendu";
-  cardEl.appendChild(meta);
-
-  cardEl.appendChild(mkCheckRow("Activer flèche pour cette arme", !!c.enabled, v=>{
-    arrowCfg().enabled=v; saveArrowProjectile();
-  }));
-  cardEl.appendChild(mkNumRow("Vitesse (c/s)", c.speed, 2, 20, 1, v=>{
-    arrowCfg().speed=v; saveArrowProjectile();
-  }));
-  cardEl.appendChild(mkNumRow("Délai départ (ms)", c.releaseMs, 0, 800, 20, v=>{
-    arrowCfg().releaseMs=v; saveArrowProjectile();
-  }));
-  cardEl.appendChild(mkNumRow("Nb flèches", c.count, 1, 5, 1, v=>{
-    arrowCfg().count=v; saveArrowProjectile();
-  }));
-
-  const animRow=document.createElement("div");
-  animRow.style.cssText="display:flex;align-items:center;gap:6px;margin:8px 0";
-  const animLb=document.createElement("span");
-  animLb.style.cssText="font-size:11px;color:var(--ink2);min-width:90px"; animLb.textContent="Anim cast";
-  const sel=document.createElement("select");
-  sel.style.cssText="flex:1;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--soft);font-weight:700";
-  const op0=document.createElement("option"); op0.value=""; op0.textContent="(anim arme par défaut)";
-  sel.appendChild(op0);
-  ARROW_ANIMS.forEach(a=>{
-    const op=document.createElement("option"); op.value=a; op.textContent=a;
-    if(c.anim===a) op.selected=true;
-    sel.appendChild(op);
-  });
-  sel.onchange=()=>{ arrowCfg().anim = sel.value || null; saveArrowProjectile(); };
-  animRow.appendChild(animLb); animRow.appendChild(sel);
-  cardEl.appendChild(animRow);
-
-  const fire=document.createElement("button"); fire.type="button";
-  fire.textContent="▶ Tirer (tendu)";
-  fire.style.cssText="margin:8px 0;padding:12px;border-radius:10px;background:var(--ok);color:#fff;border:none;font-weight:800;cursor:pointer;width:100%;font-size:14px";
-  fire.onclick=()=>{
-    applyArrowWeaponLook(arrowProj.active);
-    spawnPreviewArrowVolley();
-  };
-  cardEl.appendChild(fire);
-
-  const reset=document.createElement("button"); reset.type="button";
-  reset.textContent="↩ Défaut pour "+arrowProj.active;
-  reset.style.cssText="padding:8px;border-radius:9px;border:1px solid var(--line);background:var(--soft);font-weight:700;cursor:pointer;width:100%;font-size:11px";
-  reset.onclick=()=>{
-    arrowProj.weapons[arrowProj.active]=defaultArrowWeaponCfg(arrowProj.active);
-    saveArrowProjectile(); renderEditor();
-  };
-  cardEl.appendChild(reset);
-
-  host.appendChild(cardEl);
-
-  const tip=document.createElement("p");
-  tip.style.cssText="font-size:11px;color:var(--ink2);text-align:center;padding:8px";
-  tip.textContent="Sauvé dans neuro.arrowProjectile — le combat lit cette config (Ranged1/4 ON par défaut).";
-  host.appendChild(tip);
-
-  applyArrowWeaponLook(arrowProj.active);
-}
-
 function wireEditorTabs(){
   document.querySelectorAll("#editorTabs button").forEach(b=>{
     b.onclick=()=>{
@@ -2342,15 +2314,6 @@ function wireEditorTabs(){
         loadImg(mf, "RideIdle"); loadImg(mf, "RideRun");
         const st=document.getElementById("pvStatus");
         if(st) st.textContent="Preview · à cheval — règle tes steps puis ▶ Voir la chute";
-      } else if(editorTab === "arrow"){
-        previewMountOn = false;
-        player.showMount = false;
-        player.hideMount = false;
-        applyArrowWeaponLook(arrowProj.active);
-        player.anim = "Idle";
-        player.t0 = performance.now();
-        const st=document.getElementById("pvStatus");
-        if(st) st.textContent="Preview · arc — règle vitesse puis ▶ Tirer";
       } else {
         previewMountOn = false;
         player.showMount = false;
@@ -2478,12 +2441,11 @@ function boot(){
   document.getElementById("btnSave").onclick=()=>{
     saveCustom();
     saveMountHit();
-    saveArrowProjectile();
     showSavedStatus();
     setTimeout(()=>{ document.getElementById("pvStatus").textContent="Sauvé ✓"; showSavedStatus(); }, 800);
     setTimeout(()=>renderNav(),100);
   };
-  document.getElementById("btnCombatGo").onclick=()=>{ saveMountHit(); saveArrowProjectile(); goCombat(); };
+  document.getElementById("btnCombatGo").onclick=()=>{ saveMountHit(); goCombat(); };
   document.getElementById("btnCopySave").onclick=()=> copySpellsBackup();
   document.getElementById("btnPasteSave").onclick=async()=>{
     if(await pasteSpellsBackup()){
