@@ -158,6 +158,7 @@
         <a class="link-cc" data-fcc="spell" href="spell-editor.html">Sorts</a>
         <a class="link-cc" data-fcc="anims" href="fantasy-weapon-anim.html">Anims</a>
         <a class="link-cc" data-fcc="dirs" href="fantasy-dir-calibrate.html">Dirs</a>
+        <a class="link-cc" data-fcc="arrow" href="arrow-projectile-editor.html">Flèches</a>
         <a class="link-cc" data-fcc="creator" href="character-creator-fantasy.html">Créateur</a>
       </div>
     </div>
@@ -1411,6 +1412,7 @@
     castFx: null, /* { slash, effect, until, hold } */
     castPlaying: false, /* anim de sort en cours — UI reste libre */
     castQueue: [], /* sorts lancés pendant une anim */
+    projectiles: [], /* flèches tendues en vol */
     fightN: 1,
     awaitingNext: false,
   };
@@ -1453,6 +1455,151 @@
     }catch(_e){}
   }
   loadMountHitCfg();
+
+  /* —— Projectiles flèche (trajectoire tendue) —— */
+  const KEY_ARROW_PROJ = "neuro.arrowProjectile";
+  const KEY_ARROW_DIR = "neuro.arrowDirMap";
+  const ARROW_RANGED = ["Ranged1","Ranged2","Ranged3","Ranged4","Ranged5","Ranged6","Ranged7"];
+  const ARROW_BOWS = new Set(["Ranged1","Ranged4"]);
+  let arrowProjState = { weapons: {} };
+  let arrowFrameToDir = [4,3,2,1,0,7,6,5];
+  let arrowDirToFrame = null;
+  const arrowImgs = new Array(8).fill(null);
+
+  function defaultArrowCfg(w){
+    return {
+      enabled: ARROW_BOWS.has(w),
+      speed: 8,
+      releaseMs: 180,
+      count: 1,
+      trajectory: "straight",
+      anim: null,
+    };
+  }
+  function rebuildArrowDirToFrame(){
+    arrowDirToFrame = new Array(8).fill(0);
+    for(let f=0;f<8;f++) arrowDirToFrame[arrowFrameToDir[f]&7] = f;
+  }
+  function loadArrowProjectileCfg(){
+    ARROW_RANGED.forEach(w=>{ arrowProjState.weapons[w] = defaultArrowCfg(w); });
+    try{
+      const raw = localStorage.getItem(KEY_ARROW_PROJ) || sessionStorage.getItem(KEY_ARROW_PROJ);
+      if(raw){
+        const o = JSON.parse(raw);
+        if(o && o.weapons){
+          ARROW_RANGED.forEach(w=>{
+            arrowProjState.weapons[w] = Object.assign(defaultArrowCfg(w), o.weapons[w]||{});
+            arrowProjState.weapons[w].trajectory = "straight";
+          });
+        }
+      }
+    }catch(_e){}
+    try{
+      const raw = localStorage.getItem(KEY_ARROW_DIR);
+      if(raw){
+        const o = JSON.parse(raw);
+        if(o && Array.isArray(o.frameToDir) && o.frameToDir.length===8){
+          arrowFrameToDir = o.frameToDir.map(n=>n&7);
+        } else if(Array.isArray(o) && o.length===8){
+          arrowFrameToDir = o.map(n=>n&7);
+        }
+      }
+    }catch(_e){}
+    rebuildArrowDirToFrame();
+  }
+  loadArrowProjectileCfg();
+
+  function arrowCfgForWeapon(folder){
+    if(!folder || !/^Ranged/i.test(folder)) return null;
+    return arrowProjState.weapons[folder] || defaultArrowCfg(folder);
+  }
+  function currentArrowCfg(){
+    return arrowCfgForWeapon(weaponFolder());
+  }
+  function loadArrowImgs(){
+    const bases = [
+      BASE_LOCAL+"projectiles/arrow-8dir/",
+      "projectiles/arrow-8dir/",
+      "docs/previews/projectiles/arrow-8dir/",
+      BASE_CDN+"projectiles/arrow-8dir/",
+    ];
+    for(let i=0;i<8;i++){
+      (function(idx){
+        let bi = 0;
+        const tryOne = ()=>{
+          if(bi >= bases.length) return;
+          const im = new Image();
+          im.onload = ()=>{ arrowImgs[idx] = im; };
+          im.onerror = ()=>{ bi++; tryOne(); };
+          im.src = bases[bi]+idx+".png";
+        };
+        tryOne();
+      })(i);
+    }
+  }
+  loadArrowImgs();
+
+  function spawnStraightArrow(fromEnt, toEnt, cfg, onArrive){
+    if(!G.projectiles) G.projectiles = [];
+    const fromC = fromEnt.c, fromR = fromEnt.r;
+    const toC = toEnt.c, toR = toEnt.r;
+    const dc = toC - fromC, dr = toR - fromR;
+    const cheb = Math.max(Math.abs(dc), Math.abs(dr), 0.5);
+    const speed = Math.max(1, Number(cfg && cfg.speed) || 8);
+    const travelMs = Math.max(60, Math.round((cheb / speed) * 1000));
+    const faceDir = dirFromIsoDelta(dc, dr);
+    const face = faceDir!=null ? faceDir : ((fromEnt.dir|0)&7);
+    const n = Math.max(1, Math.min(5, (cfg && cfg.count)|0 || 1));
+    const release = Math.max(0, (cfg && cfg.releaseMs)|0 || 0);
+    let first = true;
+    for(let i=0;i<n;i++){
+      const isLead = first;
+      if(first) first = false;
+      G.projectiles.push({
+        kind: "arrow",
+        fromC, fromR, toC, toR,
+        t0: performance.now() + release + i*55,
+        dur: travelMs,
+        dir: face,
+        alive: true,
+        onArrive: isLead && typeof onArrive==="function" ? onArrive : null,
+      });
+    }
+  }
+
+  function updateAndDrawProjectiles(){
+    if(!G.projectiles || !G.projectiles.length) return;
+    const now = performance.now();
+    const next = [];
+    for(const p of G.projectiles){
+      if(!p.alive) continue;
+      if(now < p.t0){ next.push(p); continue; }
+      const u = Math.max(0, Math.min(1, (now - p.t0) / Math.max(1, p.dur)));
+      const c = p.fromC + (p.toC - p.fromC)*u;
+      const r = p.fromR + (p.toR - p.fromR)*u;
+      const s = toScreen(c, r);
+      const fi = arrowDirToFrame ? (arrowDirToFrame[p.dir&7]|0) : (p.dir&7);
+      const im = arrowImgs[fi];
+      if(im){
+        const sz = 36;
+        ctx.drawImage(im, s.x - sz/2, s.y - sz/2 - 10, sz, sz);
+      } else {
+        ctx.fillStyle = "#6a6a68";
+        ctx.fillRect(s.x - 7, s.y - 2, 14, 3);
+      }
+      if(u >= 1){
+        p.alive = false;
+        if(typeof p.onArrive === "function"){
+          try{ p.onArrive(); }catch(_e){}
+          p.onArrive = null;
+        }
+        continue;
+      }
+      next.push(p);
+    }
+    G.projectiles = next;
+  }
+
   function mountFolder(){
     if(G.player && G.player._mountCleared) return null;
     try{
@@ -2872,7 +3019,18 @@
     G.armed=null; G.armedSlot=null;
     renderSpells(); hud();
 
-    const chain = editorCastSteps(sp);
+    loadArrowProjectileCfg();
+    const acfg = currentArrowCfg();
+    const useArrow = !!(acfg && acfg.enabled);
+
+    let chain = editorCastSteps(sp);
+    if(useArrow && acfg.anim){
+      if(chain.length){
+        chain = chain.map(s=> Object.assign({}, s, { anim: acfg.anim }));
+      } else {
+        chain = [normalizeCastStep({ anim: acfg.anim, fps:14, hitTarget:true })];
+      }
+    }
     const hits = Math.max(1, chain.filter(s=>s && s.hitTarget).length || spellHitCount(sp));
     let dmgEach = roll(sp.dmg || [6,10]) + (evo.dmg|0);
     if(G.player.invis>0 && evo.invisBurst) dmgEach += evo.invisBurst|0;
@@ -2884,7 +3042,10 @@
     }
     pushCells += (evo.push|0);
 
-    const applyOneHit = (hitIndex)=>{
+    let pendingArrows = 0;
+    let castAnimDone = false;
+
+    const applyDamageHit = (hitIndex)=>{
       if(!G.enemy.alive || G.enemy.pv <= 0) return;
       let dmg = dmgEach;
       if(G.enemy.shield>0){ const a=Math.min(G.enemy.shield,dmg); G.enemy.shield-=a; dmg-=a; }
@@ -2906,7 +3067,21 @@
       hud();
     };
 
-    const afterCast = ()=>{
+    const applyOneHit = (hitIndex)=>{
+      if(useArrow){
+        pendingArrows++;
+        spawnStraightArrow(G.player, G.enemy, acfg, ()=>{
+          applyDamageHit(hitIndex);
+          pendingArrows = Math.max(0, pendingArrows - 1);
+          tryAfterCast();
+        });
+        return;
+      }
+      applyDamageHit(hitIndex);
+    };
+
+    const tryAfterCast = ()=>{
+      if(!castAnimDone || pendingArrows > 0) return;
       if(G.player.anim!=="Die") playAnim(G.player,"Idle");
       G.combo = Math.min(100, G.combo + 22);
       if(G.player.invis>0) G.player.invis = 0;
@@ -2924,6 +3099,11 @@
       G.busy = false;
       recomputeMoves(); recomputeTargets(); renderSpells(); hud();
       drainCastQueue();
+    };
+
+    const afterCast = ()=>{
+      castAnimDone = true;
+      tryAfterCast();
     };
 
     playCastAnimChain(sp, afterCast, {
@@ -3659,6 +3839,7 @@
       return (pa.c+pa.r)-(pb.c+pb.r) || pa.c-pb.c;
     });
     for(const o of ents) drawEntity(o.e, o.enemy, o.clone ? {clone:true, alpha:o.e.alpha||0.42} : null);
+    updateAndDrawProjectiles();
 
     ctx.restore();
   }
