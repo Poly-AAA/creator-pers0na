@@ -289,18 +289,24 @@
     slotCats().forEach(c=> mk(c.id, c.label));
   }
 
-  function loadThumb(folder){
-    if(thumbCache.has(folder)) return Promise.resolve(thumbCache.get(folder));
+  const THUMB = 384;
+  const sheetCache = new Map(); /* url -> Image|null */
+  const bodyImgP = { p:null };
+
+  function loadSheet(folder, anim){
+    const key = folder+"/"+anim;
+    if(sheetCache.has(key)) return Promise.resolve(sheetCache.get(key));
     const urls = [
-      BASE_LOCAL+"spritesheets/"+folder+"/Idle.png",
-      BASE_CDN+"spritesheets/"+folder+"/Idle.png",
+      BASE_LOCAL+"spritesheets/"+folder+"/"+anim+".png",
+      BASE_CDN+"spritesheets/"+folder+"/"+anim+".png",
     ];
     return new Promise(res=>{
       let i=0;
       const tryOne=()=>{
-        if(i>=urls.length){ thumbCache.set(folder,null); res(null); return; }
+        if(i>=urls.length){ sheetCache.set(key,null); res(null); return; }
         const im=new Image();
-        im.onload=()=>{ thumbCache.set(folder,im); res(im); };
+        try{ im.crossOrigin="anonymous"; }catch(_e){}
+        im.onload=()=>{ sheetCache.set(key,im); res(im); };
         im.onerror=()=>{ i++; tryOne(); };
         im.src=urls[i++];
       };
@@ -308,65 +314,117 @@
     });
   }
 
-  const THUMB = 384; /* canvas pixels — une colonne pleine largeur */
-  const cropCache = new Map(); /* folder -> {sx,sy,sw,sh} */
+  function bodyPromise(){
+    if(!bodyImgP.p) bodyImgP.p = loadSheet("NakedBody","Idle");
+    return bodyImgP.p;
+  }
 
-  function contentCrop(im, FW, FH){
-    /* Bounding box des pixels opaques (frame Idle col0 row0) → zoom auto */
+  function densestFrame(im, FW, FH){
+    /* Cherche la frame Idle/Attack avec le plus de pixels (armes souvent vides en 0,0) */
     try{
+      const cols = Math.max(1, Math.floor(im.naturalWidth/FW));
+      const rows = Math.max(1, Math.floor(im.naturalHeight/FH));
       const c = document.createElement("canvas");
-      c.width = FW; c.height = FH;
+      c.width = im.naturalWidth; c.height = im.naturalHeight;
       const x = c.getContext("2d", { willReadFrequently:true });
-      x.drawImage(im, 0, 0, FW, FH, 0, 0, FW, FH);
-      const d = x.getImageData(0, 0, FW, FH).data;
-      let minX=FW, minY=FH, maxX=0, maxY=0, found=false;
-      for(let y=0;y<FH;y++){
-        for(let xi=0;xi<FW;xi++){
-          if(d[(y*FW+xi)*4+3] > 24){
-            found=true;
-            if(xi<minX) minX=xi;
-            if(y<minY) minY=y;
-            if(xi>maxX) maxX=xi;
-            if(y>maxY) maxY=y;
+      x.drawImage(im, 0, 0);
+      const data = x.getImageData(0, 0, c.width, c.height).data;
+      let best = { n:0, col:0, row:0, minX:0, minY:0, maxX:FW-1, maxY:FH-1 };
+      const maxScan = Math.min(cols*rows, 40); /* perf */
+      let scanned = 0;
+      for(let row=0; row<rows && scanned<maxScan; row++){
+        for(let col=0; col<cols && scanned<maxScan; col++){
+          scanned++;
+          let n=0, minX=FW, minY=FH, maxX=0, maxY=0;
+          const ox=col*FW, oy=row*FH;
+          for(let y=0;y<FH;y++){
+            for(let xi=0;xi<FW;xi++){
+              const a = data[((oy+y)*c.width+(ox+xi))*4+3];
+              if(a>24){
+                n++;
+                if(xi<minX) minX=xi;
+                if(y<minY) minY=y;
+                if(xi>maxX) maxX=xi;
+                if(y>maxY) maxY=y;
+              }
+            }
           }
+          if(n>best.n) best = { n, col, row, minX, minY, maxX, maxY };
         }
       }
-      if(!found) return { sx:0, sy:0, sw:FW, sh:FH };
-      const pad = 6;
-      minX = Math.max(0, minX-pad);
-      minY = Math.max(0, minY-pad);
-      maxX = Math.min(FW-1, maxX+pad);
-      maxY = Math.min(FH-1, maxY+pad);
-      let sw = maxX-minX+1, sh = maxY-minY+1;
-      /* carré centré sur le contenu */
-      const side = Math.max(sw, sh, 24);
-      let sx = Math.floor(minX + sw/2 - side/2);
-      let sy = Math.floor(minY + sh/2 - side/2);
-      sx = Math.max(0, Math.min(FW-side, sx));
-      sy = Math.max(0, Math.min(FH-side, sy));
-      return { sx, sy, sw:side, sh:side };
+      return best;
     }catch(_e){
-      return { sx:24, sy:16, sw:80, sh:80 };
+      return { n:0, col:0, row:0, minX:20, minY:10, maxX:108, maxY:118 };
     }
   }
 
-  function drawThumb(cv, im, folder){
+  async function paintThumb(cv, folder){
     const S = cv.width || THUMB;
     const ctx = cv.getContext("2d");
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0,0,S,S);
-    if(!im){
-      ctx.fillStyle="#c8ccc4";
-      ctx.fillRect(S*0.2,S*0.2,S*0.6,S*0.6);
+    ctx.fillStyle = "#d5d9d0";
+    ctx.fillRect(0,0,S,S);
+
+    const needBody = !(activeSlot==="body" || activeSlot==="mount" || folder==="NakedBody" || folder==="NakedBody2" || folder==="NakedBody3");
+    const [bodyIm, idleIm, atkIm] = await Promise.all([
+      needBody ? bodyPromise() : Promise.resolve(null),
+      loadSheet(folder, "Idle"),
+      loadSheet(folder, "Attack1"),
+    ]);
+    const FW=128, FH=128;
+    let pieceIm = idleIm;
+    let fr = idleIm ? densestFrame(idleIm, FW, FH) : null;
+    if(atkIm){
+      const frA = densestFrame(atkIm, FW, FH);
+      if(!fr || frA.n > (fr.n||0)){ pieceIm = atkIm; fr = frA; }
+    }
+    if(!pieceIm && !bodyIm){
+      ctx.fillStyle="#b0b4aa";
+      ctx.fillRect(S*0.25,S*0.25,S*0.5,S*0.5);
       return;
     }
-    const FW=128, FH=128;
-    let crop = cropCache.get(folder);
-    if(!crop){
-      crop = contentCrop(im, FW, FH);
-      cropCache.set(folder, crop);
+
+    /* Compose body + pièce sur buffer 128 */
+    const buf = document.createElement("canvas");
+    buf.width = FW; buf.height = FH;
+    const bx = buf.getContext("2d");
+    bx.imageSmoothingEnabled = false;
+    const bodyFr = bodyIm ? densestFrame(bodyIm, FW, FH) : null;
+    const col = (fr && fr.col) || 0;
+    const row = (fr && fr.row) || (bodyFr && bodyFr.row) || 0;
+    if(bodyIm){
+      const bc = (bodyFr && bodyFr.col) || 0;
+      const br = row; /* même direction que la pièce */
+      bx.drawImage(bodyIm, bc*FW, Math.min(br,7)*FH, FW, FH, 0, 0, FW, FH);
     }
-    ctx.drawImage(im, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, S, S);
+    if(pieceIm){
+      bx.drawImage(pieceIm, col*FW, row*FH, FW, FH, 0, 0, FW, FH);
+    }
+
+    /* Crop serré sur le résultat composé */
+    let minX=FW, minY=FH, maxX=0, maxY=0, found=false;
+    try{
+      const d = bx.getImageData(0,0,FW,FH).data;
+      for(let y=0;y<FH;y++) for(let xi=0;xi<FW;xi++){
+        if(d[(y*FW+xi)*4+3]>24){
+          found=true;
+          if(xi<minX)minX=xi; if(y<minY)minY=y;
+          if(xi>maxX)maxX=xi; if(y>maxY)maxY=y;
+        }
+      }
+    }catch(_e){ found=false; }
+    if(!found){ minX=24; minY=8; maxX=104; maxY=120; }
+    const pad = 8;
+    minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad);
+    maxX=Math.min(FW-1,maxX+pad); maxY=Math.min(FH-1,maxY+pad);
+    let sw=maxX-minX+1, sh=maxY-minY+1;
+    const side=Math.max(sw, sh, 48);
+    let sx=Math.floor(minX+sw/2-side/2);
+    let sy=Math.floor(minY+sh/2-side/2);
+    sx=Math.max(0,Math.min(FW-side,sx));
+    sy=Math.max(0,Math.min(FH-side,sy));
+    ctx.drawImage(buf, sx, sy, side, side, 0, 0, S, S);
   }
 
   function paintItems(){
@@ -401,7 +459,7 @@
       cv.width = THUMB;
       cv.height = THUMB;
       thumb.appendChild(cv);
-      loadThumb(folder).then(im=> drawThumb(cv, im));
+      paintThumb(cv, folder);
 
       const meta = document.createElement("div");
       meta.className = "meta";
@@ -431,7 +489,6 @@
             if(i>=0) it.categories.splice(i,1);
             else it.categories.push(c.id);
             saveState(true);
-            /* maj locale sans tout re-render (évite scroll jump) */
             const now = cats.filter(x=> it.categories.indexOf(x.id)>=0).map(x=>x.label);
             tags.textContent = now.length ? now.join(" · ") : "non classé";
             b.classList.toggle("on", it.categories.indexOf(c.id)>=0);
