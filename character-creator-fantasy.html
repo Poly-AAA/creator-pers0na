@@ -966,10 +966,20 @@
     syncRideAnim();
     const anims=(cat.anims&&cat.anims.length)?cat.anims:["Idle","Walk","Attack1"];
     if(!anims.includes(state.anim) && !RIDE_ANIMS.includes(state.anim)) state.anim=isMounted()?"RideIdle":anims[0];
-    bind(); syncSizeUI(); selectZone("hair");
+    bind(); syncSizeUI();
+    /* Menus équipements prêts : mode avancé + arme, rotation ‹ › */
+    advancedMode=true;
+    const ba=el("btnAdvanced"); if(ba) ba.textContent="⚙ Mode simplifié";
+    selectZone("weapon");
+    /* Première pièce visible si look vide */
+    if(!state.look.weapon || state.look.weapon==="None"){
+      const list=(slotById("weapon")&&slotById("weapon").folders||[]).filter(f=>f&&f!=="None");
+      if(list.length){ state.look.weapon=list[0]; }
+    }
     state.dirty=true;
     await loadImg(state.bodies[0].folder||"NakedBody","Idle");
-    el("status").textContent="Prêt";
+    el("status").textContent="Tourne ‹ › · Choix ‹ › · Cats à gauche";
+    syncSteppers(); renderSwatches();
     loop();
   }
   boot();
