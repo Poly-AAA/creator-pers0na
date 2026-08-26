@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
+<title>Catégories d’équipement — Fantasy-CC</title>
+<style>
+  :root{
+    --bg:#ecece8; --bg2:#f5f5f2; --ink:#555552; --ink2:#8e8e8a;
+    --line:#c6c6c2; --line2:#dcdcd8; --card:#fafaf8; --sel:#3d3d3a; --soft:#f0f0ec;
+    --ok:#2f6f4e; --acc:#5b7c99; --warn:#c45c26;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+    font:15px/1.35 Helvetica,Arial,sans-serif}
+  .app{max-width:430px;margin:0 auto;min-height:100dvh;padding:12px 12px calc(18px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,var(--bg2),var(--bg));display:flex;flex-direction:column;gap:10px}
+  h1{margin:0;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--sel)}
+  .sub{margin:0;font-size:12px;color:var(--ink2);line-height:1.4}
+  .card{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:12px}
+  .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px}
+  .hint{font-size:11px;color:var(--ink2);margin:6px 0 0;line-height:1.4}
+  .status{font-size:11px;color:var(--ink2);text-align:center;min-height:1.2em}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chips button{
+    min-height:40px;padding:6px 12px;border-radius:10px;border:1px solid var(--line);
+    background:var(--soft);color:var(--ink);font-size:12px;font-weight:700;cursor:pointer;
+  }
+  .chips button.on{background:var(--sel);color:#fff;border-color:var(--sel)}
+  .chips button.cat{box-shadow:inset 0 0 0 1.5px var(--acc)}
+  .chips button.cat.on{box-shadow:none}
+  .row{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .row input{
+    flex:1;min-height:44px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);
+    background:var(--soft);font-size:14px;font-weight:600;color:var(--ink);
+  }
+  .row button,.bar button,.bar a{
+    min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);
+    background:var(--soft);color:var(--ink);font-size:12px;font-weight:700;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
+  }
+  .bar{display:flex;gap:8px;flex-wrap:wrap}
+  .bar button,.bar a{flex:1;min-width:100px}
+  .bar .primary{background:var(--sel);color:#fff;border-color:var(--sel)}
+  .bar .ok{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .bar .warn{background:var(--warn);color:#fff;border-color:var(--warn)}
+  .items{display:flex;flex-direction:column;gap:6px;max-height:42vh;overflow:auto;-webkit-overflow-scrolling:touch}
+  .item{
+    display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;
+    border:1px solid var(--line2);background:var(--soft);
+  }
+  .item .thumb{
+    width:48px;height:48px;border-radius:8px;background:#d8ddd4;flex-shrink:0;
+    image-rendering:pixelated;overflow:hidden;display:flex;align-items:center;justify-content:center;
+  }
+  .item .thumb canvas{width:48px;height:48px;image-rendering:pixelated}
+  .item .meta{flex:1;min-width:0}
+  .item .name{font-size:13px;font-weight:800;color:var(--sel);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .tags{font-size:10px;color:var(--ink2);margin-top:2px;line-height:1.3}
+  .item .cats{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+  .item .cats button{
+    min-height:28px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);
+    background:var(--card);font-size:10px;font-weight:700;color:var(--ink);cursor:pointer;
+  }
+  .item .cats button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .filter button{
+    min-height:34px;padding:4px 10px;border-radius:8px;border:1px solid var(--line);
+    background:var(--card);font-size:11px;font-weight:700;cursor:pointer;color:var(--ink);
+  }
+  .filter button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .empty{padding:16px;text-align:center;color:var(--ink2);font-size:12px}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Catégories équipement</h1>
+  <p class="sub">Crée des catégories (ex. <b>Mêlée</b>, <b>Coiffures</b>, <b>Casques</b>) et classe chaque pièce. Sauvé sur cet appareil — le créateur filtre avec.</p>
+
+  <div class="card">
+    <div class="lab">1 · Slot</div>
+    <div class="chips" id="slots"></div>
+    <p class="hint" id="slotMeta">—</p>
+  </div>
+
+  <div class="card">
+    <div class="lab">2 · Catégories de ce slot</div>
+    <div class="chips" id="cats"></div>
+    <div class="row">
+      <input id="catName" type="text" maxlength="24" placeholder="Nouvelle catégorie…" enterkeyhint="done"/>
+      <button type="button" class="primary" id="btnAddCat">+</button>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <button type="button" id="btnRenCat" style="flex:1">Renommer</button>
+      <button type="button" class="warn" id="btnDelCat" style="flex:1">Supprimer</button>
+    </div>
+    <p class="hint">Sélectionne une catégorie (surlignée) pour renommer / supprimer. Sur une pièce, tape les pastilles pour classer.</p>
+  </div>
+
+  <div class="card">
+    <div class="lab">3 · Pièces</div>
+    <div class="filter" id="filter"></div>
+    <div class="items" id="items"></div>
+  </div>
+
+  <div class="bar">
+    <button type="button" id="btnSeed">Auto-préfixe</button>
+    <button type="button" class="primary" id="btnSave">Sauver</button>
+    <a class="ok" data-fcc="creator" href="character-creator-fantasy.html">Créateur</a>
+  </div>
+  <div class="status" id="status">Chargement du catalogue…</div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const KEY = "neuro.fantasyEquipCategories";
+  const VER = 1;
+  const BASE_LOCAL = "assets/packs/fantasy-cc/";
+  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@main/assets/packs/fantasy-cc/";
+  const SLOT_LAB = {
+    body:"Corps", shoes:"Chaussures", legs:"Jambes", chest:"Torse", belt:"Ceinture",
+    gloves:"Gants", offhand:"Off-hand", weapon:"Arme", backpack:"Sac", head:"Tête",
+    slash:"Slash FX", effect:"Effect FX", mount:"Monture", hair:"Coiffure"
+  };
+  const PREFIX_SEED = {
+    weapon: [
+      { id:"melee", label:"Mêlée", match:/^Melee/i },
+      { id:"ranged", label:"Distance", match:/^Ranged/i },
+      { id:"magic", label:"Magie", match:/^Magic/i },
+    ],
+    offhand: [
+      { id:"shield", label:"Bouclier", match:/^Shield/i },
+      { id:"offhand", label:"Off-hand", match:/^Offhand/i },
+    ],
+  };
+
+  let catalog = null;
+  let state = { ver:VER, pack:"fantasy-cc", categories:[], items:{} };
+  let activeSlot = "weapon";
+  let activeCat = null; /* id selected for rename/delete */
+  let filterCat = "all"; /* all | none | catId */
+  const thumbCache = new Map();
+
+  function el(id){ return document.getElementById(id); }
+  function setStatus(t){ el("status").textContent = t; }
+  function uid(prefix){
+    return (prefix||"cat")+"_"+Math.random().toString(36).slice(2,8);
+  }
+  function slotCats(){
+    return (state.categories||[]).filter(c=>c && c.slot===activeSlot);
+  }
+  function itemEntry(folder){
+    if(!state.items[folder]) state.items[folder] = { slot: activeSlot, categories: [] };
+    const it = state.items[folder];
+    if(!Array.isArray(it.categories)) it.categories = [];
+    /* Un même dossier Head* peut être taggé sous head et/ou hair */
+    if(it.slot!==activeSlot && activeSlot!=="hair" && it.slot!=="hair") it.slot = activeSlot;
+    return it;
+  }
+  function foldersForSlot(){
+    if(!catalog) return [];
+    if(activeSlot==="hair"){
+      const head = (catalog.slots||[]).find(x=>x.id==="head");
+      return ((head && head.folders)||[]).filter(f=>f && f!=="None");
+    }
+    const s = (catalog.slots||[]).find(x=>x.id===activeSlot);
+    return ((s && s.folders)||[]).filter(f=>f && f!=="None");
+  }
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(!raw) return;
+      const o = JSON.parse(raw);
+      if(!o || typeof o!=="object") return;
+      state.ver = VER;
+      state.pack = o.pack || "fantasy-cc";
+      state.categories = Array.isArray(o.categories) ? o.categories.filter(c=>c && c.id && c.label && c.slot) : [];
+      state.items = (o.items && typeof o.items==="object") ? o.items : {};
+    }catch(_e){}
+  }
+  function saveState(quiet){
+    try{
+      localStorage.setItem(KEY, JSON.stringify(state));
+      sessionStorage.setItem(KEY, JSON.stringify(state));
+    }catch(_e){}
+    if(!quiet) setStatus("Sauvé · "+slotCats().length+" cat. · slot "+(SLOT_LAB[activeSlot]||activeSlot));
+  }
+
+  async function loadCatalog(){
+    const urls = [BASE_LOCAL+"catalog.json", BASE_CDN+"catalog.json"];
+    for(const u of urls){
+      try{
+        const r = await fetch(u, { cache:"no-store" });
+        if(!r.ok) continue;
+        const j = await r.json();
+        if(j && Array.isArray(j.slots)){ catalog = j; return true; }
+      }catch(_e){}
+    }
+    return false;
+  }
+
+  function paintSlots(){
+    const host = el("slots");
+    host.innerHTML = "";
+    const list = (catalog && catalog.slots) ? catalog.slots.slice() : [];
+    /* Slot virtuel coiffure : mêmes dossiers Head* (à classer à part du casque) */
+    if(!list.some(s=>s.id==="hair")){
+      const head = list.find(s=>s.id==="head");
+      const hairFolders = head ? (head.folders||[]).slice() : ["None"];
+      const idx = list.findIndex(s=>s.id==="head");
+      list.splice(idx>=0 ? idx+1 : list.length, 0, { id:"hair", lab:"Coiffure", folders: hairFolders });
+    }
+    list.forEach(s=>{
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = SLOT_LAB[s.id] || s.lab || s.id;
+      if(s.id===activeSlot) b.classList.add("on");
+      b.onclick = ()=>{
+        activeSlot = s.id;
+        activeCat = null;
+        filterCat = "all";
+        paintAll();
+      };
+      host.appendChild(b);
+    });
+    const n = foldersForSlot().length;
+    const nc = slotCats().length;
+    el("slotMeta").textContent = (SLOT_LAB[activeSlot]||activeSlot)+" · "+n+" pièce(s) · "+nc+" catégorie(s)"
+      +(activeSlot==="hair" ? " · (dossiers Head*, classement coiffure)" : "");
+  }
+
+  function paintCats(){
+    const host = el("cats");
+    host.innerHTML = "";
+    const cats = slotCats();
+    if(!cats.length){
+      host.innerHTML = '<span class="empty" style="padding:0">Aucune — ajoute un nom puis +</span>';
+      return;
+    }
+    cats.forEach(c=>{
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "cat"+(c.id===activeCat?" on":"");
+      b.textContent = c.label;
+      b.onclick = ()=>{
+        activeCat = (activeCat===c.id) ? null : c.id;
+        paintCats();
+      };
+      host.appendChild(b);
+    });
+  }
+
+  function paintFilter(){
+    const host = el("filter");
+    host.innerHTML = "";
+    const mk = (id, lab)=>{
+      const b=document.createElement("button"); b.type="button";
+      b.textContent=lab; if(filterCat===id) b.classList.add("on");
+      b.onclick=()=>{ filterCat=id; paintItems(); paintFilter(); };
+      host.appendChild(b);
+    };
+    mk("all","Toutes");
+    mk("none","Sans cat.");
+    slotCats().forEach(c=> mk(c.id, c.label));
+  }
+
+  function loadThumb(folder){
+    if(thumbCache.has(folder)) return Promise.resolve(thumbCache.get(folder));
+    const urls = [
+      BASE_LOCAL+"spritesheets/"+folder+"/Idle.png",
+      BASE_CDN+"spritesheets/"+folder+"/Idle.png",
+    ];
+    return new Promise(res=>{
+      let i=0;
+      const tryOne=()=>{
+        if(i>=urls.length){ thumbCache.set(folder,null); res(null); return; }
+        const im=new Image();
+        im.onload=()=>{ thumbCache.set(folder,im); res(im); };
+        im.onerror=()=>{ i++; tryOne(); };
+        im.src=urls[i++];
+      };
+      tryOne();
+    });
+  }
+
+  function drawThumb(cv, im){
+    const ctx = cv.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0,0,48,48);
+    if(!im){ ctx.fillStyle="#c8ccc4"; ctx.fillRect(8,8,32,32); return; }
+    /* Idle sheet 15 cols × 8 rows, frame 0 row ~E (often row 0) */
+    const FW=128, FH=128;
+    ctx.drawImage(im, 0, 0, FW, FH, 0, 0, 48, 48);
+  }
+
+  function paintItems(){
+    const host = el("items");
+    host.innerHTML = "";
+    const cats = slotCats();
+    const catIds = new Set(cats.map(c=>c.id));
+    let folders = foldersForSlot();
+    if(filterCat==="none"){
+      folders = folders.filter(f=>{
+        const it = state.items[f];
+        if(!it || !Array.isArray(it.categories)) return true;
+        return !it.categories.some(id=>catIds.has(id));
+      });
+    } else if(filterCat!=="all"){
+      folders = folders.filter(f=>{
+        const it = state.items[f];
+        return it && Array.isArray(it.categories) && it.categories.indexOf(filterCat)>=0;
+      });
+    }
+    if(!folders.length){
+      host.innerHTML = '<div class="empty">Aucune pièce dans ce filtre.</div>';
+      return;
+    }
+    folders.forEach(folder=>{
+      const it = itemEntry(folder);
+      const row = document.createElement("div");
+      row.className = "item";
+      const thumb = document.createElement("div");
+      thumb.className = "thumb";
+      const cv = document.createElement("canvas");
+      cv.width=48; cv.height=48;
+      thumb.appendChild(cv);
+      loadThumb(folder).then(im=> drawThumb(cv, im));
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = folder;
+      const tags = document.createElement("div");
+      tags.className = "tags";
+      const assigned = cats.filter(c=> it.categories.indexOf(c.id)>=0).map(c=>c.label);
+      tags.textContent = assigned.length ? assigned.join(" · ") : "non classé";
+
+      const catRow = document.createElement("div");
+      catRow.className = "cats";
+      if(!cats.length){
+        const ph=document.createElement("span");
+        ph.style.cssText="font-size:10px;color:var(--ink2)";
+        ph.textContent="Crée une catégorie d’abord";
+        catRow.appendChild(ph);
+      } else {
+        cats.forEach(c=>{
+          const b=document.createElement("button");
+          b.type="button";
+          b.textContent=c.label;
+          if(it.categories.indexOf(c.id)>=0) b.classList.add("on");
+          b.onclick=()=>{
+            const i = it.categories.indexOf(c.id);
+            if(i>=0) it.categories.splice(i,1);
+            else it.categories.push(c.id);
+            saveState(true);
+            paintItems();
+            setStatus(folder+" · "+(it.categories.length?it.categories.length+" cat.":"non classé"));
+          };
+          catRow.appendChild(b);
+        });
+      }
+      meta.appendChild(name);
+      meta.appendChild(tags);
+      meta.appendChild(catRow);
+      row.appendChild(thumb);
+      row.appendChild(meta);
+      host.appendChild(row);
+    });
+  }
+
+  function paintAll(){
+    paintSlots();
+    paintCats();
+    paintFilter();
+    paintItems();
+  }
+
+  el("btnAddCat").onclick = ()=>{
+    const name = (el("catName").value||"").trim();
+    if(!name){ setStatus("Donne un nom de catégorie"); return; }
+    if(slotCats().some(c=>c.label.toLowerCase()===name.toLowerCase())){
+      setStatus("Cette catégorie existe déjà"); return;
+    }
+    const c = { id: uid(activeSlot), label: name.slice(0,24), slot: activeSlot };
+    state.categories.push(c);
+    activeCat = c.id;
+    el("catName").value = "";
+    saveState(true);
+    paintAll();
+    setStatus("Catégorie « "+c.label+" » ajoutée");
+  };
+  el("catName").addEventListener("keydown", e=>{
+    if(e.key==="Enter"){ e.preventDefault(); el("btnAddCat").click(); }
+  });
+
+  el("btnRenCat").onclick = ()=>{
+    if(!activeCat){ setStatus("Sélectionne une catégorie à renommer"); return; }
+    const c = state.categories.find(x=>x.id===activeCat);
+    if(!c) return;
+    const name = prompt("Nouveau nom :", c.label);
+    if(!name || !name.trim()) return;
+    c.label = name.trim().slice(0,24);
+    saveState(true);
+    paintAll();
+    setStatus("Renommé → "+c.label);
+  };
+
+  el("btnDelCat").onclick = ()=>{
+    if(!activeCat){ setStatus("Sélectionne une catégorie à supprimer"); return; }
+    const c = state.categories.find(x=>x.id===activeCat);
+    if(!c) return;
+    if(!confirm("Supprimer « "+c.label+" » ? (retire aussi des pièces)")) return;
+    state.categories = state.categories.filter(x=>x.id!==activeCat);
+    Object.keys(state.items).forEach(f=>{
+      const it = state.items[f];
+      if(!it || !Array.isArray(it.categories)) return;
+      it.categories = it.categories.filter(id=>id!==activeCat);
+    });
+    activeCat = null;
+    if(filterCat===c.id) filterCat="all";
+    saveState(true);
+    paintAll();
+    setStatus("Catégorie supprimée");
+  };
+
+  el("btnSeed").onclick = ()=>{
+    const seeds = PREFIX_SEED[activeSlot];
+    if(!seeds){ setStatus("Pas de seed auto pour ce slot — crée tes catégories à la main"); return; }
+    let added = 0;
+    seeds.forEach(s=>{
+      let cat = slotCats().find(c=>c.label.toLowerCase()===s.label.toLowerCase());
+      if(!cat){
+        cat = { id: uid(activeSlot+"_"+s.id), label: s.label, slot: activeSlot };
+        state.categories.push(cat);
+        added++;
+      }
+      foldersForSlot().forEach(f=>{
+        if(!s.match.test(f)) return;
+        const it = itemEntry(f);
+        if(it.categories.indexOf(cat.id)<0) it.categories.push(cat.id);
+      });
+    });
+    saveState(true);
+    paintAll();
+    setStatus("Auto-préfixe · +"+added+" cat. · pièces classées");
+  };
+
+  el("btnSave").onclick = ()=>{ saveState(false); };
+
+  loadState();
+  loadCatalog().then(ok=>{
+    if(!ok){ setStatus("Catalogue introuvable"); return; }
+    if(!(catalog.slots||[]).some(s=>s.id===activeSlot)){
+      activeSlot = (catalog.slots[0]&&catalog.slots[0].id) || "weapon";
+    }
+    paintAll();
+    setStatus("Prêt — crée des catégories, classe les pièces, Sauver.");
+  });
+})();
+</script>
+</body>
+</html>
