@@ -163,7 +163,6 @@
   let activeSlot = "weapon";
   let activeCat = null; /* id selected for rename/delete */
   let filterCat = "all"; /* all | none | catId */
-  const thumbCache = new Map();
 
   function el(id){ return document.getElementById(id); }
   function setStatus(t){ el("status").textContent = t; }
