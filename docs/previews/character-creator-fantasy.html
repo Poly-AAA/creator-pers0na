@@ -166,7 +166,7 @@
       <span class="ttl">Choix</span>
       <div class="step-row">
         <button type="button" class="nav" id="optPrev" aria-label="Choix précédent">‹</button>
-        <span class="val" id="optVal" title="Extra : taper pour sous-slot">—</span>
+        <span class="val" id="optVal" title="Pièce du slot sélectionné">—</span>
         <button type="button" class="nav" id="optNext" aria-label="Choix suivant">›</button>
       </div>
       <button type="button" class="btn ghost" id="btnClear">Aucun</button>
@@ -202,6 +202,7 @@
       <button type="button" class="btn" id="btnRandom">Aléatoire</button>
       <button type="button" class="btn" id="btnReset">Reset</button>
       <button type="button" class="btn primary" id="btnExport">Sauver</button>
+      <button type="button" class="btn" id="btnCopyJson" style="background:#2f6bff;color:#fff;border-color:#2f6bff">Copier JSON</button>
       <a class="btn ok" id="btnCombat" data-fcc="combat" href="fantasy-combat.html" style="display:block;text-align:center;text-decoration:none;line-height:40px;background:#2f6f4e;color:#fff;border-color:#2f6f4e">Combat</a>
       <a class="btn" id="btnSpellEditor" href="spell-editor.html" style="display:block;text-align:center;text-decoration:none;line-height:40px;background:#4a3870;color:#fff;border-color:#4a3870">Sorts</a>
       <div class="status" id="status">Chargement…</div>
@@ -245,21 +246,22 @@
     char:{ xPct:40, yPct:44, sizePct:0.74 },
     shadow:{ xPct:40, yPct:66, opacity:0.08 },
     zonesLab:{
-      hair:"Coiff.", head:"Équip.", body:"Corps",
+      hair:"Coiff.", head:"Tête", body:"Corps",
       chest:"Torse", backpack:"Sac", legs:"Jambes",
-      shoes:"Chauss.", mount:"Monture", weapon:"Extra",
+      shoes:"Chauss.", mount:"Monture",
+      weapon:"Arme", offhand:"2e main",
+      belt:"Ceint.", gloves:"Gants",
     },
     rot:{ yPct:86, gapPct:22, size:48 }
   };
 
-  /* Mode simplifié (par défaut) : hair + head + body uniquement
-     Mode avancé : tout le reste visible */
+  /* Mode simplifié : coiffure / tête / corps
+     Mode avancé : tous les slots (chacun son bouton) */
   const ZONE_SIMPLE   = ["hair","head","body"];
-  const ZONE_ADVANCED = ["hair","head","body","chest","legs","shoes","backpack","mount","weapon"];
+  const ZONE_ADVANCED = ["hair","head","body","chest","legs","shoes","belt","gloves","backpack","weapon","offhand","mount"];
   let advancedMode = false;
   function currentZoneOrder(){ return advancedMode ? ZONE_ADVANCED : ZONE_SIMPLE; }
   const ZONE_ORDER_ALL = ZONE_ADVANCED; /* alias pour compatibilité interne */
-  const MISC_SLOTS = ["weapon","offhand","belt","gloves","slash","effect"];
   const RIDE_ANIMS = ["RideIdle","RideRun","RideIdleAttack1","RideRunAttack1"];
 
   /* Coiffures : dossier vide pour l'instant — tu y ajouteras tes assets */
@@ -290,7 +292,7 @@
     bodies:[{folder:"NakedBody", opacity:1, color:"#d4a574"}],
     bodyFocus:0,
     anim:"Idle", dir:0, fps:14,
-    zoneId:"hair", _miscFocus:"weapon",
+    zoneId:"hair",
     lastEdited:null,
     charSizePct: 0.74,
     sizeMode: "h", /* hauteur scène */
@@ -522,7 +524,6 @@
   }
 
   function activeSlotId(){
-    if(state.zoneId==="weapon") return state._miscFocus||"weapon";
     return state.zoneId;
   }
   function loadCatData(){
@@ -606,7 +607,6 @@
   function optionList(){
     let list;
     if(state.zoneId==="body") list=((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
-    else if(state.zoneId==="weapon"){ const s=slotById(state._miscFocus||"weapon"); list=(s&&s.folders)||["None"]; }
     else if(state.zoneId==="hair") list=["None",...HAIR_FOLDERS];
     else { const s=slotById(state.zoneId); list=(s&&s.folders)||["None"]; }
     if(state.zoneId==="body") return list;
@@ -644,11 +644,6 @@
     let i=list.indexOf(currentOption()); if(i<0) i=0;
     i=(i+dir+list.length)%list.length; setOption(list[i]);
   }
-  function cycleMiscSlot(dir){
-    let i=MISC_SLOTS.indexOf(state._miscFocus||"weapon"); if(i<0) i=0;
-    i=(i+dir+MISC_SLOTS.length)%MISC_SLOTS.length;
-    state._miscFocus=MISC_SLOTS[i]; syncSteppers(); renderSwatches();
-  }
   /* Toutes les anims disponibles, mouvement en tête */
   const MOVE_ANIMS = ["Idle","Walk","Run","Rolling","Slide","AttackRun","AttackRun2","Taunt"];
   const DIR_NAMES  = ["E","SE","S","SW","W","NW","N","NE"];
@@ -676,19 +671,20 @@
   function syncSteppers(){
     el("animVal").textContent=state.anim||"—";
     if(el("dirVal")) el("dirVal").textContent=DIR_NAMES[state.dir|0]||"";
-    if(state.zoneId==="weapon"){
-      const s=slotById(state._miscFocus||"weapon");
-      const sub=(s&&s.lab)?s.lab.split("/")[0].trim():(state._miscFocus||"");
-      el("optVal").textContent=sub+": "+shortOpt(currentOption());
-    } else if(state.zoneId==="body"){
+    if(state.zoneId==="body"){
       el("optVal").textContent="L"+(state.bodyFocus+1)+": "+shortOpt(currentOption());
     } else if(state.zoneId==="mount"){
       el("optVal").textContent=isMounted() ? shortOpt(currentOption())+" · à cheval" : "À pied";
     } else if(state.zoneId==="hair"){
       const cur=currentOption();
       el("optVal").textContent=(cur==="None"||!cur) ? "Aucune" : shortOpt(cur);
+    } else if(state.zoneId==="weapon"){
+      el("optVal").textContent="Arme: "+shortOpt(currentOption());
+    } else if(state.zoneId==="offhand"){
+      el("optVal").textContent="2e main: "+shortOpt(currentOption());
     } else {
-      el("optVal").textContent=shortOpt(currentOption());
+      const lab=(LAY.zonesLab[state.zoneId]||state.zoneId);
+      el("optVal").textContent=lab+": "+shortOpt(currentOption());
     }
     renderCats();
   }
@@ -839,8 +835,6 @@
       addCat.onclick=doAdd;
       catName.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); doAdd(); } });
     }
-    el("optVal").style.cursor="pointer";
-    el("optVal").onclick=()=>{ if(state.zoneId==="weapon") cycleMiscSlot(1); };
     el("btnClear").onclick=clearLastPart;
 
     const sizeEl=el("charSize");
@@ -905,6 +899,24 @@
       const payload=saveLookPayload();
       const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}));
       a.download="fantasy-look.json"; a.click(); el("status").textContent="Look sauvé";
+    };
+    el("btnCopyJson").onclick=async ()=>{
+      const payload=saveLookPayload();
+      const text=JSON.stringify(payload,null,2);
+      try{
+        if(navigator.clipboard&&navigator.clipboard.writeText){
+          await navigator.clipboard.writeText(text);
+          el("status").textContent="JSON copié ✓ — colle-le ici";
+          return;
+        }
+      }catch(_e){}
+      /* fallback mobile */
+      const ta=document.createElement("textarea");
+      ta.value=text; ta.style.cssText="position:fixed;inset:12px;z-index:9999;width:calc(100% - 24px);height:40%;font:12px monospace";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try{ document.execCommand("copy"); el("status").textContent="JSON copié ✓"; }
+      catch(_e){ el("status").textContent="Sélectionne + copie"; }
+      setTimeout(()=>{ try{ ta.remove(); }catch(_e){} }, 8000);
     };
     el("btnCombat").onclick=(ev)=>{
       ev.preventDefault();
@@ -971,15 +983,11 @@
     advancedMode=true;
     const ba=el("btnAdvanced"); if(ba) ba.textContent="⚙ Mode simplifié";
     selectZone("weapon");
-    /* Première pièce visible si look vide */
-    {
+    if(!state.look.weapon || state.look.weapon==="None"){
       const list=(slotById("weapon")&&slotById("weapon").folders||[]).filter(f=>f&&f!=="None");
-      const melee=list.find(f=>f==="Melee10")||list.find(f=>/^Melee/i.test(f))||list[0];
+      const melee=list.find(f=>f==="Melee2")||list.find(f=>/^Melee/i.test(f))||list[0];
       if(melee) state.look.weapon=melee;
     }
-    state.colors.weapon="#ff2e2e";
-    state.anim="Attack1";
-    state.charSizePct = Math.max(state.charSizePct||0.74, 0.82);
     state.dirty=true;
     await loadImg(state.bodies[0].folder||"NakedBody","Idle");
     el("status").textContent="Tourne ‹ › · Choix ‹ › · Cats à gauche";
