@@ -974,12 +974,17 @@
     /* Première pièce visible si look vide */
     if(!state.look.weapon || state.look.weapon==="None"){
       const list=(slotById("weapon")&&slotById("weapon").folders||[]).filter(f=>f&&f!=="None");
-      if(list.length){ state.look.weapon=list[0]; }
+      const melee=list.find(f=>/^Melee/i.test(f))||list[0];
+      if(melee) state.look.weapon=melee;
     }
+    state.colors.weapon = state.colors.weapon || "#ff2e2e";
+    state.colors.weapon = "#ff2e2e";
+    state.anim = "Attack1";
+    state.charSizePct = Math.max(state.charSizePct||0.74, 0.82);
     state.dirty=true;
     await loadImg(state.bodies[0].folder||"NakedBody","Idle");
     el("status").textContent="Tourne ‹ › · Choix ‹ › · Cats à gauche";
-    syncSteppers(); renderSwatches();
+    syncSteppers(); renderSwatches(); syncSizeUI();
     loop();
   }
   boot();
