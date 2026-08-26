@@ -566,6 +566,11 @@
     console.error(e);
     el("status").textContent = "Échec démarrage : " + (e && e.message ? e.message : e);
   });
+
+  window.addEventListener("pageshow", ()=>{
+    loadCatData();
+    if(state.catalog) renderSlots();
+  });
 })();
 </script>
 </body>
