@@ -158,7 +158,6 @@
         <a class="link-cc" data-fcc="spell" href="spell-editor.html">Sorts</a>
         <a class="link-cc" data-fcc="anims" href="fantasy-weapon-anim.html">Anims</a>
         <a class="link-cc" data-fcc="dirs" href="fantasy-dir-calibrate.html">Dirs</a>
-        <a class="link-cc" data-fcc="arrow" href="arrow-projectile-editor.html">Flèches</a>
         <a class="link-cc" data-fcc="creator" href="character-creator-fantasy.html">Créateur</a>
       </div>
     </div>
@@ -823,10 +822,9 @@
   function normalizeCastStep(step){
     if(typeof step==="string") return {
       anim:step, delay:0, fps:14, slash:"None", effect:"None", hitTarget:false,
-      hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null, fxHold:false,
+      hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null, hitDelayByDist:false, fxHold:false,
       frameStart:0, frameEnd:COLS-1, hitFrameStart:0, hitFrameEnd:COLS-1,
       hideMount:false, clearMount:false, forceGround:false, posDc:0, posDr:0,
-      projectile:"none", projSpeed:8, projSize:36, projCount:1,
     };
     let hd = step.hitDelay;
     if(hd === "end" || hd === -1) hd = null; /* null = fin d’anim */
@@ -838,15 +836,6 @@
     let hfs = step.hitFrameStart != null && step.hitFrameStart !== "" ? Math.max(0, Math.min(COLS-1, Number(step.hitFrameStart)|0)) : 0;
     let hfe = step.hitFrameEnd != null && step.hitFrameEnd !== "" ? Math.max(0, Math.min(COLS-1, Number(step.hitFrameEnd)|0)) : (COLS-1);
     if(hfe < hfs){ const t=hfs; hfs=hfe; hfe=t; }
-    let proj = step.projectile || "none";
-    if(proj === true || proj === "arrow") proj = "arrow";
-    else proj = "none";
-    let projSpeed = Number(step.projSpeed); if(!isFinite(projSpeed) || projSpeed < 1) projSpeed = 8;
-    projSpeed = Math.max(1, Math.min(24, projSpeed));
-    let projSize = Number(step.projSize); if(!isFinite(projSize) || projSize < 12) projSize = 36;
-    projSize = Math.max(12, Math.min(96, Math.round(projSize)));
-    let projCount = Number(step.projCount); if(!isFinite(projCount)) projCount = 1;
-    projCount = Math.max(1, Math.min(5, projCount|0));
     return {
       anim: step.anim || "Attack1",
       delay: step.delay != null ? step.delay : 0,
@@ -857,6 +846,7 @@
       hitAnim: step.hitAnim || "TakeDamage",
       hitAnimFps: step.hitAnimFps != null ? step.hitAnimFps : 14,
       hitDelay: hd,
+      hitDelayByDist: !!step.hitDelayByDist,
       fxHold: !!step.fxHold,
       frameStart: fs,
       frameEnd: fe,
@@ -867,10 +857,6 @@
       forceGround: !!step.forceGround,
       posDc: clampPosCell(step.posDc),
       posDr: clampPosCell(step.posDr),
-      projectile: proj,
-      projSpeed,
-      projSize,
-      projCount,
     };
   }
   /** Bonus : cases cochées éditeur + évos victoire (cumul sur la partie). */
@@ -1040,6 +1026,23 @@
     const n = Number(hd);
     if(!isFinite(n) || n < 0) return dur;
     return Math.min(dur, Math.max(0, n|0));
+  }
+  /** Latence TakeDamage : base (1 case) × 2^(dist-1). */
+  function hitDelayMsByDistance(baseMs, tileDist){
+    const base = Math.max(0, Number(baseMs)|0);
+    const d = Math.max(1, tileDist|0);
+    const exp = Math.min(8, d - 1); /* plafonne ×256 */
+    return base * Math.pow(2, exp);
+  }
+  function resolveStepHitMs(step, sp, hitIndex, totalHits, dur){
+    const hd = (step && step.hitDelay != null && step.hitDelay !== "")
+      ? step.hitDelay
+      : resolveHitDelay(sp, hitIndex, Math.max(1, totalHits));
+    if(step && step.hitDelayByDist && hd != null && hd !== "" && hd !== "end" && hd !== -1){
+      const d = (G.player && G.enemy) ? dist(G.player, G.enemy) : 1;
+      return hitDelayMsByDistance(hd, d);
+    }
+    return hitDelayMsFromStart(hd, dur);
   }
   function playEnemyHitReact(sp, hitIndex, hits){
     if(!G.enemy || !G.enemy.alive) return { anim:"None", fps:14 };
@@ -1292,6 +1295,8 @@
     let i = 0;
     let hitSeq = 0;
     let aborted = false;
+    let pendingHits = 0;
+    let chainStepsDone = false;
     const timers = [];
     const onHit = typeof opts.onHit === "function" ? opts.onHit : null;
     const abortIfDead = opts.abortIfDead !== false; /* défaut : stop si cible morte */
@@ -1308,9 +1313,10 @@
       timers.push(id);
       return id;
     };
-    const finishChain = ()=>{
+    const tryFinishChain = ()=>{
+      if(aborted) return;
+      if(!chainStepsDone || pendingHits > 0) return;
       if(G.player.anim!=="Die") playAnim(G.player, "Idle");
-      /* Ne coupe pas un FX prolongé encore actif */
       if(!(G.castFx && G.castFx.hold && performance.now() < G.castFx.until)){
         G.castFx = null;
       }
@@ -1319,7 +1325,8 @@
     function next(){
       if(aborted) return;
       if(i >= steps.length){
-        finishChain();
+        chainStepsDone = true;
+        tryFinishChain();
         return;
       }
       const step = steps[i++];
@@ -1377,20 +1384,23 @@
           hitIndex = Math.floor((i - 1) / stepsPerHit);
         }
       }
-      /* TakeDamage : priorité au délai du step (chaîne d’évos), sinon resolve global */
+      /* TakeDamage : délai step, optionnellement ×2^(dist-1) */
       if(hitNow){
-        const hd = (step.hitDelay != null && step.hitDelay !== "")
-          ? step.hitDelay
-          : resolveHitDelay(sp, hitIndex, Math.max(1, totalHits));
-        const hitMs = hitDelayMsFromStart(hd, dur);
+        const hitMs = resolveStepHitMs(step, sp, hitIndex, totalHits, dur);
+        pendingHits++;
         schedule(()=>{
-          if(aborted) return;
+          if(aborted){ pendingHits = Math.max(0, pendingHits - 1); tryFinishChain(); return; }
           try{ onHit(hitIndex, step); }catch(_e){}
+          pendingHits = Math.max(0, pendingHits - 1);
           if(abortIfDead && G.enemy && (G.enemy.pv <= 0 || !G.enemy.alive)){
             aborted = true;
             clearTimers();
-            finishChain();
+            pendingHits = 0;
+            chainStepsDone = true;
+            tryFinishChain();
+            return;
           }
+          tryFinishChain();
         }, delay + hitMs);
       }
       schedule(()=>{ next(); }, delay + dur);
@@ -1433,7 +1443,6 @@
     castFx: null, /* { slash, effect, until, hold } */
     castPlaying: false, /* anim de sort en cours — UI reste libre */
     castQueue: [], /* sorts lancés pendant une anim */
-    projectiles: [], /* flèches tendues en vol */
     fightN: 1,
     awaitingNext: false,
   };
@@ -1476,153 +1485,6 @@
     }catch(_e){}
   }
   loadMountHitCfg();
-
-  /* —— Projectiles flèche (trajectoire tendue) —— */
-  const KEY_ARROW_PROJ = "neuro.arrowProjectile";
-  const KEY_ARROW_DIR = "neuro.arrowDirMap";
-  const ARROW_RANGED = ["Ranged1","Ranged2","Ranged3","Ranged4","Ranged5","Ranged6","Ranged7"];
-  const ARROW_BOWS = new Set(["Ranged1","Ranged4"]);
-  let arrowProjState = { weapons: {} };
-  let arrowFrameToDir = [4,3,2,1,0,7,6,5];
-  let arrowDirToFrame = null;
-  const arrowImgs = new Array(8).fill(null);
-
-  function defaultArrowCfg(w){
-    return {
-      enabled: ARROW_BOWS.has(w),
-      speed: 8,
-      releaseMs: 180,
-      count: 1,
-      trajectory: "straight",
-      anim: null,
-    };
-  }
-  function rebuildArrowDirToFrame(){
-    arrowDirToFrame = new Array(8).fill(0);
-    for(let f=0;f<8;f++) arrowDirToFrame[arrowFrameToDir[f]&7] = f;
-  }
-  function loadArrowProjectileCfg(){
-    ARROW_RANGED.forEach(w=>{ arrowProjState.weapons[w] = defaultArrowCfg(w); });
-    try{
-      const raw = localStorage.getItem(KEY_ARROW_PROJ) || sessionStorage.getItem(KEY_ARROW_PROJ);
-      if(raw){
-        const o = JSON.parse(raw);
-        if(o && o.weapons){
-          ARROW_RANGED.forEach(w=>{
-            arrowProjState.weapons[w] = Object.assign(defaultArrowCfg(w), o.weapons[w]||{});
-            arrowProjState.weapons[w].trajectory = "straight";
-          });
-        }
-      }
-    }catch(_e){}
-    try{
-      const raw = localStorage.getItem(KEY_ARROW_DIR);
-      if(raw){
-        const o = JSON.parse(raw);
-        if(o && Array.isArray(o.frameToDir) && o.frameToDir.length===8){
-          arrowFrameToDir = o.frameToDir.map(n=>n&7);
-        } else if(Array.isArray(o) && o.length===8){
-          arrowFrameToDir = o.map(n=>n&7);
-        }
-      }
-    }catch(_e){}
-    rebuildArrowDirToFrame();
-  }
-  loadArrowProjectileCfg();
-
-  function arrowCfgForWeapon(folder){
-    if(!folder || !/^Ranged/i.test(folder)) return null;
-    return arrowProjState.weapons[folder] || defaultArrowCfg(folder);
-  }
-  function currentArrowCfg(){
-    return arrowCfgForWeapon(weaponFolder());
-  }
-  function loadArrowImgs(){
-    const bases = [
-      BASE_LOCAL+"projectiles/arrow-8dir/",
-      "projectiles/arrow-8dir/",
-      "docs/previews/projectiles/arrow-8dir/",
-      BASE_CDN+"projectiles/arrow-8dir/",
-    ];
-    for(let i=0;i<8;i++){
-      (function(idx){
-        let bi = 0;
-        const tryOne = ()=>{
-          if(bi >= bases.length) return;
-          const im = new Image();
-          im.onload = ()=>{ arrowImgs[idx] = im; };
-          im.onerror = ()=>{ bi++; tryOne(); };
-          im.src = bases[bi]+idx+".png";
-        };
-        tryOne();
-      })(i);
-    }
-  }
-  loadArrowImgs();
-
-  function spawnStraightArrow(fromEnt, toEnt, cfg, onArrive){
-    if(!G.projectiles) G.projectiles = [];
-    const fromC = fromEnt.c, fromR = fromEnt.r;
-    const toC = toEnt.c, toR = toEnt.r;
-    const dc = toC - fromC, dr = toR - fromR;
-    const cheb = Math.max(Math.abs(dc), Math.abs(dr), 0.5);
-    const speed = Math.max(1, Number(cfg && cfg.speed) || 8);
-    const travelMs = Math.max(60, Math.round((cheb / speed) * 1000));
-    const faceDir = dirFromIsoDelta(dc, dr);
-    const face = faceDir!=null ? faceDir : ((fromEnt.dir|0)&7);
-    if(fromEnt) fromEnt.dir = face;
-    const n = Math.max(1, Math.min(5, (cfg && (cfg.count!=null?cfg.count:cfg.projCount))|0 || 1));
-    const release = Math.max(0, (cfg && (cfg.releaseMs!=null?cfg.releaseMs:cfg.projReleaseMs))|0 || 0);
-    const size = Math.max(12, Math.min(96, Number(cfg && (cfg.size!=null?cfg.size:cfg.projSize)) || 36));
-    let first = true;
-    for(let i=0;i<n;i++){
-      const isLead = first;
-      if(first) first = false;
-      G.projectiles.push({
-        kind: "arrow",
-        fromC, fromR, toC, toR,
-        t0: performance.now() + release + i*55,
-        dur: travelMs,
-        dir: face,
-        size,
-        alive: true,
-        onArrive: isLead && typeof onArrive==="function" ? onArrive : null,
-      });
-    }
-  }
-
-  function updateAndDrawProjectiles(){
-    if(!G.projectiles || !G.projectiles.length) return;
-    const now = performance.now();
-    const next = [];
-    for(const p of G.projectiles){
-      if(!p.alive) continue;
-      if(now < p.t0){ next.push(p); continue; }
-      const u = Math.max(0, Math.min(1, (now - p.t0) / Math.max(1, p.dur)));
-      const c = p.fromC + (p.toC - p.fromC)*u;
-      const r = p.fromR + (p.toR - p.fromR)*u;
-      const s = toScreen(c, r);
-      const fi = arrowDirToFrame ? (arrowDirToFrame[p.dir&7]|0) : (p.dir&7);
-      const im = arrowImgs[fi];
-      const sz = p.size || 36;
-      if(im){
-        ctx.drawImage(im, s.x - sz/2, s.y - sz/2 - 10, sz, sz);
-      } else {
-        ctx.fillStyle = "#6a6a68";
-        ctx.fillRect(s.x - 7, s.y - 2, 14, 3);
-      }
-      if(u >= 1){
-        p.alive = false;
-        if(typeof p.onArrive === "function"){
-          try{ p.onArrive(); }catch(_e){}
-          p.onArrive = null;
-        }
-        continue;
-      }
-      next.push(p);
-    }
-    G.projectiles = next;
-  }
 
   function mountFolder(){
     if(G.player && G.player._mountCleared) return null;
@@ -3043,7 +2905,6 @@
     G.armed=null; G.armedSlot=null;
     renderSpells(); hud();
 
-    loadArrowProjectileCfg(); /* dir map flèche */
     const chain = editorCastSteps(sp);
     const hits = Math.max(1, chain.filter(s=>s && s.hitTarget).length || spellHitCount(sp));
     let dmgEach = roll(sp.dmg || [6,10]) + (evo.dmg|0);
@@ -3056,10 +2917,8 @@
     }
     pushCells += (evo.push|0);
 
-    let pendingArrows = 0;
-    let castAnimDone = false;
-
-    const applyDamageHit = (hitIndex)=>{
+    const applyOneHit = (hitIndex, step)=>{
+      faceToward(G.player, G.enemy.c, G.enemy.r);
       if(!G.enemy.alive || G.enemy.pv <= 0) return;
       let dmg = dmgEach;
       if(G.enemy.shield>0){ const a=Math.min(G.enemy.shield,dmg); G.enemy.shield-=a; dmg-=a; }
@@ -3077,32 +2936,14 @@
       const reactTxt = react && react.anim && react.anim!=="Die"
         ? " · "+react.anim+" @"+react.fps+"fps"
         : "";
-      setStatus(label+" → "+dmg+(hits>1?" ("+(hitIndex+1)+"/"+hits+")":"")+reactTxt+(pushed?" · poussé "+pushed:""));
+      const distTxt = (step && step.hitDelayByDist)
+        ? " · "+dist(G.player,G.enemy)+"c"
+        : "";
+      setStatus(label+" → "+dmg+(hits>1?" ("+(hitIndex+1)+"/"+hits+")":"")+reactTxt+distTxt+(pushed?" · poussé "+pushed:""));
       hud();
     };
 
-    const applyOneHit = (hitIndex, step)=>{
-      faceToward(G.player, G.enemy.c, G.enemy.r);
-      const useArrow = !!(step && step.projectile === "arrow");
-      if(useArrow){
-        pendingArrows++;
-        spawnStraightArrow(G.player, G.enemy, {
-          speed: step.projSpeed,
-          size: step.projSize,
-          count: step.projCount,
-          releaseMs: 0, /* hitDelay de la chaîne = déjà le départ */
-        }, ()=>{
-          applyDamageHit(hitIndex);
-          pendingArrows = Math.max(0, pendingArrows - 1);
-          tryAfterCast();
-        });
-        return;
-      }
-      applyDamageHit(hitIndex);
-    };
-
-    const tryAfterCast = ()=>{
-      if(!castAnimDone || pendingArrows > 0) return;
+    const afterCast = ()=>{
       if(G.player.anim!=="Die") playAnim(G.player,"Idle");
       G.combo = Math.min(100, G.combo + 22);
       if(G.player.invis>0) G.player.invis = 0;
@@ -3120,11 +2961,6 @@
       G.busy = false;
       recomputeMoves(); recomputeTargets(); renderSpells(); hud();
       drainCastQueue();
-    };
-
-    const afterCast = ()=>{
-      castAnimDone = true;
-      tryAfterCast();
     };
 
     playCastAnimChain(sp, afterCast, {
@@ -3860,8 +3696,6 @@
       return (pa.c+pa.r)-(pb.c+pb.r) || pa.c-pb.c;
     });
     for(const o of ents) drawEntity(o.e, o.enemy, o.clone ? {clone:true, alpha:o.e.alpha||0.42} : null);
-    updateAndDrawProjectiles();
-
     ctx.restore();
   }
 

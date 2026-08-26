@@ -184,11 +184,9 @@ const BASE_LOCAL = "assets/packs/fantasy-cc/";
 const HOST_STANDALONE = /litter\.(catbox|box)\.moe|catbox\.moe|trycloudflare\.com|htmlpreview\.github\.io/i.test(location.hostname);
 const FW=128, FH=128, COLS=15, FPS=14;
 const FPS_MAX=60; /* TakeDamage / attaques : au-delà de 30 autorisé */
-const KEY_SPELLS = "neuro.customSpells";
+  const KEY_SPELLS = "neuro.customSpells";
   const KEY_LOOK   = "neuro.fantasyLook";
   const KEY_MOUNT_HIT = "neuro.mountHit";
-  const KEY_ARROW_PROJ = "neuro.arrowProjectile";
-  const KEY_ARROW_DIR = "neuro.arrowDirMap";
 const FRAME_MAX = COLS - 1; /* 0..14 */
 
 /* ────────────────────────────────────────────────────────────
@@ -674,11 +672,10 @@ const SAVED_TIR_ARC = {
   steps: [{
     anim: "Attack3", delay: 0, move: "Idle", fps: 14,
     slash: "None", effect: "None", hitTarget: true,
-    hitAnim: "TakeDamage", hitAnimFps: 24, hitDelay: 180,
+    hitAnim: "TakeDamage", hitAnimFps: 24, hitDelay: 180, hitDelayByDist: true,
     fxHold: false, hideMount: false, clearMount: false, forceGround: false,
     posDc: 0, posDr: 0, frameStart: 0, frameEnd: 14,
     hitFrameStart: 0, hitFrameEnd: 14,
-    projectile: "arrow", projSpeed: 8, projSize: 36, projCount: 1,
   }],
   evos: [],
   evoConfig: {},
@@ -704,13 +701,9 @@ function ensureTirArcTendu(){
   } else {
     sp.steps.forEach(st=>{
       if(!st) return;
-      if(!st.projectile || st.projectile === "none"){
-        st.projectile = "arrow";
-        if(st.projSpeed == null) st.projSpeed = 8;
-        if(st.projSize == null) st.projSize = 36;
-        if(st.projCount == null) st.projCount = 1;
-        if(st.hitDelay == null) st.hitDelay = 180;
-      }
+      st.projectile = "none";
+      if(st.hitDelay == null) st.hitDelay = 180;
+      if(st.hitDelayByDist == null) st.hitDelayByDist = true;
     });
   }
 }
@@ -1077,7 +1070,56 @@ function fitCam(){
 }
 
 const ROW_LABEL_TO_DIR_ROW={"E":0,"SE":1,"S":2,"SW":3,"W":4,"NW":5,"N":6,"NE":7};
-function sheetRow(dir){ return dir&7; }
+/* Même calibrage que le combat : ligne sheet → face logique 0=N…7=NW */
+const KEY_DIR = "neuro.fantasyDirRow";
+const KEY_DIR_SHEETS = "neuro.fantasyDirRow.sheets";
+const KEY_DIR_VER = "neuro.fantasyDirRow.ver";
+const DIR_CAL_VER = "cal-2026-08-12";
+const DEFAULT_DIR_ROW = [2,3,4,5,6,7,0,1];
+const DEFAULT_DIR_SHEETS = {
+  Walk:DEFAULT_DIR_ROW.slice(), Run:DEFAULT_DIR_ROW.slice(),
+  RunBackwards:DEFAULT_DIR_ROW.slice(), StrafeLeft:DEFAULT_DIR_ROW.slice(),
+  StrafeRight:DEFAULT_DIR_ROW.slice(), CrouchRun:DEFAULT_DIR_ROW.slice(),
+  Attack1:DEFAULT_DIR_ROW.slice(), Attack2:DEFAULT_DIR_ROW.slice(),
+  Attack3:DEFAULT_DIR_ROW.slice(), Attack4:DEFAULT_DIR_ROW.slice(),
+  Attack5:DEFAULT_DIR_ROW.slice(), Attack6:DEFAULT_DIR_ROW.slice(),
+  AttackRun:DEFAULT_DIR_ROW.slice(), AttackRun2:DEFAULT_DIR_ROW.slice(),
+  Kick:DEFAULT_DIR_ROW.slice(), Special1:DEFAULT_DIR_ROW.slice(),
+  Idle:DEFAULT_DIR_ROW.slice()
+};
+let DIR_ROW = DEFAULT_DIR_ROW.slice();
+let DIR_SHEETS = Object.assign({}, DEFAULT_DIR_SHEETS);
+(function loadDirCal(){
+  try{
+    const ver = localStorage.getItem(KEY_DIR_VER);
+    if(ver === DIR_CAL_VER){
+      const raw = localStorage.getItem(KEY_DIR);
+      if(raw){ const a=JSON.parse(raw); if(Array.isArray(a)&&a.length===8) DIR_ROW=a.map(n=>n&7); }
+      const sheets = localStorage.getItem(KEY_DIR_SHEETS);
+      if(sheets){
+        const o=JSON.parse(sheets);
+        if(o && typeof o==="object"){
+          Object.keys(o).forEach(k=>{
+            if(Array.isArray(o[k])&&o[k].length===8) DIR_SHEETS[k]=o[k].map(n=>n&7);
+          });
+        }
+      }
+    }
+  }catch(_e){}
+})();
+function dirMapForAnim(anim){
+  if(anim && DIR_SHEETS[anim]) return DIR_SHEETS[anim];
+  if(anim && /^Attack|^Kick|^Special/i.test(anim) && DIR_SHEETS.Attack1) return DIR_SHEETS.Attack1;
+  if(anim && /^(Walk|Run|Strafe|Crouch)/i.test(anim) && DIR_SHEETS.Walk) return DIR_SHEETS.Walk;
+  return DIR_ROW;
+}
+function sheetRowForDir(dir, anim){
+  const m = dirMapForAnim(anim);
+  const f=dir&7;
+  for(let r=0;r<8;r++) if(m[r]===f) return r;
+  return f;
+}
+function sheetRow(dir){ return sheetRowForDir(dir, "Idle"); }
 
 let raf=0;
 function drawLoop(){
@@ -1102,7 +1144,7 @@ function drawLoop(){
   for(const ent of [enemy, player]){
     if(!ent.alive && ent.anim!=="Die") continue;
     const anim=ent.anim||"Idle";
-    const row=sheetRow(ent.dir);
+    const row=sheetRowForDir(ent.dir, anim);
     const elapsed=(now-ent.t0)/1000;
     const fps=ent.stepFps||FPS;
     const loop=/^(Idle|Walk|Run|RideIdle|RideRun)$/i.test(anim);
@@ -1163,7 +1205,6 @@ function drawLoop(){
       ctx.fillRect(bx,by,bw*Math.max(0,pct),bh);
     }
   }
-  updateDrawPreviewProjectiles();
   ctx.restore();
   /* warm missing images */
   for(const ent of [player,enemy]){
@@ -1231,7 +1272,7 @@ function normalizeStep(s){
     fxHold:false, hideMount:false, clearMount:false, forceGround:false,
     posDc:0, posDr:0,
     frameStart:0, frameEnd:FRAME_MAX, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
-    projectile:"none", projSpeed:8, projSize:36, projCount:1,
+    hitDelayByDist:false,
   });
   const o = Object.assign({
     anim:"Attack1",delay:0,move:"Idle",fps:14,slash:"None",effect:"None",
@@ -1239,7 +1280,7 @@ function normalizeStep(s){
     fxHold:false, hideMount:false, clearMount:false, forceGround:false,
     posDc:0, posDr:0,
     frameStart:0, frameEnd:FRAME_MAX, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
-    projectile:"none", projSpeed:8, projSize:36, projCount:1,
+    hitDelayByDist:false,
   }, s);
   if(o.hitDelay === "end" || o.hitDelay === -1) o.hitDelay = null;
   else if(o.hitDelay === "" || o.hitDelay === false) o.hitDelay = null;
@@ -1250,14 +1291,7 @@ function normalizeStep(s){
   o.forceGround = !!o.forceGround;
   o.posDc = clampPosCell(o.posDc);
   o.posDr = clampPosCell(o.posDr);
-  if(o.projectile === true || o.projectile === "arrow") o.projectile = "arrow";
-  else o.projectile = "none";
-  let ps = Number(o.projSpeed); if(!isFinite(ps) || ps < 1) ps = 8;
-  o.projSpeed = Math.max(1, Math.min(24, Math.round(ps)));
-  let psz = Number(o.projSize); if(!isFinite(psz) || psz < 12) psz = 36;
-  o.projSize = Math.max(12, Math.min(96, Math.round(psz)));
-  let pc = Number(o.projCount); if(!isFinite(pc)) pc = 1;
-  o.projCount = Math.max(1, Math.min(5, pc|0));
+  o.hitDelayByDist = !!o.hitDelayByDist;
   return normalizeFrameRange(o);
 }
 
@@ -1304,50 +1338,10 @@ function saveMountHit(){
 }
 loadMountHit();
 
-/* —— Flèches 8 dir (preview steps projectile) —— */
-let arrowFrameToDir = [4,3,2,1,0,7,6,5];
-let arrowDirToFrame = null;
-const arrowImgs = new Array(8).fill(null);
-let previewProjectiles = [];
-function rebuildArrowDirMap(){
-  arrowDirToFrame = new Array(8).fill(0);
-  for(let f=0;f<8;f++) arrowDirToFrame[arrowFrameToDir[f]&7] = f;
-}
-function loadArrowDirMap(){
-  try{
-    const raw = localStorage.getItem(KEY_ARROW_DIR);
-    if(raw){
-      const o = JSON.parse(raw);
-      if(o && Array.isArray(o.frameToDir) && o.frameToDir.length===8) arrowFrameToDir = o.frameToDir.map(n=>n&7);
-      else if(Array.isArray(o) && o.length===8) arrowFrameToDir = o.map(n=>n&7);
-    }
-  }catch(_e){}
-  rebuildArrowDirMap();
-}
-function loadArrowImgs(){
-  const bases = [
-    BASE_LOCAL+"projectiles/arrow-8dir/",
-    "projectiles/arrow-8dir/",
-    "docs/previews/projectiles/arrow-8dir/",
-    BASE_CDN+"projectiles/arrow-8dir/",
-  ];
-  for(let i=0;i<8;i++){
-    (function(idx){
-      let bi=0;
-      const tryOne=()=>{
-        if(bi>=bases.length) return;
-        const im=new Image();
-        im.onload=()=>{ arrowImgs[idx]=im; };
-        im.onerror=()=>{ bi++; tryOne(); };
-        im.src=bases[bi]+idx+".png";
-      };
-      tryOne();
-    })(i);
-  }
-}
 function dirFromIsoDelta(dc, dr){
   if(!dc && !dr) return null;
-  const sx = dc - dr, sy = dc + dr;
+  const sx = (dc - dr) * (TILE_W / 2);
+  const sy = (dc + dr) * (TILE_H / 2);
   let i = Math.round(Math.atan2(sx, -sy) / (Math.PI/4));
   if(i < 0) i += 8;
   return i & 7;
@@ -1356,59 +1350,15 @@ function facePlayerToEnemy(){
   const d = dirFromIsoDelta((enemy.c|0)-(player.c|0), (enemy.r|0)-(player.r|0));
   if(d!=null) player.dir = d;
 }
-function spawnStepArrow(step, onArrive){
-  facePlayerToEnemy();
-  const fromC = player.c|0, fromR = player.r|0;
-  const toC = enemy.c|0, toR = enemy.r|0;
-  const dc = toC - fromC, dr = toR - fromR;
-  const cheb = Math.max(Math.abs(dc), Math.abs(dr), 0.5);
-  const speed = Math.max(1, Number(step.projSpeed)||8);
-  const travelMs = Math.max(60, Math.round((cheb / speed) * 1000));
-  const face = dirFromIsoDelta(dc, dr);
-  const dir = face!=null ? face : ((player.dir|0)&7);
-  player.dir = dir;
-  const n = Math.max(1, Math.min(5, step.projCount|0 || 1));
-  const size = Math.max(12, Math.min(96, Number(step.projSize)||36));
-  let first = true;
-  for(let i=0;i<n;i++){
-    const lead = first; if(first) first=false;
-    previewProjectiles.push({
-      fromC, fromR, toC, toR,
-      t0: performance.now() + i*55,
-      dur: travelMs,
-      dir, size,
-      alive: true,
-      onArrive: lead && typeof onArrive==="function" ? onArrive : null,
-    });
-  }
+function chebDist(a,b){
+  return Math.max(Math.abs((a.c|0)-(b.c|0)), Math.abs((a.r|0)-(b.r|0)));
 }
-function updateDrawPreviewProjectiles(){
-  if(!previewProjectiles.length) return;
-  const now = performance.now();
-  const next = [];
-  for(const p of previewProjectiles){
-    if(!p.alive) continue;
-    if(now < p.t0){ next.push(p); continue; }
-    const u = Math.max(0, Math.min(1, (now - p.t0) / Math.max(1, p.dur)));
-    const c = p.fromC + (p.toC - p.fromC)*u;
-    const r = p.fromR + (p.toR - p.fromR)*u;
-    const s = toScreen(c, r);
-    const fi = arrowDirToFrame ? (arrowDirToFrame[p.dir&7]|0) : (p.dir&7);
-    const im = arrowImgs[fi];
-    const sz = p.size || 36;
-    if(im) ctx.drawImage(im, s.x - sz/2, s.y - sz/2 - 10, sz, sz);
-    else { ctx.fillStyle="#6a6a68"; ctx.fillRect(s.x-7,s.y-2,14,3); }
-    if(u >= 1){
-      p.alive=false;
-      if(typeof p.onArrive==="function"){ try{ p.onArrive(); }catch(_e){} p.onArrive=null; }
-      continue;
-    }
-    next.push(p);
-  }
-  previewProjectiles = next;
+function hitDelayMsByDistance(baseMs, tileDist){
+  const base = Math.max(0, Number(baseMs)|0);
+  const d = Math.max(1, tileDist|0);
+  const exp = Math.min(8, d - 1);
+  return base * Math.pow(2, exp);
 }
-loadArrowDirMap();
-loadArrowImgs();
 
 let editorTab = "spell"; /* spell | mount */
 
@@ -1534,7 +1484,9 @@ function previewAction(steps, opts){
     if(step.hitTarget){
       const ha = step.hitAnim && step.hitAnim!=="None" ? step.hitAnim : (step.hitAnim==="None" ? null : "TakeDamage");
       let hitMs;
-      if(typeof FantasyBridge!=="undefined" && FantasyBridge.hitDelayMsFromStart){
+      if(step.hitDelayByDist && step.hitDelay != null && step.hitDelay !== "" && step.hitDelay !== "end"){
+        hitMs = hitDelayMsByDistance(step.hitDelay, chebDist(player, enemy));
+      } else if(typeof FantasyBridge!=="undefined" && FantasyBridge.hitDelayMsFromStart){
         hitMs = FantasyBridge.hitDelayMsFromStart(step.hitDelay, dur);
       } else {
         const hd = step.hitDelay;
@@ -1551,12 +1503,11 @@ function previewAction(steps, opts){
       };
       setTimeout(()=>{
         facePlayerToEnemy();
-        if(step.projectile === "arrow"){
-          spawnStepArrow(step, applyEnemyHit);
-        } else {
-          applyEnemyHit();
-        }
+        applyEnemyHit();
       }, delay + hitMs);
+      if(stEl && step.hitDelayByDist){
+        stEl.textContent = (stEl.textContent||"")+" · hit "+hitMs+"ms ("+chebDist(player,enemy)+"c)";
+      }
     }
     _previewTimer=setTimeout(next, delay+dur);
   }
@@ -1880,26 +1831,25 @@ function fillAnimStepControls(box, st, opts){
   if(opts.showHit !== false){
     box.appendChild(mkCheckRow("Frappe la cible", !!st.hitTarget, v=>{ st.hitTarget=v; onSave(); onRerender(); }));
     if(st.hitTarget){
-      box.appendChild(mkSelectRow("Projectile", ["none","arrow"], st.projectile||"none", v=>{
-        st.projectile=v; onSave(); onRerender();
-      }));
-      if(st.projectile === "arrow"){
-        const pTip=document.createElement("p"); pTip.className="hint";
-        pTip.style.cssText="margin:4px 0;font-size:10px;line-height:1.35";
-        pTip.textContent="Flèche tendue : le tireur se tourne vers la cible. Direction sprite = calibrage 8 dir. TakeDamage = à l’arrivée. Le délai ci-dessous = départ de la flèche.";
-        box.appendChild(pTip);
-        box.appendChild(mkNumRow("Vitesse flèche (c/s)", st.projSpeed!=null?st.projSpeed:8, 2, 24, 1, v=>{ st.projSpeed=v; onSave(); }));
-        box.appendChild(mkNumRow("Taille flèche (px)", st.projSize!=null?st.projSize:36, 12, 96, 2, v=>{ st.projSize=v; onSave(); }));
-        box.appendChild(mkNumRow("Nb flèches", st.projCount!=null?st.projCount:1, 1, 5, 1, v=>{ st.projCount=v; onSave(); }));
-        const cal=document.createElement("a");
-        cal.href="arrow-dir-calibrate.html"; cal.setAttribute("data-fcc","arrowdir");
-        cal.textContent="Calibrer vues flèche 8 dir →";
-        cal.style.cssText="display:block;margin:4px 0 8px;font-size:11px;font-weight:700;color:var(--acc)";
-        box.appendChild(cal);
-      }
       box.appendChild(mkSelectRow("Réaction ennemi", HIT_REACT_ANIMS, st.hitAnim||"TakeDamage", v=>{ st.hitAnim=v; onSave(); }));
       box.appendChild(mkNumRow("FPS réaction", st.hitAnimFps!=null?st.hitAnimFps:14, 1, FPS_MAX, 1, v=>{ st.hitAnimFps=v; onSave(); }));
-      box.appendChild(mkHitDelayRow(st.hitDelay, v=>{ st.hitDelay=v; onSave(); }, st.projectile==="arrow"));
+      box.appendChild(mkCheckRow("Délai × distance (exponentiel)", !!st.hitDelayByDist, v=>{
+        st.hitDelayByDist=v;
+        if(v && (st.hitDelay==null || st.hitDelay==="")) st.hitDelay=180;
+        onSave(); onRerender();
+      }));
+      if(st.hitDelayByDist){
+        const tip=document.createElement("p"); tip.className="hint";
+        tip.style.cssText="margin:4px 0;font-size:10px;line-height:1.35";
+        const b=st.hitDelay!=null?st.hitDelay:180;
+        tip.textContent="Latence 1 case = base. 2c = ×2, 3c = ×4, 4c = ×8…  Ex. base "+b+" → 1c="+b+" · 2c="+(b*2)+" · 3c="+(b*4)+" ms. TakeDamage après ce délai (le tireur se tourne vers la cible).";
+        box.appendChild(tip);
+        box.appendChild(mkNumRow("Latence 1 case (ms)", st.hitDelay!=null?st.hitDelay:180, 0, 2000, 10, v=>{
+          st.hitDelay=v; onSave(); onRerender();
+        }));
+      } else {
+        box.appendChild(mkHitDelayRow(st.hitDelay, v=>{ st.hitDelay=v; onSave(); }));
+      }
       box.appendChild(mkFrameTrimRow("Portion réaction (ennemi)", st.hitFrameStart, st.hitFrameEnd,
         v=>{ st.hitFrameStart=v; if(st.hitFrameEnd < v) st.hitFrameEnd=v; onSave(); onRerender(); },
         v=>{ st.hitFrameEnd=v; if(st.hitFrameStart > v) st.hitFrameStart=v; onSave(); onRerender(); },
@@ -1962,27 +1912,25 @@ function mkCheckRow(label, val, onChange){
   d.appendChild(cb); d.appendChild(document.createTextNode(label)); return d;
 }
 /** Délai impact : null = fin d’anim ; nombre (0+) = ms après le début de ton attaque. */
-function mkHitDelayRow(val, onChange, isArrow){
+function mkHitDelayRow(val, onChange){
   const wrap=document.createElement("div");
   wrap.style.cssText="margin-bottom:6px;padding:6px 8px;border:1px dashed var(--line2);border-radius:8px;background:var(--bg)";
   const tip=document.createElement("div");
   tip.style.cssText="font-size:10px;color:var(--ink2);margin-bottom:4px;line-height:1.35";
-  tip.textContent = isArrow
-    ? "Départ de la flèche : ms après le début de TON tir. TakeDamage se joue à l’arrivée."
-    : "Quand TakeDamage commence : ms après le début de TON attaque. 0 = tout de suite. Décoche « fin d’anim » pour régler avant la fin.";
+  tip.textContent="Quand TakeDamage commence : ms après le début de TON attaque. 0 = tout de suite. Décoche « fin d’anim » pour régler avant la fin.";
   wrap.appendChild(tip);
   const atEnd = val == null || val === "" || val === false || val === "end" || val === -1;
   const row=document.createElement("label");
   row.style.cssText="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink2);margin-bottom:4px;cursor:pointer";
   const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=atEnd;
   row.appendChild(cb);
-  row.appendChild(document.createTextNode(isArrow ? "Flèche part à la fin de mon anim" : "TakeDamage à la fin de mon anim"));
+  row.appendChild(document.createTextNode("TakeDamage à la fin de mon anim"));
   wrap.appendChild(row);
   const numHost=document.createElement("div");
   const paintNum=()=>{
     numHost.innerHTML="";
     const cur = (val != null && val !== "" && val !== "end" && val !== false) ? (Number(val)|0) : 0;
-    numHost.appendChild(mkNumRow(isArrow ? "Départ flèche (ms)" : "Délai impact (ms)", cur, 0, 2000, 10, v=>{
+    numHost.appendChild(mkNumRow("Délai impact (ms)", cur, 0, 2000, 10, v=>{
       onChange(v); val=v;
     }));
   };
