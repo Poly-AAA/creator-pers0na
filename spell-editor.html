@@ -2478,11 +2478,12 @@ function boot(){
   document.getElementById("btnSave").onclick=()=>{
     saveCustom();
     saveMountHit();
+    saveArrowProjectile();
     showSavedStatus();
     setTimeout(()=>{ document.getElementById("pvStatus").textContent="Sauvé ✓"; showSavedStatus(); }, 800);
     setTimeout(()=>renderNav(),100);
   };
-  document.getElementById("btnCombatGo").onclick=()=>{ saveMountHit(); goCombat(); };
+  document.getElementById("btnCombatGo").onclick=()=>{ saveMountHit(); saveArrowProjectile(); goCombat(); };
   document.getElementById("btnCopySave").onclick=()=> copySpellsBackup();
   document.getElementById("btnPasteSave").onclick=async()=>{
     if(await pasteSpellsBackup()){
