@@ -2898,59 +2898,49 @@
   function planGlissadePath(ent, foe, runMax, slideMax){
     if(!foe || !foe.alive) return { ok:false, runPath:[], slidePath:[], final:null };
     const start = { c: ent.c, r: ent.r };
-    let dirC = Math.sign(foe.c - start.c);
-    let dirR = Math.sign(foe.r - start.r);
-    if(!dirC && !dirR) return { ok:false, runPath:[], slidePath:[], final:null };
-
     const ghost = { c: ent.c, r: ent.r };
     const runPath = [];
-    const slidePath = [];
-    let passedEnemy = false;
-
-    function lineTries(dc, dr){
-      if(dc && dr) return [[dc,dr],[dc,0],[0,dr]];
-      if(dc) return [[dc,0],[0,1],[0,-1]];
-      return [[0,dr],[1,0],[-1,0]];
+    for(let i=0;i<runMax;i++){
+      if(dist(ghost, foe) <= 1) break;
+      if(!stepEntityTowardOnce(ghost, foe, "player")) break;
+      runPath.push({ c: ghost.c, r: ghost.r });
     }
 
-    function stepLine(maxSteps, allowThrough){
-      for(let i=0;i<maxSteps;i++){
-        let stepped = false;
-        for(const [tdc, tdr] of lineTries(dirC, dirR)){
-          const nc = ghost.c + tdc, nr = ghost.r + tdr;
-          const onFoe = foe.alive && nc===foe.c && nr===foe.r;
-          if(onFoe){
-            if(!allowThrough || passedEnemy) continue;
-            slidePath.push({ c: nc, r: nr, through: true });
-            ghost.c = nc; ghost.r = nr;
-            passedEnemy = true;
-            stepped = true;
-            break;
-          }
-          if(allowThrough){
-            if(!glissadeSlideCellFree(nc, nr, foe, passedEnemy)) continue;
-          } else {
-            if(!rouladeCellFree(nc, nr, "player")) continue;
-          }
-          const cell = { c: nc, r: nr };
-          if(allowThrough) slidePath.push(cell);
-          else runPath.push(cell);
-          ghost.c = nc; ghost.r = nr;
-          stepped = true;
-          break;
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    const q = [{ c: ghost.c, r: ghost.r, steps: 0, passed: false, path: [] }];
+    let qi = 0;
+    let best = null;
+    const seen = new Set();
+    while(qi < q.length){
+      const cur = q[qi++];
+      const sk = cur.c+","+cur.r+","+(cur.passed?1:0)+","+cur.steps;
+      if(seen.has(sk)) continue;
+      seen.add(sk);
+      if(cur.passed && cur.steps > 0 && isBehindFoe(start, foe, cur)){
+        if(!best || cur.steps > best.steps) best = cur;
+      }
+      if(cur.steps >= slideMax) continue;
+      for(const [dc,dr] of dirs){
+        const nc = cur.c + dc, nr = cur.r + dr;
+        const onFoe = foe.alive && nc===foe.c && nr===foe.r;
+        if(onFoe){
+          if(cur.passed) continue;
+          const path = cur.path.concat([{ c: nc, r: nr, through: true }]);
+          q.push({ c: nc, r: nr, steps: cur.steps + 1, passed: true, path });
+          continue;
         }
-        if(!stepped) break;
+        if(!glissadeSlideCellFree(nc, nr, foe, cur.passed)) continue;
+        const path = cur.path.concat([{ c: nc, r: nr }]);
+        q.push({ c: nc, r: nr, steps: cur.steps + 1, passed: cur.passed, path });
       }
     }
 
-    stepLine(runMax, false);
-    stepLine(slideMax, true);
-
-    const final = slidePath.length
-      ? { c: slidePath[slidePath.length-1].c, r: slidePath[slidePath.length-1].r }
-      : { c: ghost.c, r: ghost.r };
-    const ok = passedEnemy && isBehindFoe(start, foe, final);
-    return { ok, runPath, slidePath, final };
+    if(!best || !best.path.length){
+      return { ok:false, runPath, slidePath:[], final:null };
+    }
+    const slidePath = best.path;
+    const final = { c: slidePath[slidePath.length-1].c, r: slidePath[slidePath.length-1].r };
+    return { ok:true, runPath, slidePath, final };
   }
 
   function castStepTiming(step){
