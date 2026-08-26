@@ -520,6 +520,13 @@
     state.zoneId=id;
     if(id==="body") state.bodyFocus=Math.min(state.bodyFocus, Math.max(0,state.bodies.length-1));
     el("bodyStack").classList.toggle("on", id==="body");
+    /* Arme / 2e main / sac : filtrer sur la 1re catégorie pour voir le rangement */
+    if(id==="weapon"||id==="offhand"||id==="backpack"){
+      const first=catsForActive()[0];
+      state.catFilter = first ? first.id : "all";
+    } else {
+      state.catFilter = "all";
+    }
     syncSteppers(); renderSwatches(); renderBodies(); layoutChrome();
     state.dirty=true;
   }
@@ -637,7 +644,24 @@
     else { const s=slotById(state.zoneId); list=(s&&s.folders)||["None"]; }
     if(state.zoneId==="body") return list;
     const filtered=list.filter(f=>folderInCatFilter(f));
-    return filtered.length?filtered:["None"];
+    if(!filtered.length) return ["None"];
+    /* Si « Toutes », ordonner par catégorie puis nom */
+    if(state.catFilter==="all" && (state.zoneId==="weapon"||state.zoneId==="offhand"||state.zoneId==="backpack")){
+      const order=catsForActive().map(c=>c.id);
+      const rank=f=>{
+        if(f==="None") return -1;
+        const ids=itemCats(f);
+        if(!ids.length) return 9999;
+        const i=order.indexOf(ids[0]);
+        return i<0?9998:i;
+      };
+      return filtered.slice().sort((a,b)=>{
+        const ra=rank(a), rb=rank(b);
+        if(ra!==rb) return ra-rb;
+        return String(a).localeCompare(String(b));
+      });
+    }
+    return filtered;
   }
   function currentOption(){
     if(state.zoneId==="body"){ const b=state.bodies[state.bodyFocus|0]; return (b&&b.folder)||"NakedBody"; }
@@ -996,13 +1020,20 @@
     if(cat.backpackInFrontRows) backpackInFrontRows=cat.backpackInFrontRows;
     if(cat.defaultFps) state.fps=cat.defaultFps|0;
     state.colors=defaultColors();
-    loadCatData();
+    /* Pack = source de vérité des catégories (arme / 2e main / sac) */
+    let packCats=null;
+    try{
+      const r=await fetch(BASE_LOCAL+"equip-categories.json",{cache:"no-store"});
+      if(r.ok) packCats=await r.json();
+    }catch(_e){}
+    if(packCats) applyCatPayload(packCats);
+    else loadCatData();
+
     let loadedLook=false;
-    /* 1) hash fccLook=…  2) localStorage  3) seed-look.json (look validé) */
     try{
       const h=(location.hash||"").replace(/^#/,"");
-      if(h.indexOf("fccLook=")==0){
-        const o=JSON.parse(decodeURIComponent(h.slice(8)));
+      if(h.indexOf("fccLook")==0){
+        const o=JSON.parse(decodeURIComponent(h.slice(h.indexOf("=")+1)));
         loadedLook=applyLookObject(o);
       }
     }catch(_e){}
@@ -1011,30 +1042,29 @@
         const raw=localStorage.getItem("neuro.fantasyLook");
         if(raw){
           const o=JSON.parse(raw);
+          /* look local OK, mais cats pack prioritaires si plus riches */
+          const localCats=(o.equipCategories&&o.equipCategories.categories)||o.categories||[];
           loadedLook=applyLookObject(o);
+          if(packCats && (!localCats.length || localCats.length < (packCats.categories||[]).length)){
+            applyCatPayload(packCats);
+          }
         }
       }catch(_e){}
     }
     if(!loadedLook){
-      for(const u of [BASE_LOCAL+"seed-look.json", BASE_CDN+"seed-look.json"]){
-        try{
-          const r=await fetch(u,{cache:"no-store",mode:"cors"});
-          if(!r.ok) continue;
+      try{
+        const r=await fetch(BASE_LOCAL+"seed-look.json",{cache:"no-store"});
+        if(r.ok){
           const o=await r.json();
-          if(applyLookObject(o)){ loadedLook=true; break; }
-        }catch(_e){}
-      }
+          loadedLook=applyLookObject(o);
+          if(packCats) applyCatPayload(packCats);
+        }
+      }catch(_e){}
     }
-    /* aussi charger cats depuis fichier dédié si encore vides */
-    if(!(state.catData.categories||[]).length){
-      for(const u of [BASE_LOCAL+"equip-categories.json", "equip-categories.json"]){
-        try{
-          const r=await fetch(u,{cache:"no-store",mode:"cors"});
-          if(!r.ok) continue;
-          if(applyCatPayload(await r.json())) break;
-        }catch(_e){}
-      }
-    }
+    /* re-force pack cats after look apply */
+    if(packCats) applyCatPayload(packCats);
+    saveCatData();
+
     if(!state.look.body) state.look=defaultLook(cat);
     if(!("hair" in state.look)) state.look.hair="None";
     if(!state.bodies.length) state.bodies=[{folder:"NakedBody",opacity:1,color:DEFAULT_COLORS.body}];
@@ -1049,9 +1079,7 @@
     state.dirty=true;
     await loadImg(state.bodies[0].folder||"NakedBody","Idle");
     const nc=(state.catData.categories||[]).length;
-    el("status").textContent=nc
-      ? ("Prêt · "+nc+" cat. · Copier/Coller JSON")
-      : "Prêt · Coller JSON pour retrouver tes catégories";
+    el("status").textContent="Prêt · "+nc+" cat. figées · Arme/2e main/Sac filtrés";
     syncSteppers(); renderSwatches(); renderBodies(); syncSizeUI();
     loop();
   }
