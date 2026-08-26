@@ -13,6 +13,14 @@ cp "$ROOT/fantasy-combat.html" "$OUT/fantasy-combat.html"
 cp "$ROOT/fantasy-dir-calibrate.html" "$OUT/fantasy-dir-calibrate.html"
 cp "$ROOT/fantasy-weapon-anim.html" "$OUT/fantasy-weapon-anim.html"
 cp "$ROOT/spell-editor.html" "$OUT/spell-editor.html"
+if [[ -f "$ROOT/arrow-dir-calibrate.html" ]]; then
+  cp "$ROOT/arrow-dir-calibrate.html" "$OUT/arrow-dir-calibrate.html"
+fi
+if [[ -d "$ROOT/assets/packs/fantasy-cc/projectiles" ]]; then
+  mkdir -p "$OUT/assets/packs/fantasy-cc/projectiles" "$OUT/projectiles"
+  cp -a "$ROOT/assets/packs/fantasy-cc/projectiles/." "$OUT/assets/packs/fantasy-cc/projectiles/"
+  cp -a "$ROOT/assets/packs/fantasy-cc/projectiles/." "$OUT/projectiles/"
+fi
 cp "$ROOT/js/fantasy-combat-bridge.js" "$OUT/js/fantasy-combat-bridge.js"
 # Même noms que le repo pour les liens Créateur ↔ Combat
 cp "$ROOT/character-creator-fantasy.html" "$OUT/character-creator-fantasy.html"
@@ -24,6 +32,13 @@ cp "$ROOT/fantasy-weapon-anim.html" "$ROOT/docs/previews/fantasy-weapon-anim.htm
 cp "$ROOT/js/fantasy-combat-bridge.js" "$ROOT/docs/previews/js/fantasy-combat-bridge.js"
 cp "$ROOT/character-creator-fantasy.html" "$ROOT/docs/previews/character-creator-fantasy.html"
 cp "$ROOT/spell-editor.html" "$ROOT/docs/previews/spell-editor.html"
+if [[ -f "$ROOT/arrow-dir-calibrate.html" ]]; then
+  cp "$ROOT/arrow-dir-calibrate.html" "$ROOT/docs/previews/arrow-dir-calibrate.html"
+fi
+if [[ -d "$ROOT/assets/packs/fantasy-cc/projectiles" ]]; then
+  mkdir -p "$ROOT/docs/previews/projectiles"
+  cp -a "$ROOT/assets/packs/fantasy-cc/projectiles/." "$ROOT/docs/previews/projectiles/"
+fi
 
 # Chapeau Head25 + guide PixelLab (local, pas sur le CDN pin)
 mkdir -p "$OUT/hat-refs" "$OUT/assets/packs/fantasy-cc/spritesheets" "$ROOT/docs/previews/hat-refs"
@@ -56,6 +71,7 @@ cat > "$OUT/index.html" <<'EOF'
 <p><a href="hat-wizard-guide.html">Guide chapeau sorcier (Head25)</a></p>
 <p><a href="fantasy-weapon-anim.html">Anim par équipement</a></p>
 <p><a href="fantasy-dir-calibrate.html">Calibrage directions</a></p>
+<p><a href="arrow-dir-calibrate.html">Calibrage flèche 8 dir</a></p>
 <p><a href="editor.html">Éditeur placement</a></p>
 </body></html>
 EOF
