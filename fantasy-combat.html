@@ -2898,48 +2898,54 @@
   function planGlissadePath(ent, foe, runMax, slideMax){
     if(!foe || !foe.alive) return { ok:false, runPath:[], slidePath:[], final:null };
     const start = { c: ent.c, r: ent.r };
-    const ghost = { c: ent.c, r: ent.r };
-    const runPath = [];
-    for(let i=0;i<runMax;i++){
-      if(dist(ghost, foe) <= 1) break;
-      if(!stepEntityTowardOnce(ghost, foe, "player")) break;
-      runPath.push({ c: ghost.c, r: ghost.r });
-    }
-    const slidePath = [];
-    let passedEnemy = false;
     let dirC = Math.sign(foe.c - start.c);
     let dirR = Math.sign(foe.r - start.r);
-    if(!dirC && !dirR) dirC = 1;
-    for(let i=0;i<slideMax;i++){
-      if(!passedEnemy){
-        const tc = Math.sign(foe.c - ghost.c);
-        const tr = Math.sign(foe.r - ghost.r);
-        if(tc || tr){ dirC = tc || dirC; dirR = tr || dirR; }
-      }
-      const tries = [];
-      if(dirC && dirR) tries.push([dirC,0],[0,dirR],[dirC,dirR]);
-      else if(dirC) tries.push([dirC,0],[0,1],[0,-1]);
-      else tries.push([0,dirR],[1,0],[-1,0]);
-      let stepped = false;
-      for(const [tdc, tdr] of tries){
-        const nc = ghost.c + tdc, nr = ghost.r + tdr;
-        const onFoe = foe.alive && nc===foe.c && nr===foe.r;
-        if(onFoe){
-          if(passedEnemy) continue;
-          slidePath.push({ c: nc, r: nr, through: true });
+    if(!dirC && !dirR) return { ok:false, runPath:[], slidePath:[], final:null };
+
+    const ghost = { c: ent.c, r: ent.r };
+    const runPath = [];
+    const slidePath = [];
+    let passedEnemy = false;
+
+    function lineTries(dc, dr){
+      if(dc && dr) return [[dc,dr],[dc,0],[0,dr]];
+      if(dc) return [[dc,0],[0,1],[0,-1]];
+      return [[0,dr],[1,0],[-1,0]];
+    }
+
+    function stepLine(maxSteps, allowThrough){
+      for(let i=0;i<maxSteps;i++){
+        let stepped = false;
+        for(const [tdc, tdr] of lineTries(dirC, dirR)){
+          const nc = ghost.c + tdc, nr = ghost.r + tdr;
+          const onFoe = foe.alive && nc===foe.c && nr===foe.r;
+          if(onFoe){
+            if(!allowThrough || passedEnemy) continue;
+            slidePath.push({ c: nc, r: nr, through: true });
+            ghost.c = nc; ghost.r = nr;
+            passedEnemy = true;
+            stepped = true;
+            break;
+          }
+          if(allowThrough){
+            if(!glissadeSlideCellFree(nc, nr, foe, passedEnemy)) continue;
+          } else {
+            if(!rouladeCellFree(nc, nr, "player")) continue;
+          }
+          const cell = { c: nc, r: nr };
+          if(allowThrough) slidePath.push(cell);
+          else runPath.push(cell);
           ghost.c = nc; ghost.r = nr;
-          passedEnemy = true;
           stepped = true;
           break;
         }
-        if(!glissadeSlideCellFree(nc, nr, foe, passedEnemy)) continue;
-        slidePath.push({ c: nc, r: nr });
-        ghost.c = nc; ghost.r = nr;
-        stepped = true;
-        break;
+        if(!stepped) break;
       }
-      if(!stepped) break;
     }
+
+    stepLine(runMax, false);
+    stepLine(slideMax, true);
+
     const final = slidePath.length
       ? { c: slidePath[slidePath.length-1].c, r: slidePath[slidePath.length-1].r }
       : { c: ghost.c, r: ghost.r };
