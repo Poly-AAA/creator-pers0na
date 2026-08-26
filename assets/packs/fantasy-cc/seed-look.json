@@ -1,0 +1,435 @@
+{
+  "pack": "fantasy-cc",
+  "look": {
+    "body": "NakedBody",
+    "shoes": "None",
+    "legs": "None",
+    "chest": "None",
+    "belt": "None",
+    "gloves": "None",
+    "offhand": "None",
+    "weapon": "None",
+    "backpack": "None",
+    "head": "Head14",
+    "slash": "None",
+    "effect": "None",
+    "mount": "Mount5",
+    "hair": "None"
+  },
+  "colors": {
+    "body": "#c9a07a",
+    "shoes": "#ff5a36",
+    "legs": "#2f6bff",
+    "chest": "#19c37d",
+    "belt": "#ffb020",
+    "gloves": "#ff4fa3",
+    "offhand": "#00c2ff",
+    "weapon": "#ff2e2e",
+    "backpack": "#b85cff",
+    "head": "#ffe14a",
+    "hair": "#5b2cff",
+    "slash": "#ff6a00",
+    "effect": "#00f0ff",
+    "mount": "#ff7a59"
+  },
+  "bodies": [
+    {
+      "folder": "NakedBody",
+      "opacity": 1,
+      "color": "#8a8580"
+    }
+  ],
+  "fps": 14,
+  "anim": "Walk",
+  "dir": 1,
+  "charSizePct": 0.5,
+  "equipCategories": {
+    "ver": 1,
+    "pack": "fantasy-cc",
+    "categories": [
+      {
+        "id": "weapon_idb5j",
+        "label": "Magie",
+        "slot": "weapon"
+      },
+      {
+        "id": "weapon_1irju",
+        "label": "Dague",
+        "slot": "weapon"
+      },
+      {
+        "id": "weapon_0ezgl",
+        "label": "Marteau",
+        "slot": "weapon"
+      },
+      {
+        "id": "weapon_x92lk",
+        "label": "Hache",
+        "slot": "weapon"
+      },
+      {
+        "id": "weapon_ckbps",
+        "label": "Fléau",
+        "slot": "weapon"
+      },
+      {
+        "id": "weapon_guo65",
+        "label": "Épée",
+        "slot": "weapon"
+      },
+      {
+        "id": "weapon_1evk9",
+        "label": "Pioche",
+        "slot": "weapon"
+      },
+      {
+        "id": "weapon_lp9a0",
+        "label": "Bâton",
+        "slot": "weapon"
+      },
+      {
+        "id": "weapon_4ve5w",
+        "label": "Lance",
+        "slot": "weapon"
+      },
+      {
+        "id": "weapon_mjbl3",
+        "label": "Arc",
+        "slot": "weapon"
+      },
+      {
+        "id": "offhand_2290d",
+        "label": "Épée",
+        "slot": "offhand"
+      },
+      {
+        "id": "offhand_tv1sq",
+        "label": "Bouclier",
+        "slot": "offhand"
+      },
+      {
+        "id": "backpack_wzfnd",
+        "label": "Sac",
+        "slot": "backpack"
+      },
+      {
+        "id": "backpack_eurdx",
+        "label": "Carquois",
+        "slot": "backpack"
+      },
+      {
+        "id": "backpack_2p7u5",
+        "label": "Ailes",
+        "slot": "backpack"
+      }
+    ],
+    "items": {
+      "Magic1": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_idb5j"
+        ]
+      },
+      "Magic2": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_idb5j"
+        ]
+      },
+      "Magic3": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_idb5j"
+        ]
+      },
+      "Melee1": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_1irju"
+        ]
+      },
+      "Melee10": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_0ezgl"
+        ]
+      },
+      "Melee11": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_x92lk"
+        ]
+      },
+      "Melee12": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_ckbps"
+        ]
+      },
+      "Melee13": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_guo65"
+        ]
+      },
+      "Melee14": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_x92lk"
+        ]
+      },
+      "Melee15": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_x92lk"
+        ]
+      },
+      "Melee16": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_x92lk"
+        ]
+      },
+      "Melee17": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_x92lk"
+        ]
+      },
+      "Melee18": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_1evk9"
+        ]
+      },
+      "Melee19": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_lp9a0"
+        ]
+      },
+      "Melee2": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_guo65"
+        ]
+      },
+      "Melee20": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_4ve5w"
+        ]
+      },
+      "Melee21": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_4ve5w"
+        ]
+      },
+      "Melee22": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_ckbps"
+        ]
+      },
+      "Melee23": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_4ve5w"
+        ]
+      },
+      "Melee24": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_4ve5w"
+        ]
+      },
+      "Melee25": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_4ve5w"
+        ]
+      },
+      "Melee3": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_guo65"
+        ]
+      },
+      "Melee4": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_guo65"
+        ]
+      },
+      "Melee5": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_guo65"
+        ]
+      },
+      "Melee6": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_mjbl3"
+        ]
+      },
+      "Melee7": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_mjbl3"
+        ]
+      },
+      "Melee8": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_guo65"
+        ]
+      },
+      "Melee9": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_0ezgl"
+        ]
+      },
+      "Ranged1": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_mjbl3"
+        ]
+      },
+      "Ranged2": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_mjbl3"
+        ]
+      },
+      "Ranged3": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_mjbl3"
+        ]
+      },
+      "Ranged4": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_mjbl3"
+        ]
+      },
+      "Ranged5": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_mjbl3"
+        ]
+      },
+      "Ranged6": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_mjbl3"
+        ]
+      },
+      "Ranged7": {
+        "slot": "weapon",
+        "categories": [
+          "weapon_mjbl3"
+        ]
+      },
+      "Offhand1": {
+        "slot": "offhand",
+        "categories": [
+          "offhand_2290d"
+        ]
+      },
+      "Offhand2": {
+        "slot": "offhand",
+        "categories": [
+          "offhand_2290d"
+        ]
+      },
+      "Shield1": {
+        "slot": "offhand",
+        "categories": [
+          "offhand_tv1sq"
+        ]
+      },
+      "Shield2": {
+        "slot": "offhand",
+        "categories": [
+          "offhand_tv1sq"
+        ]
+      },
+      "Shield3": {
+        "slot": "offhand",
+        "categories": [
+          "offhand_tv1sq"
+        ]
+      },
+      "Shield4": {
+        "slot": "offhand",
+        "categories": [
+          "offhand_tv1sq"
+        ]
+      },
+      "Shield5": {
+        "slot": "offhand",
+        "categories": [
+          "offhand_tv1sq"
+        ]
+      },
+      "Shield6": {
+        "slot": "offhand",
+        "categories": [
+          "offhand_tv1sq"
+        ]
+      },
+      "Shield7": {
+        "slot": "offhand",
+        "categories": [
+          "offhand_tv1sq"
+        ]
+      },
+      "Bag1": {
+        "slot": "backpack",
+        "categories": [
+          "backpack_wzfnd"
+        ]
+      },
+      "Bag2": {
+        "slot": "backpack",
+        "categories": [
+          "backpack_eurdx"
+        ]
+      },
+      "Bag3": {
+        "slot": "backpack",
+        "categories": [
+          "backpack_eurdx"
+        ]
+      },
+      "Bag4": {
+        "slot": "backpack",
+        "categories": [
+          "backpack_2p7u5"
+        ]
+      },
+      "Bag5": {
+        "slot": "backpack",
+        "categories": [
+          "backpack_2p7u5"
+        ]
+      },
+      "Bag8": {
+        "slot": "backpack",
+        "categories": [
+          "backpack_2p7u5"
+        ]
+      },
+      "Bag6": {
+        "slot": "backpack",
+        "categories": [
+          "backpack_wzfnd"
+        ]
+      }
+    }
+  }
+}
