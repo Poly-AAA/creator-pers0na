@@ -301,7 +301,9 @@
   }
   function dirFromIsoDelta(dc, dr){
     if(!dc && !dr) return null;
-    const sx = dc - dr, sy = dc + dr;
+    /* Angle écran (TILE_W:TILE_H = 2:1) pour coller à la trajectoire visuelle */
+    const sx = (dc - dr) * (TILE_W / 2);
+    const sy = (dc + dr) * (TILE_H / 2);
     let i = Math.round(Math.atan2(sx, -sy) / (Math.PI/4));
     if(i < 0) i += 8;
     return i & 7;

@@ -1077,7 +1077,56 @@ function fitCam(){
 }
 
 const ROW_LABEL_TO_DIR_ROW={"E":0,"SE":1,"S":2,"SW":3,"W":4,"NW":5,"N":6,"NE":7};
-function sheetRow(dir){ return dir&7; }
+/* Même calibrage que le combat : ligne sheet → face logique 0=N…7=NW */
+const KEY_DIR = "neuro.fantasyDirRow";
+const KEY_DIR_SHEETS = "neuro.fantasyDirRow.sheets";
+const KEY_DIR_VER = "neuro.fantasyDirRow.ver";
+const DIR_CAL_VER = "cal-2026-08-12";
+const DEFAULT_DIR_ROW = [2,3,4,5,6,7,0,1];
+const DEFAULT_DIR_SHEETS = {
+  Walk:DEFAULT_DIR_ROW.slice(), Run:DEFAULT_DIR_ROW.slice(),
+  RunBackwards:DEFAULT_DIR_ROW.slice(), StrafeLeft:DEFAULT_DIR_ROW.slice(),
+  StrafeRight:DEFAULT_DIR_ROW.slice(), CrouchRun:DEFAULT_DIR_ROW.slice(),
+  Attack1:DEFAULT_DIR_ROW.slice(), Attack2:DEFAULT_DIR_ROW.slice(),
+  Attack3:DEFAULT_DIR_ROW.slice(), Attack4:DEFAULT_DIR_ROW.slice(),
+  Attack5:DEFAULT_DIR_ROW.slice(), Attack6:DEFAULT_DIR_ROW.slice(),
+  AttackRun:DEFAULT_DIR_ROW.slice(), AttackRun2:DEFAULT_DIR_ROW.slice(),
+  Kick:DEFAULT_DIR_ROW.slice(), Special1:DEFAULT_DIR_ROW.slice(),
+  Idle:DEFAULT_DIR_ROW.slice()
+};
+let DIR_ROW = DEFAULT_DIR_ROW.slice();
+let DIR_SHEETS = Object.assign({}, DEFAULT_DIR_SHEETS);
+(function loadDirCal(){
+  try{
+    const ver = localStorage.getItem(KEY_DIR_VER);
+    if(ver === DIR_CAL_VER){
+      const raw = localStorage.getItem(KEY_DIR);
+      if(raw){ const a=JSON.parse(raw); if(Array.isArray(a)&&a.length===8) DIR_ROW=a.map(n=>n&7); }
+      const sheets = localStorage.getItem(KEY_DIR_SHEETS);
+      if(sheets){
+        const o=JSON.parse(sheets);
+        if(o && typeof o==="object"){
+          Object.keys(o).forEach(k=>{
+            if(Array.isArray(o[k])&&o[k].length===8) DIR_SHEETS[k]=o[k].map(n=>n&7);
+          });
+        }
+      }
+    }
+  }catch(_e){}
+})();
+function dirMapForAnim(anim){
+  if(anim && DIR_SHEETS[anim]) return DIR_SHEETS[anim];
+  if(anim && /^Attack|^Kick|^Special/i.test(anim) && DIR_SHEETS.Attack1) return DIR_SHEETS.Attack1;
+  if(anim && /^(Walk|Run|Strafe|Crouch)/i.test(anim) && DIR_SHEETS.Walk) return DIR_SHEETS.Walk;
+  return DIR_ROW;
+}
+function sheetRowForDir(dir, anim){
+  const m = dirMapForAnim(anim);
+  const f=dir&7;
+  for(let r=0;r<8;r++) if(m[r]===f) return r;
+  return f;
+}
+function sheetRow(dir){ return sheetRowForDir(dir, "Idle"); }
 
 let raf=0;
 function drawLoop(){
@@ -1102,7 +1151,7 @@ function drawLoop(){
   for(const ent of [enemy, player]){
     if(!ent.alive && ent.anim!=="Die") continue;
     const anim=ent.anim||"Idle";
-    const row=sheetRow(ent.dir);
+    const row=sheetRowForDir(ent.dir, anim);
     const elapsed=(now-ent.t0)/1000;
     const fps=ent.stepFps||FPS;
     const loop=/^(Idle|Walk|Run|RideIdle|RideRun)$/i.test(anim);
@@ -1347,7 +1396,9 @@ function loadArrowImgs(){
 }
 function dirFromIsoDelta(dc, dr){
   if(!dc && !dr) return null;
-  const sx = dc - dr, sy = dc + dr;
+  /* Angle écran (TILE_W:TILE_H = 2:1) — même convention que le combat iso */
+  const sx = (dc - dr) * (TILE_W / 2);
+  const sy = (dc + dr) * (TILE_H / 2);
   let i = Math.round(Math.atan2(sx, -sy) / (Math.PI/4));
   if(i < 0) i += 8;
   return i & 7;
