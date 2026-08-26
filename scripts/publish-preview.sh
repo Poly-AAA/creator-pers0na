@@ -16,6 +16,9 @@ cp "$ROOT/spell-editor.html" "$OUT/spell-editor.html"
 if [[ -f "$ROOT/arrow-dir-calibrate.html" ]]; then
   cp "$ROOT/arrow-dir-calibrate.html" "$OUT/arrow-dir-calibrate.html"
 fi
+if [[ -f "$ROOT/arrow-projectile-editor.html" ]]; then
+  cp "$ROOT/arrow-projectile-editor.html" "$OUT/arrow-projectile-editor.html"
+fi
 if [[ -d "$ROOT/assets/packs/fantasy-cc/projectiles" ]]; then
   mkdir -p "$OUT/assets/packs/fantasy-cc/projectiles" "$OUT/projectiles"
   cp -a "$ROOT/assets/packs/fantasy-cc/projectiles/." "$OUT/assets/packs/fantasy-cc/projectiles/"
@@ -34,6 +37,9 @@ cp "$ROOT/character-creator-fantasy.html" "$ROOT/docs/previews/character-creator
 cp "$ROOT/spell-editor.html" "$ROOT/docs/previews/spell-editor.html"
 if [[ -f "$ROOT/arrow-dir-calibrate.html" ]]; then
   cp "$ROOT/arrow-dir-calibrate.html" "$ROOT/docs/previews/arrow-dir-calibrate.html"
+fi
+if [[ -f "$ROOT/arrow-projectile-editor.html" ]]; then
+  cp "$ROOT/arrow-projectile-editor.html" "$ROOT/docs/previews/arrow-projectile-editor.html"
 fi
 if [[ -d "$ROOT/assets/packs/fantasy-cc/projectiles" ]]; then
   mkdir -p "$ROOT/docs/previews/projectiles"
@@ -72,6 +78,7 @@ cat > "$OUT/index.html" <<'EOF'
 <p><a href="fantasy-weapon-anim.html">Anim par équipement</a></p>
 <p><a href="fantasy-dir-calibrate.html">Calibrage directions</a></p>
 <p><a href="arrow-dir-calibrate.html">Calibrage flèche 8 dir</a></p>
+<p><a href="arrow-projectile-editor.html">Éditeur arc / flèche (tendu)</a></p>
 <p><a href="editor.html">Éditeur placement</a></p>
 </body></html>
 EOF
