@@ -1,0 +1,52 @@
+{
+  "pack": "fantasy-cc",
+  "look": {
+    "body": "NakedBody",
+    "shoes": "Shoes3",
+    "legs": "Legs8",
+    "chest": "Chest18",
+    "belt": "Belt1",
+    "gloves": "Hands3",
+    "offhand": "Offhand1",
+    "weapon": "Melee1",
+    "backpack": "Bag6",
+    "head": "None",
+    "slash": "None",
+    "effect": "None",
+    "mount": "None",
+    "hair": "None"
+  },
+  "colors": {
+    "body": "#c9a07a",
+    "shoes": "#ff5a36",
+    "legs": "#2f6bff",
+    "chest": "#19c37d",
+    "belt": "#d4789a",
+    "gloves": "#ff4fa3",
+    "offhand": "#00c2ff",
+    "weapon": "#ff2e2e",
+    "backpack": "#b85cff",
+    "head": "#c45c26",
+    "hair": "#5b2cff",
+    "slash": "#ff6a00",
+    "effect": "#00f0ff",
+    "mount": "#7a3010"
+  },
+  "bodies": [
+    {
+      "folder": "NakedBody",
+      "opacity": 1,
+      "color": "#d4a574"
+    }
+  ],
+  "fps": 14,
+  "anim": "Idle",
+  "dir": 2,
+  "charSizePct": 0.5,
+  "equipCategories": {
+    "ver": 1,
+    "pack": "fantasy-cc",
+    "categories": [],
+    "items": {}
+  }
+}
