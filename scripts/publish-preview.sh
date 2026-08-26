@@ -297,6 +297,8 @@ if [[ -n "$BASE" ]]; then
   ANIMS_URL="$BASE/fantasy-weapon-anim.html"
   DIRS_URL="$BASE/fantasy-dir-calibrate.html"
   SPELL_URL="$BASE/spell-editor.html"
+  ARROW_URL="$BASE/arrow-projectile-editor.html"
+  ARROW_DIR_URL="$BASE/arrow-dir-calibrate.html"
   wire_fcc_nav "$OUT/fantasy-combat.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL" "$SPELL_URL"
   wire_fcc_nav "$OUT/creator.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL" "$SPELL_URL"
   wire_fcc_nav "$OUT/character-creator-fantasy.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL" "$SPELL_URL"
@@ -305,6 +307,22 @@ if [[ -n "$BASE" ]]; then
   inject_fcc_nav "$OUT/spell-editor.html" "$COMBAT_URL" "$CREATOR_URL" "$SPELL_URL" "$ANIMS_URL" "$DIRS_URL"
   wire_fcc_nav "$OUT/fantasy-weapon-anim.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL" "$SPELL_URL"
   wire_fcc_nav "$OUT/fantasy-dir-calibrate.html" "$COMBAT_URL" "$CREATOR_URL" "$ANIMS_URL" "$DIRS_URL" "$SPELL_URL"
+  if [[ -f "$OUT/arrow-projectile-editor.html" ]]; then
+    python3 - "$OUT/arrow-projectile-editor.html" "$COMBAT_URL" "$ARROW_DIR_URL" <<'PY'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1]); combat, dirs = sys.argv[2], sys.argv[3]
+t = p.read_text()
+t = t.replace('href="fantasy-combat.html"', f'href="{combat}"')
+t = t.replace('href="arrow-dir-calibrate.html"', f'href="{dirs}"')
+# data-fcc hooks
+import re
+t = re.sub(r'(data-fcc="combat"[^>]*href=")[^"]*"', rf'\1{combat}"', t)
+t = re.sub(r'(data-fcc="dirs"[^>]*href=")[^"]*"', rf'\1{dirs}"', t)
+p.write_text(t)
+print("wired arrow editor")
+PY
+  fi
   # Patch BASE_LOCAL to absolute tunnel URL so sprites load even from single-file hosts
   python3 - "$OUT" "$BASE" <<'PY'
 from pathlib import Path
@@ -332,6 +350,19 @@ for path in [creator, combat]:
     t=t.replace('href="spell-editor.html"', f'href="{spell}"')
     p.write_text(t)
 PY
+  # Patch Flèches link in combat
+  if [[ -f "$OUT/fantasy-combat.html" ]]; then
+    python3 - "$OUT/fantasy-combat.html" "$ARROW_URL" <<'PY'
+from pathlib import Path
+import re, sys
+p=Path(sys.argv[1]); arrow=sys.argv[2]
+t=p.read_text()
+t=re.sub(r'(data-fcc="arrow"[^>]*href=")[^"]*"', rf'\1{arrow}"', t)
+t=t.replace('href="arrow-projectile-editor.html"', f'href="{arrow}"')
+p.write_text(t)
+print("wired combat→arrow")
+PY
+  fi
   if verify_url "$CREATOR_URL" "combatUrlWithLook" \
     && verify_url "$COMBAT_URL" "Combat Fantasy" \
     && verify_url "$DIRS_URL" "Calibrage directions" \
@@ -344,6 +375,12 @@ PY
     echo "DIRS=$DIRS_URL"
     echo "ANIMS=$ANIMS_URL"
     echo "SPELL=$SPELL_URL"
+    if [[ -f "$OUT/arrow-projectile-editor.html" ]] && verify_url "$ARROW_URL" "Arc"; then
+      echo "ARROW=$ARROW_URL"
+    fi
+    if [[ -f "$OUT/arrow-dir-calibrate.html" ]] && verify_url "$ARROW_DIR_URL" "Calibrage"; then
+      echo "ARROW_DIR=$ARROW_DIR_URL"
+    fi
     echo "INDEX=$BASE/"
     # ── Mettre à jour tunnel-base.txt + portail.html pour le portail permanent ──
     echo "$BASE" > "$ROOT/docs/previews/tunnel-base.txt"
