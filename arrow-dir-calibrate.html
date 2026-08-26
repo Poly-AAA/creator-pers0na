@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
+<title>Calibrage flèche — 8 directions</title>
+<style>
+  :root{
+    --bg:#ecece8; --bg2:#f5f5f2; --ink:#555552; --ink2:#8e8e8a;
+    --line:#c6c6c2; --line2:#dcdcd8; --card:#fafaf8; --sel:#3d3d3a; --soft:#f0f0ec;
+    --ok:#2f6f4e; --accent:#5b7c99;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+    font:15px/1.35 Helvetica,Arial,sans-serif}
+  .app{max-width:390px;margin:0 auto;min-height:100dvh;padding:12px 12px calc(18px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,var(--bg2),var(--bg));display:flex;flex-direction:column;gap:10px}
+  h1{margin:0;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--sel)}
+  .sub{margin:0;font-size:12px;color:var(--ink2);line-height:1.4}
+  .sub b{color:var(--ink)}
+  .card{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:12px}
+  .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px}
+  .progress{height:8px;border-radius:999px;background:var(--soft);border:1px solid var(--line2);overflow:hidden;margin-bottom:8px}
+  .progress>i{display:block;height:100%;width:0%;background:var(--accent);transition:width .2s}
+  .q{font-size:14px;font-weight:700;color:var(--sel);margin:0 0 8px;line-height:1.35}
+  .q span{color:var(--accent)}
+  #stage{width:100%;aspect-ratio:1;border-radius:12px;border:1px solid var(--line);background:#1a1a1a;display:block;image-rendering:pixelated}
+  .compass{
+    margin-top:8px;height:64px;border-radius:10px;border:1px dashed var(--line);
+    background:var(--soft);position:relative;
+  }
+  .compass .n,.compass .e,.compass .s,.compass .w{
+    position:absolute;font-size:10px;font-weight:700;color:var(--ink2);letter-spacing:.06em;
+  }
+  .compass .n{top:4px;left:50%;transform:translateX(-50%)}
+  .compass .s{bottom:4px;left:50%;transform:translateX(-50%)}
+  .compass .e{right:8px;top:50%;transform:translateY(-50%)}
+  .compass .w{left:8px;top:50%;transform:translateY(-50%)}
+  .compass .needle{
+    position:absolute;left:50%;top:50%;width:0;height:0;
+    border-left:7px solid transparent;border-right:7px solid transparent;
+    border-bottom:20px solid var(--accent);
+    transform-origin:50% 100%;margin-left:-7px;margin-top:-20px;
+  }
+  .row-nav{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .row-nav button{
+    flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--soft);
+    color:var(--sel);font-size:18px;cursor:pointer;
+  }
+  .row-nav .val{min-width:110px;text-align:center;font-weight:700;font-size:13px;color:var(--sel)}
+  .dirs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .dirs button{
+    min-height:52px;border-radius:10px;border:1px solid var(--line);background:var(--soft);
+    color:var(--ink);font-size:13px;font-weight:800;cursor:pointer;line-height:1.15;padding:6px 4px;
+  }
+  .dirs button small{display:block;font-weight:500;color:var(--ink2);font-size:10px;margin-top:2px}
+  .dirs button.on{background:var(--sel);color:#fff;border-color:var(--sel)}
+  .dirs button.on small{color:#cfcfc8}
+  .dirs button.used{box-shadow:inset 0 0 0 1.5px var(--ok)}
+  .strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .strip button{
+    flex:0 0 auto;width:56px;height:56px;padding:4px;border-radius:10px;border:1.5px solid var(--line);
+    background:#222;cursor:pointer;image-rendering:pixelated;
+  }
+  .strip button img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;display:block}
+  .strip button.on{border-color:var(--accent);box-shadow:0 0 0 2px rgba(91,124,153,.35)}
+  .strip button.done{border-color:var(--ok)}
+  .test-pad{
+    display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr 1fr;gap:6px;
+    width:150px;margin:8px auto 0;transform:rotate(45deg);
+  }
+  .test-pad button{
+    min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--card);
+    color:var(--sel);font-size:14px;cursor:pointer;
+  }
+  .test-pad .u{grid-column:2;grid-row:1}
+  .test-pad .l{grid-column:1;grid-row:2}
+  .test-pad .c{grid-column:2;grid-row:2;border-radius:50%;font-size:10px}
+  .test-pad .r{grid-column:3;grid-row:2}
+  .test-pad .d{grid-column:2;grid-row:3}
+  .test-pad .glyph{display:block;transform:rotate(-45deg)}
+  .bar{display:flex;gap:8px;flex-wrap:wrap}
+  .bar a,.bar button{
+    flex:1;min-width:100px;min-height:44px;border-radius:10px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);font-size:12px;text-decoration:none;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:600;
+  }
+  .bar .primary{background:var(--sel);color:#fff;border-color:var(--sel)}
+  .bar .ok{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .status{font-size:11px;color:var(--ink2);text-align:center;min-height:1.2em}
+  .map{display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:11px;color:var(--ink2)}
+  .map div{background:var(--soft);border-radius:8px;padding:6px 8px;border:1px solid var(--line2)}
+  .map b{color:var(--sel)}
+  .hint{font-size:11px;color:var(--ink2);margin:6px 0 0;line-height:1.4}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Calibrage flèche</h1>
+  <p class="sub">Pour <b>chaque frame</b> du GIF, dis vers où pointe la <b>pointe</b>. Haut de l’écran = N. Évite les erreurs d’ordre PixelLab.</p>
+
+  <div class="card">
+    <div class="lab">1 · Frames (tape pour choisir)</div>
+    <div class="strip" id="strip"></div>
+    <p class="hint">Ou charge un autre GIF 8 frames : <input type="file" id="fileGif" accept="image/gif,image/png,image/*" style="font-size:11px;max-width:100%"/></p>
+  </div>
+
+  <div class="card">
+    <div class="lab">2 · Frame <span id="frameLab">0</span> / 7</div>
+    <div class="progress"><i id="prog"></i></div>
+    <p class="q">Cette flèche pointe vers <span id="askDir">…</span> ?</p>
+    <canvas id="stage" width="320" height="320" aria-label="Flèche"></canvas>
+    <div class="compass">
+      <span class="n">N haut</span><span class="e">E</span><span class="s">S bas</span><span class="w">W</span>
+      <div class="needle" id="needle"></div>
+    </div>
+    <div class="row-nav">
+      <button type="button" id="framePrev" aria-label="Frame précédente">‹</button>
+      <div class="val" id="frameVal">Frame 0</div>
+      <button type="button" id="frameNext" aria-label="Frame suivante">›</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="lab">3 · Choisis la direction écran (pointe)</div>
+    <div class="dirs" id="dirs">
+      <button type="button" data-dir="0">N<small>haut</small></button>
+      <button type="button" data-dir="1">NE<small>haut-droite</small></button>
+      <button type="button" data-dir="2">E<small>droite</small></button>
+      <button type="button" data-dir="3">SE<small>bas-droite</small></button>
+      <button type="button" data-dir="4">S<small>bas</small></button>
+      <button type="button" data-dir="5">SW<small>bas-gauche</small></button>
+      <button type="button" data-dir="6">W<small>gauche</small></button>
+      <button type="button" data-dir="7">NW<small>haut-gauche</small></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="lab">4 · Test iso (croix = axes map)</div>
+    <canvas id="test" width="280" height="200" style="width:100%;border-radius:10px;border:1px solid var(--line);background:#e2e2de;image-rendering:pixelated"></canvas>
+    <div class="test-pad" id="testPad">
+      <button type="button" class="u" data-dir="u"><span class="glyph">▲</span></button>
+      <button type="button" class="l" data-dir="l"><span class="glyph">◀</span></button>
+      <button type="button" class="c" data-dir="c"><span class="glyph">●</span></button>
+      <button type="button" class="r" data-dir="r"><span class="glyph">▶</span></button>
+      <button type="button" class="d" data-dir="d"><span class="glyph">▼</span></button>
+    </div>
+    <p class="status" id="testHint">Tape une flèche : la pointe doit aller dans ce sens.</p>
+  </div>
+
+  <div class="card">
+    <div class="lab">Mapping frame → direction</div>
+    <div class="map" id="mapOut"></div>
+    <p class="hint" id="dupWarn" style="color:#a44;display:none"></p>
+  </div>
+
+  <div class="card">
+    <div class="lab">5 · Export / coller</div>
+    <textarea id="exportBox" readonly rows="7" style="width:100%;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--sel);font:11px/1.4 ui-monospace,Menlo,monospace;padding:10px;resize:vertical"></textarea>
+    <div class="bar" style="margin-top:8px">
+      <button type="button" class="primary" id="btnCopy">Copier JSON</button>
+      <button type="button" id="btnImport">Importer</button>
+    </div>
+    <textarea id="importBox" rows="3" placeholder="Colle un JSON puis Importer" style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:11px/1.4 ui-monospace,Menlo,monospace;padding:10px;resize:vertical"></textarea>
+  </div>
+
+  <div class="bar">
+    <button type="button" id="btnReset">↩ Défaut auto</button>
+    <button type="button" class="primary" id="btnSave">Sauver</button>
+    <a class="ok" data-fcc="combat" href="fantasy-combat.html">Combat</a>
+  </div>
+  <div class="status" id="status">Choisis chaque frame, puis sa direction.</div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const KEY = "neuro.arrowDirMap";
+  const KEY_VER = "neuro.arrowDirMap.ver";
+  const VER = "arrow-cal-2026-08-26";
+  const LABELS = ["N","NE","E","SE","S","SW","W","NW"];
+  /* Angles aiguille boussole : N=0°, E=90°… (écran) */
+  const NEEDLE_DEG = [0, 45, 90, 135, 180, 225, 270, 315];
+  const PAD_VEC = { u:{dc:0,dr:-1}, r:{dc:1,dr:0}, d:{dc:0,dr:1}, l:{dc:-1,dr:0} };
+
+  /**
+   * Suggestion auto (analyse tip→plumes du GIF Dropbox) :
+   * frames 0..7 → S, SE, E, NE, N, NW, W, SW
+   */
+  function defaultFrameToDir(){ return [4, 3, 2, 1, 0, 7, 6, 5]; }
+
+  const BASES = [
+    "assets/packs/fantasy-cc/projectiles/arrow-8dir/",
+    "projectiles/arrow-8dir/",
+    "docs/previews/projectiles/arrow-8dir/",
+    "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@main/assets/packs/fantasy-cc/projectiles/arrow-8dir/",
+  ];
+
+  let frame = 0;
+  let frameToDir = defaultFrameToDir();
+  let images = new Array(8).fill(null);
+  let testFacing = 2; /* E */
+  let customBlobUrls = [];
+
+  try{
+    const ver = localStorage.getItem(KEY_VER);
+    if(ver === VER){
+      const raw = localStorage.getItem(KEY);
+      if(raw){
+        const o = JSON.parse(raw);
+        if(o && Array.isArray(o.frameToDir) && o.frameToDir.length === 8){
+          frameToDir = o.frameToDir.map(n => n & 7);
+        }
+      }
+    }
+  }catch(_e){}
+
+  function dirToFrame(){
+    const out = new Array(8).fill(-1);
+    for(let f=0; f<8; f++){
+      const d = frameToDir[f] & 7;
+      if(out[d] < 0) out[d] = f;
+    }
+    return out;
+  }
+
+  function el(id){ return document.getElementById(id); }
+  function setStatus(t){ el("status").textContent = t; }
+
+  function loadImg(src){
+    return new Promise((res)=>{
+      const im = new Image();
+      im.onload = ()=> res(im);
+      im.onerror = ()=> res(null);
+      im.src = src;
+    });
+  }
+
+  async function loadFrame(i){
+    if(images[i]) return images[i];
+    for(const base of BASES){
+      const im = await loadImg(base + i + ".png");
+      if(im){ images[i] = im; return im; }
+    }
+    return null;
+  }
+
+  async function ensureAll(){
+    await Promise.all([0,1,2,3,4,5,6,7].map(loadFrame));
+    paintStrip();
+    paint();
+    paintTest();
+    paintMap();
+  }
+
+  function paintStrip(){
+    const strip = el("strip");
+    strip.innerHTML = "";
+    for(let i=0;i<8;i++){
+      const b = document.createElement("button");
+      b.type = "button";
+      if(i === frame) b.classList.add("on");
+      if(frameToDir[i] != null) b.classList.add("done");
+      const img = document.createElement("img");
+      img.alt = "f"+i;
+      if(images[i]) img.src = images[i].src;
+      b.appendChild(img);
+      b.onclick = ()=>{ frame = i; paint(); paintStrip(); };
+      strip.appendChild(b);
+    }
+  }
+
+  function paint(){
+    const cv = el("stage");
+    const ctx = cv.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = "#1a1a1a";
+    ctx.fillRect(0,0,cv.width,cv.height);
+    /* grille douce */
+    ctx.strokeStyle = "rgba(255,255,255,.06)";
+    ctx.beginPath();
+    ctx.moveTo(cv.width/2,0); ctx.lineTo(cv.width/2,cv.height);
+    ctx.moveTo(0,cv.height/2); ctx.lineTo(cv.width,cv.height/2);
+    ctx.stroke();
+    const im = images[frame];
+    if(im){
+      const s = Math.min(cv.width, cv.height) * 0.72;
+      const dx = (cv.width - s)/2, dy = (cv.height - s)/2;
+      ctx.drawImage(im, dx, dy, s, s);
+    }
+    const d = frameToDir[frame] & 7;
+    el("frameLab").textContent = String(frame);
+    el("frameVal").textContent = "Frame "+frame;
+    el("askDir").textContent = LABELS[d] || "…";
+    el("needle").style.transform = "rotate("+NEEDLE_DEG[d]+"deg)";
+    const done = frameToDir.filter(x => x != null).length;
+    el("prog").style.width = Math.round((done/8)*100) + "%";
+    document.querySelectorAll("#dirs button").forEach(b=>{
+      const id = Number(b.getAttribute("data-dir"));
+      b.classList.toggle("on", id === d);
+      b.classList.toggle("used", frameToDir.some((v,fi)=> fi!==frame && (v&7)===id));
+    });
+    paintMap();
+    paintExport();
+  }
+
+  function paintTest(){
+    const cv = el("test");
+    const ctx = cv.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = "#e2e2de";
+    ctx.fillRect(0,0,cv.width,cv.height);
+    /* mini boussole */
+    ctx.fillStyle = "#8e8e8a";
+    ctx.font = "11px Helvetica,Arial,sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("N", cv.width/2, 14);
+    ctx.fillText("S", cv.width/2, cv.height-6);
+    ctx.fillText("W", 14, cv.height/2+4);
+    ctx.fillText("E", cv.width-14, cv.height/2+4);
+    const d2f = dirToFrame();
+    const f = d2f[testFacing];
+    const im = (f >= 0) ? images[f] : null;
+    const cx = cv.width/2, cy = cv.height/2;
+    if(im){
+      const s = 96;
+      ctx.drawImage(im, cx - s/2, cy - s/2, s, s);
+    } else {
+      ctx.fillStyle = "#555";
+      ctx.fillText("?", cx, cy);
+    }
+    el("testHint").textContent = "Facing "+LABELS[testFacing]+(f>=0 ? " · frame "+f : " · pas de frame");
+  }
+
+  function paintMap(){
+    const host = el("mapOut");
+    host.innerHTML = "";
+    const d2f = dirToFrame();
+    const seen = {};
+    let dup = false;
+    for(let f=0;f<8;f++){
+      const d = frameToDir[f]&7;
+      if(seen[d] != null) dup = true;
+      seen[d] = f;
+      const div = document.createElement("div");
+      div.innerHTML = "<b>Frame "+f+"</b> → "+LABELS[d];
+      host.appendChild(div);
+    }
+    const warn = el("dupWarn");
+    if(dup || Object.keys(seen).length < 8){
+      warn.style.display = "block";
+      warn.textContent = "Attention : une direction est en double ou manquante. Chaque direction doit avoir exactement 1 frame.";
+    } else {
+      warn.style.display = "none";
+    }
+    /* aussi afficher dir→frame */
+    for(let d=0;d<8;d++){
+      const div = document.createElement("div");
+      div.innerHTML = "<b>"+LABELS[d]+"</b> ← frame "+(d2f[d]>=0?d2f[d]:"—");
+      host.appendChild(div);
+    }
+  }
+
+  function paintExport(){
+    const payload = {
+      ver: VER,
+      labels: LABELS.slice(),
+      frameToDir: frameToDir.slice(),
+      dirToFrame: dirToFrame(),
+      note: "frameToDir[i] = direction écran de la frame i (0=N … 7=NW). dirToFrame[d] = frame à utiliser pour tirer vers d.",
+    };
+    el("exportBox").value = JSON.stringify(payload, null, 2);
+  }
+
+  function save(){
+    try{
+      localStorage.setItem(KEY, JSON.stringify({ frameToDir: frameToDir.slice(), dirToFrame: dirToFrame() }));
+      localStorage.setItem(KEY_VER, VER);
+      setStatus("Sauvé · "+VER);
+    }catch(_e){ setStatus("Erreur sauvegarde localStorage"); }
+    paintExport();
+  }
+
+  el("framePrev").onclick = ()=>{ frame = (frame+7)&7; paint(); paintStrip(); };
+  el("frameNext").onclick = ()=>{ frame = (frame+1)&7; paint(); paintStrip(); };
+
+  document.querySelectorAll("#dirs button").forEach(b=>{
+    b.onclick = ()=>{
+      frameToDir[frame] = Number(b.getAttribute("data-dir"))&7;
+      paint(); paintStrip(); paintTest();
+      /* avance auto */
+      if(frame < 7){ frame++; paint(); paintStrip(); }
+      else setStatus("8/8 — vérifie le test iso, puis Sauver.");
+    };
+  });
+
+  document.querySelectorAll("#testPad button").forEach(b=>{
+    b.onclick = ()=>{
+      const k = b.getAttribute("data-dir");
+      if(k === "c"){ paintTest(); return; }
+      const v = PAD_VEC[k];
+      if(!v) return;
+      /* même logique iso que le combat : +c = SE écran, +r = SW */
+      const dc = v.dc, dr = v.dr;
+      let ang = Math.atan2(dr, dc); /* not perfect for iso — use 8-way from pad */
+      const mapPad = { u:0, r:2, d:4, l:6 }; /* N E S W approx on rotated pad */
+      /* Better: rotated iso pad — u=NE-ish in screen after rotate... match dir-calibrate */
+      const iso = { u:1, r:3, d:5, l:7 }; /* NE SE SW NW like combat pad hints */
+      testFacing = iso[k] != null ? iso[k] : 2;
+      /* Actually combat pad: u=NE, r=SE, d=SW, l=NW after 45° rotate */
+      paintTest();
+    };
+  });
+
+  el("btnSave").onclick = save;
+  el("btnReset").onclick = ()=>{
+    frameToDir = defaultFrameToDir();
+    frame = 0;
+    paint(); paintStrip(); paintTest();
+    setStatus("Défaut auto rechargé — vérifie chaque frame à la main.");
+  };
+  el("btnCopy").onclick = async ()=>{
+    paintExport();
+    try{
+      await navigator.clipboard.writeText(el("exportBox").value);
+      setStatus("JSON copié");
+    }catch(_e){
+      el("exportBox").select();
+      setStatus("Sélectionne et copie manuellement");
+    }
+  };
+  el("btnImport").onclick = ()=>{
+    try{
+      const o = JSON.parse(el("importBox").value);
+      if(!o || !Array.isArray(o.frameToDir) || o.frameToDir.length!==8) throw new Error("bad");
+      frameToDir = o.frameToDir.map(n=>n&7);
+      paint(); paintStrip(); paintTest();
+      setStatus("Import OK");
+    }catch(_e){ setStatus("JSON invalide"); }
+  };
+
+  el("fileGif").onchange = async (ev)=>{
+    const file = ev.target.files && ev.target.files[0];
+    if(!file) return;
+    customBlobUrls.forEach(u=> URL.revokeObjectURL(u));
+    customBlobUrls = [];
+    if(file.type === "image/gif" || /\.gif$/i.test(file.name)){
+      /* decode via temp img + draw — browsers don't give GIF frames easily without lib.
+         Fallback: ask user for 8 PNGs or use ImageDecoder if available. */
+      if(typeof ImageDecoder !== "undefined"){
+        try{
+          const buf = await file.arrayBuffer();
+          const dec = new ImageDecoder({ data: buf, type: "image/gif" });
+          await dec.decode({ frameIndex: 0 });
+          const track = dec.tracks.selectedTrack;
+          const n = Math.min(8, track.frameCount|0);
+          images = new Array(8).fill(null);
+          for(let i=0;i<n;i++){
+            const { image } = await dec.decode({ frameIndex: i });
+            const c = document.createElement("canvas");
+            c.width = image.displayWidth; c.height = image.displayHeight;
+            c.getContext("2d").drawImage(image, 0, 0);
+            image.close();
+            const im = new Image();
+            const url = c.toDataURL("image/png");
+            customBlobUrls.push(url);
+            await new Promise(r=>{ im.onload=r; im.src=url; });
+            images[i] = im;
+          }
+          frame = 0;
+          paintStrip(); paint(); paintTest();
+          setStatus("GIF chargé · "+n+" frames");
+          return;
+        }catch(_e){}
+      }
+      setStatus("Impossible de découper le GIF ici. Utilise 8 PNG (0.png…7.png) ou garde le pack actuel.");
+      return;
+    }
+    /* single png replaces current frame */
+    const url = URL.createObjectURL(file);
+    customBlobUrls.push(url);
+    const im = await loadImg(url);
+    if(im){ images[frame] = im; paintStrip(); paint(); paintTest(); setStatus("PNG remplace frame "+frame); }
+  };
+
+  ensureAll().then(()=> setStatus("Charge les 8 frames · assigne chaque direction à la main."));
+})();
+</script>
+</body>
+</html>
