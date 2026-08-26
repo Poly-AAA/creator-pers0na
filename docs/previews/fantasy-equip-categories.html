@@ -357,6 +357,27 @@
     }
   }
 
+  function tintOnto(bx, im, sx,sy,sw,sh, dx,dy,dw,dh, tintHex){
+    if(!tintHex){
+      bx.drawImage(im, sx,sy,sw,sh, dx,dy,dw,dh);
+      return;
+    }
+    const tw = Math.max(1, Math.round(dw));
+    const th = Math.max(1, Math.round(dh));
+    const tcv = document.createElement("canvas");
+    tcv.width = tw; tcv.height = th;
+    const t = tcv.getContext("2d");
+    t.imageSmoothingEnabled = false;
+    t.drawImage(im, sx,sy,sw,sh, 0,0,tw,th);
+    t.globalCompositeOperation = "multiply";
+    t.fillStyle = tintHex;
+    t.fillRect(0,0,tw,th);
+    t.globalCompositeOperation = "destination-in";
+    t.drawImage(im, sx,sy,sw,sh, 0,0,tw,th);
+    t.globalCompositeOperation = "source-over";
+    bx.drawImage(tcv, dx, dy);
+  }
+
   async function paintThumb(cv, folder){
     const S = cv.width || THUMB;
     const ctx = cv.getContext("2d");
@@ -394,11 +415,14 @@
     const row = (fr && fr.row) || (bodyFr && bodyFr.row) || 0;
     if(bodyIm){
       const bc = (bodyFr && bodyFr.col) || 0;
-      const br = row; /* même direction que la pièce */
-      bx.drawImage(bodyIm, bc*FW, Math.min(br,7)*FH, FW, FH, 0, 0, FW, FH);
+      const br = Math.min(row, 7);
+      /* Corps grisé pour que l’équipement (couleurs d’origine) se détache */
+      tintOnto(bx, bodyIm, bc*FW, br*FH, FW, FH, 0, 0, FW, FH, "#6e7682");
     }
     if(pieceIm){
-      bx.drawImage(pieceIm, col*FW, row*FH, FW, FH, 0, 0, FW, FH);
+      /* Équipement en couleurs vives (légère chaleur) */
+      tintOnto(bx, pieceIm, col*FW, row*FH, FW, FH, 0, 0, FW, FH,
+        needBody ? "#ffe6c8" : null);
     }
 
     /* Crop serré sur le résultat composé */
