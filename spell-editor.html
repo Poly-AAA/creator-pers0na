@@ -1186,22 +1186,15 @@ function normalizeStep(s){
   return normalizeFrameRange(o);
 }
 
-/** Séquence globale : touché à cheval → monture off + Die@20 → Idle@FPS jeu. */
-const MOUNT_HIT_VERSION = 2;
+/** Séquence globale : touché à cheval → monture off + TakeDamage@24. */
+const MOUNT_HIT_VERSION = 3;
 const DEFAULT_MOUNT_HIT = {
   enabled: true,
   version: MOUNT_HIT_VERSION,
   steps: [
     {
-      anim:"Die", delay:0, fps:20, slash:"None", effect:"None",
+      anim:"TakeDamage", delay:0, fps:24, slash:"None", effect:"None",
       hitTarget:false, forceGround:true, hideMount:true, clearMount:true,
-      posDc:0, posDr:0,
-      frameStart:0, frameEnd:FRAME_MAX, move:"Idle", hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
-      fxHold:false, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
-    },
-    {
-      anim:"Idle", delay:0, fps:FPS, slash:"None", effect:"None",
-      hitTarget:false, forceGround:true, hideMount:true, clearMount:false,
       posDc:0, posDr:0,
       frameStart:0, frameEnd:FRAME_MAX, move:"Idle", hitAnim:"TakeDamage", hitAnimFps:14, hitDelay:null,
       fxHold:false, hitFrameStart:0, hitFrameEnd:FRAME_MAX,
@@ -1215,7 +1208,7 @@ function loadMountHit(){
     if(!raw) return;
     const o = JSON.parse(raw);
     if(!o || typeof o !== "object") return;
-    /* v2 : Die immédiat (plus de TakeDamage). Ancienne config → défaut. */
+    /* v3 : simple TakeDamage@24 (plus Die/Idle). Ancienne config → défaut. */
     if((o.version|0) < MOUNT_HIT_VERSION){
       mountHit = JSON.parse(JSON.stringify(DEFAULT_MOUNT_HIT));
       mountHit.enabled = o.enabled !== false;
@@ -2007,7 +2000,7 @@ function renderEvoChoice(spellId, tier, choice, spell){
 function renderMountHitEditor(host){
   const cardEl=card("Dégâts reçus sur monture");
   const hint=document.createElement("p"); hint.className="hint";
-  hint.textContent="Preview = perso À CHEVAL. ► Voir la chute = Die@20 (monture off immédiat) puis Idle. Sur chaque step : frames 0–14, FPS −/+, et décalage cases si Die te fait reculer.";
+  hint.textContent="Simple : touché à cheval → monture off + TakeDamage @ 24 fps. ► Voir la chute pour tester.";
   cardEl.appendChild(hint);
 
   cardEl.appendChild(mkCheckRow("Activer la séquence monture", !!mountHit.enabled, v=>{
@@ -2062,7 +2055,7 @@ function renderMountHitEditor(host){
     addB.style.cssText="padding:9px;border-radius:9px;border:1.5px dashed var(--acc);background:none;color:var(--acc);font-weight:700;cursor:pointer;width:100%";
     addB.onclick=()=>{
       mountHit.steps.push(normalizeStep({
-        anim:"Die", forceGround:true, hideMount:true, clearMount:true, fps:20, posDc:0, posDr:0,
+        anim:"TakeDamage", forceGround:true, hideMount:true, clearMount:true, fps:24, posDc:0, posDr:0,
       }));
       saveMountHit(); renderMountSteps();
     };
@@ -2088,7 +2081,7 @@ function renderMountHitEditor(host){
 
   const tip=document.createElement("p");
   tip.style.cssText="font-size:11px;color:var(--ink2);text-align:center;padding:8px";
-  tip.textContent="Par défaut : monture disparaît tout de suite + Die@20 fps, puis Idle@14. Utilise « Décalage cases » si Die te fait reculer sur la map.";
+  tip.textContent="Par défaut : monture disparaît + TakeDamage à 24 fps, puis Idle. Pas besoin de calibrer Die.";
   host.appendChild(tip);
 }
 

@@ -1742,17 +1742,16 @@
    */
   function playMountHitSequence(ent, onDone){
     loadMountHitCfg();
-    if(!ent || !mountHitCfg.enabled || !mountHitCfg.steps || !mountHitCfg.steps.length){
-      if(onDone) onDone(false);
-      return false;
-    }
     const wasMounted = (ent === G.player) ? isPlayerMounted() : !!ent.mount;
-    if(!wasMounted && !ent.hideMount){
+    if(!ent || (!wasMounted && !ent.hideMount)){
       if(onDone) onDone(false);
       return false;
     }
-    const steps = mountHitCfg.steps.map(normalizeCastStep);
-    /* Monture off immédiatement dès le hit (avant même Die) */
+    /* Défaut simple si config vide / désactivée : monture off + TakeDamage@24 */
+    let steps = (mountHitCfg.enabled && mountHitCfg.steps && mountHitCfg.steps.length)
+      ? mountHitCfg.steps.map(normalizeCastStep)
+      : [normalizeCastStep({ anim:"TakeDamage", fps:24, forceGround:true, hideMount:true, clearMount:true })];
+    /* Monture off immédiatement dès le hit */
     ent.hideMount = true;
     ent._mountCleared = true;
     if(ent !== G.player) ent.mount = null;
@@ -1760,7 +1759,7 @@
     const next = ()=>{
       if(i >= steps.length){
         clearAnimClip(ent);
-        if(ent.anim !== "Die" && ent.pv > 0) playAnim(ent, "Idle");
+        if(ent.pv > 0) playAnim(ent, "Idle");
         if(onDone) onDone(true);
         return;
       }
