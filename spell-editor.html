@@ -1841,11 +1841,15 @@ function fillAnimStepControls(box, st, opts){
       if(st.hitDelayByDist){
         const tip=document.createElement("p"); tip.className="hint";
         tip.style.cssText="margin:4px 0;font-size:10px;line-height:1.35";
-        const b=st.hitDelay!=null?st.hitDelay:180;
-        tip.textContent="Latence 1 case = base. 2c = ×2, 3c = ×4, 4c = ×8…  Ex. base "+b+" → 1c="+b+" · 2c="+(b*2)+" · 3c="+(b*4)+" ms. TakeDamage après ce délai (le tireur se tourne vers la cible).";
+        const paintTip=()=>{
+          const b = Math.max(0, Number(st.hitDelay!=null?st.hitDelay:180)|0);
+          tip.textContent="Latence 1 case = base. 2c = ×2, 3c = ×4, 4c = ×8…  Ex. base "+b+" → 1c="+b+" · 2c="+(b*2)+" · 3c="+(b*4)+" ms. TakeDamage après ce délai (le tireur se tourne vers la cible).";
+        };
+        paintTip();
         box.appendChild(tip);
+        /* Pas de onRerender ici : l’appui long +/- détruirait le DOM en boucle (= plantage). */
         box.appendChild(mkNumRow("Latence 1 case (ms)", st.hitDelay!=null?st.hitDelay:180, 0, 2000, 10, v=>{
-          st.hitDelay=v; onSave(); onRerender();
+          st.hitDelay=v; paintTip(); onSave();
         }));
       } else {
         box.appendChild(mkHitDelayRow(st.hitDelay, v=>{ st.hitDelay=v; onSave(); }));
@@ -1892,10 +1896,13 @@ function mkNumRow(label, val, min, max, step, onChange){
   };
   minus.onclick=()=>apply(cur - (step||1));
   plus.onclick=()=>apply(cur + (step||1));
-  /* appui long = répéter */
+  /* appui long = répéter (stop si le bouton a été retiré du DOM) */
   function hold(btn, dir){
     let t=null, iv=null;
-    const go=()=>apply(cur + dir*(step||1));
+    const go=()=>{
+      if(!btn.isConnected){ clearTimeout(t); clearInterval(iv); return; }
+      apply(cur + dir*(step||1));
+    };
     btn.onpointerdown=(e)=>{ e.preventDefault(); go(); t=setTimeout(()=>{ iv=setInterval(go, 80); }, 350); };
     const stop=()=>{ clearTimeout(t); clearInterval(iv); };
     btn.onpointerup=stop; btn.onpointerleave=stop; btn.onpointercancel=stop;
