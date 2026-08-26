@@ -2,575 +2,977 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Character Creator Fantasy V1.3 — NEURO-CORE</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
+<title>Créateur Fantasy — NEURO-CORE</title>
 <style>
   :root{
-    --bg0:#0b1218; --bg1:#13202c; --line:#2a3d4f; --text:#e8eef4; --muted:#8fa3b8;
-    --accent:#c45c26; --accent2:#e8a05a; --panel:rgba(12,22,32,.92);
+    --bg:#ecece8; --bg2:#f5f5f2; --ink:#555552; --ink2:#8e8e8a;
+    --line:#c6c6c2; --line2:#dcdcd8; --card:#fafaf8; --tap:48px;
+    --sel:#3d3d3a; --soft:#f0f0ec; --side:132px;
   }
-  *{box-sizing:border-box}
-  html,body{margin:0;min-height:100%;background:
-    radial-gradient(1200px 600px at 20% -10%, rgba(196,92,38,.18), transparent 55%),
-    radial-gradient(900px 500px at 90% 10%, rgba(60,120,160,.12), transparent 50%),
-    linear-gradient(165deg, #0a1016 0%, #121c26 45%, #0d1520 100%);
-    color:var(--text); font:14px/1.4 "Segoe UI", system-ui, sans-serif}
-  header{padding:18px 22px 8px; display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; justify-content:space-between}
-  header h1{margin:0; font-size:clamp(22px,3.2vw,34px); letter-spacing:.04em; font-weight:700; color:var(--accent2)}
-  header p{margin:4px 0 0; color:var(--muted); font-size:13px; max-width:52ch}
-  .wrap{display:grid; grid-template-columns:minmax(280px,360px) 1fr; gap:16px; padding:10px 18px 28px; max-width:1200px; margin:0 auto}
-  @media(max-width:860px){.wrap{grid-template-columns:1fr}}
-  .panel{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px; backdrop-filter:blur(8px)}
-  .preview-box{display:flex; flex-direction:column; align-items:center; gap:10px}
-  canvas#stage{width:min(100%,320px); aspect-ratio:1; background:#070b10; border-radius:12px; border:1px solid var(--line); image-rendering:pixelated}
-  .toolbar{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; width:100%}
-  .toolbar button, .slot button, .foot button{
-    border:1px solid var(--line); background:#1a2834; color:var(--text); border-radius:8px;
-    padding:7px 10px; cursor:pointer; font-size:12px}
-  .toolbar button.on, .slot button.on{border-color:var(--accent); color:var(--accent2); background:#2a1a12}
-  .toolbar button:hover, .slot button:hover, .foot button:hover{border-color:var(--accent2)}
-  .fps-row{width:100%; display:flex; align-items:center; gap:10px; padding:4px 2px}
-  .fps-row label{font-size:12px; color:var(--muted); white-space:nowrap; min-width:4.5em}
-  .fps-row input[type=range]{flex:1; accent-color:var(--accent)}
-  .fps-row #fpsVal{font-variant-numeric:tabular-nums; min-width:2.5em; color:var(--accent2); font-size:13px}
-  .slots{display:flex; flex-direction:column; gap:10px; max-height:min(72vh,760px); overflow:auto; padding-right:4px}
-  .slot{border:1px solid var(--line); border-radius:10px; padding:8px 9px; background:rgba(10,20,30,.55)}
-  .slot-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px}
-  .slot .lab{font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--muted)}
-  .slot-color{display:flex; align-items:center; gap:6px}
-  .slot-color input[type=color]{width:28px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:transparent;cursor:pointer}
-  .slot-color button{font-size:10px; padding:4px 7px}
-  .opts{display:flex; flex-wrap:wrap; gap:5px}
-  .opts button{font-size:11px; padding:5px 8px}
-  .cat-filter{display:flex; flex-wrap:wrap; gap:4px; margin:0 0 6px}
-  .cat-filter button{
-    font-size:10px; padding:4px 8px; border-radius:999px; border:1px solid var(--line);
-    background:#152230; color:var(--muted); cursor:pointer;
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font:15px/1.35 Helvetica,Arial,sans-serif; overflow:hidden; overscroll-behavior:none}
+  .app{
+    height:100%;height:100dvh;max-width:430px;margin:0 auto;display:flex;flex-direction:row;
+    background:linear-gradient(180deg,var(--bg2),var(--bg) 60%,#e2e2de);
   }
-  .cat-filter button.on{border-color:var(--accent); color:var(--accent2); background:#2a1a12}
-  .foot{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
-  .status{font-size:12px; color:var(--muted); text-align:center; min-height:1.2em}
-  .hint{font-size:11px; color:var(--muted); margin-top:8px}
-  .tools{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px}
-  .tools a{
-    font-size:12px; padding:7px 10px; border-radius:8px; border:1px solid var(--line);
-    background:#1a2834; color:var(--accent2); text-decoration:none;
+
+  /* Menu gauche (ex-bas) */
+  .dock{
+    width:var(--side);flex-shrink:0;display:flex;flex-direction:column;gap:8px;
+    padding:10px 8px calc(10px + env(safe-area-inset-bottom));
+    background:rgba(250,250,248,.96);border-right:1px solid var(--line2);
+    overflow:auto;min-height:0;
   }
+  .dock .sec{display:flex;flex-direction:column;gap:6px}
+  .dock .ttl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+  .step-row{display:flex;align-items:center;gap:4px}
+  .step-row .nav{
+    width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--soft);
+    color:var(--sel);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;
+  }
+  .step-row .nav:active{background:var(--sel);color:#fff}
+  .step-row .val{
+    flex:1;min-width:0;text-align:center;font-size:12px;font-weight:600;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .swatches{display:flex;flex-wrap:wrap;gap:2px}
+  .sw{width:12px;height:12px;border-radius:50%;border:1px solid transparent;cursor:pointer;padding:0;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+  .sw.on{border-color:var(--sel);transform:scale(1.15)}
+  .sw.bw{box-shadow:inset 0 0 0 1px #999}
+  .btn{
+    width:100%;min-height:40px;border:1px solid var(--line);background:var(--card);color:var(--ink);
+    border-radius:10px;font-size:12px;cursor:pointer;padding:6px 4px;
+  }
+  .btn.primary{background:var(--sel);color:#fff;border-color:var(--sel)}
+  .btn.ghost{min-height:36px;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  /* Pavé directionnel */
+  .dpad{display:grid;grid-template-columns:repeat(3,30px);grid-template-rows:repeat(3,30px);gap:2px;margin:0 auto}
+  .dpad button{width:30px;height:30px;border:1px solid var(--line);border-radius:6px;background:var(--soft);
+    color:var(--sel);font-size:14px;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
+  .dpad button:active{background:var(--sel);color:#fff}
+  .dpad span{width:30px;height:30px}
+  .status{font-size:10px;color:var(--ink2);text-align:center;line-height:1.25}
+  .cat-chips{display:flex;flex-wrap:wrap;gap:4px}
+  .cat-chips button{
+    min-height:28px;padding:4px 8px;border-radius:8px;border:1px solid var(--line);
+    background:var(--soft);color:var(--ink);font-size:10px;font-weight:700;cursor:pointer;
+  }
+  .cat-chips button.on{background:#ff2e2e;color:#fff;border-color:#ff2e2e}
+  .cat-chips button.tag.on{background:#19c37d;border-color:#19c37d}
+  .cat-row{display:flex;gap:4px;margin-top:4px}
+  .cat-row input{
+    flex:1;min-width:0;min-height:28px;border:1px solid var(--line);border-radius:8px;
+    background:var(--soft);font-size:11px;padding:0 6px;color:var(--ink);
+  }
+  .cat-row button{min-height:28px;padding:0 8px;border-radius:8px;border:1px solid var(--line);
+    background:var(--sel);color:#fff;font-size:11px;font-weight:700;cursor:pointer}
+  .size-row{display:flex;align-items:center;gap:4px}
+  .size-row input{flex:1;accent-color:var(--sel);min-width:0}
+  .size-row span{font-size:11px;color:var(--ink2);width:2.6em;text-align:right}
+
+  .body-stack{display:none;flex-direction:column;gap:6px}
+  .body-stack.on{display:flex}
+  .body-hint{font-size:10px;color:var(--ink2);line-height:1.25;margin:0}
+  .body-row{
+    display:flex;flex-direction:column;gap:4px;padding:6px;border:1px solid var(--line2);
+    border-radius:10px;background:var(--card);
+  }
+  .body-row.on{border-color:var(--sel)}
+  .body-row .top{display:flex;align-items:center;gap:4px}
+  .body-row .idx{font-size:10px;color:var(--ink2);width:14px}
+  .body-row .name{flex:1;font-size:11px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .body-row .ops{display:flex;gap:2px}
+  .body-row .ops button,.body-row .sw-mini{
+    width:28px;height:28px;border:1px solid var(--line);border-radius:8px;background:var(--soft);
+    color:var(--ink);font-size:12px;cursor:pointer;padding:0;
+  }
+  .body-row .sw-mini{border-radius:50%}
+  .body-row input[type=range]{width:100%;accent-color:var(--sel)}
+
+  /* Zone perso */
+  .stage{flex:1;min-width:0;min-height:0;position:relative;overflow:hidden}
+  canvas#stage{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;touch-action:none}
+
+  /* Onglets parties — colonne droite, tête → pieds */
+  .zones{
+    position:absolute;top:10%;right:6px;bottom:22%;z-index:4;
+    display:flex;flex-direction:column;justify-content:space-between;align-items:stretch;
+    width:72px;pointer-events:none;
+  }
+  .zones .callout{
+    pointer-events:auto;border:1px solid var(--line);background:rgba(250,250,248,.94);color:var(--ink);
+    padding:5px 4px;border-radius:8px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;
+    font-size:9px;min-height:28px;text-align:center;line-height:1.15;
+  }
+  .zones .callout.on{background:var(--sel);color:#fff;border-color:var(--sel);font-weight:600}
+
+  .rot{
+    position:absolute;z-index:6;width:var(--tap);height:var(--tap);border-radius:50%;
+    border:1.5px solid var(--line);background:var(--card);color:var(--sel);
+    font-size:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);padding:0;
+  }
+  .rot:active{background:var(--sel);color:#fff}
+
+  .sheet{position:fixed;inset:0;z-index:40;background:rgba(40,40,38,.35);display:none;align-items:flex-end;justify-content:center}
+  .sheet.on{display:flex}
+  .sheet-panel{width:min(430px,100%);background:var(--card);border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+  .sheet-panel h3{margin:0;font-size:15px;letter-spacing:.08em;text-transform:uppercase}
+  .sheet-panel label{font-size:13px;color:var(--ink2);display:flex;align-items:center;gap:10px}
+  .sheet-panel input[type=range]{flex:1;accent-color:var(--sel)}
+  .preview-sw{width:56px;height:56px;border-radius:50%;border:1px solid var(--line);margin:0 auto}
+  .sheet-actions{display:flex;gap:10px}
+  .sheet-actions button{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--soft);font-size:15px}
+  .sheet-actions .ok{background:var(--sel);color:#fff;border-color:var(--sel)}
 </style>
 </head>
 <body>
-<header>
-  <div>
-    <h1>Fantasy Character Creator</h1>
-    <p>Couches 128×128 — FPS global + teinte couleur par élément (multiply, lisible sur fond sombre).</p>
-  </div>
-  <div class="hint">Assets : <code>assets/packs/fantasy-cc/</code></div>
-</header>
-<div class="wrap">
-  <aside class="panel preview-box">
-    <canvas id="stage" width="256" height="256"></canvas>
-    <div class="toolbar">
-      <select id="animSelect" title="Animation" style="min-width:11em;border:1px solid var(--line);background:#1a2834;color:var(--text);border-radius:8px;padding:7px 10px;font-size:12px"></select>
-      <button type="button" id="dirPrev">◀ Dir</button>
-      <button type="button" id="dirNext">Dir ▶</button>
+<div class="app">
+  <aside class="dock" id="dock">
+    <div class="sec">
+      <span class="ttl">Anim</span>
+      <div class="step-row">
+        <button type="button" class="nav" id="animPrev" aria-label="Anim précédente">‹</button>
+        <span class="val" id="animVal">Idle</span>
+        <button type="button" class="nav" id="animNext" aria-label="Anim suivante">›</button>
+      </div>
     </div>
-    <div class="fps-row">
-      <label for="fps">FPS</label>
-      <input type="range" id="fps" min="1" max="30" value="14" step="1"/>
-      <span id="fpsVal">14</span>
+    <div class="sec">
+      <span class="ttl">Vitesse (FPS)</span>
+      <div class="size-row">
+        <input type="range" id="fpsSlider" min="1" max="30" value="14" step="1"/>
+        <span id="fpsVal">14</span>
+      </div>
     </div>
-    <div class="status" id="status">Chargement catalogue…</div>
-    <div class="foot">
-      <button type="button" id="btnRandom">Aléatoire</button>
-      <button type="button" id="btnReset">Réinitialiser</button>
-      <button type="button" id="btnExport">Exporter look JSON</button>
+    <div class="sec">
+      <span class="ttl">Direction</span>
+      <div class="dpad" id="dpad">
+        <button type="button" data-d="6">↖</button>
+        <button type="button" data-d="7">↑</button>
+        <button type="button" data-d="0">↗</button>
+        <button type="button" data-d="5">←</button>
+        <span></span>
+        <button type="button" data-d="1">→</button>
+        <button type="button" data-d="4">↙</button>
+        <button type="button" data-d="3">↓</button>
+        <button type="button" data-d="2">↘</button>
+      </div>
+      <span class="val" id="dirVal" style="text-align:center;font-size:11px;color:var(--ink2)">E</span>
+    </div>
+    <div class="sec">
+      <span class="ttl">Choix</span>
+      <div class="step-row">
+        <button type="button" class="nav" id="optPrev" aria-label="Choix précédent">‹</button>
+        <span class="val" id="optVal" title="Extra : taper pour sous-slot">—</span>
+        <button type="button" class="nav" id="optNext" aria-label="Choix suivant">›</button>
+      </div>
+      <button type="button" class="btn ghost" id="btnClear">Aucun</button>
+    </div>
+    <div class="sec">
+      <span class="ttl">Catégorie</span>
+      <div class="cat-chips" id="catFilter"></div>
+      <div class="cat-chips" id="catTags" style="margin-top:4px"></div>
+      <div class="cat-row">
+        <input id="catName" type="text" maxlength="20" placeholder="Nouvelle cat…" enterkeyhint="done"/>
+        <button type="button" id="btnAddCat">+</button>
+      </div>
+    </div>
+    <div class="sec">
+      <span class="ttl">Taille</span>
+      <div class="size-row">
+        <input type="range" id="charSize" min="50" max="85" value="74" step="1"/>
+        <span id="charSizeVal">74%</span>
+      </div>
+    </div>
+    <div class="sec">
+      <span class="ttl">Couleur</span>
+      <div class="swatches" id="swatches"></div>
+    </div>
+    <div class="body-stack" id="bodyStack">
+      <span class="ttl">Corps</span>
+      <button type="button" class="btn" id="addBody">+ Couche</button>
+      <p class="body-hint">Couche · ↑↓ ordre · couleur</p>
+      <div id="bodyRows"></div>
+    </div>
+    <div class="sec" style="margin-top:auto">
+      <button type="button" class="btn" id="btnAdvanced" style="font-size:10px;letter-spacing:.05em">⚙ Équipements avancés</button>
+      <button type="button" class="btn" id="btnRandom">Aléatoire</button>
+      <button type="button" class="btn" id="btnReset">Reset</button>
+      <button type="button" class="btn primary" id="btnExport">Sauver</button>
+      <a class="btn ok" id="btnCombat" data-fcc="combat" href="fantasy-combat.html" style="display:block;text-align:center;text-decoration:none;line-height:40px;background:#2f6f4e;color:#fff;border-color:#2f6f4e">Combat</a>
+      <a class="btn" id="btnSpellEditor" href="spell-editor.html" style="display:block;text-align:center;text-decoration:none;line-height:40px;background:#4a3870;color:#fff;border-color:#4a3870">Sorts</a>
+      <div class="status" id="status">Chargement…</div>
     </div>
   </aside>
-  <main class="panel">
-    <div class="tools">
-      <a href="fantasy-equip-categories.html">✦ Catégories équipement</a>
+
+  <section class="stage" id="stageWrap">
+    <canvas id="stage" width="280" height="520" aria-label="Personnage"></canvas>
+    <div class="zones" id="callouts"></div>
+    <button type="button" class="rot" id="dirPrev" aria-label="Tourner gauche">‹</button>
+    <button type="button" class="rot" id="dirNext" aria-label="Tourner droite">›</button>
+  </section>
+</div>
+
+<div class="sheet" id="colorSheet" role="dialog" aria-modal="true">
+  <div class="sheet-panel">
+    <h3>Couleur avancée</h3>
+    <div class="preview-sw" id="advPreview"></div>
+    <label>Teinte <input type="range" id="advH" min="0" max="360" value="30"/></label>
+    <label>Saturation <input type="range" id="advS" min="0" max="100" value="40"/></label>
+    <label>Clarté <input type="range" id="advL" min="5" max="95" value="55"/></label>
+    <div class="sheet-actions">
+      <button type="button" id="advCancel">Annuler</button>
+      <button type="button" class="ok" id="advOk">OK</button>
     </div>
-    <div class="slots" id="slots"></div>
-  </main>
+  </div>
 </div>
 
 <script>
 (function(){
   const BASE_LOCAL = "assets/packs/fantasy-cc/";
   const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
-  const CAT_KEY = "neuro.fantasyEquipCategories";
+  const FW=128, FH=128, COLS=15;
+  const DIR_ROW=[0,1,2,3,4,5,6,7];
+  let weaponAfterShieldRows=[true,true,true,false,false,false,false,true];
+  let backpackInFrontRows=[true,false,false,false,false,true,true,true];
 
-  const FW = 128, FH = 128, COLS = 15;
-  const DIR_ROW = [0,1,2,3,4,5,6,7];
-
-  let weaponAfterShieldRows = [true,true,true,false,false,false,false,true];
-  let backpackInFrontRows = [true,false,false,false,false,true,true,true];
-
-  /** Couleurs par défaut lisibles (évite le blanc cassé sur fond sombre). */
-  const DEFAULT_COLORS = {
-    body: "#d4a574",
-    shoes: "#3a3230",
-    legs: "#3e4f63",
-    chest: "#5b7c99",
-    belt: "#8b6914",
-    gloves: "#6a5a4e",
-    offhand: "#6b8f71",
-    weapon: "#9aa8b8",
-    backpack: "#7a5c3a",
-    head: "#e0b878",
-    slash: "#e8590c",
-    effect: "#5ec8ff",
-    mount: "#8a7060",
+  /* Layout épuré : perso haut, ombre, rot dessous ; zones à droite tête→pieds ; menu à gauche */
+  /* sizePct = fraction de la HAUTEUR de la scène (le sprite a beaucoup de marge vide) */
+  const LAY = {
+    char:{ xPct:40, yPct:44, sizePct:0.74 },
+    shadow:{ xPct:40, yPct:66, opacity:0.08 },
+    zonesLab:{
+      hair:"Coiff.", head:"Équip.", body:"Corps",
+      chest:"Torse", backpack:"Sac", legs:"Jambes",
+      shoes:"Chauss.", mount:"Monture", weapon:"Extra",
+    },
+    rot:{ yPct:86, gapPct:22, size:48 }
   };
 
+  /* Mode simplifié (par défaut) : hair + head + body uniquement
+     Mode avancé : tout le reste visible */
+  const ZONE_SIMPLE   = ["hair","head","body"];
+  const ZONE_ADVANCED = ["hair","head","body","chest","legs","shoes","backpack","mount","weapon"];
+  let advancedMode = false;
+  function currentZoneOrder(){ return advancedMode ? ZONE_ADVANCED : ZONE_SIMPLE; }
+  const ZONE_ORDER_ALL = ZONE_ADVANCED; /* alias pour compatibilité interne */
+  const MISC_SLOTS = ["weapon","offhand","belt","gloves","slash","effect"];
+  const RIDE_ANIMS = ["RideIdle","RideRun","RideIdleAttack1","RideRunAttack1"];
+
+  /* Coiffures : dossier vide pour l'instant — tu y ajouteras tes assets */
+  const HAIR_FOLDERS = [];
+  /* Équipements tête (Head1-24 + Head25) : resteront dans le slot "head" */
+  /* Pour voir lesquels ressemblent à des coiffures, affiche la liste ci-dessous : */
+  const HEAD_CATALOG_PREVIEW = [
+    "Head1","Head2","Head3","Head4","Head5","Head6","Head7","Head8","Head9","Head10",
+    "Head12","Head13","Head14","Head15","Head16","Head17","Head18","Head19","Head20",
+    "Head21","Head22","Head23","Head24","Head25"
+  ];
+  const PALETTE = [
+    "#f5c6aa","#d4a574","#a67c52","#f8d9a0","#e0b878","#b8893a",
+    "#f0a090","#c45c26","#7a3010","#f2b8c6","#d4789a","#8a3a58",
+    "#b8d4e8","#5b7c99","#2f4a66","#b8e0c8","#6b8f71","#3a5a42",
+    "#d4c4e8","#8a70b0","#4a3870","#c8c4bc","#8a8580","#4a4642",
+    "#ffffff","#000000",
+  ];
+  const DEFAULT_COLORS = {
+    body:"#c9a07a", shoes:"#ff5a36", legs:"#2f6bff", chest:"#19c37d",
+    belt:"#ffb020", gloves:"#ff4fa3", offhand:"#00c2ff", weapon:"#ff2e2e",
+    backpack:"#b85cff", head:"#ffe14a", hair:"#5b2cff", slash:"#ff6a00", effect:"#00f0ff", mount:"#ff7a59",
+  };
+  const CAT_KEY = "neuro.fantasyEquipCategories";
+
   const state = {
-    catalog: null,
-    look: {},
-    colors: {},
-    catData: { categories: [], items: {} },
-    catFilter: {}, /* slotId -> "all" | "none" | catId */
-    anim: "Idle",
-    dir: 0,
-    fps: 14,
-    cache: new Map(),
-    raf: 0,
-    frame: 0,
-    lastT: 0,
-    drawing: false,
-    dirty: true,
+    catalog:null, look:{}, colors:{},
+    bodies:[{folder:"NakedBody", opacity:1, color:"#d4a574"}],
+    bodyFocus:0,
+    anim:"Idle", dir:0, fps:14,
+    zoneId:"hair", _miscFocus:"weapon",
+    lastEdited:null,
+    charSizePct: 0.74,
+    sizeMode: "h", /* hauteur scène */
+    cache:new Map(), raf:0, frame:0, lastT:0,
+    drawing:false, dirty:true, drawRect:null,
+    catData:{categories:[], items:{}}, catFilter:"all",
   };
 
   const el = (id)=> document.getElementById(id);
   const stage = el("stage");
   const cx = stage.getContext("2d");
-  // canvas de teinte réutilisé (évite de figer le navigateur)
   const tintCv = document.createElement("canvas");
   const tintCx = tintCv.getContext("2d");
 
-  function urlFor(folder, anim){
-    const rel = `spritesheets/${folder}/${anim}.png`;
-    return { local: BASE_LOCAL + rel, cdn: BASE_CDN + rel };
+  function slots(){ return (state.catalog && state.catalog.slots) || []; }
+  function slotById(id){
+    if(id==="hair") return { id:"hair", lab:"Coiffure", folders:["None",...HAIR_FOLDERS], required:false };
+    return slots().find(s=>s.id===id);
   }
-
-  function loadImg(folder, anim){
-    const key = folder + "/" + anim;
-    if(state.cache.has(key)) return state.cache.get(key);
-    const p = new Promise((resolve)=>{
-      const urls = urlFor(folder, anim);
-      // CDN d’abord (page litterbox / preview distante)
-      const order = [urls.cdn, urls.local];
-      const im = new Image();
-      try{ im.crossOrigin = "anonymous"; }catch(_e){}
-      let i = 0;
-      const tryNext = ()=>{
-        if(i >= order.length){ resolve(null); return; }
-        const src = order[i++];
-        im.onload = ()=> resolve(im);
-        im.onerror = ()=> tryNext();
-        im.src = src;
-      };
-      tryNext();
-    });
-    state.cache.set(key, p);
-    return p;
+  function folderFor(slotId){
+    if(slotId==="body") return null;
+    const v=state.look[slotId];
+    return (!v||v==="None")?null:v;
   }
-
-  function defaultColors(){
-    return Object.assign({}, DEFAULT_COLORS);
+  function tintForSlot(slotId){
+    const c=state.colors[slotId];
+    if(!c||c==="#ffffff"||c==="#FFFFFF") return null;
+    return c;
   }
-
-  function loadCatData(){
-    try{
-      const raw = localStorage.getItem(CAT_KEY) || sessionStorage.getItem(CAT_KEY);
-      if(!raw) return;
-      const o = JSON.parse(raw);
-      if(!o || typeof o!=="object") return;
-      state.catData = {
-        categories: Array.isArray(o.categories) ? o.categories.filter(c=>c && c.id && c.label && c.slot) : [],
-        items: (o.items && typeof o.items==="object") ? o.items : {},
-      };
-    }catch(_e){}
-  }
-
-  function catsForSlot(slotId){
-    return (state.catData.categories||[]).filter(c=>c.slot===slotId);
-  }
-
-  function folderMatchesFilter(slotId, folder){
-    const filt = state.catFilter[slotId] || "all";
-    if(filt==="all") return true;
-    if(folder==="None") return true;
-    const it = state.catData.items[folder];
-    const cats = (it && Array.isArray(it.categories)) ? it.categories : [];
-    if(filt==="none"){
-      const slotCatIds = new Set(catsForSlot(slotId).map(c=>c.id));
-      return !cats.some(id=>slotCatIds.has(id));
-    }
-    return cats.indexOf(filt)>=0;
-  }
-
+  function defaultColors(){ return Object.assign({}, DEFAULT_COLORS); }
   function defaultLook(cat){
-    const look = {};
-    for(const s of cat.slots){
-      look[s.id] = s.required ? (s.folders[0]||"NakedBody") : "None";
-    }
-    look.body = "NakedBody";
-    look.chest = "Chest1";
-    look.legs = "Legs1";
-    look.shoes = "Shoes1";
-    look.head = "Head1";
-    look.weapon = "Melee1";
-    look.offhand = "Shield1";
+    const look={};
+    if(cat){ for(const s of cat.slots) look[s.id]="None"; }
+    /* défaut simplifié : nu + tête 1 seulement */
+    look.body="NakedBody"; look.head="None"; look.hair="None";
+    look.chest="None"; look.legs="None"; look.shoes="None";
+    look.belt="None"; look.gloves="None"; look.backpack="None";
+    look.weapon="None"; look.offhand="None"; look.mount="None";
+    look.slash="None"; look.effect="None";
     return look;
   }
-
-  function folderFor(slotId){
-    const v = state.look[slotId];
-    return (!v || v === "None") ? null : v;
+  function shortOpt(name){
+    if(!name||name==="None") return "Aucun";
+    if(name==="Head25") return "Sorcier";
+    if(/^Hair/i.test(name)) return name.replace(/^Hair_?/i,"")||name;
+    return name.replace(/^(Head|Chest|Legs|Shoes|Belt|Hands|Weapon|Shield|Backpack|Melee|Bow|Staff|Mount|Effect|Slash|NakedBody)_?/i,"")||name;
   }
+  function ensureExtraGear(cat){
+    if(!cat) return cat;
+    const head=(cat.slots||[]).find(s=>s.id==="head");
+    if(head && Array.isArray(head.folders) && !head.folders.includes("Head25")){
+      const i=head.folders.indexOf("Head24");
+      head.folders.splice(i>=0?i+1:head.folders.length, 0, "Head25");
+    }
+    if(Array.isArray(cat.folders) && !cat.folders.includes("Head25")) cat.folders.push("Head25");
+    return cat;
+  }
+  function markEdited(key){ state.lastEdited=key; }
 
-  function tintFor(slotId){
-    const c = state.colors[slotId];
-    if(!c || c === "#ffffff" || c === "#FFFFFF") return null;
-    return c;
+  function loadImg(folder, anim){
+    const key=folder+"/"+anim;
+    if(state.cache.has(key)) return state.cache.get(key);
+    const p=new Promise((resolve)=>{
+      const rel=`spritesheets/${folder}/${anim}.png`;
+      const urls=[];
+      if(folder==="Head25"){
+        urls.push(`hat-refs/Head25/${anim}.png`);
+        urls.push(`assets/packs/fantasy-cc/spritesheets/Head25/${anim}.png`);
+      }
+      urls.push(BASE_CDN+rel, BASE_LOCAL+rel);
+      const im=new Image(); try{ im.crossOrigin="anonymous"; }catch(_e){}
+      let i=0;
+      const next=()=>{
+        if(i>=urls.length){ resolve(null); return; }
+        im.onload=()=>resolve(im); im.onerror=()=>next(); im.src=urls[i++];
+      };
+      next();
+    });
+    state.cache.set(key,p); return p;
   }
 
   function layersForRow(row){
-    const L = [];
-    L.push({ key:"shadow", folder: state.catalog.shadowFolder || "Shadow", tint:null });
-    L.push({ key:"body", folder: folderFor("body"), tint: tintFor("body") });
+    const L=[];
+    L.push({folder:(state.catalog&&state.catalog.shadowFolder||"Shadow"), tint:null, alpha:1});
+    for(const b of state.bodies){
+      if(!b.folder) continue;
+      const tint=(!b.color||b.color==="#ffffff"||b.color==="#FFFFFF")?null:b.color;
+      L.push({folder:b.folder, tint, alpha:Math.max(0,Math.min(1,+b.opacity||1))});
+    }
     for(const id of ["shoes","legs","chest","belt","gloves"]){
-      const f = folderFor(id); if(f) L.push({ key:id, folder:f, tint: tintFor(id) });
+      const f=folderFor(id); if(f) L.push({folder:f, tint:tintForSlot(id), alpha:1});
     }
-
-    const shield = folderFor("offhand");
-    const weapon = folderFor("weapon");
-    const bag = folderFor("backpack");
-    const wAfter = !!weaponAfterShieldRows[row|0];
-    const bagFront = !!backpackInFrontRows[row|0];
-    const mid = [];
-    if(wAfter){
-      if(shield) mid.push({ key:"offhand", folder:shield, tint: tintFor("offhand") });
-      if(weapon) mid.push({ key:"weapon", folder:weapon, tint: tintFor("weapon") });
-    } else {
-      if(weapon) mid.push({ key:"weapon", folder:weapon, tint: tintFor("weapon") });
-      if(shield) mid.push({ key:"offhand", folder:shield, tint: tintFor("offhand") });
-    }
-    if(bag){
-      const item = { key:"backpack", folder:bag, tint: tintFor("backpack") };
-      if(bagFront) mid.push(item); else mid.unshift(item);
-    }
+    const shield=folderFor("offhand"), weapon=folderFor("weapon"), bag=folderFor("backpack");
+    const wAfter=!!weaponAfterShieldRows[row|0], bagFront=!!backpackInFrontRows[row|0];
+    const mid=[];
+    if(wAfter){ if(shield) mid.push({folder:shield,tint:tintForSlot("offhand"),alpha:1}); if(weapon) mid.push({folder:weapon,tint:tintForSlot("weapon"),alpha:1}); }
+    else { if(weapon) mid.push({folder:weapon,tint:tintForSlot("weapon"),alpha:1}); if(shield) mid.push({folder:shield,tint:tintForSlot("offhand"),alpha:1}); }
+    if(bag){ const item={folder:bag,tint:tintForSlot("backpack"),alpha:1}; if(bagFront) mid.push(item); else mid.unshift(item); }
     L.push(...mid);
-
-    for(const id of ["head","slash","effect"]){
-      const f = folderFor(id); if(f) L.push({ key:id, folder:f, tint: tintFor(id) });
-    }
-    const mount = folderFor("mount");
-    if(mount) L.unshift({ key:"mount", folder:mount, tint: tintFor("mount") });
-    return L.filter(x=> x.folder);
+    /* hair sous les équipements de tête */
+    const hair=folderFor("hair"); if(hair) L.push({folder:hair, tint:tintForSlot("hair"), alpha:1});
+    for(const id of ["head","slash","effect"]){ const f=folderFor(id); if(f) L.push({folder:f, tint:tintForSlot(id), alpha:1}); }
+    const mount=folderFor("mount"); if(mount) L.unshift({folder:mount, tint:tintForSlot("mount"), alpha:1});
+    return L.filter(x=>x.folder);
   }
 
-  /** Multiply + destination-in : recolore le blanc sans casser l’alpha. */
-  function tintDraw(img, sx,sy,sw,sh, dx,dy,dw,dh, tintHex){
-    if(!tintHex){
-      cx.drawImage(img, sx,sy,sw,sh, dx,dy,dw,dh);
-      return;
+  function tintDraw(img,sx,sy,sw,sh,dx,dy,dw,dh,tintHex,alpha){
+    const a=(alpha==null)?1:alpha;
+    cx.save(); cx.globalAlpha=a;
+    if(!tintHex){ cx.drawImage(img,sx,sy,sw,sh,dx,dy,dw,dh); cx.restore(); return; }
+    const tw=Math.max(1,Math.round(dw)), th=Math.max(1,Math.round(dh));
+    if(tintCv.width!==tw) tintCv.width=tw;
+    if(tintCv.height!==th) tintCv.height=th;
+    const t=tintCx;
+    t.setTransform(1,0,0,1,0,0); t.globalCompositeOperation="source-over"; t.globalAlpha=1;
+    t.clearRect(0,0,tw,th); t.imageSmoothingEnabled=false;
+    t.drawImage(img,sx,sy,sw,sh,0,0,tw,th);
+    t.globalCompositeOperation="multiply"; t.fillStyle=tintHex; t.fillRect(0,0,tw,th);
+    t.globalCompositeOperation="destination-in"; t.drawImage(img,sx,sy,sw,sh,0,0,tw,th);
+    t.globalCompositeOperation="source-over";
+    cx.drawImage(tintCv,dx,dy); cx.restore();
+  }
+
+  function fitCanvas(){
+    const wrap=el("stageWrap");
+    const r=wrap.getBoundingClientRect();
+    const w=Math.max(160, Math.round(r.width));
+    const h=Math.max(200, Math.round(r.height));
+    if(stage.width!==w || stage.height!==h){ stage.width=w; stage.height=h; state.dirty=true; }
+  }
+
+  function layoutChrome(){
+    const host=el("callouts");
+    const order=currentZoneOrder();
+    const need = order.join("|");
+    if(host.dataset.zones !== need){
+      host.innerHTML="";
+      order.forEach(id=>{
+        const btn=document.createElement("button");
+        btn.type="button"; btn.className="callout"; btn.dataset.zone=id;
+        btn.textContent=LAY.zonesLab[id]||id;
+        btn.onclick=()=>selectZone(id);
+        host.appendChild(btn);
+      });
+      host.dataset.zones=need;
     }
-    const tw = Math.max(1, Math.round(dw));
-    const th = Math.max(1, Math.round(dh));
-    if(tintCv.width !== tw) tintCv.width = tw;
-    if(tintCv.height !== th) tintCv.height = th;
-    const t = tintCx;
-    t.setTransform(1,0,0,1,0,0);
-    t.globalCompositeOperation = "source-over";
-    t.globalAlpha = 1;
-    t.clearRect(0,0,tw,th);
-    t.imageSmoothingEnabled = false;
-    t.drawImage(img, sx,sy,sw,sh, 0,0,tw,th);
-    t.globalCompositeOperation = "multiply";
-    t.fillStyle = tintHex;
-    t.fillRect(0,0,tw,th);
-    t.globalCompositeOperation = "destination-in";
-    t.drawImage(img, sx,sy,sw,sh, 0,0,tw,th);
-    t.globalCompositeOperation = "source-over";
-    cx.drawImage(tintCv, dx, dy);
+    host.querySelectorAll(".callout").forEach(btn=>{
+      btn.classList.toggle("on", btn.dataset.zone===state.zoneId);
+    });
+
+    const s=LAY.rot.size;
+    const cxPct=LAY.char.xPct;
+    const y=LAY.rot.yPct;
+    const gap=LAY.rot.gapPct;
+    const rp=el("dirPrev"), rn=el("dirNext");
+    rp.style.width=s+"px"; rp.style.height=s+"px";
+    rn.style.width=s+"px"; rn.style.height=s+"px";
+    rp.style.left=(cxPct-gap)+"%"; rp.style.top=y+"%";
+    rn.style.left=(cxPct+gap)+"%"; rn.style.top=y+"%";
+    rp.style.marginLeft=(-s/2)+"px"; rp.style.marginTop=(-s/2)+"px";
+    rn.style.marginLeft=(-s/2)+"px"; rn.style.marginTop=(-s/2)+"px";
   }
 
   async function draw(){
-    const cat = state.catalog;
-    if(!cat) return;
-    const row = DIR_ROW[state.dir|0]|0;
-    const cols = COLS;
-    const anim = state.anim;
-    const fps = Math.max(1, state.fps|0);
-    const interval = 1000 / fps;
-    const now = performance.now();
-    let advanced = false;
-    if(now - state.lastT > interval){
-      const steps = Math.floor((now - state.lastT) / interval);
-      state.frame = (state.frame + steps) % cols;
-      state.lastT += steps * interval;
-      if(now - state.lastT > interval * 2) state.lastT = now;
-      advanced = true;
+    if(!state.catalog) return;
+    fitCanvas();
+    const row=DIR_ROW[state.dir|0]|0;
+    const fps=Math.max(1,state.fps|0);
+    const interval=1000/fps;
+    const now=performance.now();
+    let advanced=false;
+    if(now-state.lastT>interval){
+      const steps=Math.floor((now-state.lastT)/interval);
+      state.frame=(state.frame+steps)%COLS;
+      state.lastT+=steps*interval;
+      if(now-state.lastT>interval*2) state.lastT=now;
+      advanced=true;
     }
     if(!advanced && !state.dirty) return;
-    state.dirty = false;
-
-    const col = state.frame;
-    const W = stage.width, H = stage.height;
+    state.dirty=false;
+    const col=state.frame, anim=state.anim;
+    const W=stage.width, H=stage.height;
     cx.clearRect(0,0,W,H);
-    cx.fillStyle = "#0a1420";
-    cx.fillRect(0,0,W,H);
-    const tw=40, th=20, ox=W/2, oy=H/2+36;
-    for(let c=-1;c<=1;c++) for(let r=-1;r<=1;r++){
-      const x = ox+(c-r)*tw/2, y = oy+(c+r)*th/2;
-      cx.beginPath();
-      cx.moveTo(x,y-th/2); cx.lineTo(x+tw/2,y); cx.lineTo(x,y+th/2); cx.lineTo(x-tw/2,y); cx.closePath();
-      cx.fillStyle = ((c+r)&1) ? "rgba(196,92,38,.10)" : "rgba(196,92,38,.18)";
-      cx.fill();
-    }
 
-    const layers = layersForRow(row);
-    const imgs = await Promise.all(layers.map(L=> loadImg(L.folder, anim)));
-    // si l’anim a changé pendant le chargement, on redessinera au prochain tick
-    if(state.anim !== anim){ state.dirty = true; return; }
-    const scale = 1.55;
-    const dw = FW*scale, dh = FH*scale;
-    const foot = 110;
-    const dx = ox - dw/2, dy = oy + 4 - foot*scale;
-    cx.imageSmoothingEnabled = false;
-    let missing = 0;
+    /* Taille = % hauteur scène → perso vraiment grand malgré padding du spritesheet */
+    const charSize=H*(state.charSizePct||LAY.char.sizePct);
+    const scale=charSize/FW;
+    const dw=FW*scale, dh=FH*scale;
+    const ox=W*(LAY.char.xPct/100), oy=H*(LAY.char.yPct/100);
+    const dx=ox-dw/2, dy=oy-dh/2;
+    const shX=W*(LAY.shadow.xPct/100), shY=H*(LAY.shadow.yPct/100);
+    const shRx=dw*0.38, shRy=Math.max(10, dh*0.055);
+    state.drawRect={dx,dy,dw,dh,scale};
+
+    const grd=cx.createRadialGradient(shX,shY,1,shX,shY,Math.max(shRx,shRy));
+    grd.addColorStop(0,`rgba(0,0,0,${LAY.shadow.opacity})`);
+    grd.addColorStop(1,"rgba(0,0,0,0)");
+    cx.fillStyle=grd; cx.beginPath(); cx.ellipse(shX,shY,shRx,shRy,0,0,Math.PI*2); cx.fill();
+
+    const layers=layersForRow(row);
+    const imgs=await Promise.all(layers.map(L=>loadImg(L.folder,anim)));
+    if(state.anim!==anim){ state.dirty=true; return; }
+    cx.imageSmoothingEnabled=false;
+    let missing=0;
     for(let i=0;i<layers.length;i++){
-      const im = imgs[i];
-      if(!im || !im.complete || !im.naturalWidth){ missing++; continue; }
-      try{
-        tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, layers[i].tint);
-      }catch(err){
-        // fallback sans teinte si canvas tainted / CORS
-        try{ cx.drawImage(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh); }catch(_e){ missing++; }
-      }
+      const im=imgs[i];
+      if(!im||!im.naturalWidth){ missing++; continue; }
+      try{ tintDraw(im,col*FW,row*FH,FW,FH,dx,dy,dw,dh,layers[i].tint,layers[i].alpha); }
+      catch(_e){ try{ cx.globalAlpha=layers[i].alpha||1; cx.drawImage(im,col*FW,row*FH,FW,FH,dx,dy,dw,dh); cx.globalAlpha=1; }catch(__e){ missing++; } }
     }
-    el("status").textContent = `${anim} · ${fps} fps · dir ${state.dir} · frame ${col+1}/${cols}` +
-      (missing ? ` · ${missing} couche(s) manquante(s)` : "");
+    el("status").textContent=`${anim} · ${state.dir+1}/8`+(missing?` · ${missing}∅`:"");
+    layoutChrome();
   }
-
   function loop(){
     if(!state.drawing){
-      state.drawing = true;
-      draw()
-        .catch((e)=>{ console.error(e); el("status").textContent = "Erreur rendu : " + (e && e.message ? e.message : e); })
-        .finally(()=>{ state.drawing = false; });
+      state.drawing=true;
+      draw().catch(e=>{ el("status").textContent="Erreur: "+(e.message||e); })
+        .finally(()=>{ state.drawing=false; });
     }
-    state.raf = requestAnimationFrame(loop);
+    state.raf=requestAnimationFrame(loop);
   }
 
-  function renderSlots(){
-    const root = el("slots");
-    root.innerHTML = "";
-    for(const s of state.catalog.slots){
-      const box = document.createElement("div");
-      box.className = "slot";
+  function selectZone(id){
+    state.zoneId=id;
+    if(id==="body") state.bodyFocus=Math.min(state.bodyFocus, Math.max(0,state.bodies.length-1));
+    el("bodyStack").classList.toggle("on", id==="body");
+    syncSteppers(); renderSwatches(); renderBodies(); layoutChrome();
+    state.dirty=true;
+  }
 
-      const head = document.createElement("div");
-      head.className = "slot-head";
-      const lab = document.createElement("div");
-      lab.className = "lab";
-      lab.textContent = s.lab + (s.required ? " *" : "");
-
-      const colorWrap = document.createElement("div");
-      colorWrap.className = "slot-color";
-      const col = document.createElement("input");
-      col.type = "color";
-      col.title = "Teinte " + s.lab;
-      col.value = state.colors[s.id] || DEFAULT_COLORS[s.id] || "#888888";
-      col.oninput = ()=>{ state.colors[s.id] = col.value; state.dirty = true; };
-      const clear = document.createElement("button");
-      clear.type = "button";
-      clear.textContent = "Orig.";
-      clear.title = "Couleur d’origine (sans teinte)";
-      clear.onclick = ()=>{
-        state.colors[s.id] = "#ffffff";
-        col.value = "#ffffff";
-        state.dirty = true;
+  function activeSlotId(){
+    if(state.zoneId==="weapon") return state._miscFocus||"weapon";
+    return state.zoneId;
+  }
+  function loadCatData(){
+    try{
+      const raw=localStorage.getItem(CAT_KEY)||sessionStorage.getItem(CAT_KEY);
+      if(!raw) return;
+      const o=JSON.parse(raw);
+      if(!o||typeof o!=="object") return;
+      state.catData={
+        categories:Array.isArray(o.categories)?o.categories.filter(c=>c&&c.id&&c.label&&c.slot):[],
+        items:(o.items&&typeof o.items==="object")?o.items:{}
       };
-      colorWrap.appendChild(col);
-      colorWrap.appendChild(clear);
-      head.appendChild(lab);
-      head.appendChild(colorWrap);
-
-      const slotCats = catsForSlot(s.id);
-      if(slotCats.length){
-        const filt = document.createElement("div");
-        filt.className = "cat-filter";
-        const curF = state.catFilter[s.id] || "all";
-        const mk = (id, label)=>{
-          const b = document.createElement("button");
-          b.type = "button";
-          b.textContent = label;
-          if(curF===id) b.classList.add("on");
-          b.onclick = ()=>{
-            state.catFilter[s.id] = id;
-            renderSlots();
-          };
-          filt.appendChild(b);
-        };
-        mk("all", "Toutes");
-        mk("none", "Sans cat.");
-        slotCats.forEach(c=> mk(c.id, c.label));
-        box.appendChild(head);
-        box.appendChild(filt);
-      } else {
-        box.appendChild(head);
-      }
-
-      const opts = document.createElement("div");
-      opts.className = "opts";
-      const cur = state.look[s.id];
-      let shown = 0;
-      for(const name of s.folders){
-        if(!folderMatchesFilter(s.id, name)) continue;
-        shown++;
-        const b = document.createElement("button");
-        b.type = "button";
-        b.textContent = name === "None" ? "— None" : name;
-        if(name === cur) b.classList.add("on");
-        b.onclick = ()=>{
-          state.look[s.id] = name;
-          state.dirty = true;
-          renderSlots();
-        };
-        opts.appendChild(b);
-      }
-      if(!shown){
-        const empty = document.createElement("div");
-        empty.style.cssText = "font-size:11px;color:var(--muted);padding:4px 0";
-        empty.textContent = "Aucune pièce dans ce filtre.";
-        opts.appendChild(empty);
-      }
-      box.appendChild(opts);
-      root.appendChild(box);
+    }catch(_e){}
+  }
+  function saveCatData(){
+    try{
+      const payload={ver:1,pack:"fantasy-cc",categories:state.catData.categories,items:state.catData.items};
+      localStorage.setItem(CAT_KEY, JSON.stringify(payload));
+      sessionStorage.setItem(CAT_KEY, JSON.stringify(payload));
+    }catch(_e){}
+  }
+  function catsForActive(){
+    const sid=activeSlotId();
+    return (state.catData.categories||[]).filter(c=>c.slot===sid);
+  }
+  function itemCats(folder){
+    if(!folder||folder==="None") return [];
+    const it=state.catData.items[folder];
+    return (it&&Array.isArray(it.categories))?it.categories:[];
+  }
+  function toggleItemCat(folder, catId){
+    if(!folder||folder==="None") return;
+    if(!state.catData.items[folder]) state.catData.items[folder]={slot:activeSlotId(), categories:[]};
+    const it=state.catData.items[folder];
+    it.slot=activeSlotId();
+    if(!Array.isArray(it.categories)) it.categories=[];
+    const i=it.categories.indexOf(catId);
+    if(i>=0) it.categories.splice(i,1); else it.categories.push(catId);
+    saveCatData();
+    renderCats();
+  }
+  function folderInCatFilter(folder){
+    if(state.catFilter==="all") return true;
+    if(folder==="None") return true;
+    const cats=itemCats(folder);
+    if(state.catFilter==="none"){
+      const ids=new Set(catsForActive().map(c=>c.id));
+      return !cats.some(id=>ids.has(id));
+    }
+    return cats.indexOf(state.catFilter)>=0;
+  }
+  function renderCats(){
+    const filt=el("catFilter"), tags=el("catTags");
+    if(!filt||!tags) return;
+    filt.innerHTML=""; tags.innerHTML="";
+    const list=catsForActive();
+    const mk=(host, id, lab, on, cls)=>{
+      const b=document.createElement("button"); b.type="button";
+      b.textContent=lab; if(on) b.classList.add("on"); if(cls) b.classList.add(cls);
+      host.appendChild(b); return b;
+    };
+    mk(filt,"all","Toutes", state.catFilter==="all").onclick=()=>{ state.catFilter="all"; renderCats(); syncSteppers(); };
+    mk(filt,"none","Sans", state.catFilter==="none").onclick=()=>{ state.catFilter="none"; renderCats(); syncSteppers(); };
+    list.forEach(c=>{
+      mk(filt,c.id,c.label, state.catFilter===c.id).onclick=()=>{ state.catFilter=c.id; renderCats(); syncSteppers(); };
+    });
+    const cur=currentOption();
+    if(!list.length){
+      tags.innerHTML='<span style="font-size:10px;color:var(--ink2)">+ pour créer</span>';
+    } else if(!cur||cur==="None"){
+      tags.innerHTML='<span style="font-size:10px;color:var(--ink2)">Choisis une pièce</span>';
+    } else {
+      const assigned=itemCats(cur);
+      list.forEach(c=>{
+        const b=mk(tags,c.id,c.label, assigned.indexOf(c.id)>=0, "tag");
+        b.onclick=()=>toggleItemCat(cur, c.id);
+      });
     }
   }
 
-  function fillAnimSelect(anims){
-    const sel = el("animSelect");
-    if(!sel) return;
-    sel.innerHTML = "";
-    for(const a of anims){
-      const o = document.createElement("option");
-      o.value = a; o.textContent = a;
-      if(a === state.anim) o.selected = true;
-      sel.appendChild(o);
+  function optionList(){
+    let list;
+    if(state.zoneId==="body") list=((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
+    else if(state.zoneId==="weapon"){ const s=slotById(state._miscFocus||"weapon"); list=(s&&s.folders)||["None"]; }
+    else if(state.zoneId==="hair") list=["None",...HAIR_FOLDERS];
+    else { const s=slotById(state.zoneId); list=(s&&s.folders)||["None"]; }
+    if(state.zoneId==="body") return list;
+    const filtered=list.filter(f=>folderInCatFilter(f));
+    return filtered.length?filtered:["None"];
+  }
+  function currentOption(){
+    if(state.zoneId==="body"){ const b=state.bodies[state.bodyFocus|0]; return (b&&b.folder)||"NakedBody"; }
+    return state.look[activeSlotId()]||"None";
+  }
+  function setOption(name){
+    if(state.zoneId==="body"){
+      const i=state.bodyFocus|0; if(!state.bodies[i]) return;
+      state.bodies[i].folder=name; state.look.body=state.bodies[0].folder; markEdited("body:"+i);
+    } else {
+      const sid=activeSlotId(); state.look[sid]=name; markEdited(sid);
+      if(sid==="mount") syncRideAnim();
     }
-    sel.onchange = ()=>{ state.anim = sel.value; state.frame = 0; state.dirty = true; };
+    state.dirty=true; syncSteppers(); renderBodies();
+  }
+  function isMounted(){
+    const m=state.look && state.look.mount;
+    return !!(m && m!=="None");
+  }
+  function syncRideAnim(){
+    if(isMounted()){
+      if(!/^Ride/i.test(state.anim)) state.anim="RideIdle";
+    } else if(/^Ride/i.test(state.anim)){
+      state.anim="Idle";
+    }
+    state.frame=0; syncSteppers();
+  }
+  function cycleOption(dir){
+    const list=optionList(); if(!list.length) return;
+    let i=list.indexOf(currentOption()); if(i<0) i=0;
+    i=(i+dir+list.length)%list.length; setOption(list[i]);
+  }
+  function cycleMiscSlot(dir){
+    let i=MISC_SLOTS.indexOf(state._miscFocus||"weapon"); if(i<0) i=0;
+    i=(i+dir+MISC_SLOTS.length)%MISC_SLOTS.length;
+    state._miscFocus=MISC_SLOTS[i]; syncSteppers(); renderSwatches();
+  }
+  /* Toutes les anims disponibles, mouvement en tête */
+  const MOVE_ANIMS = ["Idle","Walk","Run","Rolling","Slide","AttackRun","AttackRun2","Taunt"];
+  const DIR_NAMES  = ["E","SE","S","SW","W","NW","N","NE"];
+
+  function fullAnimList(){
+    const cat=(state.catalog&&state.catalog.anims&&state.catalog.anims.length)
+      ? state.catalog.anims.slice()
+      : ["Idle","Walk","Attack1","Attack2","Kick","TakeDamage","Die"];
+    /* Mettre les anims de mouvement en premier, sans doublons */
+    const extra=MOVE_ANIMS.filter(a=>!cat.includes(a));
+    const all=[...MOVE_ANIMS.filter(a=>cat.includes(a)||extra.includes(a)),...cat.filter(a=>!MOVE_ANIMS.includes(a))];
+    if(isMounted()){
+      const ride=RIDE_ANIMS.filter(a=>all.indexOf(a)<0?true:true); // toujours dispo
+      return [...ride,...all.filter(a=>!/^Ride/i.test(a))];
+    }
+    return all;
+  }
+  function cycleAnim(dir){
+    const anims=fullAnimList();
+    let i=anims.indexOf(state.anim); if(i<0) i=0;
+    i=(i+dir+anims.length)%anims.length;
+    state.anim=anims[i]; state.frame=0; state.dirty=true; syncSteppers();
   }
 
-  function bindToolbar(){
-    el("dirPrev").onclick = ()=> { state.dir = (state.dir + 7) % 8; state.dirty = true; };
-    el("dirNext").onclick = ()=> { state.dir = (state.dir + 1) % 8; state.dirty = true; };
-    const fps = el("fps");
-    const fpsVal = el("fpsVal");
-    const syncFps = ()=>{
-      state.fps = Math.max(1, parseInt(fps.value,10)||14);
-      fpsVal.textContent = String(state.fps);
-      state.dirty = true;
-    };
-    fps.oninput = syncFps;
-    syncFps();
+  function syncSteppers(){
+    el("animVal").textContent=state.anim||"—";
+    if(el("dirVal")) el("dirVal").textContent=DIR_NAMES[state.dir|0]||"";
+    if(state.zoneId==="weapon"){
+      const s=slotById(state._miscFocus||"weapon");
+      const sub=(s&&s.lab)?s.lab.split("/")[0].trim():(state._miscFocus||"");
+      el("optVal").textContent=sub+": "+shortOpt(currentOption());
+    } else if(state.zoneId==="body"){
+      el("optVal").textContent="L"+(state.bodyFocus+1)+": "+shortOpt(currentOption());
+    } else if(state.zoneId==="mount"){
+      el("optVal").textContent=isMounted() ? shortOpt(currentOption())+" · à cheval" : "À pied";
+    } else if(state.zoneId==="hair"){
+      const cur=currentOption();
+      el("optVal").textContent=(cur==="None"||!cur) ? "Aucune" : shortOpt(cur);
+    } else {
+      el("optVal").textContent=shortOpt(currentOption());
+    }
+    renderCats();
+  }
 
-    el("btnRandom").onclick = ()=>{
-      for(const s of state.catalog.slots){
-        const opts = s.folders;
-        state.look[s.id] = opts[Math.floor(Math.random()*opts.length)];
-      }
-      const palette = ["#d4a574","#5b7c99","#6b8f71","#c45c26","#9aa8b8","#8b6914","#a06bff","#e8590c","#3e4f63","#e0b878"];
-      for(const s of state.catalog.slots){
-        if(Math.random() < 0.7) state.colors[s.id] = palette[Math.floor(Math.random()*palette.length)];
-      }
-      if(!folderFor("body")) state.look.body = "NakedBody";
-      state.dirty = true;
-      renderSlots();
-    };
-    el("btnReset").onclick = ()=>{
-      state.look = defaultLook(state.catalog);
-      state.colors = defaultColors();
-      state.dirty = true;
-      renderSlots();
-    };
-    el("btnExport").onclick = ()=>{
-      const payload = {
-        pack:"fantasy-cc",
-        look: state.look,
-        colors: state.colors,
-        fps: state.fps,
-        anim: state.anim,
-        dir: state.dir
+  function colorTarget(){
+    if(state.zoneId==="body"){
+      const b=state.bodies[state.bodyFocus|0];
+      return { get:()=> (b&&b.color)||DEFAULT_COLORS.body, set:(hex)=>{ if(b){ b.color=hex; markEdited("body:"+(state.bodyFocus|0)); } } };
+    }
+    const sid=activeSlotId();
+    return { get:()=> state.colors[sid]||DEFAULT_COLORS[sid]||"#888888", set:(hex)=>{ state.colors[sid]=hex; markEdited(sid); } };
+  }
+
+  function renderSwatches(){
+    const host=el("swatches"); host.innerHTML="";
+    const ct=colorTarget();
+    const cur=(ct.get()||"").toLowerCase();
+    PALETTE.forEach(hex=>{
+      const b=document.createElement("button");
+      b.type="button";
+      b.className="sw"+(hex==="#ffffff"||hex==="#000000"?" bw":"")+(cur===hex.toLowerCase()?" on":"");
+      b.style.background=hex;
+      let timer=null, long=false;
+      b.addEventListener("pointerdown", ()=>{ long=false; timer=setTimeout(()=>{ long=true; openColorSheet(hex); },480); });
+      const end=()=>{ clearTimeout(timer); if(!long){ ct.set(hex); state.dirty=true; renderSwatches(); renderBodies(); } };
+      b.addEventListener("pointerup", end);
+      b.addEventListener("pointerleave", ()=>clearTimeout(timer));
+      b.addEventListener("pointercancel", ()=>clearTimeout(timer));
+      host.appendChild(b);
+    });
+  }
+
+  function hslToHex(h,s,l){
+    s/=100; l/=100; const a=s*Math.min(l,1-l);
+    const f=n=>{ const k=(n+h/30)%12; const c=l-a*Math.max(Math.min(k-3,9-k,1),-1); return Math.round(255*c).toString(16).padStart(2,"0"); };
+    return "#"+f(0)+f(8)+f(4);
+  }
+  function hexToHsl(hex){
+    let r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;
+    const max=Math.max(r,g,b), min=Math.min(r,g,b); let h=0,s=0,l=(max+min)/2;
+    if(max!==min){ const d=max-min; s=l>0.5?d/(2-max-min):d/(max+min);
+      switch(max){ case r:h=((g-b)/d+(g<b?6:0));break; case g:h=(b-r)/d+2;break; default:h=(r-g)/d+4;} h*=60; }
+    return {h:Math.round(h),s:Math.round(s*100),l:Math.round(l*100)};
+  }
+  let advTarget=null;
+  function syncAdv(){ const hex=hslToHex(+el("advH").value,+el("advS").value,+el("advL").value); el("advPreview").style.background=hex; advTarget=hex; }
+  function openColorSheet(fromHex){
+    const hsl=hexToHsl(fromHex||colorTarget().get()||"#888888");
+    el("advH").value=hsl.h; el("advS").value=hsl.s; el("advL").value=hsl.l; syncAdv(); el("colorSheet").classList.add("on");
+  }
+  function closeColorSheet(apply){
+    el("colorSheet").classList.remove("on");
+    if(apply&&advTarget){ colorTarget().set(advTarget); state.dirty=true; renderSwatches(); renderBodies(); }
+  }
+
+  function renderBodies(){
+    const host=el("bodyRows"); host.innerHTML="";
+    state.bodies.forEach((b,idx)=>{
+      const row=document.createElement("div");
+      row.className="body-row"+(state.bodyFocus===idx?" on":"");
+      row.onclick=(e)=>{ if(e.target.closest("button,input")) return; state.bodyFocus=idx; syncSteppers(); renderSwatches(); renderBodies(); };
+      const top=document.createElement("div"); top.className="top";
+      const idxEl=document.createElement("span"); idxEl.className="idx"; idxEl.textContent=String(idx+1);
+      const name=document.createElement("span"); name.className="name";
+      name.textContent=shortOpt(b.folder)+(idx===0?" ↓":idx===state.bodies.length-1?" ↑":"");
+      const sw=document.createElement("button"); sw.type="button"; sw.className="sw-mini";
+      sw.style.background=b.color||DEFAULT_COLORS.body;
+      sw.onclick=(e)=>{ e.stopPropagation(); state.bodyFocus=idx; openColorSheet(b.color||DEFAULT_COLORS.body); };
+      const ops=document.createElement("div"); ops.className="ops";
+      const up=document.createElement("button"); up.type="button"; up.textContent="↑";
+      up.disabled=idx>=state.bodies.length-1;
+      up.onclick=(e)=>{ e.stopPropagation(); if(idx>=state.bodies.length-1) return;
+        const t=state.bodies[idx+1]; state.bodies[idx+1]=state.bodies[idx]; state.bodies[idx]=t;
+        state.bodyFocus=idx+1; state.look.body=state.bodies[0].folder; markEdited("body"); state.dirty=true; renderBodies(); syncSteppers(); };
+      const dn=document.createElement("button"); dn.type="button"; dn.textContent="↓";
+      dn.disabled=idx<=0;
+      dn.onclick=(e)=>{ e.stopPropagation(); if(idx<=0) return;
+        const t=state.bodies[idx-1]; state.bodies[idx-1]=state.bodies[idx]; state.bodies[idx]=t;
+        state.bodyFocus=idx-1; state.look.body=state.bodies[0].folder; markEdited("body"); state.dirty=true; renderBodies(); syncSteppers(); };
+      const rm=document.createElement("button"); rm.type="button"; rm.textContent="×";
+      rm.disabled=state.bodies.length<=1;
+      rm.onclick=(e)=>{ e.stopPropagation(); if(state.bodies.length<=1) return;
+        state.bodies.splice(idx,1); state.bodyFocus=Math.min(state.bodyFocus, state.bodies.length-1);
+        state.look.body=state.bodies[0].folder; markEdited("body"); state.dirty=true; renderBodies(); syncSteppers(); };
+      ops.appendChild(up); ops.appendChild(dn); ops.appendChild(rm);
+      top.appendChild(idxEl); top.appendChild(name); top.appendChild(sw); top.appendChild(ops);
+      const range=document.createElement("input"); range.type="range"; range.min="0"; range.max="100";
+      range.value=String(Math.round((b.opacity||1)*100));
+      range.oninput=()=>{ state.bodies[idx].opacity=(+range.value)/100; markEdited("body:"+idx); state.dirty=true; };
+      row.appendChild(top); row.appendChild(range); host.appendChild(row);
+    });
+  }
+
+  function clearLastPart(){
+    const key=state.lastEdited;
+    if(!key){
+      if(state.zoneId==="body"){ el("status").textContent="Corps : × couche"; return; }
+      const sid=activeSlotId(); const s=slotById(sid);
+      if(s&&s.required){ el("status").textContent="Obligatoire"; return; }
+      state.look[sid]="None"; state.dirty=true; syncSteppers(); el("status").textContent="→ Aucun"; return;
+    }
+    if(key.startsWith("body")){ el("status").textContent="Corps : × couche"; return; }
+    const s=slotById(key);
+    if(s&&s.required){ el("status").textContent="Obligatoire"; return; }
+    state.look[key]="None"; state.dirty=true; syncSteppers();
+    el("status").textContent="→ Aucun ("+key+")";
+  }
+
+  function syncSizeUI(){
+    const pct=Math.round((state.charSizePct||LAY.char.sizePct)*100);
+    const inp=el("charSize"), lab=el("charSizeVal");
+    if(inp) inp.value=String(pct);
+    if(lab) lab.textContent=pct+"%";
+  }
+
+  function bind(){
+    el("dirPrev").onclick=()=>{ state.dir=(state.dir+7)%8; state.dirty=true; syncSteppers(); };
+    el("dirNext").onclick=()=>{ state.dir=(state.dir+1)%8; state.dirty=true; syncSteppers(); };
+    /* Pavé directionnel 8-dir */
+    el("dpad").querySelectorAll("button[data-d]").forEach(btn=>{
+      btn.onclick=()=>{ state.dir=parseInt(btn.dataset.d); state.frame=0; state.dirty=true; syncSteppers(); };
+    });
+    /* Slider FPS */
+    const fpsEl=el("fpsSlider");
+    if(fpsEl){
+      fpsEl.value=String(state.fps);
+      fpsEl.oninput=()=>{ state.fps=Math.max(1,Math.min(30,parseInt(fpsEl.value)||14)); el("fpsVal").textContent=state.fps; state.dirty=true; };
+    }
+    el("animPrev").onclick=()=>cycleAnim(-1);
+    el("animNext").onclick=()=>cycleAnim(1);
+    el("optPrev").onclick=()=>cycleOption(-1);
+    el("optNext").onclick=()=>cycleOption(1);
+    const addCat=el("btnAddCat"), catName=el("catName");
+    if(addCat&&catName){
+      const doAdd=()=>{
+        const name=(catName.value||"").trim();
+        if(!name){ el("status").textContent="Nom de catégorie ?"; return; }
+        const sid=activeSlotId();
+        if(catsForActive().some(c=>c.label.toLowerCase()===name.toLowerCase())){
+          el("status").textContent="Cat. déjà là"; return;
+        }
+        const id=sid+"_"+Math.random().toString(36).slice(2,7);
+        state.catData.categories.push({id, label:name.slice(0,20), slot:sid});
+        catName.value="";
+        saveCatData(); renderCats();
+        el("status").textContent="Cat. « "+name+" »";
       };
-      const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "fantasy-look.json";
-      a.click();
+      addCat.onclick=doAdd;
+      catName.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); doAdd(); } });
+    }
+    el("optVal").style.cursor="pointer";
+    el("optVal").onclick=()=>{ if(state.zoneId==="weapon") cycleMiscSlot(1); };
+    el("btnClear").onclick=clearLastPart;
+
+    const sizeEl=el("charSize");
+    if(sizeEl) sizeEl.oninput=()=>{
+      state.charSizePct=Math.max(0.50, Math.min(0.85, (+sizeEl.value)/100));
+      syncSizeUI(); state.dirty=true;
+    };
+    el("advH").oninput=syncAdv; el("advS").oninput=syncAdv; el("advL").oninput=syncAdv;
+    el("advCancel").onclick=()=>closeColorSheet(false);
+    el("advOk").onclick=()=>closeColorSheet(true);
+    el("colorSheet").addEventListener("click", e=>{ if(e.target.id==="colorSheet") closeColorSheet(false); });
+    el("addBody").onclick=()=>{
+      const folders=((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
+      state.bodies.push({folder:folders[state.bodies.length%folders.length]||"NakedBody", opacity:0.7, color:DEFAULT_COLORS.body});
+      state.bodyFocus=state.bodies.length-1;
+      markEdited("body:"+(state.bodies.length-1));
+      renderBodies(); syncSteppers(); renderSwatches(); state.dirty=true;
+    };
+    el("btnAdvanced").onclick=()=>{
+      advancedMode=!advancedMode;
+      el("btnAdvanced").textContent=advancedMode ? "⚙ Mode simplifié" : "⚙ Équipements avancés";
+      /* Si on repasse simplifié et zone hors scope, revenir à hair */
+      if(!advancedMode && !currentZoneOrder().includes(state.zoneId)) selectZone("hair");
+      else layoutChrome();
+      state.dirty=true;
+    };
+    el("btnRandom").onclick=()=>{
+      const palette=PALETTE.slice(0,-2);
+      for(const s of slots()){
+        if(s.id==="body") continue;
+        if(Math.random()<0.5) state.look[s.id]=s.folders[Math.floor(Math.random()*s.folders.length)];
+      }
+      state.look.chest="None"; state.look.legs="None"; state.look.shoes="None";
+      state.look.weapon="None"; state.look.offhand="None"; state.look.hair="None";
+      const bf=((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
+      state.bodies=[{folder:bf[Math.floor(Math.random()*bf.length)]||"NakedBody", opacity:1, color:palette[Math.floor(Math.random()*palette.length)]}];
+      state.bodyFocus=0; state.look.body=state.bodies[0].folder;
+      state.dirty=true; syncSteppers(); renderSwatches(); renderBodies();
+      saveLookPayload();
+    };
+    el("btnReset").onclick=()=>{
+      state.look=defaultLook(state.catalog); state.colors=defaultColors();
+      state.bodies=[{folder:"NakedBody",opacity:1,color:DEFAULT_COLORS.body}];
+      state.bodyFocus=0; state.lastEdited=null;
+      state.dirty=true; syncSteppers(); renderSwatches(); renderBodies();
+      saveLookPayload();
+    };
+    function saveLookPayload(){
+      const payload={pack:"fantasy-cc", look:state.look, colors:state.colors, bodies:state.bodies, fps:state.fps, anim:state.anim, dir:state.dir, charSizePct:state.charSizePct};
       try{ localStorage.setItem("neuro.fantasyLook", JSON.stringify(payload)); }catch(_e){}
-      el("status").textContent = "Look exporté (+ localStorage neuro.fantasyLook)";
+      return payload;
+    }
+    function combatUrlWithLook(){
+      const payload=saveLookPayload();
+      const href=el("btnCombat").getAttribute("href")||"fantasy-combat.html";
+      let url;
+      try{ url=new URL(href, location.href); }catch(_e){ return href; }
+      try{ url.hash="fccLook="+encodeURIComponent(JSON.stringify(payload)); }catch(_e){}
+      return url.toString();
+    }
+    el("btnExport").onclick=()=>{
+      const payload=saveLookPayload();
+      const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}));
+      a.download="fantasy-look.json"; a.click(); el("status").textContent="Look sauvé";
     };
+    el("btnCombat").onclick=(ev)=>{
+      ev.preventDefault();
+      el("status").textContent="Look → combat";
+      location.href=combatUrlWithLook();
+    };
+    document.addEventListener("visibilitychange", ()=>{ if(document.hidden) saveLookPayload(); });
+    window.addEventListener("pagehide", saveLookPayload);
+    window.addEventListener("resize", ()=>{ state.dirty=true; layoutChrome(); });
   }
 
   async function boot(){
-    el("status").textContent = "Chargement catalogue…";
-    let cat = null;
-    const catalogUrls = [BASE_CDN+"catalog.json", BASE_LOCAL+"catalog.json"];
-    for(const u of catalogUrls){
-      try{
-        const r = await fetch(u, {cache:"no-store", mode:"cors"});
-        if(r.ok){ cat = await r.json(); break; }
-      }catch(err){ console.warn("catalog fail", u, err); }
+    el("status").textContent="…";
+    let cat=null;
+    for(const u of [BASE_CDN+"catalog.json", BASE_LOCAL+"catalog.json"]){
+      try{ const r=await fetch(u,{cache:"no-store",mode:"cors"}); if(r.ok){ cat=await r.json(); break; } }catch(_e){}
     }
-    if(!cat){
-      el("status").textContent = "Impossible de charger catalog.json (CDN/local). Réessaie ou ouvre via raw.githack.";
-      return;
-    }
-    state.catalog = cat;
-    if(cat.weaponAfterShieldRows) weaponAfterShieldRows = cat.weaponAfterShieldRows;
-    if(cat.backpackInFrontRows) backpackInFrontRows = cat.backpackInFrontRows;
-    if(cat.defaultFps) state.fps = cat.defaultFps|0;
-    el("fps").value = String(state.fps);
-    state.colors = defaultColors();
+    if(!cat){ el("status").textContent="Catalogue ∅"; return; }
+    state.catalog=ensureExtraGear(cat);
+    if(cat.weaponAfterShieldRows) weaponAfterShieldRows=cat.weaponAfterShieldRows;
+    if(cat.backpackInFrontRows) backpackInFrontRows=cat.backpackInFrontRows;
+    if(cat.defaultFps) state.fps=cat.defaultFps|0;
+    state.colors=defaultColors();
     loadCatData();
     try{
-      const raw = localStorage.getItem("neuro.fantasyLook");
+      const raw=localStorage.getItem("neuro.fantasyLook");
       if(raw){
-        const o = JSON.parse(raw);
-        if(o && o.look){
-          state.look = o.look;
-          if(o.colors) state.colors = Object.assign(defaultColors(), o.colors);
-          else if(o.skin) state.colors.body = o.skin;
-          if(o.fps) { state.fps = o.fps|0; el("fps").value = String(state.fps); }
-          if(o.anim) state.anim = o.anim;
+        const o=JSON.parse(raw);
+        if(o&&o.look){
+          state.look=o.look;
+          if(o.colors) state.colors=Object.assign(defaultColors(), o.colors);
+          /* Forcer teintes vives équipement si encore gris neutre */
+          const vivid={"weapon":"#ff2e2e","offhand":"#00c2ff","head":"#ffe14a","chest":"#19c37d","legs":"#2f6bff","shoes":"#ff5a36","hair":"#5b2cff","gloves":"#ff4fa3","belt":"#ffb020","backpack":"#b85cff"};
+          Object.keys(vivid).forEach(k=>{
+            const c=(state.colors[k]||"").toLowerCase();
+            if(!c || c==="#9aa8b8" || c==="#888888" || c==="#ffffff" || c==="#6b8f71" || c==="#e0b878" || c==="#3a2a1a" || c==="#5b7c99" || c==="#3e4f63" || c==="#3a3230" || c==="#6a5a4e" || c==="#8b6914" || c==="#7a5c3a" || c==="#8a7060"){
+              state.colors[k]=vivid[k];
+            }
+          });
+          if(o.bodies&&o.bodies.length){
+            state.bodies=o.bodies.map(b=>({folder:b.folder, opacity:b.opacity==null?1:b.opacity, color:b.color||o.colors?.body||DEFAULT_COLORS.body}));
+          } else if(o.look.body){
+            state.bodies=[{folder:o.look.body, opacity:1, color:state.colors.body||DEFAULT_COLORS.body}];
+          }
+          if(o.anim) state.anim=o.anim;
+          /* Ignorer anciennes tailles basées sur la largeur (≥0.90) */
+          if(typeof o.charSizePct==="number" && o.charSizePct>=0.50 && o.charSizePct<=0.85){
+            state.charSizePct=o.charSizePct;
+          } else {
+            state.charSizePct=LAY.char.sizePct;
+          }
         }
       }
     }catch(_e){}
-    if(!state.look.body) state.look = defaultLook(cat);
-    const anims = (cat.anims && cat.anims.length) ? cat.anims : ["Idle","Walk","Attack1"];
-    if(!anims.includes(state.anim)) state.anim = anims[0];
-    fillAnimSelect(anims);
-    bindToolbar();
-    renderSlots();
-    el("status").textContent = "Chargement sprites…";
-    state.dirty = true;
-    await loadImg(folderFor("body")||"NakedBody", "Idle");
+    if(!state.look.body) state.look=defaultLook(cat);
+    if(!("hair" in state.look)) state.look.hair="None";
+    if(!state.bodies.length) state.bodies=[{folder:"NakedBody",opacity:1,color:DEFAULT_COLORS.body}];
+    if(!state.look.mount) state.look.mount="None";
+    syncRideAnim();
+    const anims=(cat.anims&&cat.anims.length)?cat.anims:["Idle","Walk","Attack1"];
+    if(!anims.includes(state.anim) && !RIDE_ANIMS.includes(state.anim)) state.anim=isMounted()?"RideIdle":anims[0];
+    bind(); syncSizeUI(); selectZone("hair");
+    state.dirty=true;
+    await loadImg(state.bodies[0].folder||"NakedBody","Idle");
+    el("status").textContent="Prêt";
     loop();
   }
-
-  boot().catch((e)=>{
-    console.error(e);
-    el("status").textContent = "Échec démarrage : " + (e && e.message ? e.message : e);
-  });
-
-  window.addEventListener("pageshow", ()=>{
-    loadCatData();
-    if(state.catalog) renderSlots();
-  });
+  boot();
 })();
 </script>
 </body>
