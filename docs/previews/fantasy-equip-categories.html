@@ -308,9 +308,49 @@
     });
   }
 
-  const THUMB = 256; /* canvas pixels — affiché ~168 CSS, net sur retina */
+  const THUMB = 384; /* canvas pixels — une colonne pleine largeur */
+  const cropCache = new Map(); /* folder -> {sx,sy,sw,sh} */
 
-  function drawThumb(cv, im){
+  function contentCrop(im, FW, FH){
+    /* Bounding box des pixels opaques (frame Idle col0 row0) → zoom auto */
+    try{
+      const c = document.createElement("canvas");
+      c.width = FW; c.height = FH;
+      const x = c.getContext("2d", { willReadFrequently:true });
+      x.drawImage(im, 0, 0, FW, FH, 0, 0, FW, FH);
+      const d = x.getImageData(0, 0, FW, FH).data;
+      let minX=FW, minY=FH, maxX=0, maxY=0, found=false;
+      for(let y=0;y<FH;y++){
+        for(let xi=0;xi<FW;xi++){
+          if(d[(y*FW+xi)*4+3] > 24){
+            found=true;
+            if(xi<minX) minX=xi;
+            if(y<minY) minY=y;
+            if(xi>maxX) maxX=xi;
+            if(y>maxY) maxY=y;
+          }
+        }
+      }
+      if(!found) return { sx:0, sy:0, sw:FW, sh:FH };
+      const pad = 6;
+      minX = Math.max(0, minX-pad);
+      minY = Math.max(0, minY-pad);
+      maxX = Math.min(FW-1, maxX+pad);
+      maxY = Math.min(FH-1, maxY+pad);
+      let sw = maxX-minX+1, sh = maxY-minY+1;
+      /* carré centré sur le contenu */
+      const side = Math.max(sw, sh, 24);
+      let sx = Math.floor(minX + sw/2 - side/2);
+      let sy = Math.floor(minY + sh/2 - side/2);
+      sx = Math.max(0, Math.min(FW-side, sx));
+      sy = Math.max(0, Math.min(FH-side, sy));
+      return { sx, sy, sw:side, sh:side };
+    }catch(_e){
+      return { sx:24, sy:16, sw:80, sh:80 };
+    }
+  }
+
+  function drawThumb(cv, im, folder){
     const S = cv.width || THUMB;
     const ctx = cv.getContext("2d");
     ctx.imageSmoothingEnabled = false;
@@ -320,17 +360,13 @@
       ctx.fillRect(S*0.2,S*0.2,S*0.6,S*0.6);
       return;
     }
-    /* Idle 15×8 — frame 0 row 0 ; zoom fort sur le perso (sinon trop petit) */
     const FW=128, FH=128;
-    const zoom = (activeSlot==="head" || activeSlot==="hair") ? 2.6 : 2.15;
-    const sw = FW/zoom, sh = FH/zoom;
-    const sx = (FW - sw)/2;
-    /* tête : un peu plus haut ; armes/corps : un peu plus bas */
-    let sy = (FH - sh)/2;
-    if(activeSlot==="head" || activeSlot==="hair") sy = Math.max(0, sy - 14);
-    else if(activeSlot==="weapon" || activeSlot==="offhand") sy = Math.min(FH-sh, sy + 4);
-    else sy = Math.min(FH-sh, sy + 6);
-    ctx.drawImage(im, sx, sy, sw, sh, 0, 0, S, S);
+    let crop = cropCache.get(folder);
+    if(!crop){
+      crop = contentCrop(im, FW, FH);
+      cropCache.set(folder, crop);
+    }
+    ctx.drawImage(im, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, S, S);
   }
 
   function paintItems(){
