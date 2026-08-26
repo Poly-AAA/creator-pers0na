@@ -972,14 +972,13 @@
     const ba=el("btnAdvanced"); if(ba) ba.textContent="⚙ Mode simplifié";
     selectZone("weapon");
     /* Première pièce visible si look vide */
-    if(!state.look.weapon || state.look.weapon==="None"){
+    {
       const list=(slotById("weapon")&&slotById("weapon").folders||[]).filter(f=>f&&f!=="None");
-      const melee=list.find(f=>/^Melee/i.test(f))||list[0];
+      const melee=list.find(f=>f==="Melee10")||list.find(f=>/^Melee/i.test(f))||list[0];
       if(melee) state.look.weapon=melee;
     }
-    state.colors.weapon = state.colors.weapon || "#ff2e2e";
-    state.colors.weapon = "#ff2e2e";
-    state.anim = "Attack1";
+    state.colors.weapon="#ff2e2e";
+    state.anim="Attack1";
     state.charSizePct = Math.max(state.charSizePct||0.74, 0.82);
     state.dirty=true;
     await loadImg(state.bodies[0].folder||"NakedBody","Idle");
