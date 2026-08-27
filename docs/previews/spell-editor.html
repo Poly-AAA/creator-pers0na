@@ -821,7 +821,7 @@ const SAVED_TIR_ARC = {
   steps: [{
     anim: "Attack3", delay: 0, move: "Idle", fps: 14,
     slash: "None", effect: "None", hitTarget: true,
-    hitAnim: "TakeDamage", hitAnimFps: 24, hitDelay: 180, hitDelayByDist: true,
+    hitAnim: "TakeDamage", hitAnimFps: 24, hitDelay: 120, hitDelayByDist: true,
     fxHold: false, hideMount: false, clearMount: false, forceGround: false,
     posDc: 0, posDr: 0, frameStart: 0, frameEnd: 14,
     hitFrameStart: 0, hitFrameEnd: 14,
@@ -851,7 +851,7 @@ function ensureTirArcTendu(){
     sp.steps.forEach(st=>{
       if(!st) return;
       st.projectile = "none";
-      if(st.hitDelay == null) st.hitDelay = 180;
+      if(st.hitDelay == null) st.hitDelay = 120;
       if(st.hitDelayByDist == null) st.hitDelayByDist = true;
     });
   }
@@ -1510,8 +1510,7 @@ function chebDist(a,b){
 function hitDelayMsByDistance(baseMs, tileDist){
   const base = Math.max(0, Number(baseMs)|0);
   const d = Math.max(1, tileDist|0);
-  const exp = Math.min(8, d - 1);
-  return base * Math.pow(2, exp);
+  return Math.min(480, base + Math.max(0, d - 1) * 35);
 }
 
 let editorTab = "spell"; /* spell | mount */
