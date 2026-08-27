@@ -209,6 +209,7 @@ const ATTACK_ANIMS = ALL_ANIMS.filter(a=>/Attack|Kick|Special|Taunt|Rolling|Slid
 
 /* Corps overlay disponibles */
 const BODY_OVERLAYS = ["Aucun","NakedBody2","NakedBody3"]; // squelette/éthéré quand assets prêts
+const MAGIC_BUFF_WEAPONS = ["Magic1","Magic2","Magic3"];
 
 /* ────────────────────────────────────────────────────────────
    SPELLS catalogue de base (mêmes que combat)
@@ -829,6 +830,48 @@ const SAVED_TIR_ARC = {
   evos: [],
   evoConfig: {},
 };
+const SAVED_AURA_MAGIQUE = {
+  id: "aura_magique",
+  name: "Aura magique",
+  cost: 2,
+  range: 0,
+  anim: "Special1",
+  type: "buff",
+  aoe: 0,
+  magicBuffOverlay: true,
+  bodyOverlay: "NakedBody3",
+  buffTurns: 3,
+  desc: "Aura éthérée · corps 3 + armes Magie par-dessus l'équipement",
+  steps: [{
+    anim: "Special1", delay: 0, move: "Idle", fps: 14,
+    slash: "None", effect: "Effect3", hitTarget: false,
+    hitAnim: "TakeDamage", hitAnimFps: 14, hitDelay: null,
+    fxHold: true, hideMount: false, clearMount: false, forceGround: false,
+    posDc: 0, posDr: 0, frameStart: 0, frameEnd: 14,
+    hitFrameStart: 0, hitFrameEnd: 14,
+  }],
+  evoConfig: {},
+};
+function ensureAuraMagique(){
+  const preset = JSON.parse(JSON.stringify(SAVED_AURA_MAGIQUE));
+  (customSpells||[]).forEach(s=>{
+    if(!s || !s.id) return;
+    if(s.id === "aura_magique") return;
+    if(/^custom_/.test(s.id) && /aura\s*mag/i.test(s.name||"")) s.id = "aura_magique";
+  });
+  let sp = (customSpells||[]).find(s=>s && s.id==="aura_magique");
+  if(!sp){
+    customSpells = [...(customSpells||[]), preset];
+    return;
+  }
+  if(!sp.type) sp.type = "buff";
+  if(sp.magicBuffOverlay == null) sp.magicBuffOverlay = true;
+  if(!sp.bodyOverlay) sp.bodyOverlay = "NakedBody3";
+  if(sp.buffTurns == null) sp.buffTurns = 3;
+  if(!Array.isArray(sp.steps) || !sp.steps.length){
+    sp.steps = JSON.parse(JSON.stringify(preset.steps));
+  }
+}
 function ensureTirArcTendu(){
   const preset = JSON.parse(JSON.stringify(SAVED_TIR_ARC));
   (customSpells||[]).forEach(s=>{
@@ -871,6 +914,7 @@ function loadCustom(){
   ensureRoulade();
   ensureGlissade();
   ensureTirArcTendu();
+  ensureAuraMagique();
   ensureSpellEffects();
   /* Ne jamais muter / resauver automatiquement les choix joueur ici. */
 }
@@ -896,6 +940,7 @@ function importSpellsPack(b64){
     ensureRoulade();
     ensureGlissade();
     ensureTirArcTendu();
+    ensureAuraMagique();
     ensureSpellEffects();
     saveCustom();
     return true;
@@ -922,6 +967,7 @@ function importSpellsJson(raw){
     ensureRoulade();
     ensureGlissade();
     ensureTirArcTendu();
+    ensureAuraMagique();
     ensureSpellEffects();
     saveCustom();
     return true;
@@ -1338,6 +1384,11 @@ function drawLoop(){
     if(!isEnemy){
       if(ent.fxSlash) layers=layers.concat([{folder:ent.fxSlash,tint:"#e8590c",alpha:0.9}]);
       if(ent.fxEffect) layers=layers.concat([{folder:ent.fxEffect,tint:"#5ec8ff",alpha:0.85}]);
+      const ov = ent._previewBuffOverlay || spellMagicBuffOverlay(editableSpell(activeId));
+      if(ov){
+        if(ov.body) layers=layers.concat([{folder:ov.body,tint:null,alpha:ov.bodyAlpha||0.52}]);
+        (ov.weapons||[]).forEach(w=> layers.push({folder:w,tint:null,alpha:ov.weaponAlpha||0.4}));
+      }
     }
     ctx.imageSmoothingEnabled=false;
     let drawn=0;
@@ -1378,6 +1429,21 @@ function drawTinted(img,sx,sy,sw,sh,dx,dy,dw,dh,tintHex){
   tintCx.globalCompositeOperation="destination-in"; tintCx.drawImage(img,sx,sy,sw,sh,0,0,tw,th);
   tintCx.globalCompositeOperation="source-over";
   ctx.drawImage(tintCv,dx,dy);
+}
+function spellMagicBuffOverlay(sp){
+  if(!sp) return null;
+  if(sp.magicBuffOverlay || sp.buffOverlay === "magic"){
+    return {
+      body: sp.bodyOverlay || "NakedBody3",
+      weapons: MAGIC_BUFF_WEAPONS.slice(),
+      bodyAlpha: 0.52,
+      weaponAlpha: 0.4,
+    };
+  }
+  if(sp.type === "buff" && sp.bodyOverlay === "NakedBody3" && sp.magicOverlay){
+    return { body: "NakedBody3", weapons: MAGIC_BUFF_WEAPONS.slice(), bodyAlpha: 0.52, weaponAlpha: 0.4 };
+  }
+  return null;
 }
 function playerLayers(){
   const L=[];
@@ -1576,6 +1642,15 @@ function previewAction(steps, opts){
   if(_previewTimer){ clearTimeout(_previewTimer); _previewTimer=null; }
   previewMountOn = !!opts.asMount || editorTab === "mount";
   const seq=(steps&&steps.length?steps:["Attack1"]).map(normalizeStep);
+  const spPrev = editableSpell(activeId);
+  if(spPrev && spPrev.magicBuffOverlay){
+    player._previewBuffOverlay = spellMagicBuffOverlay(spPrev);
+    [player._previewBuffOverlay.body].concat(player._previewBuffOverlay.weapons||[]).forEach(f=>{
+      if(f) loadImg(f, "Special1");
+    });
+  } else {
+    player._previewBuffOverlay = null;
+  }
   let i=0;
   let mountGone = false;
   const basePos = { c: player.c|0, r: player.r|0 };
@@ -1592,6 +1667,7 @@ function previewAction(steps, opts){
       player.anim = previewMountOn && !mountGone ? "RideIdle" : "Idle";
       player.t0=performance.now();
       player.fxSlash=null; player.fxEffect=null;
+      player._previewBuffOverlay=null;
       player.frameStart=0; player.frameEnd=FRAME_MAX; player.freezeFrame=null;
       player.hideMount = mountGone;
       player.showMount = previewMountOn && !mountGone;
@@ -1825,11 +1901,32 @@ function renderEditor(){
   renderSteps();
   host.appendChild(animCard);
 
-  /* ── Overlays corps ── */
-  const bodyCard=card("Corps overlay (pendant l'action)");
+  /* ── Overlays corps / aura magie ── */
+  const bodyCard=card("Aura buff · par-dessus le perso");
   const bHint=document.createElement("p"); bHint.className="hint";
-  bHint.textContent="Choisir un corps alternatif visible pendant le sort (ex. éthéré, squelette).";
+  bHint.textContent="Corps 3 + toutes les armes Magie (Magic1/2/3) dessinées par-dessus l'équipement et l'arme du joueur.";
   bodyCard.appendChild(bHint);
+  const magicRow=document.createElement("label");
+  magicRow.style.cssText="display:flex;align-items:center;gap:8px;font-size:12px;margin:8px 0;cursor:pointer";
+  const magicCk=document.createElement("input");
+  magicCk.type="checkbox";
+  magicCk.checked = !!sp.magicBuffOverlay;
+  magicCk.onchange=()=>{
+    const s2=ensureEditable(activeId);
+    s2.magicBuffOverlay = magicCk.checked;
+    if(magicCk.checked){
+      s2.bodyOverlay = "NakedBody3";
+      s2.type = s2.type || "buff";
+      if(s2.buffTurns == null) s2.buffTurns = 3;
+    }
+    bt.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x.textContent===(s2.bodyOverlay||"Aucun")));
+  };
+  magicRow.appendChild(magicCk);
+  magicRow.appendChild(document.createTextNode("Aura magie (NakedBody3 + Magic1/2/3 au-dessus)"));
+  bodyCard.appendChild(magicRow);
+  if(sp.type==="buff" || sp.magicBuffOverlay){
+    bodyCard.appendChild(fieldNum("Durée aura (tours)", sp.buffTurns!=null?sp.buffTurns:3, "buffTurns", 1, 12));
+  }
   const bt=document.createElement("div"); bt.className="body-tokens";
   BODY_OVERLAYS.forEach(b=>{
     const btn=document.createElement("button"); btn.type="button"; btn.textContent=b;

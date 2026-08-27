@@ -742,6 +742,28 @@
   }],
   "evoConfig": {},
 };
+    const DEFAULT_AURA_MAGIQUE = {
+  "id": "aura_magique",
+  "name": "Aura magique",
+  "cost": 2,
+  "range": 0,
+  "anim": "Special1",
+  "type": "buff",
+  "aoe": 0,
+  "magicBuffOverlay": true,
+  "bodyOverlay": "NakedBody3",
+  "buffTurns": 3,
+  "desc": "Aura éthérée · corps 3 + armes Magie par-dessus ton équipement",
+  "steps": [{
+    "anim": "Special1", "delay": 0, "move": "Idle", "fps": 14,
+    "slash": "None", "effect": "Effect3", "hitTarget": false,
+    "hitAnim": "TakeDamage", "hitAnimFps": 14, "hitDelay": null,
+    "fxHold": true, "hideMount": false, "clearMount": false, "forceGround": false,
+    "posDc": 0, "posDr": 0, "frameStart": 0, "frameEnd": 14,
+    "hitFrameStart": 0, "hitFrameEnd": 14,
+  }],
+  "evoConfig": {},
+};
   let spellEvo = {};
   let customSpells = [];
   /* Évos combat (victoire) : pas de reprise d’une vieille session */
@@ -884,6 +906,26 @@
       });
     }
   }
+  function ensureAuraMagiqueCustom(){
+    const preset = JSON.parse(JSON.stringify(DEFAULT_AURA_MAGIQUE));
+    (customSpells||[]).forEach(s=>{
+      if(!s || !s.id || s.id==="aura_magique") return;
+      if(/^custom_/.test(s.id) && /aura\s*mag/i.test(s.name||"")) s.id="aura_magique";
+    });
+    let sp = (customSpells||[]).find(s=>s && s.id==="aura_magique");
+    if(!sp){
+      customSpells = (customSpells||[]).concat([preset]);
+      return;
+    }
+    if(!sp.type) sp.type = "buff";
+    if(sp.magicBuffOverlay == null) sp.magicBuffOverlay = true;
+    if(!sp.bodyOverlay) sp.bodyOverlay = "NakedBody3";
+    if(sp.buffTurns == null) sp.buffTurns = 3;
+    if(!sp.desc) sp.desc = preset.desc;
+    if(!Array.isArray(sp.steps) || !sp.steps.length){
+      sp.steps = JSON.parse(JSON.stringify(preset.steps));
+    }
+  }
   function importCustomSpellsFromHash(){
     const m=(location.hash||"").match(/fccSpells=([^&]+)/);
     if(!m) return false;
@@ -903,6 +945,7 @@
   ensureRouladeCustom();
   ensureGlissadeCustom();
   ensureTirArcTenduCustom();
+  ensureAuraMagiqueCustom();
   ensureSpellEffects();
   /* Pas de migration qui réécrit les saves joueur. */
   function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
@@ -935,6 +978,7 @@
     ensureRouladeCustom();
     ensureGlissadeCustom();
     ensureTirArcTenduCustom();
+    ensureAuraMagiqueCustom();
     ensureSpellEffects();
   }
   function clampPosCell(v){
@@ -2311,6 +2355,84 @@
   }
   function getImg(folderName, anim){ return cache.get(folderName+"/"+anim)||null; }
 
+  function magicWeaponOverlayFolders(){
+    try{
+      if(typeof FantasyBridge!=="undefined" && FantasyBridge.magicWeaponFolders)
+        return FantasyBridge.magicWeaponFolders();
+    }catch(_e){}
+    return ["Magic1","Magic2","Magic3"];
+  }
+  function spellUsesMagicBuffOverlay(sp){
+    if(!sp) return false;
+    const custom = customSpellById(sp.id);
+    const src = custom || sp;
+    if(src.magicBuffOverlay || src.buffOverlay === "magic") return true;
+    if(src.type === "buff" && src.bodyOverlay === "NakedBody3" && src.magicOverlay) return true;
+    return false;
+  }
+  function buildMagicBuffOverlayConfig(sp){
+    const custom = customSpellById(sp && sp.id);
+    const src = custom || sp || {};
+    const weapons = Array.isArray(src.magicWeapons) && src.magicWeapons.length
+      ? src.magicWeapons.slice()
+      : magicWeaponOverlayFolders();
+    return {
+      body: src.bodyOverlay || "NakedBody3",
+      weapons,
+      bodyAlpha: src.buffBodyAlpha != null ? Math.max(0.1, Math.min(1, +src.buffBodyAlpha)) : 0.52,
+      weaponAlpha: src.buffWeaponAlpha != null ? Math.max(0.1, Math.min(1, +src.buffWeaponAlpha)) : 0.4,
+      turns: Math.max(1, (src.buffTurns != null ? src.buffTurns|0 : 3)),
+    };
+  }
+  function buffOverlayStateFor(ent){
+    if(!ent || ent !== G.player) return null;
+    if(ent._castBuffOverlay) return ent._castBuffOverlay;
+    if(ent.buffOverlay && (ent.buffOverlay.turns|0) > 0) return ent.buffOverlay;
+    return null;
+  }
+  function warmBuffOverlayAnims(ov, anim){
+    if(!ov) return;
+    const a = anim || "Idle";
+    const list = [a, "Idle", "Special1", "Attack5", "Attack6"];
+    if(ov.body) loadImg(ov.body, a);
+    (ov.weapons || []).forEach(w=> list.forEach(x=> loadImg(w, x)));
+  }
+  function buffOverlayLayers(ent, anim){
+    const ov = buffOverlayStateFor(ent);
+    if(!ov) return [];
+    const L = [];
+    if(ov.body){
+      L.push({ folder: ov.body, tint: null, alpha: ov.bodyAlpha != null ? ov.bodyAlpha : 0.52 });
+    }
+    (ov.weapons || []).forEach(w=>{
+      if(w) L.push({ folder: w, tint: null, alpha: ov.weaponAlpha != null ? ov.weaponAlpha : 0.4 });
+    });
+    return L;
+  }
+  function applyMagicBuffOverlay(sp){
+    const cfg = buildMagicBuffOverlayConfig(sp);
+    G.player.buffOverlay = {
+      body: cfg.body,
+      weapons: cfg.weapons.slice(),
+      bodyAlpha: cfg.bodyAlpha,
+      weaponAlpha: cfg.weaponAlpha,
+      turns: cfg.turns,
+    };
+    G.player._castBuffOverlay = {
+      body: cfg.body,
+      weapons: cfg.weapons.slice(),
+      bodyAlpha: cfg.bodyAlpha,
+      weaponAlpha: cfg.weaponAlpha,
+    };
+    warmBuffOverlayAnims(cfg, (sp && sp.anim) || "Special1");
+  }
+  function tickBuffOverlayTurns(){
+    const ov = G.player && G.player.buffOverlay;
+    if(!ov || (ov.turns|0) <= 0) return;
+    ov.turns = (ov.turns|0) - 1;
+    if(ov.turns <= 0) G.player.buffOverlay = null;
+  }
+
   function layersForRow(row){
     const L=[];
     L.push({folder:(catalog&&catalog.shadowFolder)||"Shadow", tint:null, alpha:1});
@@ -2608,9 +2730,11 @@
     }
 
     G.castPlaying = true;
+    if(spellUsesMagicBuffOverlay(sp)) applyMagicBuffOverlay(sp);
     playCastAnimChain(sp, ()=>{
       if(G.player.anim!=="Die") playAnim(G.player,"Idle");
       G.castPlaying = false;
+      G.player._castBuffOverlay = null;
       drainCastQueue();
     });
 
@@ -2625,6 +2749,9 @@
     } else if(sp.id==="overclock"){
       G.player.pm = Math.min(G.player.pmMax+1, G.player.pm+1);
       setStatus("Ivresse · +1 PM");
+    } else if(spellUsesMagicBuffOverlay(sp)){
+      const cfg = buildMagicBuffOverlayConfig(sp);
+      setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" · aura "+cfg.turns+"t");
     } else if(sp.heal){
       let h = roll(sp.heal) + (evo.heal|0);
       G.player.pv = Math.min(G.player.pvMax, G.player.pv + h);
@@ -3776,6 +3903,7 @@
   }
 
   function beginPlayerTurn(){
+    tickBuffOverlayTurns();
     G.busy = false;
     G.castPlaying = false;
     G.castQueue = [];
@@ -3999,6 +4127,23 @@
       if(loopAnims.test(sheetAnim)) col = fs + ((col - fs) % span);
       else col = Math.min(col, fe);
       try{ tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, (L.alpha||1)*baseAlpha); drawn++; }catch(_e){}
+    }
+    /* Aura buff magie : corps 3 + armes Magie par-dessus tout l’équipement */
+    if(!isEnemy && !dying && !opts.clone){
+      const overlays = buffOverlayLayers(ent, anim);
+      for(const L of overlays){
+        const resolved = resolveSheet(L.folder, anim, mounted);
+        if(!resolved) continue;
+        const { im, sheetAnim } = resolved;
+        const row = sheetRowForDir(ent.dir|0, sheetAnim);
+        let col = fs + Math.floor(elapsed*animFps);
+        if(loopAnims.test(sheetAnim)) col = fs + ((col - fs) % span);
+        else col = Math.min(col, fe);
+        try{
+          tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, (L.alpha||1)*baseAlpha);
+          drawn++;
+        }catch(_e){}
+      }
     }
     if(!drawn){
       ctx.save(); ctx.globalAlpha = baseAlpha;

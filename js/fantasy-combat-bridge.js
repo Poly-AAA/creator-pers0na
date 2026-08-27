@@ -681,6 +681,9 @@
     "Melee6", "Melee7",
     "Ranged1", "Ranged2", "Ranged3", "Ranged4", "Ranged5", "Ranged6", "Ranged7",
   ]);
+  /** Armes catégorie créateur « Magie ». */
+  const BAKED_MAGIC_WEAPONS = ["Magic1", "Magic2", "Magic3"];
+  const BAKED_MAGIC_WEAPON_SET = new Set(BAKED_MAGIC_WEAPONS);
 
   let equipCategoriesPack = null;
 
@@ -724,6 +727,40 @@
     return false;
   }
 
+  /** Arme magie ? archétype arcane/shadow/fire OU catégorie « Magie ». */
+  function isMagicWeapon(weapon) {
+    if (!weapon || weapon === "None") return false;
+    const arch = WEAPON_ARCHETYPE[weapon] || "";
+    if (arch === "arcane" || arch === "shadow" || arch === "fire") return true;
+    if (BAKED_MAGIC_WEAPON_SET.has(weapon)) return true;
+    if (weaponInEquipCategory(weapon, "Magie")) return true;
+    return false;
+  }
+
+  /** Toutes les armes de la catégorie Magie (pack ou liste figée). */
+  function magicWeaponFolders() {
+    const pack = readEquipCategories();
+    const out = [];
+    const seen = new Set();
+    if (pack && pack.items && pack.categories) {
+      const magCat = (pack.categories || []).find(function (c) {
+        return c && String(c.label || "").toLowerCase() === "magie";
+      });
+      if (magCat && magCat.id) {
+        Object.keys(pack.items).forEach(function (folder) {
+          const item = pack.items[folder];
+          if (!item || item.slot !== "weapon") return;
+          if ((item.categories || []).indexOf(magCat.id) < 0) return;
+          if (!seen.has(folder)) { seen.add(folder); out.push(folder); }
+        });
+      }
+    }
+    BAKED_MAGIC_WEAPONS.forEach(function (f) {
+      if (!seen.has(f)) { seen.add(f); out.push(f); }
+    });
+    return out.length ? out : BAKED_MAGIC_WEAPONS.slice();
+  }
+
   function readCustomSpells() {
     const out = [];
     const tryParse = (raw) => {
@@ -753,22 +790,26 @@
     const hasWeapon = weapon !== "None";
     const arch = (WEAPON_ARCHETYPE[weapon] || "bare");
     const bow = isBowWeapon(weapon);
+    const magic = isMagicWeapon(weapon);
     const customs = readCustomSpells().filter(function (s) {
       if (!s || !s.id || s.id === "punch") return false;
       const need = s.requireArchetype || s.requireWeapon || null;
       if (!need || need === "none" || need === "any") return true;
       if (need === "bow") return bow;
+      if (need === "magic") return magic;
       if (need === arch) return true;
       if (typeof need === "string" && need.indexOf("Ranged") === 0) return weapon === need;
       return true;
     });
-    /* Arc équipé : Tir arc tendu visible en priorité dans la barre */
-    if (bow) {
+    /* Arc / magie équipé : sorts liés en tête de barre */
+    if (bow || magic) {
       customs.sort(function (a, b) {
-        const ab = a.requireArchetype === "bow" ? 0 : 1;
-        const bb = b.requireArchetype === "bow" ? 0 : 1;
-        if (ab !== bb) return ab - bb;
-        return 0;
+        const score = function (s) {
+          if (bow && s.requireArchetype === "bow") return 0;
+          if (magic && (s.requireArchetype === "magic" || s.magicBuffOverlay)) return 1;
+          return 2;
+        };
+        return score(a) - score(b);
       });
     }
     const slots = [
@@ -1108,6 +1149,9 @@
     currentLook,
     setEquipCategories,
     isBowWeapon,
+    isMagicWeapon,
+    magicWeaponFolders,
+    BAKED_MAGIC_WEAPONS,
     weaponInEquipCategory,
     buildSpellBar,
     isSelfSpellId,
