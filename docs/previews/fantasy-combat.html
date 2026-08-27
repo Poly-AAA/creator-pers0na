@@ -682,6 +682,56 @@
     }
   }
 };
+    const DEFAULT_GLISSADE = {
+  "id": "glissade",
+  "name": "Glissade",
+  "cost": 2,
+  "range": 5,
+  "dmg": [8, 12],
+  "anim": "Slide",
+  "type": "damage",
+  "aoe": 0,
+  "animSeq": [],
+  "effect": "glissade",
+  "runTiles": 2,
+  "slideTiles": 3,
+  "push": 0,
+  "desc": "Course 2 cases puis glissade 3 cases à travers l’ennemi — dégâts, atterrissage derrière lui",
+  "steps": [
+    {
+      "anim": "Run",
+      "delay": 0,
+      "move": "Run",
+      "fps": 18,
+      "slash": "None",
+      "effect": "None",
+      "hitTarget": false,
+      "hitAnim": "TakeDamage",
+      "hitAnimFps": 14,
+      "hitDelay": null
+    },
+    {
+      "anim": "Slide",
+      "delay": 0,
+      "move": "Slide",
+      "fps": 16,
+      "slash": "None",
+      "effect": "None",
+      "hitTarget": true,
+      "hitAnim": "TakeDamage",
+      "hitAnimFps": 24,
+      "hitDelay": null
+    }
+  ],
+  "evoConfig": {
+    "1:Brise-Os": { "enabled": true, "anim": "Run", "slash": "None", "effect": "None", "fps": 20, "delay": 0, "hitAnim": "TakeDamage", "hitAnimFps": 24, "fxHold": false },
+    "1:Boxeur": { "enabled": true, "anim": "Run", "slash": "None", "effect": "None", "fps": 20, "delay": 0, "hitAnim": "TakeDamage", "hitAnimFps": 24, "hitDelay": 0, "fxHold": false },
+    "1:Rapide": { "enabled": true, "anim": "Run", "slash": "None", "effect": "None", "fps": 19, "delay": 0, "hitAnim": "TakeDamage", "hitAnimFps": 24, "hitDelay": 0, "fxHold": false },
+    "2:Uppercut": { "enabled": true, "anim": "Slide", "slash": "None", "effect": "None", "fps": 19, "delay": 0, "hitAnim": "TakeDamage", "hitAnimFps": 24, "fxHold": false },
+    "2:Percutant": { "enabled": true, "anim": "Slide", "slash": "Slash1", "effect": "None", "fps": 17, "delay": 0, "hitAnim": "TakeDamage", "hitAnimFps": 24, "fxHold": false },
+    "2:Double Impact": { "enabled": true, "anim": "Slide", "slash": "Slash1", "effect": "None", "fps": 19, "delay": 0, "hitAnim": "TakeDamage", "hitAnimFps": 24, "fps1": 18, "hitAnimFps1": 24, "fps2": 16, "hitAnimFps2": 24, "hitDelay1": 0, "hitDelay2": 120, "fxHold": false }
+  }
+};
   let spellEvo = {};
   let customSpells = [];
   /* Évos combat (victoire) : pas de reprise d’une vieille session */
@@ -766,6 +816,30 @@
     }
     fillMissingEvoKeysCombat(roll, preset.evoConfig);
   }
+  function ensureGlissadeCustom(){
+    const preset = JSON.parse(JSON.stringify(DEFAULT_GLISSADE));
+    (customSpells||[]).forEach(s=>{
+      if(!s || !s.id || s.id==="glissade") return;
+      if(/^custom_/.test(s.id) && /glissade/i.test(s.name||"")) s.id="glissade";
+    });
+    let gl = (customSpells||[]).find(s=>s && s.id==="glissade");
+    if(!gl){
+      customSpells = (customSpells||[]).filter(s=>s && s.id!=="glissade").concat([preset]);
+      return;
+    }
+    if(!gl.effect) gl.effect="glissade";
+    if(gl.runTiles==null) gl.runTiles=2;
+    if(gl.slideTiles==null) gl.slideTiles=3;
+    if(!Array.isArray(gl.steps) || gl.steps.length < 2){
+      gl.steps = JSON.parse(JSON.stringify(preset.steps));
+      if(!gl.anim) gl.anim="Slide";
+    } else if(gl.steps){
+      gl.steps.forEach(st=>{
+        if(st && st.fps!=null){ const n=Number(st.fps); if(isFinite(n)) st.fps=n; }
+      });
+    }
+    fillMissingEvoKeysCombat(gl, preset.evoConfig);
+  }
   function importCustomSpellsFromHash(){
     const m=(location.hash||"").match(/fccSpells=([^&]+)/);
     if(!m) return false;
@@ -783,6 +857,7 @@
   ensurePunchCustom();
   ensureCoupDePiedCustom();
   ensureRouladeCustom();
+  ensureGlissadeCustom();
   ensureSpellEffects();
   /* Pas de migration qui réécrit les saves joueur. */
   function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
@@ -813,6 +888,7 @@
     ensurePunchCustom();
     ensureCoupDePiedCustom();
     ensureRouladeCustom();
+    ensureGlissadeCustom();
     ensureSpellEffects();
   }
   function clampPosCell(v){
@@ -2793,6 +2869,208 @@
     runRoll(0);
   }
 
+  function glissadeTiles(sp){
+    reloadCustomSpells();
+    const c = customSpellById(sp && sp.id) || sp || {};
+    return {
+      run: Math.max(0, (c.runTiles != null ? c.runTiles : 2)|0),
+      slide: Math.max(1, (c.slideTiles != null ? c.slideTiles : 3)|0),
+    };
+  }
+
+  /** Case libre pour glissade (slide peut traverser l’ennemi une fois). */
+  function glissadeSlideCellFree(c, r, foe, passedEnemy){
+    if(!inBounds(c,r)) return false;
+    if(foe && foe.alive && c===foe.c && r===foe.r) return !passedEnemy;
+    if(occupied(c,r, "player")) return false;
+    if(G.clone && G.clone.alive && G.clone.c===c && G.clone.r===r) return false;
+    return true;
+  }
+
+  function isBehindFoe(start, foe, pos){
+    const vx = foe.c - start.c, vy = foe.r - start.r;
+    const wx = pos.c - foe.c, wy = pos.r - foe.r;
+    if(vx===0 && vy===0) return dist(pos, foe) >= 1;
+    return (vx * wx + vy * wy) > 0;
+  }
+
+  /** Course (sans traverser) puis glissade (traverse l’ennemi, atterrit derrière). */
+  function planGlissadePath(ent, foe, runMax, slideMax){
+    if(!foe || !foe.alive) return { ok:false, runPath:[], slidePath:[], final:null };
+    const start = { c: ent.c, r: ent.r };
+    const ghost = { c: ent.c, r: ent.r };
+    const runPath = [];
+    for(let i=0;i<runMax;i++){
+      if(dist(ghost, foe) <= 1) break;
+      if(!stepEntityTowardOnce(ghost, foe, "player")) break;
+      runPath.push({ c: ghost.c, r: ghost.r });
+    }
+
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    const q = [{ c: ghost.c, r: ghost.r, steps: 0, passed: false, path: [] }];
+    let qi = 0;
+    let best = null;
+    const seen = new Set();
+    while(qi < q.length){
+      const cur = q[qi++];
+      const sk = cur.c+","+cur.r+","+(cur.passed?1:0)+","+cur.steps;
+      if(seen.has(sk)) continue;
+      seen.add(sk);
+      if(cur.passed && cur.steps > 0 && isBehindFoe(start, foe, cur)){
+        if(!best || cur.steps > best.steps) best = cur;
+      }
+      if(cur.steps >= slideMax) continue;
+      for(const [dc,dr] of dirs){
+        const nc = cur.c + dc, nr = cur.r + dr;
+        const onFoe = foe.alive && nc===foe.c && nr===foe.r;
+        if(onFoe){
+          if(cur.passed) continue;
+          const path = cur.path.concat([{ c: nc, r: nr, through: true }]);
+          q.push({ c: nc, r: nr, steps: cur.steps + 1, passed: true, path });
+          continue;
+        }
+        if(!glissadeSlideCellFree(nc, nr, foe, cur.passed)) continue;
+        const path = cur.path.concat([{ c: nc, r: nr }]);
+        q.push({ c: nc, r: nr, steps: cur.steps + 1, passed: cur.passed, path });
+      }
+    }
+
+    if(!best || !best.path.length){
+      return { ok:false, runPath, slidePath:[], final:null };
+    }
+    const slidePath = best.path;
+    const final = { c: slidePath[slidePath.length-1].c, r: slidePath[slidePath.length-1].r };
+    return { ok:true, runPath, slidePath, final };
+  }
+
+  function castStepTiming(step){
+    const st = normalizeCastStep(step || { anim:"Run", fps:14 });
+    let fps = Number(st.fps);
+    if(!isFinite(fps) || fps < 1) fps = 14;
+    fps = Math.max(1, Math.min(60, fps));
+    const delay = Math.max(0, Number(st.delay)|0);
+    let dur;
+    if(typeof FantasyBridge!=="undefined" && FantasyBridge.animStepTiming){
+      const t = FantasyBridge.animStepTiming(Object.assign({}, st, { fps }), COLS);
+      dur = t.dur || Math.max(120, Math.round((COLS / fps) * 1000));
+    } else {
+      const nFrames = Math.max(1, (st.frameEnd|0) - (st.frameStart|0) + 1);
+      dur = Math.max(120, Math.round((nFrames / fps) * 1000));
+    }
+    return { step: st, fps, delay, dur };
+  }
+
+  /** Déplacement animé le long d’un chemin (Run / Slide). */
+  function playGlissadeMove(path, step, onDone, onTraverse){
+    if(!path || !path.length){
+      if(typeof onDone === "function") onDone();
+      return;
+    }
+    const from = { c: G.player.c, r: G.player.r };
+    const to = path[path.length - 1];
+    faceToward(G.player, to.c, to.r);
+    const { step: st, fps, delay, dur } = castStepTiming(step);
+    warmAnimForPlayer(st.anim || "Run");
+    playAnim(G.player, st.anim || "Run");
+    G.player.stepFps = fps;
+    const now = performance.now();
+    const wantSlash = st.slash && st.slash !== "None" ? st.slash : null;
+    const wantEffect = st.effect && st.effect !== "None" ? st.effect : null;
+    const linger = Math.max(520, Math.round(dur * 0.9));
+    G.castFx = { slash: wantSlash, effect: wantEffect, until: now + linger, hold: !!st.fxHold };
+    if(wantSlash) loadImg(wantSlash, st.anim || "Attack1");
+    if(wantEffect) loadImg(wantEffect, st.anim || "Special1");
+    G.player.slide = {
+      fromC: from.c, fromR: from.r,
+      toC: to.c, toR: to.r,
+      t0: now + delay,
+      dur: Math.max(1, dur - delay),
+    };
+    if(typeof onTraverse === "function"){
+      const throughIdx = path.findIndex(p=>p && p.through);
+      if(throughIdx >= 0){
+        const frac = (throughIdx + 0.5) / path.length;
+        const hitMs = delay + Math.round(dur * frac);
+        setTimeout(onTraverse, hitMs);
+      } else {
+        const hitMs = resolveStepHitMs(st, null, 0, 1, dur);
+        setTimeout(onTraverse, hitMs);
+      }
+    }
+    setTimeout(()=>{
+      G.player.c = to.c;
+      G.player.r = to.r;
+      G.player.slide = null;
+      G.player.stepFps = null;
+      if(typeof onDone === "function") onDone();
+    }, dur);
+  }
+
+  /** Glissade : Run (N cases) puis Slide (M cases) à travers l’ennemi. */
+  function castGlissade(sp, evo, label){
+    const tiles = glissadeTiles(sp);
+    const planned = planGlissadePath(G.player, G.enemy, tiles.run, tiles.slide);
+    if(!planned.ok){
+      G.player.pa = Math.min(G.player.paMax, G.player.pa + Math.max(1, sp.cost + (evo.cost|0)));
+      G.castPlaying = false;
+      G.busy = false;
+      setStatus("Glissade · chemin impossible");
+      recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+      return;
+    }
+
+    G.busy = true;
+    G.combo = Math.min(100, G.combo + 22);
+    const chain = editorCastSteps(sp);
+    const runStep = normalizeCastStep(chain[0] || { anim:"Run", fps:18, hitTarget:false });
+    const slideStep = normalizeCastStep(chain[1] || { anim:"Slide", fps:16, hitTarget:true });
+    let dmgEach = roll(sp.dmg || [6,10]) + (evo.dmg|0);
+    if(G.player.invis>0 && evo.invisBurst) dmgEach += evo.invisBurst|0;
+    let total = 0;
+
+    const applyHit = ()=>{
+      if(!G.enemy.alive || G.enemy.pv <= 0) return;
+      faceToward(G.player, G.enemy.c, G.enemy.r);
+      let dmg = dmgEach;
+      if(G.enemy.shield>0){ const a=Math.min(G.enemy.shield,dmg); G.enemy.shield-=a; dmg-=a; }
+      G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
+      total += dmg;
+      G.enemy.flash = performance.now()+180;
+      faceToward(G.enemy, G.player.c, G.player.r);
+      playEnemyHitReact(sp, 0, 1);
+      if(G.enemy.pv <= 0) G.enemy.alive = false;
+      setStatus(label+" → "+dmg+" · traversée");
+      hud();
+    };
+
+    const finish = ()=>{
+      if(G.player.anim!=="Die") playAnim(G.player, "Idle");
+      G.castPlaying = false;
+      G.busy = false;
+      if(G.player.invis>0) G.player.invis = 0;
+      if(G.enemy.pv<=0 || !G.enemy.alive){
+        G.enemy.alive = false;
+        G.castQueue = [];
+        setStatus("Victoire · "+label+" → "+total);
+        onCombatEnd("win");
+      } else {
+        setStatus(label+" → "+total+" · derrière");
+      }
+      recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+      drainCastQueue();
+    };
+
+    const runPath = planned.runPath;
+    const slidePath = planned.slidePath;
+    playGlissadeMove(runPath, runStep, ()=>{
+      playGlissadeMove(slidePath, slideStep, ()=>{
+        G.player.c = planned.final.c;
+        G.player.r = planned.final.r;
+        finish();
+      }, slideStep.hitTarget ? applyHit : null);
+    });
+  }
+
   /** @deprecated kept for helpers — use castRoulade */
   function applyRoulade(ent, sp, evo){
     const planned = planRouladePath(ent, sp, evo);
@@ -2887,6 +3165,15 @@
     const cost = Math.max(1, sp.cost + (evo.cost|0));
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
 
+    if(sp.effect==="glissade" || sp.id==="glissade"){
+      const tiles = glissadeTiles(sp);
+      const planned = planGlissadePath(G.player, G.enemy, tiles.run, tiles.slide);
+      if(!planned.ok){
+        setStatus("Glissade · chemin impossible");
+        return;
+      }
+    }
+
     /* Pendant une anim : enfile le sort — fluidité / combos (PA réservés tout de suite) */
     if(G.castPlaying){
       G.player.pa -= cost;
@@ -2904,6 +3191,11 @@
     const label = (G.armedSlot?G.armedSlot.label+" · ":"")+sp.name;
     G.armed=null; G.armedSlot=null;
     renderSpells(); hud();
+
+    if(sp.effect==="glissade" || sp.id==="glissade"){
+      castGlissade(sp, evo, label);
+      return;
+    }
 
     const chain = editorCastSteps(sp);
     const hits = Math.max(1, chain.filter(s=>s && s.hitTarget).length || spellHitCount(sp));
@@ -3474,6 +3766,11 @@
           if(!st.evo) st.evo = {};
           const edR = editorEvoEntry(pickId, tier, ch.name);
           st.evo.anim = (edR && edR.anim) || st.evo.anim || "Attack1";
+        }
+        if(pickId==="glissade"){
+          if(!st.evo) st.evo = {};
+          const edG = editorEvoEntry(pickId, tier, ch.name);
+          st.evo.anim = (edG && edG.anim) || st.evo.anim || "Slide";
         }
         saveEvo();
         const wasVictory = G.pendingEvo && G.pendingEvo.fromVictory;

@@ -439,6 +439,125 @@ const SAVED_COUP_DE_PIED = {
     }
   }
 };
+/** Glissade : course + traverse l’ennemi. */
+const SAVED_GLISSADE = {
+  "id": "glissade",
+  "name": "Glissade",
+  "cost": 2,
+  "range": 5,
+  "dmg": [8, 12],
+  "anim": "Slide",
+  "type": "damage",
+  "aoe": 0,
+  "animSeq": [],
+  "effect": "glissade",
+  "runTiles": 2,
+  "slideTiles": 3,
+  "push": 0,
+  "desc": "Course 2 cases puis glissade 3 cases à travers l’ennemi — dégâts, atterrissage derrière lui",
+  "steps": [
+    {
+      "anim": "Run",
+      "delay": 0,
+      "move": "Run",
+      "fps": 18,
+      "slash": "None",
+      "effect": "None",
+      "hitTarget": false,
+      "hitAnim": "TakeDamage",
+      "hitAnimFps": 14,
+      "hitDelay": null
+    },
+    {
+      "anim": "Slide",
+      "delay": 0,
+      "move": "Slide",
+      "fps": 16,
+      "slash": "None",
+      "effect": "None",
+      "hitTarget": true,
+      "hitAnim": "TakeDamage",
+      "hitAnimFps": 24,
+      "hitDelay": null
+    }
+  ],
+  "evoConfig": {
+    "1:Brise-Os": {
+      "enabled": true,
+      "anim": "Run",
+      "slash": "None",
+      "effect": "None",
+      "fps": 20,
+      "delay": 0,
+      "hitAnim": "TakeDamage",
+      "hitAnimFps": 24,
+      "fxHold": false
+    },
+    "1:Boxeur": {
+      "enabled": true,
+      "anim": "Run",
+      "slash": "None",
+      "effect": "None",
+      "fps": 20,
+      "delay": 0,
+      "hitAnim": "TakeDamage",
+      "hitAnimFps": 24,
+      "hitDelay": 0,
+      "fxHold": false
+    },
+    "1:Rapide": {
+      "enabled": true,
+      "anim": "Run",
+      "slash": "None",
+      "effect": "None",
+      "fps": 19,
+      "delay": 0,
+      "hitAnim": "TakeDamage",
+      "hitAnimFps": 24,
+      "hitDelay": 0,
+      "fxHold": false
+    },
+    "2:Uppercut": {
+      "enabled": true,
+      "anim": "Slide",
+      "slash": "None",
+      "effect": "None",
+      "fps": 19,
+      "delay": 0,
+      "hitAnim": "TakeDamage",
+      "hitAnimFps": 24,
+      "fxHold": false
+    },
+    "2:Percutant": {
+      "enabled": true,
+      "anim": "Slide",
+      "slash": "Slash1",
+      "effect": "None",
+      "fps": 17,
+      "delay": 0,
+      "hitAnim": "TakeDamage",
+      "hitAnimFps": 24,
+      "fxHold": false
+    },
+    "2:Double Impact": {
+      "enabled": true,
+      "anim": "Slide",
+      "slash": "Slash1",
+      "effect": "None",
+      "fps": 19,
+      "delay": 0,
+      "hitAnim": "TakeDamage",
+      "hitAnimFps": 24,
+      "fps1": 18,
+      "hitAnimFps1": 24,
+      "fps2": 16,
+      "hitAnimFps2": 24,
+      "hitDelay1": 0,
+      "hitDelay2": 120,
+      "fxHold": false
+    }
+  }
+};
 /** Roulade : config joueur sauvegardée. */
 const SAVED_ROULADE = {
   "id": "roulade",
@@ -550,6 +669,7 @@ const BASE_SPELLS = [
   JSON.parse(JSON.stringify(SAVED_COUP_BRUT)),
   JSON.parse(JSON.stringify(SAVED_COUP_DE_PIED)),
   JSON.parse(JSON.stringify(SAVED_ROULADE)),
+  JSON.parse(JSON.stringify(SAVED_GLISSADE)),
 ];
 
 /* ────────────────────────────────────────────────────────────
@@ -655,6 +775,35 @@ function ensureRoulade(){
   }
   fillMissingEvoKeys(roll, preset.evoConfig);
 }
+/** Seed Glissade — n’écrase jamais steps/évos existants. */
+function ensureGlissade(){
+  const preset = JSON.parse(JSON.stringify(SAVED_GLISSADE));
+  (customSpells||[]).forEach(s=>{
+    if(!s || !s.id || s.id==="glissade") return;
+    if(/^custom_/.test(s.id) && /glissade/i.test(s.name||"")) s.id = "glissade";
+  });
+  let slide = (customSpells||[]).find(s=>s && s.id==="glissade");
+  if(!slide){
+    customSpells = [...(customSpells||[]).filter(s=>s && s.id!=="glissade"), preset];
+    customSpells.sort((a,b)=>{
+      const order = { punch:0, coup_de_pied:1, roulade:2, glissade:3 };
+      return (order[a.id]??9) - (order[b.id]??9);
+    });
+    return;
+  }
+  if(!slide.effect) slide.effect="glissade";
+  if(slide.runTiles==null) slide.runTiles=2;
+  if(slide.slideTiles==null) slide.slideTiles=3;
+  if(!Array.isArray(slide.steps) || slide.steps.length < 2){
+    slide.steps = JSON.parse(JSON.stringify(preset.steps));
+    if(!slide.anim) slide.anim = "Slide";
+  } else {
+    slide.steps.forEach(st=>{
+      if(st && st.fps!=null){ const n=Number(st.fps); if(isFinite(n)) st.fps=n; }
+    });
+  }
+  fillMissingEvoKeys(slide, preset.evoConfig);
+}
 
 /** Seed / upgrade « Tir arc tendu » — flèche sur le step, réservé aux arcs. */
 const SAVED_TIR_ARC = {
@@ -720,6 +869,7 @@ function loadCustom(){
   ensurePunchAnims();
   ensureCoupDePied();
   ensureRoulade();
+  ensureGlissade();
   ensureTirArcTendu();
   ensureSpellEffects();
   /* Ne jamais muter / resauver automatiquement les choix joueur ici. */
@@ -744,6 +894,7 @@ function importSpellsPack(b64){
     ensurePunchAnims();
     ensureCoupDePied();
     ensureRoulade();
+    ensureGlissade();
     ensureTirArcTendu();
     ensureSpellEffects();
     saveCustom();
@@ -769,6 +920,7 @@ function importSpellsJson(raw){
     ensurePunchAnims();
     ensureCoupDePied();
     ensureRoulade();
+    ensureGlissade();
     ensureTirArcTendu();
     ensureSpellEffects();
     saveCustom();
@@ -791,6 +943,7 @@ const PRESET_SPELLS = [
   JSON.parse(JSON.stringify(SAVED_COUP_BRUT)),
   JSON.parse(JSON.stringify(SAVED_COUP_DE_PIED)),
   JSON.parse(JSON.stringify(SAVED_ROULADE)),
+  JSON.parse(JSON.stringify(SAVED_GLISSADE)),
   JSON.parse(JSON.stringify(SAVED_TIR_ARC)),
 ];
 const PRESET_COUP_BRUT = PRESET_SPELLS; /* alias */
@@ -807,6 +960,7 @@ function restorePresetCoupBrut(){
       if(o.punch) delete o.punch;
       if(o.coup_de_pied) delete o.coup_de_pied;
       if(o.roulade) delete o.roulade;
+      if(o.glissade) delete o.glissade;
       localStorage.setItem(KEY_EVO, JSON.stringify(o));
     }
   }catch(_e){}
@@ -814,7 +968,7 @@ function restorePresetCoupBrut(){
   renderEditor();
   showSavedStatus();
   const st=document.getElementById("pvStatus");
-  if(st) st.textContent="Config restaurée ✓ · Coup brut + Coup de pied + Roulade";
+  if(st) st.textContent="Config restaurée ✓ · Coup brut + Coup de pied + Roulade + Glissade";
   return true;
 }
 function copySpellsBackup(){
@@ -1583,10 +1737,19 @@ function renderEditor(){
     ),
     fieldText("Dégâts max",sp.dmg?String(sp.dmg[1]):"0","dmgMax"),
     fieldNum("AoE rayon",sp.aoe||0,"aoe",0,3),
-    fieldSelect("Effet", sp.effect||"none", "effect", ["none","push","roulade","drainPA"]),
+    fieldSelect("Effet", sp.effect||"none", "effect", ["none","push","roulade","glissade","drainPA"]),
     fieldNum("Push (cases)", sp.push!=null?sp.push:1, "push", 0, 4),
     fieldSelect("Arme requise", sp.requireArchetype||"none", "requireArchetype", ["none","bow"])
   );
+  if(sp.effect==="glissade" || sp.id==="glissade"){
+    idCard.append(
+      fieldNum("Course (cases)", sp.runTiles!=null?sp.runTiles:2, "runTiles", 0, 6),
+      fieldNum("Glissade (cases)", sp.slideTiles!=null?sp.slideTiles:3, "slideTiles", 1, 6)
+    );
+    const glHint=document.createElement("p"); glHint.className="hint";
+    glHint.textContent="Step 1 = course (Run), step 2 = glissade (Slide) avec frappe à la traversée.";
+    idCard.appendChild(glHint);
+  }
   const reqHint=document.createElement("p"); reqHint.className="hint";
   reqHint.textContent="bow = visible en combat seulement si un arc est équipé (Ranged1 / Ranged4).";
   idCard.appendChild(reqHint);
