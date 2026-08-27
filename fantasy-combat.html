@@ -720,6 +720,28 @@
     "2:Double Impact": { "enabled": true, "anim": "Slide", "slash": "Slash1", "effect": "None", "fps": 19, "delay": 0, "hitAnim": "TakeDamage", "hitAnimFps": 24, "fps1": 18, "hitAnimFps1": 24, "fps2": 16, "hitAnimFps2": 24, "hitDelay1": 0, "hitDelay2": 120, "fxHold": false }
   }
 };
+    const DEFAULT_TIR_ARC = {
+  "id": "tir_arc_tendu",
+  "name": "Tir arc tendu",
+  "cost": 2,
+  "range": 5,
+  "dmg": [8, 12],
+  "anim": "Attack3",
+  "type": "damage",
+  "aoe": 0,
+  "animSeq": [],
+  "requireArchetype": "bow",
+  "desc": "Tir à l’arc tendu moyenne et courte portée",
+  "steps": [{
+    "anim": "Attack3", "delay": 0, "move": "Idle", "fps": 14,
+    "slash": "None", "effect": "None", "hitTarget": true,
+    "hitAnim": "TakeDamage", "hitAnimFps": 24, "hitDelay": 180, "hitDelayByDist": true,
+    "fxHold": false, "hideMount": false, "clearMount": false, "forceGround": false,
+    "posDc": 0, "posDr": 0, "frameStart": 0, "frameEnd": 14,
+    "hitFrameStart": 0, "hitFrameEnd": 14,
+  }],
+  "evoConfig": {},
+};
   let spellEvo = {};
   let customSpells = [];
   /* Évos combat (victoire) : pas de reprise d’une vieille session */
@@ -818,7 +840,7 @@
     if(!gl.effect) gl.effect="glissade";
     gl.runTiles = 0;
     if(gl.slideTiles==null) gl.slideTiles=3;
-    if(gl.range == null || gl.range > 3) gl.range = 3;
+    if(gl.range == null) gl.range = 3;
     if(Array.isArray(gl.steps) && gl.steps.length >= 2){
       const hasRun = gl.steps.some(st=>st && /^Run$/i.test(st.anim||""));
       if(hasRun){
@@ -839,6 +861,29 @@
     if(!gl.anim) gl.anim="Slide";
     fillMissingEvoKeysCombat(gl, preset.evoConfig);
   }
+  function ensureTirArcTenduCustom(){
+    const preset = JSON.parse(JSON.stringify(DEFAULT_TIR_ARC));
+    (customSpells||[]).forEach(s=>{
+      if(!s || !s.id || s.id==="tir_arc_tendu") return;
+      if(/^custom_/.test(s.id) && /tir\s*arc|arc\s*tendu/i.test(s.name||"")) s.id="tir_arc_tendu";
+    });
+    let sp = (customSpells||[]).find(s=>s && s.id==="tir_arc_tendu");
+    if(!sp){
+      customSpells = (customSpells||[]).concat([preset]);
+      return;
+    }
+    sp.requireArchetype = "bow";
+    if(!sp.desc) sp.desc = preset.desc;
+    if(!Array.isArray(sp.steps) || !sp.steps.length){
+      sp.steps = JSON.parse(JSON.stringify(preset.steps));
+    } else {
+      sp.steps.forEach(st=>{
+        if(!st) return;
+        if(st.hitDelay == null) st.hitDelay = 180;
+        if(st.hitDelayByDist == null) st.hitDelayByDist = true;
+      });
+    }
+  }
   function importCustomSpellsFromHash(){
     const m=(location.hash||"").match(/fccSpells=([^&]+)/);
     if(!m) return false;
@@ -857,6 +902,7 @@
   ensureCoupDePiedCustom();
   ensureRouladeCustom();
   ensureGlissadeCustom();
+  ensureTirArcTenduCustom();
   ensureSpellEffects();
   /* Pas de migration qui réécrit les saves joueur. */
   function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
@@ -888,6 +934,7 @@
     ensureCoupDePiedCustom();
     ensureRouladeCustom();
     ensureGlissadeCustom();
+    ensureTirArcTenduCustom();
     ensureSpellEffects();
   }
   function clampPosCell(v){
@@ -2150,6 +2197,11 @@
     else lookState.colors = Object.assign({}, DEFAULT_COLORS);
     if(o.bodies && o.bodies.length) lookState.bodies = o.bodies;
     else if(o.look.body) lookState.bodies = [{folder:o.look.body, opacity:1, color:lookState.colors.body}];
+    try{
+      if(o.equipCategories && typeof FantasyBridge!=="undefined" && FantasyBridge.setEquipCategories){
+        FantasyBridge.setEquipCategories(o.equipCategories);
+      }
+    }catch(_e){}
     return true;
   }
   function loadLookFromHash(){
@@ -4060,6 +4112,25 @@
       if(catalog.weaponAfterShieldRows) weaponAfterShieldRows=catalog.weaponAfterShieldRows;
       if(catalog.backpackInFrontRows) backpackInFrontRows=catalog.backpackInFrontRows;
     }
+    try{
+      if(typeof FantasyBridge!=="undefined" && FantasyBridge.setEquipCategories){
+        let packCats = null;
+        for(const u of [BASE_LOCAL+"equip-categories.json", BASE_CDN+"equip-categories.json"]){
+          try{
+            const r=await fetch(u,{cache:"no-store",mode:"cors"});
+            if(r.ok){ packCats=await r.json(); break; }
+          }catch(_e){}
+        }
+        if(packCats) FantasyBridge.setEquipCategories(packCats);
+        try{
+          const raw=localStorage.getItem(KEY_LOOK);
+          if(raw){
+            const o=JSON.parse(raw);
+            if(o && o.equipCategories) FantasyBridge.setEquipCategories(o.equipCategories);
+          }
+        }catch(_e){}
+      }
+    }catch(_e){}
     try{
       if(typeof FantasyBridge!=="undefined"){
         if(FantasyBridge.ensureWeaponAnimMap) FantasyBridge.ensureWeaponAnimMap();

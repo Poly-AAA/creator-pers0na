@@ -25,7 +25,8 @@
     coup_de_pied: { name: "Coup de pied", school: "Force", desc: "Coup de pied qui repousse." },
     kick: { name: "Coup de pied", school: "Force", desc: "Coup de pied qui repousse." },
     roulade: { name: "Roulade", school: "Force", desc: "Rapproche ou recule selon la distance." },
-    glissade: { name: "Glissade", school: "Force", desc: "Course puis traverse l’ennemi pour le frapper." },
+    glissade: { name: "Glissade", school: "Force", desc: "Slide en ligne droite — tacle l’ennemi sur la trajectoire." },
+    tir_arc_tendu: { name: "Tir arc tendu", school: "Force", desc: "Tir à l’arc — moyenne et courte portée." },
     monofil: { name: "Lame spectrale", school: "Force", desc: "Entaille magique à courte portée." },
     arc: { name: "Éclair runique", school: "Foudre", desc: "Décharge d’énergie arcane." },
     surchauffe: { name: "Brasier", school: "Feu", desc: "Pic de flammes." },
@@ -189,6 +190,8 @@
     Ranged5: "storm",
     Ranged6: "storm",
     Ranged7: "marksman",
+    /* Catégorie créateur « Arc » (equip-categories.json) — fallback si pack pas encore chargé */
+    /* Melee6/7 + Ranged1–7 listés dans weapon_mjbl3 */
     Magic1: "arcane",
     Magic2: "shadow",
     Magic3: "fire",
@@ -620,6 +623,7 @@
   EVO_TREE.kick = EVO_TREE.punch;
   EVO_TREE.roulade = EVO_TREE.punch;
   EVO_TREE.glissade = EVO_TREE.punch;
+  EVO_TREE.tir_arc_tendu = EVO_TREE.punch;
 
   function evoChoicesFor(spellId, tier) {
     const tree = EVO_TREE[spellId];
@@ -672,6 +676,54 @@
   /**
    * Barre de sorts — Coup brut + sorts custom de l’éditeur (slots libres).
    */
+  /** Armes classées « Arc » dans le créateur (pack figé). */
+  const BAKED_BOW_WEAPONS = new Set([
+    "Melee6", "Melee7",
+    "Ranged1", "Ranged2", "Ranged3", "Ranged4", "Ranged5", "Ranged6", "Ranged7",
+  ]);
+
+  let equipCategoriesPack = null;
+
+  function setEquipCategories(pack) {
+    equipCategoriesPack = pack && pack.items ? pack : null;
+  }
+
+  function readEquipCategories() {
+    if (equipCategoriesPack) return equipCategoriesPack;
+    try {
+      const raw = localStorage.getItem("neuro.fantasyLook");
+      if (raw) {
+        const o = JSON.parse(raw);
+        if (o && o.equipCategories && o.equipCategories.items) return o.equipCategories;
+      }
+    } catch (_e) {}
+    return null;
+  }
+
+  /** Arme dans une catégorie créateur (ex. label « Arc »). */
+  function weaponInEquipCategory(weapon, categoryLabel) {
+    const pack = readEquipCategories();
+    if (!pack || !pack.items || !weapon) return false;
+    const item = pack.items[weapon];
+    if (!item || !Array.isArray(item.categories)) return false;
+    const lab = String(categoryLabel || "").toLowerCase();
+    const cats = pack.categories || [];
+    for (let i = 0; i < item.categories.length; i++) {
+      const c = cats.find(function (x) { return x && x.id === item.categories[i]; });
+      if (c && String(c.label || "").toLowerCase() === lab) return true;
+    }
+    return false;
+  }
+
+  /** Arc équipé ? archétype bow OU catégorie créateur « Arc ». */
+  function isBowWeapon(weapon) {
+    if (!weapon || weapon === "None") return false;
+    if ((WEAPON_ARCHETYPE[weapon] || "") === "bow") return true;
+    if (BAKED_BOW_WEAPONS.has(weapon)) return true;
+    if (weaponInEquipCategory(weapon, "Arc")) return true;
+    return false;
+  }
+
   function readCustomSpells() {
     const out = [];
     const tryParse = (raw) => {
@@ -700,15 +752,25 @@
     const weapon = L.weapon && L.weapon !== "None" ? L.weapon : "None";
     const hasWeapon = weapon !== "None";
     const arch = (WEAPON_ARCHETYPE[weapon] || "bare");
+    const bow = isBowWeapon(weapon);
     const customs = readCustomSpells().filter(function (s) {
       if (!s || !s.id || s.id === "punch") return false;
       const need = s.requireArchetype || s.requireWeapon || null;
       if (!need || need === "none" || need === "any") return true;
-      if (need === "bow") return arch === "bow";
+      if (need === "bow") return bow;
       if (need === arch) return true;
       if (typeof need === "string" && need.indexOf("Ranged") === 0) return weapon === need;
       return true;
     });
+    /* Arc équipé : Tir arc tendu visible en priorité dans la barre */
+    if (bow) {
+      customs.sort(function (a, b) {
+        const ab = a.requireArchetype === "bow" ? 0 : 1;
+        const bb = b.requireArchetype === "bow" ? 0 : 1;
+        if (ab !== bb) return ab - bb;
+        return 0;
+      });
+    }
     const slots = [
       {
         slot: "weapon",
@@ -1044,6 +1106,9 @@
     toRideAnim,
     MOUNT_PM,
     currentLook,
+    setEquipCategories,
+    isBowWeapon,
+    weaponInEquipCategory,
     buildSpellBar,
     isSelfSpellId,
     OFFHAND_SPELL,

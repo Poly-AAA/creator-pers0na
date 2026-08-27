@@ -439,35 +439,23 @@ const SAVED_COUP_DE_PIED = {
     }
   }
 };
-/** Glissade : course + traverse l’ennemi. */
+/** Glissade : slide en ligne droite (3 cases), tacle si ennemi sur la trajectoire. */
 const SAVED_GLISSADE = {
   "id": "glissade",
   "name": "Glissade",
   "cost": 2,
-  "range": 5,
+  "range": 3,
   "dmg": [8, 12],
   "anim": "Slide",
   "type": "damage",
   "aoe": 0,
   "animSeq": [],
   "effect": "glissade",
-  "runTiles": 2,
+  "runTiles": 0,
   "slideTiles": 3,
   "push": 0,
-  "desc": "Course 2 cases puis glissade 3 cases à travers l’ennemi — dégâts, atterrissage derrière lui",
+  "desc": "Glissade en ligne droite sur 3 cases — tacle et dégâts si un ennemi est sur la trajectoire",
   "steps": [
-    {
-      "anim": "Run",
-      "delay": 0,
-      "move": "Run",
-      "fps": 18,
-      "slash": "None",
-      "effect": "None",
-      "hitTarget": false,
-      "hitAnim": "TakeDamage",
-      "hitAnimFps": 14,
-      "hitDelay": null
-    },
     {
       "anim": "Slide",
       "delay": 0,
@@ -484,7 +472,7 @@ const SAVED_GLISSADE = {
   "evoConfig": {
     "1:Brise-Os": {
       "enabled": true,
-      "anim": "Run",
+      "anim": "Slide",
       "slash": "None",
       "effect": "None",
       "fps": 20,
@@ -495,7 +483,7 @@ const SAVED_GLISSADE = {
     },
     "1:Boxeur": {
       "enabled": true,
-      "anim": "Run",
+      "anim": "Slide",
       "slash": "None",
       "effect": "None",
       "fps": 20,
@@ -507,7 +495,7 @@ const SAVED_GLISSADE = {
     },
     "1:Rapide": {
       "enabled": true,
-      "anim": "Run",
+      "anim": "Slide",
       "slash": "None",
       "effect": "None",
       "fps": 19,
@@ -792,9 +780,20 @@ function ensureGlissade(){
     return;
   }
   if(!slide.effect) slide.effect="glissade";
-  if(slide.runTiles==null) slide.runTiles=2;
+  slide.runTiles = 0;
   if(slide.slideTiles==null) slide.slideTiles=3;
-  if(!Array.isArray(slide.steps) || slide.steps.length < 2){
+  if(slide.range == null) slide.range = 3;
+  /* Migrer ancien Run+Slide → un seul step Slide */
+  if(Array.isArray(slide.steps) && slide.steps.length >= 2){
+    const hasRun = slide.steps.some(st=>st && /^Run$/i.test(st.anim||""));
+    if(hasRun){
+      const keep = slide.steps.find(st=>st && /^Slide$/i.test(st.anim||""))
+        || JSON.parse(JSON.stringify(preset.steps[0]));
+      keep.hitTarget = true;
+      slide.steps = [keep];
+    }
+  }
+  if(!Array.isArray(slide.steps) || !slide.steps.length){
     slide.steps = JSON.parse(JSON.stringify(preset.steps));
     if(!slide.anim) slide.anim = "Slide";
   } else {
@@ -802,6 +801,7 @@ function ensureGlissade(){
       if(st && st.fps!=null){ const n=Number(st.fps); if(isFinite(n)) st.fps=n; }
     });
   }
+  if(!slide.anim) slide.anim = "Slide";
   fillMissingEvoKeys(slide, preset.evoConfig);
 }
 
@@ -1743,15 +1743,14 @@ function renderEditor(){
   );
   if(sp.effect==="glissade" || sp.id==="glissade"){
     idCard.append(
-      fieldNum("Course (cases)", sp.runTiles!=null?sp.runTiles:2, "runTiles", 0, 6),
       fieldNum("Glissade (cases)", sp.slideTiles!=null?sp.slideTiles:3, "slideTiles", 1, 6)
     );
     const glHint=document.createElement("p"); glHint.className="hint";
-    glHint.textContent="Step 1 = course (Run), step 2 = glissade (Slide) avec frappe à la traversée.";
+    glHint.textContent="Ligne droite uniquement (même ligne ou colonne). Avance N cases ; tacle si un ennemi est sur la trajectoire.";
     idCard.appendChild(glHint);
   }
   const reqHint=document.createElement("p"); reqHint.className="hint";
-  reqHint.textContent="bow = visible en combat seulement si un arc est équipé (Ranged1 / Ranged4).";
+  reqHint.textContent="bow = visible en combat si l’arme est dans la catégorie créateur « Arc » (ou Ranged1 / Ranged4).";
   idCard.appendChild(reqHint);
   host.appendChild(idCard);
 
