@@ -45,6 +45,8 @@
   .chip b{font-size:13px}
   .chip.low b{color:var(--warn)}
   .chip.zero b{color:var(--bad)}
+  #chipShield.on{background:rgba(220,236,252,.95);border-color:#8ab4d8}
+  #chipShield.on b{color:#2a6088}
   .link-cc{
     pointer-events:auto;text-decoration:none;color:var(--ink2);font-size:10px;letter-spacing:.08em;
     text-transform:uppercase;padding:6px 8px;border-radius:8px;border:1px solid var(--line);
@@ -149,6 +151,7 @@
     <div class="top-chips">
       <div class="chips">
         <div class="chip"><span>PV</span><b id="hudPv">—</b></div>
+        <div class="chip" id="chipShield"><span>Bouclier</span><b id="hudShield">0</b></div>
         <div class="chip" id="chipPa"><span>PA</span><b id="hudPa">—</b></div>
         <div class="chip" id="chipPm"><span>PM</span><b id="hudPm">—</b></div>
       </div>
@@ -1609,8 +1612,8 @@
   const G = {
     turn:"player",
     busy: false,
-    player:{ c:2, r:7, dir:3, pv:100, pvMax:100, pa:6, paMax:6, pm:3, pmMax:3, anim:"Idle", frame:0, t0:0, flash:0, alive:true, shield:0, invis:0 },
-    enemy:{ c:11, r:6, dir:7, pv:40, pvMax:40, pa:5, paMax:5, pm:4, pmMax:4, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit", layers:null, spells:[], weaponAnim:"Attack1" },
+    player:{ c:2, r:7, dir:3, pv:100, pvMax:100, pa:6, paMax:6, pm:3, pmMax:3, anim:"Idle", frame:0, t0:0, flash:0, alive:true, shield:0, shieldMax:0, invis:0 },
+    enemy:{ c:11, r:6, dir:7, pv:40, pvMax:40, pa:5, paMax:5, pm:4, pmMax:4, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit", layers:null, spells:[], weaponAnim:"Attack1", shield:0, shieldMax:0 },
     clone: null,
     armed: null,
     armedSlot: null,
@@ -1629,6 +1632,7 @@
     awaitingNext: false,
     victoryFallbackTimer: null,
     abortCastChain: null,
+    floaters: [],
   };
 
   const ENEMY_HEADS = ["Head1","Head2","Head3","Head4","Head5","Head6","Head7","Head8","Head9","Head10","Head12","Head14","Head16","Head18","Head20","Head22","Head25"];
@@ -2135,6 +2139,7 @@
     p.pv = Math.min(p.pvMax, Math.max(p.pv, 1) + (opts.fullHeal ? p.pvMax : heal));
     if(opts.fullHeal) p.pv = p.pvMax;
     p.shield = 0;
+    p.shieldMax = 0;
     p.invis = 0;
     clearPlayerBuffOverlay();
     p.c = 2; p.r = Math.floor(GRID/2); p.dir = 3;
@@ -2259,8 +2264,15 @@
 
   function setStatus(t){ el("status").textContent = t; }
   function hud(){
+    el("hudPv").textContent = G.player.pv+"/"+G.player.pvMax;
     const sh = G.player.shield|0;
-    el("hudPv").textContent = G.player.pv+"/"+G.player.pvMax + (sh>0 ? " +"+sh : "");
+    const chipSh = el("chipShield");
+    const hudSh = el("hudShield");
+    if(chipSh && hudSh){
+      hudSh.textContent = String(sh);
+      chipSh.style.display = sh > 0 ? "" : "none";
+      chipSh.classList.toggle("on", sh > 0);
+    }
     el("hudPa").textContent = G.player.pa+"/"+G.player.paMax;
     el("hudPm").textContent = G.player.pm+"/"+G.player.pmMax;
     el("chipPa").classList.toggle("low", G.player.pa<=2);
@@ -2472,23 +2484,129 @@
     const ratio = isFinite(pct) ? Math.max(0.05, Math.min(1, pct)) : 0.2;
     return Math.max(1, Math.floor(G.player.pvMax * ratio)) + ((evo && evo.shield|0) || 0);
   }
-  /** Dégâts reçus : bouclier d’abord ; si le bouclier tombe à 0 sur ce coup, aucun dégât PV. */
-  function applyPlayerDamage(rawDmg){
-    const p = G.player;
+  function bumpShieldMax(ent){
+    if(!ent) return;
+    const sh = ent.shield|0;
+    if(sh <= 0){ ent.shieldMax = 0; return; }
+    ent.shieldMax = Math.max(ent.shieldMax|0, sh);
+  }
+  function spawnFloater(ent, text, kind){
+    if(!ent || text == null || text === "") return;
+    const pos = entityDrawPos(ent);
+    const scr = toScreen(pos.c, pos.r);
+    G.floaters.push({
+      x: scr.x,
+      y: scr.y - 46,
+      text: String(text),
+      kind: kind || "hp",
+      t0: performance.now(),
+      dur: 1150,
+    });
+  }
+  function showDamageFloaters(ent, res){
+    if(!ent || !res) return;
+    if(res.shieldAbsorb > 0) spawnFloater(ent, "-"+res.shieldAbsorb, "shield");
+    if(res.hpDmg > 0) spawnFloater(ent, "-"+res.hpDmg, "hp");
+    else if(res.shieldBroken && res.shieldAbsorb > 0) spawnFloater(ent, "bloqué", "block");
+  }
+  /** Dégâts : bouclier d’abord ; option breakShieldBlocksHp (Peau de pierre). */
+  function applyEntityDamage(ent, rawDmg, opts){
+    opts = opts || {};
     let dmg = Math.max(0, rawDmg|0);
-    if(dmg <= 0) return 0;
-    if((p.shield|0) > 0){
-      const before = p.shield|0;
+    const out = { hpDmg: 0, shieldAbsorb: 0, shieldBroken: false };
+    if(dmg <= 0 || !ent) return out;
+    if((ent.shield|0) > 0){
+      const before = ent.shield|0;
       const absorb = Math.min(before, dmg);
-      p.shield = before - absorb;
+      out.shieldAbsorb = absorb;
+      ent.shield = before - absorb;
       dmg -= absorb;
-      if(before > 0 && (p.shield|0) <= 0) dmg = 0;
+      if(before > 0 && (ent.shield|0) <= 0){
+        out.shieldBroken = true;
+        ent.shieldMax = 0;
+        if(opts.breakShieldBlocksHp) dmg = 0;
+      }
     }
+    out.hpDmg = dmg;
     if(dmg > 0){
-      p.pv = Math.max(0, p.pv - dmg);
-      p.flash = performance.now() + 180;
+      ent.pv = Math.max(0, (ent.pv|0) - dmg);
+      ent.flash = performance.now() + 180;
     }
-    return dmg;
+    return out;
+  }
+  function applyPlayerDamage(rawDmg){
+    const res = applyEntityDamage(G.player, rawDmg, { breakShieldBlocksHp: true });
+    showDamageFloaters(G.player, res);
+    return res;
+  }
+  function applyEnemyDamage(rawDmg){
+    const res = applyEntityDamage(G.enemy, rawDmg, { breakShieldBlocksHp: false });
+    showDamageFloaters(G.enemy, res);
+    return res;
+  }
+  function drawEntityBars(ent, isEnemy, s, dy, baseAlpha){
+    if(!ent || !ent.pvMax) return;
+    baseAlpha = baseAlpha == null ? 1 : baseAlpha;
+    const bw = 34, bh = 4;
+    const bx = s.x - bw / 2;
+    const hpY = dy + 10;
+    const sh = ent.shield|0;
+    const shMax = Math.max(sh, ent.shieldMax|0, 1);
+    const pct = Math.max(0, Math.min(1, (ent.pv|0) / Math.max(1, ent.pvMax|0)));
+
+    ctx.save();
+    ctx.globalAlpha = baseAlpha;
+    ctx.font = "bold 9px Helvetica, Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255,255,255,0.82)";
+    ctx.fillStyle = "rgba(28,28,26,0.95)";
+    const pvLabel = Math.max(0, ent.pv|0) + "/" + (ent.pvMax|0);
+    const labelY = sh > 0 ? hpY - 13 : hpY - 5;
+    ctx.strokeText(pvLabel, s.x, labelY);
+    ctx.fillText(pvLabel, s.x, labelY);
+
+    if(sh > 0){
+      const shY = hpY - 7;
+      ctx.fillStyle = "rgba(0,0,0,.28)";
+      ctx.fillRect(bx - 1, shY - 1, bw + 2, bh + 2);
+      ctx.fillStyle = isEnemy ? "#5a8ab8" : "#6aa8e8";
+      ctx.fillRect(bx, shY, bw * (sh / shMax), bh);
+      ctx.font = "8px Helvetica, Arial, sans-serif";
+      ctx.fillStyle = "#2a5070";
+      ctx.strokeStyle = "rgba(255,255,255,0.7)";
+      ctx.lineWidth = 1.5;
+      ctx.strokeText(String(sh), s.x, shY - 2);
+      ctx.fillText(String(sh), s.x, shY - 2);
+    }
+
+    ctx.fillStyle = "rgba(0,0,0,.28)";
+    ctx.fillRect(bx - 1, hpY - 1, bw + 2, bh + 2);
+    ctx.fillStyle = isEnemy ? "#a03838" : "#2f9f5a";
+    ctx.fillRect(bx, hpY, bw * pct, bh);
+    ctx.restore();
+  }
+  function drawFloaters(){
+    const now = performance.now();
+    G.floaters = (G.floaters || []).filter(f=> now - f.t0 < f.dur);
+    for(const f of G.floaters){
+      const u = (now - f.t0) / f.dur;
+      const alpha = 1 - u * u;
+      const y = f.y - u * 32;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = "bold 12px Helvetica, Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = "rgba(255,255,255,0.9)";
+      if(f.kind === "shield") ctx.fillStyle = "#4a80b8";
+      else if(f.kind === "block") ctx.fillStyle = "#6a8aa0";
+      else if(f.kind === "heal") ctx.fillStyle = "#2f8f5a";
+      else ctx.fillStyle = "#c03838";
+      ctx.strokeText(f.text, f.x, y);
+      ctx.fillText(f.text, f.x, y);
+      ctx.restore();
+    }
   }
 
   function layersForRow(row){
@@ -2816,6 +2934,7 @@
     } else if(sp.id==="peau_de_pierre" || (spellUsesMagicBuffOverlay(sp) && sp.type==="shield")){
       const gain = peauDePierreShieldGain(sp, evo);
       G.player.shield = (G.player.shield|0) + gain;
+      bumpShieldMax(G.player);
       setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" · bouclier +"+gain+" (total "+(G.player.shield|0)+")");
     } else if(spellUsesMagicBuffOverlay(sp)){
       const cfg = buildMagicBuffOverlayConfig(sp);
@@ -2825,6 +2944,7 @@
       G.player.pv = Math.min(G.player.pvMax, G.player.pv + h);
       if(sp.id==="bouclier" || sp.id==="armure_nanites" || sp.type==="shield"){
         G.player.shield = (G.player.shield||0) + Math.floor(h/2) + (evo.shield|0);
+        bumpShieldMax(G.player);
       }
       setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" +"+h+" PV");
     } else {
@@ -3302,10 +3422,9 @@
       if(!G.enemy.alive || G.enemy.pv <= 0) return;
       faceToward(G.player, G.enemy.c, G.enemy.r);
       let dmg = dmgEach;
-      if(G.enemy.shield>0){ const a=Math.min(G.enemy.shield,dmg); G.enemy.shield-=a; dmg-=a; }
-      G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
+      const res = applyEnemyDamage(dmg);
+      dmg = res.hpDmg + res.shieldAbsorb;
       total += dmg;
-      G.enemy.flash = performance.now()+180;
       faceToward(G.enemy, G.player.c, G.player.r);
       playEnemyHitReact(sp, 0, 1);
       if(G.enemy.pv <= 0) G.enemy.alive = false;
@@ -3402,9 +3521,8 @@
         faceToward(cl, G.enemy.c, G.enemy.r);
         playAnim(cl, "AttackRun");
         let dmg = roll(cl.dmg);
-        if(G.enemy.shield>0){ const a=Math.min(G.enemy.shield,dmg); G.enemy.shield-=a; dmg-=a; }
-        G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
-        G.enemy.flash = performance.now()+180;
+        const res = applyEnemyDamage(dmg);
+        dmg = res.hpDmg + res.shieldAbsorb;
         playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
         setStatus("Sosie tacle → "+dmg);
         if(cl.stun){ /* retire 1 PA conceptuel au prochain tour ennemi via flag */ G.enemy._stunned = true; }
@@ -3489,10 +3607,9 @@
       faceToward(G.player, G.enemy.c, G.enemy.r);
       if(!G.enemy.alive || G.enemy.pv <= 0) return;
       let dmg = dmgEach;
-      if(G.enemy.shield>0){ const a=Math.min(G.enemy.shield,dmg); G.enemy.shield-=a; dmg-=a; }
-      G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
+      const res = applyEnemyDamage(dmg);
+      dmg = res.hpDmg + res.shieldAbsorb;
       total += dmg;
-      G.enemy.flash = performance.now()+180;
       faceToward(G.enemy, G.player.c, G.player.r);
       const react = playEnemyHitReact(sp, hitIndex, hits);
       if(G.enemy.pv <= 0){
@@ -3809,6 +3926,7 @@
         setStatus(e.name+" · "+sp.name+" +"+h+" PV");
       } else {
         e.shield = (e.shield|0) + 10 + Math.floor(Math.random()*8);
+        bumpShieldMax(e);
         setStatus(e.name+" · "+sp.name+" (égide "+e.shield+")");
       }
       e.flash = performance.now()+160;
@@ -3836,7 +3954,8 @@
       }
     }
     const rawDmg = dmg;
-    const hpDmg = applyPlayerDamage(dmg);
+    const res = applyPlayerDamage(dmg);
+    const hpDmg = res.hpDmg;
     const shLeft = p.shield|0;
     let hitTxt = "";
     if(hpDmg > 0) hitTxt = " → "+hpDmg+" PV";
@@ -4239,11 +4358,7 @@
       ctx.restore();
     }
     if(ent.pvMax){
-      const pct = ent.pv/ent.pvMax;
-      const bw=26, bh=3, bx=s.x-bw/2, by=dy+12;
-      ctx.fillStyle="rgba(0,0,0,.22)"; ctx.fillRect(bx-1,by-1,bw+2,bh+2);
-      ctx.fillStyle = isEnemy ? "#8a3030" : "#2f6f4e";
-      ctx.fillRect(bx, by, bw*Math.max(0,pct), bh);
+      drawEntityBars(ent, isEnemy, s, dy, baseAlpha);
     }
   }
 
@@ -4291,6 +4406,7 @@
       return (pa.c+pa.r)-(pb.c+pb.r) || pa.c-pb.c;
     });
     for(const o of ents) drawEntity(o.e, o.enemy, o.clone ? {clone:true, alpha:o.e.alpha||0.42} : null);
+    drawFloaters();
     ctx.restore();
   }
 
