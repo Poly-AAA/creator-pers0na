@@ -55,6 +55,20 @@
   .dpad button:active{background:var(--sel);color:#fff}
   .dpad span{width:30px;height:30px}
   .status{font-size:10px;color:var(--ink2);text-align:center;line-height:1.25}
+  .cat-chips{display:flex;flex-wrap:wrap;gap:4px}
+  .cat-chips button{
+    min-height:28px;padding:4px 8px;border-radius:8px;border:1px solid var(--line);
+    background:var(--soft);color:var(--ink);font-size:10px;font-weight:700;cursor:pointer;
+  }
+  .cat-chips button.on{background:#ff2e2e;color:#fff;border-color:#ff2e2e}
+  .cat-chips button.tag.on{background:#19c37d;border-color:#19c37d}
+  .cat-row{display:flex;gap:4px;margin-top:4px}
+  .cat-row input{
+    flex:1;min-width:0;min-height:28px;border:1px solid var(--line);border-radius:8px;
+    background:var(--soft);font-size:11px;padding:0 6px;color:var(--ink);
+  }
+  .cat-row button{min-height:28px;padding:0 8px;border-radius:8px;border:1px solid var(--line);
+    background:var(--sel);color:#fff;font-size:11px;font-weight:700;cursor:pointer}
   .size-row{display:flex;align-items:center;gap:4px}
   .size-row input{flex:1;accent-color:var(--sel);min-width:0}
   .size-row span{font-size:11px;color:var(--ink2);width:2.6em;text-align:right}
@@ -152,10 +166,19 @@
       <span class="ttl">Choix</span>
       <div class="step-row">
         <button type="button" class="nav" id="optPrev" aria-label="Choix précédent">‹</button>
-        <span class="val" id="optVal" title="Extra : taper pour sous-slot">—</span>
+        <span class="val" id="optVal" title="Pièce du slot sélectionné">—</span>
         <button type="button" class="nav" id="optNext" aria-label="Choix suivant">›</button>
       </div>
       <button type="button" class="btn ghost" id="btnClear">Aucun</button>
+    </div>
+    <div class="sec">
+      <span class="ttl">Catégorie</span>
+      <div class="cat-chips" id="catFilter"></div>
+      <div class="cat-chips" id="catTags" style="margin-top:4px"></div>
+      <div class="cat-row">
+        <input id="catName" type="text" maxlength="20" placeholder="Nouvelle cat…" enterkeyhint="done"/>
+        <button type="button" id="btnAddCat">+</button>
+      </div>
     </div>
     <div class="sec">
       <span class="ttl">Taille</span>
@@ -179,6 +202,8 @@
       <button type="button" class="btn" id="btnRandom">Aléatoire</button>
       <button type="button" class="btn" id="btnReset">Reset</button>
       <button type="button" class="btn primary" id="btnExport">Sauver</button>
+      <button type="button" class="btn" id="btnCopyJson" style="background:#2f6bff;color:#fff;border-color:#2f6bff">Copier JSON</button>
+      <button type="button" class="btn" id="btnPasteJson" style="background:#19c37d;color:#fff;border-color:#19c37d">Coller JSON</button>
       <a class="btn ok" id="btnCombat" data-fcc="combat" href="fantasy-combat.html" style="display:block;text-align:center;text-decoration:none;line-height:40px;background:#2f6f4e;color:#fff;border-color:#2f6f4e">Combat</a>
       <a class="btn" id="btnSpellEditor" href="spell-editor.html" style="display:block;text-align:center;text-decoration:none;line-height:40px;background:#4a3870;color:#fff;border-color:#4a3870">Sorts</a>
       <div class="status" id="status">Chargement…</div>
@@ -210,7 +235,7 @@
 <script>
 (function(){
   const BASE_LOCAL = "assets/packs/fantasy-cc/";
-  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f89bfa1/assets/packs/fantasy-cc/";
+  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/glissade-spell-66c0/assets/packs/fantasy-cc/";
   const FW=128, FH=128, COLS=15;
   const DIR_ROW=[0,1,2,3,4,5,6,7];
   let weaponAfterShieldRows=[true,true,true,false,false,false,false,true];
@@ -222,21 +247,22 @@
     char:{ xPct:40, yPct:44, sizePct:0.74 },
     shadow:{ xPct:40, yPct:66, opacity:0.08 },
     zonesLab:{
-      hair:"Coiff.", head:"Équip.", body:"Corps",
+      hair:"Coiff.", head:"Tête", body:"Corps",
       chest:"Torse", backpack:"Sac", legs:"Jambes",
-      shoes:"Chauss.", mount:"Monture", weapon:"Extra",
+      shoes:"Chauss.", mount:"Monture",
+      weapon:"Arme", offhand:"2e main",
+      belt:"Ceint.", gloves:"Gants",
     },
     rot:{ yPct:86, gapPct:22, size:48 }
   };
 
-  /* Mode simplifié (par défaut) : hair + head + body uniquement
-     Mode avancé : tout le reste visible */
+  /* Mode simplifié : coiffure / tête / corps
+     Mode avancé : tous les slots (chacun son bouton) */
   const ZONE_SIMPLE   = ["hair","head","body"];
-  const ZONE_ADVANCED = ["hair","head","body","chest","legs","shoes","backpack","mount","weapon"];
+  const ZONE_ADVANCED = ["hair","head","body","chest","legs","shoes","belt","gloves","backpack","weapon","offhand","mount"];
   let advancedMode = false;
   function currentZoneOrder(){ return advancedMode ? ZONE_ADVANCED : ZONE_SIMPLE; }
   const ZONE_ORDER_ALL = ZONE_ADVANCED; /* alias pour compatibilité interne */
-  const MISC_SLOTS = ["weapon","offhand","belt","gloves","slash","effect"];
   const RIDE_ANIMS = ["RideIdle","RideRun","RideIdleAttack1","RideRunAttack1"];
 
   /* Coiffures : dossier vide pour l'instant — tu y ajouteras tes assets */
@@ -256,22 +282,24 @@
     "#ffffff","#000000",
   ];
   const DEFAULT_COLORS = {
-    body:"#d4a574", shoes:"#3a3230", legs:"#3e4f63", chest:"#5b7c99",
-    belt:"#8b6914", gloves:"#6a5a4e", offhand:"#6b8f71", weapon:"#9aa8b8",
-    backpack:"#7a5c3a", head:"#e0b878", hair:"#3a2a1a", slash:"#e8590c", effect:"#5ec8ff", mount:"#8a7060",
+    body:"#c9a07a", shoes:"#ff5a36", legs:"#2f6bff", chest:"#19c37d",
+    belt:"#ffb020", gloves:"#ff4fa3", offhand:"#00c2ff", weapon:"#ff2e2e",
+    backpack:"#b85cff", head:"#ffe14a", hair:"#5b2cff", slash:"#ff6a00", effect:"#00f0ff", mount:"#ff7a59",
   };
+  const CAT_KEY = "neuro.fantasyEquipCategories";
 
   const state = {
     catalog:null, look:{}, colors:{},
     bodies:[{folder:"NakedBody", opacity:1, color:"#d4a574"}],
     bodyFocus:0,
     anim:"Idle", dir:0, fps:14,
-    zoneId:"hair", _miscFocus:"weapon",
+    zoneId:"hair",
     lastEdited:null,
     charSizePct: 0.74,
     sizeMode: "h", /* hauteur scène */
     cache:new Map(), raf:0, frame:0, lastT:0,
     drawing:false, dirty:true, drawRect:null,
+    catData:{categories:[], items:{}}, catFilter:"all",
   };
 
   const el = (id)=> document.getElementById(id);
@@ -492,19 +520,148 @@
     state.zoneId=id;
     if(id==="body") state.bodyFocus=Math.min(state.bodyFocus, Math.max(0,state.bodies.length-1));
     el("bodyStack").classList.toggle("on", id==="body");
+    /* Arme / 2e main / sac : filtrer sur la 1re catégorie pour voir le rangement */
+    if(id==="weapon"||id==="offhand"||id==="backpack"){
+      const first=catsForActive()[0];
+      state.catFilter = first ? first.id : "all";
+    } else {
+      state.catFilter = "all";
+    }
     syncSteppers(); renderSwatches(); renderBodies(); layoutChrome();
     state.dirty=true;
   }
 
   function activeSlotId(){
-    if(state.zoneId==="weapon") return state._miscFocus||"weapon";
     return state.zoneId;
   }
+  function loadCatData(){
+    try{
+      const raw=localStorage.getItem(CAT_KEY)||sessionStorage.getItem(CAT_KEY);
+      if(!raw) return;
+      applyCatPayload(JSON.parse(raw));
+    }catch(_e){}
+  }
+  function applyCatPayload(o){
+    if(!o||typeof o!=="object") return false;
+    if(o.equipCategories&&typeof o.equipCategories==="object"){
+      return applyCatPayload(o.equipCategories);
+    }
+    const cats=Array.isArray(o.categories)?o.categories.filter(c=>c&&c.id&&c.label&&c.slot):[];
+    const items=(o.items&&typeof o.items==="object")?o.items:{};
+    state.catData={ categories:cats, items:items };
+    saveCatData();
+    return !!(cats.length||Object.keys(items).length);
+  }
+  function saveCatData(){
+    try{
+      const payload={ver:1,pack:"fantasy-cc",categories:state.catData.categories,items:state.catData.items};
+      localStorage.setItem(CAT_KEY, JSON.stringify(payload));
+      sessionStorage.setItem(CAT_KEY, JSON.stringify(payload));
+    }catch(_e){}
+  }
+  function applyLookObject(o){
+    if(!o||typeof o!=="object"||!o.look) return false;
+    state.look=o.look;
+    if(o.colors) state.colors=Object.assign(defaultColors(), o.colors);
+    if(o.bodies&&o.bodies.length){
+      state.bodies=o.bodies.map(b=>({folder:b.folder, opacity:b.opacity==null?1:b.opacity, color:b.color||o.colors?.body||DEFAULT_COLORS.body}));
+    } else if(o.look.body){
+      state.bodies=[{folder:o.look.body, opacity:1, color:state.colors.body||DEFAULT_COLORS.body}];
+    }
+    if(o.fps) state.fps=o.fps|0;
+    if(o.anim) state.anim=o.anim;
+    if(typeof o.dir==="number") state.dir=o.dir|0;
+    if(typeof o.charSizePct==="number" && o.charSizePct>=0.50 && o.charSizePct<=0.85){
+      state.charSizePct=o.charSizePct;
+    }
+    if(o.equipCategories) applyCatPayload(o.equipCategories);
+    else if(o.categories||o.items) applyCatPayload(o);
+    return true;
+  }
+  function catsForActive(){
+    const sid=activeSlotId();
+    return (state.catData.categories||[]).filter(c=>c.slot===sid);
+  }
+  function itemCats(folder){
+    if(!folder||folder==="None") return [];
+    const it=state.catData.items[folder];
+    return (it&&Array.isArray(it.categories))?it.categories:[];
+  }
+  function toggleItemCat(folder, catId){
+    if(!folder||folder==="None") return;
+    if(!state.catData.items[folder]) state.catData.items[folder]={slot:activeSlotId(), categories:[]};
+    const it=state.catData.items[folder];
+    it.slot=activeSlotId();
+    if(!Array.isArray(it.categories)) it.categories=[];
+    const i=it.categories.indexOf(catId);
+    if(i>=0) it.categories.splice(i,1); else it.categories.push(catId);
+    saveCatData();
+    renderCats();
+  }
+  function folderInCatFilter(folder){
+    if(state.catFilter==="all") return true;
+    if(folder==="None") return true;
+    const cats=itemCats(folder);
+    if(state.catFilter==="none"){
+      const ids=new Set(catsForActive().map(c=>c.id));
+      return !cats.some(id=>ids.has(id));
+    }
+    return cats.indexOf(state.catFilter)>=0;
+  }
+  function renderCats(){
+    const filt=el("catFilter"), tags=el("catTags");
+    if(!filt||!tags) return;
+    filt.innerHTML=""; tags.innerHTML="";
+    const list=catsForActive();
+    const mk=(host, id, lab, on, cls)=>{
+      const b=document.createElement("button"); b.type="button";
+      b.textContent=lab; if(on) b.classList.add("on"); if(cls) b.classList.add(cls);
+      host.appendChild(b); return b;
+    };
+    mk(filt,"all","Toutes", state.catFilter==="all").onclick=()=>{ state.catFilter="all"; renderCats(); syncSteppers(); };
+    mk(filt,"none","Sans", state.catFilter==="none").onclick=()=>{ state.catFilter="none"; renderCats(); syncSteppers(); };
+    list.forEach(c=>{
+      mk(filt,c.id,c.label, state.catFilter===c.id).onclick=()=>{ state.catFilter=c.id; renderCats(); syncSteppers(); };
+    });
+    const cur=currentOption();
+    if(!list.length){
+      tags.innerHTML='<span style="font-size:10px;color:var(--ink2)">+ pour créer</span>';
+    } else if(!cur||cur==="None"){
+      tags.innerHTML='<span style="font-size:10px;color:var(--ink2)">Choisis une pièce</span>';
+    } else {
+      const assigned=itemCats(cur);
+      list.forEach(c=>{
+        const b=mk(tags,c.id,c.label, assigned.indexOf(c.id)>=0, "tag");
+        b.onclick=()=>toggleItemCat(cur, c.id);
+      });
+    }
+  }
+
   function optionList(){
-    if(state.zoneId==="body") return ((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
-    if(state.zoneId==="weapon"){ const s=slotById(state._miscFocus||"weapon"); return (s&&s.folders)||["None"]; }
-    if(state.zoneId==="hair") return ["None",...HAIR_FOLDERS];
-    const s=slotById(state.zoneId); return (s&&s.folders)||["None"];
+    let list;
+    if(state.zoneId==="body") list=((slotById("body")||{}).folders||[]).filter(f=>f!=="None");
+    else if(state.zoneId==="hair") list=["None",...HAIR_FOLDERS];
+    else { const s=slotById(state.zoneId); list=(s&&s.folders)||["None"]; }
+    if(state.zoneId==="body") return list;
+    const filtered=list.filter(f=>folderInCatFilter(f));
+    if(!filtered.length) return ["None"];
+    /* Si « Toutes », ordonner par catégorie puis nom */
+    if(state.catFilter==="all" && (state.zoneId==="weapon"||state.zoneId==="offhand"||state.zoneId==="backpack")){
+      const order=catsForActive().map(c=>c.id);
+      const rank=f=>{
+        if(f==="None") return -1;
+        const ids=itemCats(f);
+        if(!ids.length) return 9999;
+        const i=order.indexOf(ids[0]);
+        return i<0?9998:i;
+      };
+      return filtered.slice().sort((a,b)=>{
+        const ra=rank(a), rb=rank(b);
+        if(ra!==rb) return ra-rb;
+        return String(a).localeCompare(String(b));
+      });
+    }
+    return filtered;
   }
   function currentOption(){
     if(state.zoneId==="body"){ const b=state.bodies[state.bodyFocus|0]; return (b&&b.folder)||"NakedBody"; }
@@ -537,11 +694,6 @@
     let i=list.indexOf(currentOption()); if(i<0) i=0;
     i=(i+dir+list.length)%list.length; setOption(list[i]);
   }
-  function cycleMiscSlot(dir){
-    let i=MISC_SLOTS.indexOf(state._miscFocus||"weapon"); if(i<0) i=0;
-    i=(i+dir+MISC_SLOTS.length)%MISC_SLOTS.length;
-    state._miscFocus=MISC_SLOTS[i]; syncSteppers(); renderSwatches();
-  }
   /* Toutes les anims disponibles, mouvement en tête */
   const MOVE_ANIMS = ["Idle","Walk","Run","Rolling","Slide","AttackRun","AttackRun2","Taunt"];
   const DIR_NAMES  = ["E","SE","S","SW","W","NW","N","NE"];
@@ -569,20 +721,22 @@
   function syncSteppers(){
     el("animVal").textContent=state.anim||"—";
     if(el("dirVal")) el("dirVal").textContent=DIR_NAMES[state.dir|0]||"";
-    if(state.zoneId==="weapon"){
-      const s=slotById(state._miscFocus||"weapon");
-      const sub=(s&&s.lab)?s.lab.split("/")[0].trim():(state._miscFocus||"");
-      el("optVal").textContent=sub+": "+shortOpt(currentOption());
-    } else if(state.zoneId==="body"){
+    if(state.zoneId==="body"){
       el("optVal").textContent="L"+(state.bodyFocus+1)+": "+shortOpt(currentOption());
     } else if(state.zoneId==="mount"){
       el("optVal").textContent=isMounted() ? shortOpt(currentOption())+" · à cheval" : "À pied";
     } else if(state.zoneId==="hair"){
       const cur=currentOption();
       el("optVal").textContent=(cur==="None"||!cur) ? "Aucune" : shortOpt(cur);
+    } else if(state.zoneId==="weapon"){
+      el("optVal").textContent="Arme: "+shortOpt(currentOption());
+    } else if(state.zoneId==="offhand"){
+      el("optVal").textContent="2e main: "+shortOpt(currentOption());
     } else {
-      el("optVal").textContent=shortOpt(currentOption());
+      const lab=(LAY.zonesLab[state.zoneId]||state.zoneId);
+      el("optVal").textContent=lab+": "+shortOpt(currentOption());
     }
+    renderCats();
   }
 
   function colorTarget(){
@@ -713,8 +867,24 @@
     el("animNext").onclick=()=>cycleAnim(1);
     el("optPrev").onclick=()=>cycleOption(-1);
     el("optNext").onclick=()=>cycleOption(1);
-    el("optVal").style.cursor="pointer";
-    el("optVal").onclick=()=>{ if(state.zoneId==="weapon") cycleMiscSlot(1); };
+    const addCat=el("btnAddCat"), catName=el("catName");
+    if(addCat&&catName){
+      const doAdd=()=>{
+        const name=(catName.value||"").trim();
+        if(!name){ el("status").textContent="Nom de catégorie ?"; return; }
+        const sid=activeSlotId();
+        if(catsForActive().some(c=>c.label.toLowerCase()===name.toLowerCase())){
+          el("status").textContent="Cat. déjà là"; return;
+        }
+        const id=sid+"_"+Math.random().toString(36).slice(2,7);
+        state.catData.categories.push({id, label:name.slice(0,20), slot:sid});
+        catName.value="";
+        saveCatData(); renderCats();
+        el("status").textContent="Cat. « "+name+" »";
+      };
+      addCat.onclick=doAdd;
+      catName.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); doAdd(); } });
+    }
     el("btnClear").onclick=clearLastPart;
 
     const sizeEl=el("charSize");
@@ -763,8 +933,19 @@
       saveLookPayload();
     };
     function saveLookPayload(){
-      const payload={pack:"fantasy-cc", look:state.look, colors:state.colors, bodies:state.bodies, fps:state.fps, anim:state.anim, dir:state.dir, charSizePct:state.charSizePct};
+      const equipCategories={
+        ver:1, pack:"fantasy-cc",
+        categories:state.catData.categories||[],
+        items:state.catData.items||{}
+      };
+      const payload={
+        pack:"fantasy-cc",
+        look:state.look, colors:state.colors, bodies:state.bodies,
+        fps:state.fps, anim:state.anim, dir:state.dir, charSizePct:state.charSizePct,
+        equipCategories
+      };
       try{ localStorage.setItem("neuro.fantasyLook", JSON.stringify(payload)); }catch(_e){}
+      try{ saveCatData(); }catch(_e){}
       return payload;
     }
     function combatUrlWithLook(){
@@ -778,7 +959,44 @@
     el("btnExport").onclick=()=>{
       const payload=saveLookPayload();
       const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}));
-      a.download="fantasy-look.json"; a.click(); el("status").textContent="Look sauvé";
+      a.download="fantasy-look.json"; a.click(); el("status").textContent="Look+cats sauvés";
+    };
+    el("btnCopyJson").onclick=async ()=>{
+      const payload=saveLookPayload();
+      const text=JSON.stringify(payload,null,2);
+      try{
+        if(navigator.clipboard&&navigator.clipboard.writeText){
+          await navigator.clipboard.writeText(text);
+          el("status").textContent="JSON (look+cats) copié ✓";
+          return;
+        }
+      }catch(_e){}
+      const ta=document.createElement("textarea");
+      ta.value=text; ta.style.cssText="position:fixed;inset:12px;z-index:9999;width:calc(100% - 24px);height:40%;font:12px monospace";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try{ document.execCommand("copy"); el("status").textContent="JSON copié ✓"; }
+      catch(_e){ el("status").textContent="Sélectionne + copie"; }
+      setTimeout(()=>{ try{ ta.remove(); }catch(_e){} }, 8000);
+    };
+    el("btnPasteJson").onclick=async ()=>{
+      let text="";
+      try{
+        if(navigator.clipboard&&navigator.clipboard.readText) text=await navigator.clipboard.readText();
+      }catch(_e){}
+      if(!text) text=prompt("Colle ton JSON (look + catégories) :","")||"";
+      text=(text||"").trim();
+      if(!text){ el("status").textContent="Rien à coller"; return; }
+      try{
+        const o=JSON.parse(text);
+        if(!applyLookObject(o)){ el("status").textContent="JSON invalide"; return; }
+        saveLookPayload();
+        syncRideAnim(); syncSizeUI(); syncSteppers(); renderSwatches(); renderBodies(); renderCats();
+        state.dirty=true;
+        const nc=(state.catData.categories||[]).length;
+        el("status").textContent="JSON collé ✓ · "+nc+" cat.";
+      }catch(_e){
+        el("status").textContent="JSON illisible";
+      }
     };
     el("btnCombat").onclick=(ev)=>{
       ev.preventDefault();
@@ -802,28 +1020,53 @@
     if(cat.backpackInFrontRows) backpackInFrontRows=cat.backpackInFrontRows;
     if(cat.defaultFps) state.fps=cat.defaultFps|0;
     state.colors=defaultColors();
+    /* Pack = source de vérité des catégories (arme / 2e main / sac) */
+    let packCats=null;
+    for(const u of [BASE_LOCAL+"equip-categories.json", BASE_CDN+"equip-categories.json"]){
+      try{ const r=await fetch(u,{cache:"no-store",mode:"cors"}); if(r.ok){ packCats=await r.json(); break; } }catch(_e){}
+    }
+    if(packCats) applyCatPayload(packCats);
+    else loadCatData();
+
+    let loadedLook=false;
     try{
-      const raw=localStorage.getItem("neuro.fantasyLook");
-      if(raw){
-        const o=JSON.parse(raw);
-        if(o&&o.look){
-          state.look=o.look;
-          if(o.colors) state.colors=Object.assign(defaultColors(), o.colors);
-          if(o.bodies&&o.bodies.length){
-            state.bodies=o.bodies.map(b=>({folder:b.folder, opacity:b.opacity==null?1:b.opacity, color:b.color||o.colors?.body||DEFAULT_COLORS.body}));
-          } else if(o.look.body){
-            state.bodies=[{folder:o.look.body, opacity:1, color:state.colors.body||DEFAULT_COLORS.body}];
-          }
-          if(o.anim) state.anim=o.anim;
-          /* Ignorer anciennes tailles basées sur la largeur (≥0.90) */
-          if(typeof o.charSizePct==="number" && o.charSizePct>=0.50 && o.charSizePct<=0.85){
-            state.charSizePct=o.charSizePct;
-          } else {
-            state.charSizePct=LAY.char.sizePct;
-          }
-        }
+      const h=(location.hash||"").replace(/^#/,"");
+      if(h.indexOf("fccLook")==0){
+        const o=JSON.parse(decodeURIComponent(h.slice(h.indexOf("=")+1)));
+        loadedLook=applyLookObject(o);
       }
     }catch(_e){}
+    if(!loadedLook){
+      try{
+        const raw=localStorage.getItem("neuro.fantasyLook");
+        if(raw){
+          const o=JSON.parse(raw);
+          /* look local OK, mais cats pack prioritaires si plus riches */
+          const localCats=(o.equipCategories&&o.equipCategories.categories)||o.categories||[];
+          loadedLook=applyLookObject(o);
+          if(packCats && (!localCats.length || localCats.length < (packCats.categories||[]).length)){
+            applyCatPayload(packCats);
+          }
+        }
+      }catch(_e){}
+    }
+    if(!loadedLook){
+      for(const u of [BASE_LOCAL+"seed-look.json", BASE_CDN+"seed-look.json"]){
+        try{
+          const r=await fetch(u,{cache:"no-store",mode:"cors"});
+          if(r.ok){
+            const o=await r.json();
+            loadedLook=applyLookObject(o);
+            if(packCats) applyCatPayload(packCats);
+            break;
+          }
+        }catch(_e){}
+      }
+    }
+    /* re-force pack cats after look apply */
+    if(packCats) applyCatPayload(packCats);
+    saveCatData();
+
     if(!state.look.body) state.look=defaultLook(cat);
     if(!("hair" in state.look)) state.look.hair="None";
     if(!state.bodies.length) state.bodies=[{folder:"NakedBody",opacity:1,color:DEFAULT_COLORS.body}];
@@ -831,10 +1074,15 @@
     syncRideAnim();
     const anims=(cat.anims&&cat.anims.length)?cat.anims:["Idle","Walk","Attack1"];
     if(!anims.includes(state.anim) && !RIDE_ANIMS.includes(state.anim)) state.anim=isMounted()?"RideIdle":anims[0];
-    bind(); syncSizeUI(); selectZone("hair");
+    bind(); syncSizeUI();
+    advancedMode=true;
+    const ba=el("btnAdvanced"); if(ba) ba.textContent="⚙ Mode simplifié";
+    selectZone("weapon");
     state.dirty=true;
     await loadImg(state.bodies[0].folder||"NakedBody","Idle");
-    el("status").textContent="Prêt";
+    const nc=(state.catData.categories||[]).length;
+    el("status").textContent="Prêt · "+nc+" cat. figées · Arme/2e main/Sac filtrés";
+    syncSteppers(); renderSwatches(); renderBodies(); syncSizeUI();
     loop();
   }
   boot();

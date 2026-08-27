@@ -13,6 +13,17 @@ cp "$ROOT/fantasy-combat.html" "$OUT/fantasy-combat.html"
 cp "$ROOT/fantasy-dir-calibrate.html" "$OUT/fantasy-dir-calibrate.html"
 cp "$ROOT/fantasy-weapon-anim.html" "$OUT/fantasy-weapon-anim.html"
 cp "$ROOT/spell-editor.html" "$OUT/spell-editor.html"
+# Catégories d’équipement figées (arme / 2e main / sac)
+mkdir -p "$OUT/assets/packs/fantasy-cc"
+if [[ -f "$ROOT/assets/packs/fantasy-cc/equip-categories.json" ]]; then
+  cp "$ROOT/assets/packs/fantasy-cc/equip-categories.json" "$OUT/assets/packs/fantasy-cc/equip-categories.json"
+fi
+if [[ -f "$ROOT/assets/packs/fantasy-cc/seed-look.json" ]]; then
+  cp "$ROOT/assets/packs/fantasy-cc/seed-look.json" "$OUT/assets/packs/fantasy-cc/seed-look.json"
+fi
+if [[ -f "$ROOT/assets/packs/fantasy-cc/catalog.json" ]]; then
+  cp "$ROOT/assets/packs/fantasy-cc/catalog.json" "$OUT/assets/packs/fantasy-cc/catalog.json"
+fi
 if [[ -f "$ROOT/arrow-dir-calibrate.html" ]]; then
   cp "$ROOT/arrow-dir-calibrate.html" "$OUT/arrow-dir-calibrate.html"
 fi
