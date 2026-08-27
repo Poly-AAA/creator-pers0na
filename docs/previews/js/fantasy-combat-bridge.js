@@ -26,6 +26,7 @@
     kick: { name: "Coup de pied", school: "Force", desc: "Coup de pied qui repousse." },
     roulade: { name: "Roulade", school: "Force", desc: "Rapproche ou recule selon la distance." },
     glissade: { name: "Glissade", school: "Force", desc: "Slide en ligne droite — tacle l’ennemi sur la trajectoire." },
+    peau_de_pierre: { name: "Peau de pierre", school: "Terre", desc: "Bouclier pierre · 20% PV max · overlay magie." },
     tir_arc_tendu: { name: "Tir arc tendu", school: "Force", desc: "Tir à l’arc — moyenne et courte portée." },
     monofil: { name: "Lame spectrale", school: "Force", desc: "Entaille magique à courte portée." },
     arc: { name: "Éclair runique", school: "Foudre", desc: "Décharge d’énergie arcane." },
@@ -806,7 +807,7 @@
       customs.sort(function (a, b) {
         const score = function (s) {
           if (bow && s.requireArchetype === "bow") return 0;
-          if (magic && (s.requireArchetype === "magic" || s.magicBuffOverlay)) return 1;
+          if (magic && (s.requireArchetype === "magic" || s.magicBuffOverlay || s.id === "peau_de_pierre")) return 1;
           return 2;
         };
         return score(a) - score(b);
@@ -858,7 +859,8 @@
       spellId === "overclock" ||
       spellId === "invisibilite" ||
       spellId === "double" ||
-      spellId === "roulade"
+      spellId === "roulade" ||
+      spellId === "peau_de_pierre"
     );
   }
 

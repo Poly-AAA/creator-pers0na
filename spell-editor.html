@@ -830,18 +830,19 @@ const SAVED_TIR_ARC = {
   evos: [],
   evoConfig: {},
 };
-const SAVED_AURA_MAGIQUE = {
-  id: "aura_magique",
-  name: "Aura magique",
+const SAVED_PEAU_DE_PIERRE = {
+  id: "peau_de_pierre",
+  name: "Peau de pierre",
   cost: 2,
   range: 0,
   anim: "Special1",
-  type: "buff",
+  type: "shield",
   aoe: 0,
+  shieldPct: 0.2,
   magicBuffOverlay: true,
   bodyOverlay: "NakedBody3",
   buffTurns: 3,
-  desc: "Aura éthérée · corps 3 + armes Magie par-dessus l'équipement",
+  desc: "Bouclier = 20% PV max · absorbe avant les PV · coup qui brise le bouclier ne touche pas les PV",
   steps: [{
     anim: "Special1", delay: 0, move: "Idle", fps: 14,
     slash: "None", effect: "Effect3", hitTarget: false,
@@ -852,22 +853,29 @@ const SAVED_AURA_MAGIQUE = {
   }],
   evoConfig: {},
 };
-function ensureAuraMagique(){
-  const preset = JSON.parse(JSON.stringify(SAVED_AURA_MAGIQUE));
+function ensurePeauDePierre(){
+  const preset = JSON.parse(JSON.stringify(SAVED_PEAU_DE_PIERRE));
   (customSpells||[]).forEach(s=>{
     if(!s || !s.id) return;
-    if(s.id === "aura_magique") return;
-    if(/^custom_/.test(s.id) && /aura\s*mag/i.test(s.name||"")) s.id = "aura_magique";
+    if(s.id === "aura_magique"){
+      s.id = "peau_de_pierre";
+      s.name = "Peau de pierre";
+    }
+    if(s.id === "peau_de_pierre") return;
+    if(/^custom_/.test(s.id) && /peau\s*de\s*pierre|aura\s*mag/i.test(s.name||"")) s.id = "peau_de_pierre";
   });
-  let sp = (customSpells||[]).find(s=>s && s.id==="aura_magique");
+  let sp = (customSpells||[]).find(s=>s && s.id==="peau_de_pierre");
   if(!sp){
-    customSpells = [...(customSpells||[]), preset];
+    customSpells = [...(customSpells||[]).filter(s=>s && s.id!=="aura_magique"), preset];
     return;
   }
-  if(!sp.type) sp.type = "buff";
+  sp.name = "Peau de pierre";
+  sp.type = "shield";
+  if(sp.shieldPct == null) sp.shieldPct = 0.2;
   if(sp.magicBuffOverlay == null) sp.magicBuffOverlay = true;
   if(!sp.bodyOverlay) sp.bodyOverlay = "NakedBody3";
   if(sp.buffTurns == null) sp.buffTurns = 3;
+  if(!sp.desc) sp.desc = preset.desc;
   if(!Array.isArray(sp.steps) || !sp.steps.length){
     sp.steps = JSON.parse(JSON.stringify(preset.steps));
   }
@@ -914,7 +922,7 @@ function loadCustom(){
   ensureRoulade();
   ensureGlissade();
   ensureTirArcTendu();
-  ensureAuraMagique();
+  ensurePeauDePierre();
   ensureSpellEffects();
   /* Ne jamais muter / resauver automatiquement les choix joueur ici. */
 }
@@ -940,7 +948,7 @@ function importSpellsPack(b64){
     ensureRoulade();
     ensureGlissade();
     ensureTirArcTendu();
-    ensureAuraMagique();
+    ensurePeauDePierre();
     ensureSpellEffects();
     saveCustom();
     return true;
@@ -967,7 +975,7 @@ function importSpellsJson(raw){
     ensureRoulade();
     ensureGlissade();
     ensureTirArcTendu();
-    ensureAuraMagique();
+    ensurePeauDePierre();
     ensureSpellEffects();
     saveCustom();
     return true;
@@ -1901,10 +1909,10 @@ function renderEditor(){
   renderSteps();
   host.appendChild(animCard);
 
-  /* ── Overlays corps / aura magie ── */
-  const bodyCard=card("Aura buff · par-dessus le perso");
+  /* ── Peau de pierre · overlay + bouclier ── */
+  const bodyCard=card("Peau de pierre · overlay + bouclier");
   const bHint=document.createElement("p"); bHint.className="hint";
-  bHint.textContent="Corps 3 + toutes les armes Magie (Magic1/2/3) dessinées par-dessus l'équipement et l'arme du joueur.";
+  bHint.textContent="Corps 3 + armes Magie par-dessus le perso. Bouclier = % des PV max (absorbe avant les PV).";
   bodyCard.appendChild(bHint);
   const magicRow=document.createElement("label");
   magicRow.style.cssText="display:flex;align-items:center;gap:8px;font-size:12px;margin:8px 0;cursor:pointer";
@@ -1916,16 +1924,22 @@ function renderEditor(){
     s2.magicBuffOverlay = magicCk.checked;
     if(magicCk.checked){
       s2.bodyOverlay = "NakedBody3";
-      s2.type = s2.type || "buff";
+      s2.type = s2.type || "shield";
       if(s2.buffTurns == null) s2.buffTurns = 3;
+      if(s2.shieldPct == null) s2.shieldPct = 0.2;
     }
     bt.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x.textContent===(s2.bodyOverlay||"Aucun")));
   };
   magicRow.appendChild(magicCk);
-  magicRow.appendChild(document.createTextNode("Aura magie (NakedBody3 + Magic1/2/3 au-dessus)"));
+  magicRow.appendChild(document.createTextNode("Overlay magie (NakedBody3 + Magic1/2/3 au-dessus)"));
   bodyCard.appendChild(magicRow);
-  if(sp.type==="buff" || sp.magicBuffOverlay){
-    bodyCard.appendChild(fieldNum("Durée aura (tours)", sp.buffTurns!=null?sp.buffTurns:3, "buffTurns", 1, 12));
+  if(sp.type==="shield" || sp.magicBuffOverlay || sp.id==="peau_de_pierre"){
+    bodyCard.appendChild(mkNumRow("Bouclier (% PV max)", Math.round((sp.shieldPct!=null?sp.shieldPct:0.2)*100), 5, 80, 5, v=>{
+      const s2=ensureEditable(activeId);
+      s2.shieldPct = Math.max(0.05, Math.min(0.8, v/100));
+      scheduleAutoSave();
+    }));
+    bodyCard.appendChild(fieldNum("Durée overlay (tours)", sp.buffTurns!=null?sp.buffTurns:3, "buffTurns", 1, 12));
   }
   const bt=document.createElement("div"); bt.className="body-tokens";
   BODY_OVERLAYS.forEach(b=>{

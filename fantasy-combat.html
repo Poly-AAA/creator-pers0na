@@ -742,18 +742,19 @@
   }],
   "evoConfig": {},
 };
-    const DEFAULT_AURA_MAGIQUE = {
-  "id": "aura_magique",
-  "name": "Aura magique",
+    const DEFAULT_PEAU_DE_PIERRE = {
+  "id": "peau_de_pierre",
+  "name": "Peau de pierre",
   "cost": 2,
   "range": 0,
   "anim": "Special1",
-  "type": "buff",
+  "type": "shield",
   "aoe": 0,
+  "shieldPct": 0.2,
   "magicBuffOverlay": true,
   "bodyOverlay": "NakedBody3",
   "buffTurns": 3,
-  "desc": "Aura éthérée · corps 3 + armes Magie par-dessus ton équipement",
+  "desc": "Bouclier = 20% PV max · absorbe avant les PV · le coup qui brise le bouclier ne touche pas les PV",
   "steps": [{
     "anim": "Special1", "delay": 0, "move": "Idle", "fps": 14,
     "slash": "None", "effect": "Effect3", "hitTarget": false,
@@ -906,18 +907,25 @@
       });
     }
   }
-  function ensureAuraMagiqueCustom(){
-    const preset = JSON.parse(JSON.stringify(DEFAULT_AURA_MAGIQUE));
+  function ensurePeauDePierreCustom(){
+    const preset = JSON.parse(JSON.stringify(DEFAULT_PEAU_DE_PIERRE));
     (customSpells||[]).forEach(s=>{
-      if(!s || !s.id || s.id==="aura_magique") return;
-      if(/^custom_/.test(s.id) && /aura\s*mag/i.test(s.name||"")) s.id="aura_magique";
+      if(!s || !s.id) return;
+      if(s.id === "aura_magique"){
+        s.id = "peau_de_pierre";
+        s.name = "Peau de pierre";
+      }
+      if(s.id === "peau_de_pierre") return;
+      if(/^custom_/.test(s.id) && /peau\s*de\s*pierre|aura\s*mag/i.test(s.name||"")) s.id="peau_de_pierre";
     });
-    let sp = (customSpells||[]).find(s=>s && s.id==="aura_magique");
+    let sp = (customSpells||[]).find(s=>s && s.id==="peau_de_pierre");
     if(!sp){
-      customSpells = (customSpells||[]).concat([preset]);
+      customSpells = (customSpells||[]).filter(s=>s && s.id!=="aura_magique").concat([preset]);
       return;
     }
-    if(!sp.type) sp.type = "buff";
+    sp.name = "Peau de pierre";
+    sp.type = "shield";
+    if(sp.shieldPct == null) sp.shieldPct = 0.2;
     if(sp.magicBuffOverlay == null) sp.magicBuffOverlay = true;
     if(!sp.bodyOverlay) sp.bodyOverlay = "NakedBody3";
     if(sp.buffTurns == null) sp.buffTurns = 3;
@@ -945,7 +953,7 @@
   ensureRouladeCustom();
   ensureGlissadeCustom();
   ensureTirArcTenduCustom();
-  ensureAuraMagiqueCustom();
+  ensurePeauDePierreCustom();
   ensureSpellEffects();
   /* Pas de migration qui réécrit les saves joueur. */
   function saveEvo(){ try{ localStorage.setItem(KEY_EVO, JSON.stringify(spellEvo)); }catch(_e){} }
@@ -978,7 +986,7 @@
     ensureRouladeCustom();
     ensureGlissadeCustom();
     ensureTirArcTenduCustom();
-    ensureAuraMagiqueCustom();
+    ensurePeauDePierreCustom();
     ensureSpellEffects();
   }
   function clampPosCell(v){
@@ -2251,7 +2259,8 @@
 
   function setStatus(t){ el("status").textContent = t; }
   function hud(){
-    el("hudPv").textContent = G.player.pv+"/"+G.player.pvMax;
+    const sh = G.player.shield|0;
+    el("hudPv").textContent = G.player.pv+"/"+G.player.pvMax + (sh>0 ? " +"+sh : "");
     el("hudPa").textContent = G.player.pa+"/"+G.player.paMax;
     el("hudPm").textContent = G.player.pm+"/"+G.player.pmMax;
     el("chipPa").classList.toggle("low", G.player.pa<=2);
@@ -2454,6 +2463,32 @@
     }
     ov.turns = (ov.turns|0) - 1;
     if(ov.turns <= 0) clearPlayerBuffOverlay();
+  }
+
+  function peauDePierreShieldGain(sp, evo){
+    const custom = customSpellById(sp && sp.id);
+    const pct = (custom && custom.shieldPct != null) ? Number(custom.shieldPct)
+      : (sp && sp.shieldPct != null) ? Number(sp.shieldPct) : 0.2;
+    const ratio = isFinite(pct) ? Math.max(0.05, Math.min(1, pct)) : 0.2;
+    return Math.max(1, Math.floor(G.player.pvMax * ratio)) + ((evo && evo.shield|0) || 0);
+  }
+  /** Dégâts reçus : bouclier d’abord ; si le bouclier tombe à 0 sur ce coup, aucun dégât PV. */
+  function applyPlayerDamage(rawDmg){
+    const p = G.player;
+    let dmg = Math.max(0, rawDmg|0);
+    if(dmg <= 0) return 0;
+    if((p.shield|0) > 0){
+      const before = p.shield|0;
+      const absorb = Math.min(before, dmg);
+      p.shield = before - absorb;
+      dmg -= absorb;
+      if(before > 0 && (p.shield|0) <= 0) dmg = 0;
+    }
+    if(dmg > 0){
+      p.pv = Math.max(0, p.pv - dmg);
+      p.flash = performance.now() + 180;
+    }
+    return dmg;
   }
 
   function layersForRow(row){
@@ -2778,6 +2813,10 @@
     } else if(sp.id==="overclock"){
       G.player.pm = Math.min(G.player.pmMax+1, G.player.pm+1);
       setStatus("Ivresse · +1 PM");
+    } else if(sp.id==="peau_de_pierre" || (spellUsesMagicBuffOverlay(sp) && sp.type==="shield")){
+      const gain = peauDePierreShieldGain(sp, evo);
+      G.player.shield = (G.player.shield|0) + gain;
+      setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" · bouclier +"+gain+" (total "+(G.player.shield|0)+")");
     } else if(spellUsesMagicBuffOverlay(sp)){
       const cfg = buildMagicBuffOverlayConfig(sp);
       setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" · aura "+cfg.turns+"t");
@@ -3796,12 +3835,13 @@
         p.c=nc; p.r=nr;
       }
     }
-    if(p.shield>0 && dmg){ const absorb=Math.min(p.shield,dmg); p.shield-=absorb; dmg-=absorb; }
-    if(dmg){
-      p.pv = Math.max(0, p.pv-dmg);
-      p.flash = performance.now()+180;
-    }
-    setStatus(e.name+" · "+sp.name+(dmg?" → "+dmg:"")+(e.pa>0?" · …":""));
+    const rawDmg = dmg;
+    const hpDmg = applyPlayerDamage(dmg);
+    const shLeft = p.shield|0;
+    let hitTxt = "";
+    if(hpDmg > 0) hitTxt = " → "+hpDmg+" PV";
+    else if(rawDmg > 0) hitTxt = shLeft > 0 ? " → bouclier "+shLeft : " → bouclier brisé";
+    setStatus(e.name+" · "+sp.name+hitTxt+(e.pa>0?" · …":""));
     hud();
     if(p.pv<=0){
       p.alive=false;
@@ -3810,9 +3850,9 @@
       return true;
     }
     /* Joueur touché à cheval → séquence monture */
-    if(dmg && isPlayerMounted()){
+    if(hpDmg > 0 && isPlayerMounted()){
       playMountHitSequence(p, null);
-    } else if(dmg){
+    } else if(hpDmg > 0){
       entPlayHitAnim(p, "TakeDamage");
     }
     return false;
