@@ -2124,6 +2124,7 @@
     G.busy = false;
     G.armed = null; G.armedSlot = null;
     G.castFx = null;
+    G.floaters = [];
     G.combo = Math.max(0, Math.floor(G.combo * 0.35));
     if(!opts.keepFightN) G.fightN = (G.fightN|0) + 1;
     /* Évos victoire : persistent toute la partie (pas reset ici). */
@@ -2224,6 +2225,7 @@
     G.castQueue = [];
     G.armed = null; G.armedSlot = null;
     clearPlayerBuffOverlay();
+    G.floaters = [];
     try{ if(G.abortCastChain){ G.abortCastChain(); G.abortCastChain = null; } }catch(_e){}
     G.turn = "over";
     clearVictoryFallback();
@@ -2942,6 +2944,7 @@
     } else if(sp.heal){
       let h = roll(sp.heal) + (evo.heal|0);
       G.player.pv = Math.min(G.player.pvMax, G.player.pv + h);
+      spawnFloater(G.player, "+"+h, "heal");
       if(sp.id==="bouclier" || sp.id==="armure_nanites" || sp.type==="shield"){
         G.player.shield = (G.player.shield||0) + Math.floor(h/2) + (evo.shield|0);
         bumpShieldMax(G.player);
