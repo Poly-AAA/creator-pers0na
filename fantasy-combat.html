@@ -2128,6 +2128,7 @@
     if(opts.fullHeal) p.pv = p.pvMax;
     p.shield = 0;
     p.invis = 0;
+    clearPlayerBuffOverlay();
     p.c = 2; p.r = Math.floor(GRID/2); p.dir = 3;
     cam.fx = p.c; cam.fy = p.r;
     p.pmMax = playerBasePm();
@@ -2168,6 +2169,7 @@
   /** Nouvelle partie : évos victoire à zéro (cases éditeur inchangées). */
   function forceRestartCombat(){
     G.awaitingNext=false; G.busy=false; G.pendingEvo=null;
+    clearPlayerBuffOverlay();
     try{ closeEvo(); }catch(_e){}
     resetCombatEvos();
     G.fightN = 0;
@@ -2208,6 +2210,7 @@
     G.castPlaying = false;
     G.castQueue = [];
     G.armed = null; G.armedSlot = null;
+    clearPlayerBuffOverlay();
     try{ if(G.abortCastChain){ G.abortCastChain(); G.abortCastChain = null; } }catch(_e){}
     G.turn = "over";
     clearVictoryFallback();
@@ -2384,9 +2387,19 @@
       turns: Math.max(1, (src.buffTurns != null ? src.buffTurns|0 : 3)),
     };
   }
+  function clearPlayerBuffOverlay(){
+    if(!G.player) return;
+    G.player.buffOverlay = null;
+    G.player._castBuffOverlay = null;
+    if(G.player._castBuffOverlayTimer){
+      clearTimeout(G.player._castBuffOverlayTimer);
+      G.player._castBuffOverlayTimer = null;
+    }
+  }
   function buffOverlayStateFor(ent){
     if(!ent || ent !== G.player) return null;
-    if(ent._castBuffOverlay) return ent._castBuffOverlay;
+    /* Overlay cast : seulement pendant l’anim, pas indéfiniment si onDone rate */
+    if(G.castPlaying && ent._castBuffOverlay) return ent._castBuffOverlay;
     if(ent.buffOverlay && (ent.buffOverlay.turns|0) > 0) return ent.buffOverlay;
     return null;
   }
@@ -2411,6 +2424,7 @@
   }
   function applyMagicBuffOverlay(sp){
     const cfg = buildMagicBuffOverlayConfig(sp);
+    if(G.player._castBuffOverlayTimer) clearTimeout(G.player._castBuffOverlayTimer);
     G.player.buffOverlay = {
       body: cfg.body,
       weapons: cfg.weapons.slice(),
@@ -2424,13 +2438,22 @@
       bodyAlpha: cfg.bodyAlpha,
       weaponAlpha: cfg.weaponAlpha,
     };
+    /* Filet : l’overlay « cast » ne doit jamais rester bloqué */
+    G.player._castBuffOverlayTimer = setTimeout(()=>{
+      if(G.player) G.player._castBuffOverlay = null;
+      if(G.player) G.player._castBuffOverlayTimer = null;
+    }, 9000);
     warmBuffOverlayAnims(cfg, (sp && sp.anim) || "Special1");
   }
   function tickBuffOverlayTurns(){
     const ov = G.player && G.player.buffOverlay;
-    if(!ov || (ov.turns|0) <= 0) return;
+    if(G.player) G.player._castBuffOverlay = null;
+    if(!ov || (ov.turns|0) <= 0){
+      if(G.player && G.player.buffOverlay) G.player.buffOverlay = null;
+      return;
+    }
     ov.turns = (ov.turns|0) - 1;
-    if(ov.turns <= 0) G.player.buffOverlay = null;
+    if(ov.turns <= 0) clearPlayerBuffOverlay();
   }
 
   function layersForRow(row){
@@ -2734,7 +2757,13 @@
     playCastAnimChain(sp, ()=>{
       if(G.player.anim!=="Die") playAnim(G.player,"Idle");
       G.castPlaying = false;
-      G.player._castBuffOverlay = null;
+      if(G.player){
+        G.player._castBuffOverlay = null;
+        if(G.player._castBuffOverlayTimer){
+          clearTimeout(G.player._castBuffOverlayTimer);
+          G.player._castBuffOverlayTimer = null;
+        }
+      }
       drainCastQueue();
     });
 
@@ -3637,6 +3666,7 @@
       setStatus("Attends la fin du combo…");
       return;
     }
+    tickBuffOverlayTurns();
     G.armed=null; G.armedSlot=null; G.turn="enemy";
     G.combo = Math.max(0, G.combo - 12);
     tickClone();
@@ -3903,7 +3933,6 @@
   }
 
   function beginPlayerTurn(){
-    tickBuffOverlayTurns();
     G.busy = false;
     G.castPlaying = false;
     G.castQueue = [];
@@ -3916,7 +3945,9 @@
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     const mount = isPlayerMounted() ? " · monture +"+mountPmBonus()+" PM" : "";
     const invis = G.player.invis>0 ? " · voile "+G.player.invis : "";
-    setStatus("Ton tour"+mount+invis);
+    const aura = G.player.buffOverlay && (G.player.buffOverlay.turns|0) > 0
+      ? " · aura "+(G.player.buffOverlay.turns|0)+"t" : "";
+    setStatus("Ton tour"+mount+invis+aura);
   }
 
   function offerEvo(forceId, fromVictory){
