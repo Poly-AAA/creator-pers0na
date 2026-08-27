@@ -218,7 +218,7 @@
   wireFccNav();
 
   const BASE_LOCAL = "assets/packs/fantasy-cc/";
-  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@main/assets/packs/fantasy-cc/";
+  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/glissade-spell-66c0/assets/packs/fantasy-cc/";
   const FW=128, FH=128, COLS=15, FPS=14;
   const KEY_LOOK = "neuro.fantasyLook";
   const KEY_DIR = "neuro.fantasyDirRow";
@@ -735,7 +735,7 @@
   "steps": [{
     "anim": "Attack3", "delay": 0, "move": "Idle", "fps": 14,
     "slash": "None", "effect": "None", "hitTarget": true,
-    "hitAnim": "TakeDamage", "hitAnimFps": 24, "hitDelay": 180, "hitDelayByDist": true,
+    "hitAnim": "TakeDamage", "hitAnimFps": 24, "hitDelay": 120, "hitDelayByDist": true,
     "fxHold": false, "hideMount": false, "clearMount": false, "forceGround": false,
     "posDc": 0, "posDr": 0, "frameStart": 0, "frameEnd": 14,
     "hitFrameStart": 0, "hitFrameEnd": 14,
@@ -879,7 +879,7 @@
     } else {
       sp.steps.forEach(st=>{
         if(!st) return;
-        if(st.hitDelay == null) st.hitDelay = 180;
+        if(st.hitDelay == null) st.hitDelay = 120;
         if(st.hitDelayByDist == null) st.hitDelayByDist = true;
       });
     }
@@ -1149,12 +1149,11 @@
     if(!isFinite(n) || n < 0) return dur;
     return Math.min(dur, Math.max(0, n|0));
   }
-  /** Latence TakeDamage : base (1 case) × 2^(dist-1). */
+  /** Latence TakeDamage selon distance : base + 35 ms/case, plafond 480 ms. */
   function hitDelayMsByDistance(baseMs, tileDist){
     const base = Math.max(0, Number(baseMs)|0);
     const d = Math.max(1, tileDist|0);
-    const exp = Math.min(8, d - 1); /* plafonne ×256 */
-    return base * Math.pow(2, exp);
+    return Math.min(480, base + Math.max(0, d - 1) * 35);
   }
   function resolveStepHitMs(step, sp, hitIndex, totalHits, dur){
     const hd = (step && step.hitDelay != null && step.hitDelay !== "")
@@ -1392,9 +1391,9 @@
   function warmAnimForPlayer(anim){
     const a = anim || "Attack1";
     const folders = layersForRow(sheetRowForDir(G.player.dir|0, a)).map(L=>L.folder);
-    const list = [a, "Attack1", "Attack2", "Attack3", "Attack4", "Attack5", "Attack6", "Kick", "Special1", "Rolling", "Slide", "Idle"];
+    const list = [a, "Idle"];
     if(isPlayerMounted()){
-      list.push("RideIdle", "RideRun", "RideIdleAttack1", "RideRunAttack1", toRideAnim(a));
+      list.push(toRideAnim(a), "RideIdle");
     }
     for(const f of folders){
       if(!f) continue;
@@ -1430,19 +1429,28 @@
     const clearTimers = ()=>{
       while(timers.length) clearTimeout(timers.pop());
     };
+    const abortChain = ()=>{
+      if(aborted) return;
+      aborted = true;
+      clearTimers();
+      pendingHits = 0;
+      chainStepsDone = true;
+      if(G.abortCastChain === abortChain) G.abortCastChain = null;
+    };
+    G.abortCastChain = abortChain;
     const schedule = (fn, ms)=>{
       const id = setTimeout(fn, ms);
       timers.push(id);
       return id;
     };
     const tryFinishChain = ()=>{
-      if(aborted) return;
       if(!chainStepsDone || pendingHits > 0) return;
       if(G.player.anim!=="Die") playAnim(G.player, "Idle");
       if(!(G.castFx && G.castFx.hold && performance.now() < G.castFx.until)){
         G.castFx = null;
       }
       if(onDone) onDone();
+      if(G.abortCastChain === abortChain) G.abortCastChain = null;
     };
     function next(){
       if(aborted) return;
@@ -1567,6 +1575,8 @@
     castQueue: [], /* sorts lancés pendant une anim */
     fightN: 1,
     awaitingNext: false,
+    victoryFallbackTimer: null,
+    abortCastChain: null,
   };
 
   const ENEMY_HEADS = ["Head1","Head2","Head3","Head4","Head5","Head6","Head7","Head8","Head9","Head10","Head12","Head14","Head16","Head18","Head20","Head22","Head25"];
@@ -2039,10 +2049,18 @@
     G.pendingEvo = null;
   }
 
+  function clearVictoryFallback(){
+    if(G.victoryFallbackTimer){
+      clearTimeout(G.victoryFallbackTimer);
+      G.victoryFallbackTimer = null;
+    }
+  }
   function startNextFight(opts){
     opts = opts || {};
     if(G.awaitingNext && !opts.force) return;
+    clearVictoryFallback();
     G.awaitingNext = false;
+    try{ if(G.abortCastChain){ G.abortCastChain(); G.abortCastChain = null; } }catch(_e){}
     try{ closeEvo(); }catch(_e){}
     try{ if(!opts.keepLook) loadLook(); }catch(_e){}
     lastLookSig = lookSig();
@@ -2146,7 +2164,9 @@
     G.castPlaying = false;
     G.castQueue = [];
     G.armed = null; G.armedSlot = null;
+    try{ if(G.abortCastChain){ G.abortCastChain(); G.abortCastChain = null; } }catch(_e){}
     G.turn = "over";
+    clearVictoryFallback();
     if(kind==="defeat"){
       /* Défaite = fin de partie → évos victoire remises à zéro */
       setStatus("Défaite · nouvelle partie…");
@@ -2155,19 +2175,29 @@
       setTimeout(()=> startNextFight({ force:true, fullHeal:true }), 1100);
       return;
     }
-    /* Victoire → choix d’évo (cumul dans la partie), puis prochain combat */
-    setTimeout(()=>{
-      const offered = offerEvo(null, true);
-      if(!offered){
+    /* Victoire → évo optionnelle, puis prochain combat (fallback garanti) */
+    const armVictoryFallback = (ms)=>{
+      G.victoryFallbackTimer = setTimeout(()=>{
+        G.victoryFallbackTimer = null;
+        if(!G.awaitingNext) return;
+        try{ closeEvo(); }catch(_e){}
         setStatus("Victoire · prochain adversaire…"+customSpellStatus());
-        setTimeout(()=> startNextFight({ force:true }), 700);
-      } else {
-        setTimeout(()=>{
-          if(G.awaitingNext && G.pendingEvo){
-            closeEvo();
-            startNextFight({ force:true });
-          }
-        }, 12000);
+        startNextFight({ force:true });
+      }, ms);
+    };
+    setTimeout(()=>{
+      try{
+        const offered = offerEvo(null, true);
+        if(offered){
+          setStatus("Victoire · choisis une évolution ou « Passer »");
+          armVictoryFallback(5000);
+        } else {
+          setStatus("Victoire · prochain adversaire…"+customSpellStatus());
+          armVictoryFallback(750);
+        }
+      }catch(_e){
+        setStatus("Victoire · prochain adversaire…"+customSpellStatus());
+        armVictoryFallback(400);
       }
     }, 650);
   }
@@ -3766,6 +3796,7 @@
       if(fromVictory) return false;
       return false;
     }
+    if(!fromVictory && G.awaitingNext) fromVictory = true;
     const bar = G.spellBar.length ? G.spellBar : refreshSpellBar();
     const candidates = bar.filter(s=>s && s.spellId && !s.locked).map(s=>s.spellId);
     let pickId = forceId || null;
@@ -4201,7 +4232,7 @@
     const evoSkip = el("evoSkip");
     if(evoSkip){
       evoSkip.addEventListener("click", ()=>{
-        const wasVictory = G.pendingEvo && G.pendingEvo.fromVictory;
+        const wasVictory = (G.pendingEvo && G.pendingEvo.fromVictory) || G.awaitingNext;
         closeEvo();
         if(wasVictory) startNextFight({ force:true });
         else setStatus("Évo annulée");
