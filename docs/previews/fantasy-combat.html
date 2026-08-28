@@ -350,7 +350,7 @@
     { id:"bouclier", name:"Égide", cost:3, range:0, aoe:0, heal:[8,12], anim:"Special1", type:"shield" },
     { id:"overclock", name:"Ivresse de bataille", cost:2, range:0, aoe:0, anim:"Taunt", type:"buff" },
     { id:"double", name:"Sosie", cost:3, range:0, aoe:0, anim:"Special1", type:"clone", dmg:[8,12] },
-    { id:"double_squelette", name:"Double squelette", cost:5, range:0, aoe:0, anim:"Special1", type:"clone", mirrorClone:true },
+    { id:"double_squelette", name:"Double squelette", cost:5, range:0, aoe:0, anim:"Special1", type:"clone", mirrorClone:true, cloneHpPct:0.15, castHpCostPct:0.10, cloneDmgMult:0.5 },
     { id:"invisibilite", name:"Voile d’ombre", cost:3, range:0, aoe:0, anim:"Special1", type:"buff", invisTurns:2 },
   ];
   function spellById(id){
@@ -3003,12 +3003,12 @@
       spawnClone(sp, evo);
       setStatus("Sosie invoqué");
     } else if(sp.id==="double_squelette" || sp.mirrorClone){
-      if(!spawnMirrorClone(sp, evo)){
+      if(!spawnMirrorClone(sp)){
         G.player.pa += cost;
         G.castPlaying = false;
         return;
       }
-      setStatus("Double squelette invoqué · IA après ta fin de tour");
+      setStatus("Double invoqué · −10% PV · IA après ta fin de tour");
       G.combo = Math.min(100, G.combo + 18);
       G.armed=null; G.armedSlot=null;
       recomputeMoves(); recomputeTargets(); renderSpells(); hud();
@@ -3637,7 +3637,15 @@
     return cands[0];
   }
 
-  function spawnMirrorClone(sp, evo){
+  function mirrorSpellRange(sp){
+    return Math.max(0, sp && sp.range != null ? (sp.range|0) : 0);
+  }
+  function mirrorDmgMult(cl){
+    if(cl && cl.dmgMult != null) return Math.max(0.1, +cl.dmgMult);
+    return 0.5;
+  }
+
+  function spawnMirrorClone(sp){
     if(G.clone && G.clone.alive){
       setStatus("Un double est déjà actif");
       return false;
@@ -3645,6 +3653,17 @@
     const cell = mirrorSpawnCell(true);
     if(!cell){ setStatus("Pas de place pour invoquer"); return false; }
     const p = G.player;
+    const hpPct = (sp && sp.cloneHpPct != null) ? +sp.cloneHpPct : 0.15;
+    const costPct = (sp && sp.castHpCostPct != null) ? +sp.castHpCostPct : 0.10;
+    const dmgMult = (sp && sp.cloneDmgMult != null) ? +sp.cloneDmgMult : 0.5;
+    const sacrifice = Math.max(1, Math.floor((p.pvMax|0) * costPct));
+    if((p.pv|0) <= sacrifice){
+      setStatus("Pas assez de PV pour invoquer ("+sacrifice+" requis)");
+      return false;
+    }
+    p.pv = Math.max(1, (p.pv|0) - sacrifice);
+    spawnFloater(p, "-"+sacrifice, "dmg");
+    hud();
     faceToward(p, cell.c, cell.r);
     const look = JSON.parse(JSON.stringify(lookState.look || {}));
     if(!look.body) look.body = "NakedBody";
@@ -3656,17 +3675,17 @@
     const bar = (G.spellBar && G.spellBar.length) ? G.spellBar : refreshSpellBar();
     const spellBar = bar.filter(s=>s && s.spellId && s.spellId!=="double_squelette" && s.spellId!=="double")
       .map(s=>JSON.parse(JSON.stringify(s)));
-    const pvMax = Math.max(1, Math.floor((p.pvMax|0) / 2) + (evo.mirrorHp|0));
+    const pvMax = Math.max(1, Math.floor((p.pvMax|0) * hpPct));
     G.clone = {
       kind:"mirror",
       label:"Double",
       c:cell.c, r:cell.r, dir:p.dir,
       anim:"Idle", frame:0, t0:performance.now(), flash:0, alive:true,
       pv:pvMax, pvMax,
-      pa:(p.paMax|0) + (evo.mirrorPa|0), paMax:(p.paMax|0) + (evo.mirrorPa|0),
-      pm:(p.pmMax|0) + (evo.mirrorPm|0), pmMax:(p.pmMax|0) + (evo.mirrorPm|0),
-      shield:Math.floor((p.shield|0)/2), shieldMax:0,
+      pa:p.paMax|0, paMax:p.paMax|0, pm:p.pmMax|0, pmMax:p.pmMax|0,
+      shield:0, shieldMax:0,
       look, colors, bodies, spellBar,
+      dmgMult,
       alpha:1, invis:0,
     };
     bumpShieldMax(G.clone);
@@ -3713,18 +3732,18 @@
     const spells = mirrorSpellsFor(cl);
     if(!spells.length || !G.enemy.alive) return null;
     const d = dist(cl, G.enemy);
-    const canCast = (s)=> (cl.pa|0) >= Math.max(1, (s.cost|0) + (evoBonusesFor(s).cost|0));
+    const canCast = (s)=> (cl.pa|0) >= Math.max(1, s.cost|0);
     if(d <= 1){
       const punch = spells.find(s=>s.id==="punch" && canCast(s));
       if(punch) return punch;
-      const melee = spells.filter(s=> s.dmg && spellRange(s) <= 1 && canCast(s));
+      const melee = spells.filter(s=> s.dmg && mirrorSpellRange(s) <= 1 && canCast(s));
       if(melee.length) return melee.sort((a,b)=>(a.range|0)-(b.range|0))[0];
     }
     if((cl.pv|0) < (cl.pvMax|0) * 0.5){
       const sup = spells.filter(s=> mirrorCanSelf(s) && (s.heal || s.type==="heal" || s.type==="shield") && canCast(s));
       if(sup.length) return sup[0];
     }
-    const inRange = spells.filter(s=> s.dmg && !mirrorCanSelf(s) && d <= spellRange(s) && canCast(s));
+    const inRange = spells.filter(s=> s.dmg && !mirrorCanSelf(s) && d <= mirrorSpellRange(s) && canCast(s));
     if(inRange.length) return inRange.sort((a,b)=>(b.dmg[1]|0)-(a.dmg[1]|0))[0];
     return null;
   }
@@ -3758,15 +3777,14 @@
     cl.pa -= cost;
     faceToward(cl, cl.c, cl.r);
     playAnim(cl, sp.anim || "Special1");
-    const evo = evoBonusesFor(sp);
     if(sp.heal){
-      const h = roll(sp.heal) + (evo.heal|0);
+      const h = roll(sp.heal);
       cl.pv = Math.min(cl.pvMax, (cl.pv|0) + h);
       spawnFloater(cl, "+"+h, "heal");
     } else if(sp.type==="shield" || sp.id==="bouclier" || sp.id==="peau_de_pierre"){
       const gain = sp.shieldPct != null
         ? Math.max(1, Math.floor(cl.pvMax * sp.shieldPct))
-        : 8 + (evo.shield|0);
+        : 8;
       cl.shield = (cl.shield|0) + gain;
       bumpShieldMax(cl);
       spawnFloater(cl, "+"+gain, "shield");
@@ -3778,15 +3796,15 @@
   }
   function mirrorCastAtEnemy(cl, sp){
     if(!G.enemy.alive) return false;
-    const evo = evoBonusesFor(sp);
-    const cost = Math.max(1, sp.cost + (evo.cost|0));
+    const cost = Math.max(1, sp.cost|0);
     if((cl.pa|0) < cost) return false;
-    if(dist(cl, G.enemy) > spellRange(sp)) return false;
+    if(dist(cl, G.enemy) > mirrorSpellRange(sp)) return false;
     if(sp.id==="double_squelette" || sp.id==="double") return false;
     cl.pa -= cost;
     faceToward(cl, G.enemy.c, G.enemy.r);
     playAnim(cl, sp.anim || "Attack1");
-    let dmg = roll(sp.dmg || [6,10]) + (evo.dmg|0);
+    let dmg = roll(sp.dmg || [6,10]);
+    dmg = Math.max(1, Math.floor(dmg * mirrorDmgMult(cl)));
     const res = applyEnemyDamage(dmg);
     dmg = res.hpDmg + res.shieldAbsorb;
     playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");

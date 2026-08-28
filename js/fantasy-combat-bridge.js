@@ -57,7 +57,7 @@
     bouclier: { name: "Égide", school: "Lumière", desc: "Bouclier temporaire." },
     overclock: { name: "Ivresse de bataille", school: "Ombre", desc: "Bonus dégâts / mobilité." },
     double: { name: "Sosie", school: "Arcane", desc: "Clone qui charge et tacle l’ennemi." },
-    double_squelette: { name: "Double squelette", school: "Arcane", desc: "Invoque un allié IA (½ PV, squelette) avec tes sorts — va au CàC sans bloquer ta LdV." },
+    double_squelette: { name: "Double squelette", school: "Arcane", desc: "Coût 10% PV · allié IA 15% PV, dégâts ÷2, sans évolutions." },
     invisibilite: { name: "Voile d’ombre", school: "Ombre", desc: "Devient invisible quelques tours." },
   };
 
@@ -573,18 +573,6 @@
         { name: "Jumeau", d: "Clone +HP.", anim: "Special1", fx: "Effect3", apply: (st) => evoAdd(st, "cloneHp", 10) },
         { name: "Plaquage", d: "Tacle stun.", anim: "AttackRun2", fx: "Slash2", apply: (st) => evoAdd(st, "cloneStun", 1) },
         { name: "Mirage", d: "Clone +HP.", anim: "Taunt", fx: "Effect5", apply: (st) => evoAdd(st, "cloneHp", 20) },
-      ],
-    },
-    double_squelette: {
-      1: [
-        { name: "Os solide", d: "Double +10 PV max.", anim: "Special1", fx: "Effect1", apply: (st) => evoAdd(st, "mirrorHp", 10) },
-        { name: "Économe", d: "-1 PA.", anim: "Attack2", fx: null, apply: (st) => evoAdd(st, "cost", -1) },
-        { name: "Rituel rapide", d: "Anim Special1.", anim: "Special1", fx: "Effect3", apply: (_st) => {} },
-      ],
-      2: [
-        { name: "Double renfort", d: "Double +20 PV max.", anim: "Taunt", fx: "Effect5", apply: (st) => evoAdd(st, "mirrorHp", 20) },
-        { name: "Frénésie", d: "Double +1 PA/tour.", anim: "AttackRun", fx: "Slash2", apply: (st) => evoAdd(st, "mirrorPa", 1) },
-        { name: "Marche rapide", d: "Double +1 PM/tour.", anim: "Run", fx: "Effect2", apply: (st) => evoAdd(st, "mirrorPm", 1) },
       ],
     },
     invisibilite: {

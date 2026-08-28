@@ -862,8 +862,11 @@ const SAVED_DOUBLE_SQUELETTE = {
   type: "clone",
   mirrorClone: true,
   cloneBody: "NakedBody2",
+  cloneHpPct: 0.15,
+  castHpCostPct: 0.10,
+  cloneDmgMult: 0.5,
   aoe: 0,
-  desc: "Invoque un allié IA (½ PV, corps squelette) : mêmes sorts/équipement, va au corps à corps sans bloquer ta ligne de vue.",
+  desc: "Coût : −10% de tes PV max. Allié IA (15% PV max, dégâts ÷2, sans évolutions) — mêmes sorts, va au CàC sans bloquer ta LdV.",
   steps: [{
     anim: "Special1", delay: 0, move: "Idle", fps: 14,
     slash: "None", effect: "Effect5", hitTarget: false,
@@ -886,6 +889,9 @@ function ensureDoubleSquelette(){
   sp.mirrorClone = true;
   if(!sp.cloneBody) sp.cloneBody = "NakedBody2";
   if(sp.bodyOverlay === "NakedBody2"){ sp.bodyOverlay = null; }
+  if(sp.cloneHpPct == null) sp.cloneHpPct = 0.15;
+  if(sp.castHpCostPct == null) sp.castHpCostPct = 0.10;
+  if(sp.cloneDmgMult == null) sp.cloneDmgMult = 0.5;
   if(!sp.desc) sp.desc = preset.desc;
   if(!Array.isArray(sp.steps) || !sp.steps.length){
     sp.steps = JSON.parse(JSON.stringify(preset.steps));
