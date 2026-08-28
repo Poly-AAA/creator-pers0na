@@ -350,6 +350,7 @@
     { id:"bouclier", name:"Égide", cost:3, range:0, aoe:0, heal:[8,12], anim:"Special1", type:"shield" },
     { id:"overclock", name:"Ivresse de bataille", cost:2, range:0, aoe:0, anim:"Taunt", type:"buff" },
     { id:"double", name:"Sosie", cost:3, range:0, aoe:0, anim:"Special1", type:"clone", dmg:[8,12] },
+    { id:"double_squelette", name:"Double squelette", cost:5, range:0, aoe:0, anim:"Special1", type:"clone", mirrorClone:true },
     { id:"invisibilite", name:"Voile d’ombre", cost:3, range:0, aoe:0, anim:"Special1", type:"buff", invisTurns:2 },
   ];
   function spellById(id){
@@ -1876,6 +1877,10 @@
     if(!ent) return false;
     if(ent.hideMount || ent._mountCleared) return false;
     if(ent === G.player) return isPlayerMounted();
+    if(ent.kind==="mirror" && ent.look){
+      const m = ent.look.mount;
+      return !!(m && m !== "None" && !ent._mountCleared);
+    }
     return !!ent.mount;
   }
 
@@ -2349,6 +2354,30 @@
     if(!c || c==="#ffffff" || c==="#FFFFFF") return null;
     return c;
   }
+  function folderFor(ent, id){
+    if(id==="body") return null;
+    const look = (ent && ent.look) ? ent.look : lookState.look;
+    const v = look && look[id];
+    return (!v || v==="None") ? null : v;
+  }
+  function tintFor(ent, id){
+    const colors = (ent && ent.colors) ? ent.colors : lookState.colors;
+    const c = colors[id];
+    if(!c || c==="#ffffff" || c==="#FFFFFF") return null;
+    return c;
+  }
+  function entityLookFolders(ent){
+    if(!ent || !ent.look) return [];
+    const out = [];
+    for(const b of (ent.bodies || [])){
+      if(b && b.folder) out.push(b.folder);
+    }
+    for(const id of ["shoes","legs","chest","belt","gloves","offhand","weapon","backpack","head","slash","effect","mount"]){
+      const f = folderFor(ent, id);
+      if(f) out.push(f);
+    }
+    return out;
+  }
 
   function loadImg(folderName, anim){
     const key = folderName+"/"+anim;
@@ -2541,6 +2570,29 @@
     showDamageFloaters(G.player, res);
     return res;
   }
+  function applyAllyDamage(ent, rawDmg){
+    if(!ent || !ent.alive) return { hpDmg:0, shieldAbsorb:0, shieldBroken:false };
+    const res = applyEntityDamage(ent, rawDmg, { breakShieldBlocksHp: true });
+    showDamageFloaters(ent, res);
+    if((ent.pv|0) <= 0){
+      ent.alive = false;
+      playAnim(ent, "Die");
+      if(ent === G.clone) G.clone = null;
+      if(ent === G.player) onCombatEnd("defeat");
+    }
+    return res;
+  }
+  function enemyVisibleTargets(){
+    const t = [];
+    if(G.player.alive && !(G.player.invis|0)) t.push(G.player);
+    if(G.clone && G.clone.alive && G.clone.kind==="mirror") t.push(G.clone);
+    if(!t.length && G.player.alive) t.push(G.player);
+    return t;
+  }
+  function nearestTarget(from, targets){
+    if(!targets || !targets.length) return null;
+    return targets.slice().sort((a,b)=> dist(from,a)-dist(from,b))[0];
+  }
   function applyEnemyDamage(rawDmg){
     const res = applyEntityDamage(G.enemy, rawDmg, { breakShieldBlocksHp: false });
     showDamageFloaters(G.enemy, res);
@@ -2611,33 +2663,46 @@
     }
   }
 
-  function layersForRow(row){
+  function layersForRow(row, ent){
     const L=[];
+    const bodies = (ent && ent.bodies) ? ent.bodies : lookState.bodies;
     L.push({folder:(catalog&&catalog.shadowFolder)||"Shadow", tint:null, alpha:1});
-    for(const b of lookState.bodies){
+    for(const b of bodies){
       if(!b||!b.folder) continue;
-      const t = (b.color && b.color!=="#ffffff") ? b.color : tint("body");
+      const t = (b.color && b.color!=="#ffffff") ? b.color : (ent ? tintFor(ent,"body") : tint("body"));
       L.push({folder:b.folder, tint:t, alpha:Math.max(0,Math.min(1,+b.opacity||1))});
     }
     for(const id of ["shoes","legs","chest","belt","gloves"]){
-      const f=folder(id); if(f) L.push({folder:f, tint:tint(id), alpha:1});
+      const f = ent ? folderFor(ent,id) : folder(id);
+      const tc = ent ? tintFor(ent,id) : tint(id);
+      if(f) L.push({folder:f, tint:tc, alpha:1});
     }
-    const shield=folder("offhand"), weapon=folder("weapon"), bag=folder("backpack");
+    const shield = ent ? folderFor(ent,"offhand") : folder("offhand");
+    const weapon = ent ? folderFor(ent,"weapon") : folder("weapon");
+    const bag = ent ? folderFor(ent,"backpack") : folder("backpack");
     const wAfter=!!weaponAfterShieldRows[row|0], bagFront=!!backpackInFrontRows[row|0];
     const mid=[];
-    if(wAfter){ if(shield) mid.push({folder:shield,tint:tint("offhand"),alpha:1}); if(weapon) mid.push({folder:weapon,tint:tint("weapon"),alpha:1}); }
-    else { if(weapon) mid.push({folder:weapon,tint:tint("weapon"),alpha:1}); if(shield) mid.push({folder:shield,tint:tint("offhand"),alpha:1}); }
-    if(bag){ const item={folder:bag,tint:tint("backpack"),alpha:1}; if(bagFront) mid.push(item); else mid.unshift(item); }
+    const tOff = ent ? tintFor(ent,"offhand") : tint("offhand");
+    const tWeap = ent ? tintFor(ent,"weapon") : tint("weapon");
+    const tBag = ent ? tintFor(ent,"backpack") : tint("backpack");
+    if(wAfter){ if(shield) mid.push({folder:shield,tint:tOff,alpha:1}); if(weapon) mid.push({folder:weapon,tint:tWeap,alpha:1}); }
+    else { if(weapon) mid.push({folder:weapon,tint:tWeap,alpha:1}); if(shield) mid.push({folder:shield,tint:tOff,alpha:1}); }
+    if(bag){ const item={folder:bag,tint:tBag,alpha:1}; if(bagFront) mid.push(item); else mid.unshift(item); }
     L.push(...mid);
-    for(const id of ["head","slash","effect"]){ const f=folder(id); if(f) L.push({folder:f,tint:tint(id),alpha:1}); }
-    /* FX d’évo temporaire au cast */
-    if(G.castFx && performance.now() < G.castFx.until){
+    for(const id of ["head","slash","effect"]){
+      const f = ent ? folderFor(ent,id) : folder(id);
+      const tc = ent ? tintFor(ent,id) : tint(id);
+      if(f) L.push({folder:f, tint:tc, alpha:1});
+    }
+    if(!ent && G.castFx && performance.now() < G.castFx.until){
       if(G.castFx.slash) L.push({folder:G.castFx.slash, tint:tint("slash"), alpha:0.95});
       if(G.castFx.effect) L.push({folder:G.castFx.effect, tint:tint("effect"), alpha:0.9});
-    } else if(G.castFx && performance.now() >= G.castFx.until){
+    } else if(!ent && G.castFx && performance.now() >= G.castFx.until){
       G.castFx = null;
     }
-    const mount=folder("mount"); if(mount) L.unshift({folder:mount,tint:tint("mount"),alpha:1});
+    const mount = ent ? folderFor(ent,"mount") : folder("mount");
+    const tMount = ent ? tintFor(ent,"mount") : tint("mount");
+    if(mount) L.unshift({folder:mount,tint:tMount,alpha:1});
     return L.filter(x=>x.folder);
   }
 
@@ -2777,6 +2842,9 @@
     if(ent === G.player && isPlayerMounted()) a = toRideAnim(anim);
     else if(ent && ent.mount && !ent._mountCleared && !ent.hideMount) a = toRideAnim(anim);
     if(ent === G.player) warmAnimForPlayer(a);
+    else if(ent && ent.kind==="mirror" && ent.look){
+      for(const f of entityLookFolders(ent)) loadImg(f, a);
+    }
     else if(ent && Array.isArray(ent.layers)){
       for(const L of ent.layers){
         if(L && L.folder) loadImg(L.folder, a);
@@ -2925,6 +2993,12 @@
     if(sp.id==="double"){
       spawnClone(sp, evo);
       setStatus("Sosie invoqué");
+    } else if(sp.id==="double_squelette" || sp.mirrorClone){
+      if(!spawnMirrorClone(sp, evo)){
+        G.player.pa += cost;
+        return;
+      }
+      setStatus("Double squelette invoqué");
     } else if(sp.id==="invisibilite"){
       const turns = 2 + (evo.invisTurns|0);
       G.player.invis = Math.max(G.player.invis||0, turns);
@@ -3486,7 +3560,7 @@
     return moved;
   }
 
-  function spawnClone(sp, evo){
+  function cloneSpawnCell(){
     const p = G.player, e = G.enemy;
     let c = p.c, r = p.r;
     if(e.alive){
@@ -3502,9 +3576,53 @@
         }
       }
     }
-    faceToward(p, c, r);
+    if(!inBounds(c,r) || occupied(c,r,"player") || (e.alive && e.c===c && e.r===r)) return null;
+    return { c, r };
+  }
+
+  function spawnMirrorClone(sp, evo){
+    if(G.clone && G.clone.alive){
+      setStatus("Un double est déjà actif");
+      return false;
+    }
+    const cell = cloneSpawnCell();
+    if(!cell){ setStatus("Pas de place pour invoquer"); return false; }
+    const p = G.player;
+    faceToward(p, cell.c, cell.r);
+    const look = JSON.parse(JSON.stringify(lookState.look || {}));
+    if(!look.body) look.body = "NakedBody";
+    const colors = JSON.parse(JSON.stringify(lookState.colors || DEFAULT_COLORS));
+    look.body = "NakedBody2";
+    const boneTint = colors.body && colors.body !== "#ffffff" ? colors.body : "#c8c8c8";
+    const bodies = [{ folder:"NakedBody2", opacity:1, color:boneTint }];
+    const bar = (G.spellBar && G.spellBar.length) ? G.spellBar : refreshSpellBar();
+    const spellBar = bar.filter(s=>s && s.spellId && s.spellId!=="double_squelette" && s.spellId!=="double")
+      .map(s=>JSON.parse(JSON.stringify(s)));
+    const pvMax = Math.max(1, Math.floor((p.pvMax|0) / 2) + (evo.mirrorHp|0));
     G.clone = {
-      c, r, dir: p.dir, anim:"Run", frame:0, t0:performance.now(),
+      kind:"mirror",
+      c:cell.c, r:cell.r, dir:p.dir,
+      anim:"Idle", frame:0, t0:performance.now(), flash:0, alive:true,
+      pv:pvMax, pvMax,
+      pa:(p.paMax|0) + (evo.mirrorPa|0), paMax:(p.paMax|0) + (evo.mirrorPa|0),
+      pm:(p.pmMax|0) + (evo.mirrorPm|0), pmMax:(p.pmMax|0) + (evo.mirrorPm|0),
+      shield:Math.floor((p.shield|0)/2), shieldMax:0,
+      look, colors, bodies, spellBar,
+      alpha:1, invis:0,
+    };
+    bumpShieldMax(G.clone);
+    playAnim(G.clone, "Special1");
+    return true;
+  }
+
+  function spawnClone(sp, evo){
+    const cell = cloneSpawnCell();
+    if(!cell){ setStatus("Pas de place pour invoquer"); return; }
+    const p = G.player;
+    faceToward(p, cell.c, cell.r);
+    G.clone = {
+      kind:"tackle",
+      c:cell.c, r:cell.r, dir: p.dir, anim:"Run", frame:0, t0:performance.now(),
       alive:true, alpha:0.42,
       pm: 2 + (evo.clonePm|0),
       dmg: [8 + (evo.cloneDmg|0), 12 + (evo.cloneDmg|0)],
@@ -3514,9 +3632,134 @@
     playAnim(G.clone, "Run");
   }
 
+  function mirrorSpellsFor(cl){
+    const bar = cl.spellBar || [];
+    return bar.filter(s=>s && s.spellId && !s.locked).map(s=>spellById(s.spellId)).filter(Boolean);
+  }
+  function mirrorCanSelf(sp){
+    if(!sp) return false;
+    if(sp.id==="double_squelette" || sp.id==="double") return false;
+    return !!(sp.heal || sp.type==="heal" || sp.type==="shield" || sp.type==="buff" || (typeof FantasyBridge!=="undefined" && FantasyBridge.isSelfSpellId && FantasyBridge.isSelfSpellId(sp.id)));
+  }
+  function mirrorPickSpell(cl){
+    const spells = mirrorSpellsFor(cl);
+    if(!spells.length || !G.enemy.alive) return null;
+    const d = dist(cl, G.enemy);
+    if((cl.pv|0) < (cl.pvMax|0) * 0.55){
+      const sup = spells.filter(s=> mirrorCanSelf(s) && (s.heal || s.type==="heal" || s.type==="shield") && (cl.pa|0) >= (s.cost|0));
+      if(sup.length) return sup[0];
+    }
+    const dmg = spells.filter(s=> s.dmg && !mirrorCanSelf(s) && d <= spellRange(s) && (cl.pa|0) >= (s.cost|0));
+    if(dmg.length) return dmg.sort((a,b)=>(b.dmg[1]|0)-(a.dmg[1]|0))[0];
+    const any = spells.filter(s=> !mirrorCanSelf(s) && s.dmg && (cl.pa|0) >= (s.cost|0));
+    return any.length ? any.sort((a,b)=>(b.range|0)-(a.range|0))[0] : null;
+  }
+  function mirrorStepToward(cl, goalC, goalR){
+    if((cl.pm|0) <= 0) return false;
+    const opts=[];
+    if(cl.c!==goalC) opts.push({c:cl.c+Math.sign(goalC-cl.c), r:cl.r});
+    if(cl.r!==goalR) opts.push({c:cl.c, r:cl.r+Math.sign(goalR-cl.r)});
+    opts.sort((a,b)=> dist(a,{c:goalC,r:goalR}) - dist(b,{c:goalC,r:goalR}));
+    for(const o of opts){
+      if(!inBounds(o.c,o.r) || occupied(o.c,o.r,"clone")) continue;
+      if(G.enemy.alive && G.enemy.c===o.c && G.enemy.r===o.r) continue;
+      faceToward(cl, o.c, o.r);
+      cl.c=o.c; cl.r=o.r; cl.pm -= 1;
+      playAnim(cl, "Run");
+      return true;
+    }
+    return false;
+  }
+  function mirrorCastSelf(cl, sp){
+    const cost = Math.max(1, sp.cost|0);
+    if((cl.pa|0) < cost) return false;
+    cl.pa -= cost;
+    faceToward(cl, cl.c, cl.r);
+    playAnim(cl, sp.anim || "Special1");
+    const evo = evoBonusesFor(sp);
+    if(sp.heal){
+      const h = roll(sp.heal) + (evo.heal|0);
+      cl.pv = Math.min(cl.pvMax, (cl.pv|0) + h);
+      spawnFloater(cl, "+"+h, "heal");
+    } else if(sp.type==="shield" || sp.id==="bouclier" || sp.id==="peau_de_pierre"){
+      const gain = sp.shieldPct != null
+        ? Math.max(1, Math.floor(cl.pvMax * sp.shieldPct))
+        : 8 + (evo.shield|0);
+      cl.shield = (cl.shield|0) + gain;
+      bumpShieldMax(cl);
+      spawnFloater(cl, "+"+gain, "shield");
+    } else if(sp.id==="overclock"){
+      cl.pm = Math.min((cl.pmMax|0)+1, (cl.pm|0)+1);
+    }
+    setTimeout(()=>{ if(cl.alive) playAnim(cl,"Idle"); }, 320);
+    return true;
+  }
+  function mirrorCastAtEnemy(cl, sp){
+    if(!G.enemy.alive) return false;
+    const evo = evoBonusesFor(sp);
+    const cost = Math.max(1, sp.cost + (evo.cost|0));
+    if((cl.pa|0) < cost) return false;
+    if(dist(cl, G.enemy) > spellRange(sp)) return false;
+    if(sp.id==="double_squelette" || sp.id==="double") return false;
+    cl.pa -= cost;
+    faceToward(cl, G.enemy.c, G.enemy.r);
+    playAnim(cl, sp.anim || "Attack1");
+    let dmg = roll(sp.dmg || [6,10]) + (evo.dmg|0);
+    const res = applyEnemyDamage(dmg);
+    dmg = res.hpDmg + res.shieldAbsorb;
+    playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
+    setStatus("Double · "+sp.name+" → "+dmg);
+    if(G.enemy.pv<=0){ G.enemy.alive=false; onCombatEnd("win"); }
+    setTimeout(()=>{ if(cl.alive && G.enemy.alive) playAnim(cl,"Idle"); }, 320);
+    hud();
+    return true;
+  }
+  function runMirrorCloneTurn(onDone){
+    const cl = G.clone;
+    if(!cl || !cl.alive || cl.kind!=="mirror" || !G.enemy.alive){
+      if(typeof onDone==="function") onDone();
+      return;
+    }
+    G.busy = true;
+    cl.pa = cl.paMax|0;
+    cl.pm = cl.pmMax|0;
+    setStatus("Double squelette · tour…");
+    let actions = 0;
+    const finish = ()=>{
+      G.busy = false;
+      if(cl.alive) playAnim(cl, "Idle");
+      hud();
+      if(typeof onDone==="function") onDone();
+    };
+    const step = ()=>{
+      if(G.turn==="over" || !cl.alive || !G.enemy.alive || actions++ > 10 || ((cl.pa|0)<=0 && (cl.pm|0)<=0)){
+        finish(); return;
+      }
+      const sp = mirrorPickSpell(cl);
+      if(sp){
+        if(mirrorCanSelf(sp)){
+          mirrorCastSelf(cl, sp);
+          setTimeout(step, 360);
+          return;
+        }
+        if(dist(cl, G.enemy) <= spellRange(sp)){
+          mirrorCastAtEnemy(cl, sp);
+          setTimeout(step, 400);
+          return;
+        }
+      }
+      if((cl.pm|0)>0 && mirrorStepToward(cl, G.enemy.c, G.enemy.r)){
+        setTimeout(step, 260);
+        return;
+      }
+      finish();
+    };
+    setTimeout(step, 320);
+  }
+
   function tickClone(){
     const cl = G.clone;
-    if(!cl || !cl.alive || !G.enemy.alive) return;
+    if(!cl || !cl.alive || cl.kind==="mirror") return;
     let steps = cl.pm|0;
     while(steps-- > 0){
       if(dist(cl, G.enemy) <= 1){
@@ -3826,16 +4069,24 @@
       return;
     }
     tickBuffOverlayTurns();
-    G.armed=null; G.armedSlot=null; G.turn="enemy";
-    G.combo = Math.max(0, G.combo - 12);
-    tickClone();
-    recomputeMoves(); recomputeTargets(); renderSpells(); hud();
-    if(!G.enemy.alive){
-      if(!G.awaitingNext) onCombatEnd("win");
+    G.armed=null; G.armedSlot=null;
+    const startEnemyPhase = ()=>{
+      G.turn="enemy";
+      G.combo = Math.max(0, G.combo - 12);
+      tickClone();
+      recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+      if(!G.enemy.alive){
+        if(!G.awaitingNext) onCombatEnd("win");
+        return;
+      }
+      setStatus("Tour ennemi…");
+      setTimeout(enemyTurn, 420);
+    };
+    if(G.clone && G.clone.alive && G.clone.kind==="mirror"){
+      runMirrorCloneTurn(startEnemyPhase);
       return;
     }
-    setStatus("Tour ennemi…");
-    setTimeout(enemyTurn, 420);
+    startEnemyPhase();
   }
 
   function enemySpellDmg(sp){
@@ -3913,8 +4164,9 @@
     return true;
   }
 
-  function enemyCast(sp){
-    const e=G.enemy, p=G.player;
+  function enemyCast(sp, target){
+    const e=G.enemy;
+    const p = target || nearestTarget(e, enemyVisibleTargets()) || G.player;
     if(!e.alive || !sp || !enemyCanAfford(sp)) return false;
     const cost = Math.max(1, sp.cost|0);
     e.pa -= cost;
@@ -3957,7 +4209,7 @@
       }
     }
     const rawDmg = dmg;
-    const res = applyPlayerDamage(dmg);
+    const res = applyAllyDamage(p, dmg);
     const hpDmg = res.hpDmg;
     const shLeft = p.shield|0;
     let hitTxt = "";
@@ -3966,13 +4218,10 @@
     setStatus(e.name+" · "+sp.name+hitTxt+(e.pa>0?" · …":""));
     hud();
     if(p.pv<=0){
-      p.alive=false;
-      playAnim(p,"Die");
-      onCombatEnd("defeat");
       return true;
     }
     /* Joueur touché à cheval → séquence monture */
-    if(hpDmg > 0 && isPlayerMounted()){
+    if(hpDmg > 0 && p === G.player && isPlayerMounted()){
       playMountHitSequence(p, null);
     } else if(hpDmg > 0){
       entPlayHitAnim(p, "TakeDamage");
@@ -3982,15 +4231,20 @@
 
   function enemyTurn(){
     if(!G.enemy.alive){ G.turn="player"; beginPlayerTurn(); return; }
-    const e=G.enemy, p=G.player;
+    const e=G.enemy;
     e.pa = e.paMax; e.pm = e.pmMax;
     const prof = e.profile || strategyProfile(e.strategy||"bruiser", e.spells);
     if(e._stunned){ e._stunned=false; setStatus(e.name+" étourdi"); setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 380); return; }
 
-    if(!(p.invis>0)) e.lastSeen = { c:p.c, r:p.r };
+    const pickTarget = ()=> nearestTarget(e, enemyVisibleTargets());
 
-    if((p.invis|0) > 0){
-      const hunt = e.lastSeen || { c:p.c, r:p.r };
+    if(!(G.player.invis>0)) {
+      const vis = pickTarget();
+      if(vis) e.lastSeen = { c:vis.c, r:vis.r };
+    }
+
+    if((G.player.invis|0) > 0 && !(G.clone && G.clone.alive && G.clone.kind==="mirror")){
+      const hunt = e.lastSeen || { c:G.player.c, r:G.player.r };
       let guard = 6;
       while((e.pm|0)>0 && guard-- > 0){
         if(dist(e, hunt) <= 0) break;
@@ -4007,12 +4261,14 @@
     let actions = 0;
     const maxActions = 5;
     let didHit = false;
+    const allyAlive = ()=> enemyVisibleTargets().some(t=>t && t.alive);
     const finish = ()=>{
       stopMoveAnim(e);
-      if(G.turn!=="over" && p.alive){ G.turn="player"; beginPlayerTurn(); }
+      if(G.turn!=="over" && allyAlive()){ G.turn="player"; beginPlayerTurn(); }
     };
     const stepOnce = ()=>{
-      if(!e.alive || !p.alive || G.turn==="over" || actions++ >= maxActions){
+      const p = pickTarget();
+      if(!e.alive || !p || !p.alive || G.turn==="over" || actions++ >= maxActions){
         finish(); return;
       }
       const d = dist(e,p);
@@ -4022,7 +4278,7 @@
       if(hpRatio <= (prof.retreatHp||0.35)){
         const sup = enemyPickSpell("support");
         if(sup && (sup.heal || sup.type==="shield" || sup.type==="heal")){
-          enemyCast(sup);
+          enemyCast(sup, p);
           setTimeout(stepOnce, 360);
           return;
         }
@@ -4041,7 +4297,7 @@
       if(prof.controlFirst && !didHit){
         const ctrl = enemyPickSpell("control");
         if(ctrl && ctrl.effect && d <= (ctrl.range|0)){
-          const dead = enemyCast(ctrl);
+          const dead = enemyCast(ctrl, p);
           if(dead) return;
           didHit = true;
           setTimeout(stepOnce, 380);
@@ -4056,7 +4312,7 @@
 
       if(sp && d <= need){
         /* skirmisher : frappe puis fuite */
-        const dead = enemyCast(sp);
+        const dead = enemyCast(sp, p);
         if(dead) return;
         didHit = true;
         if(prof.hitAndRun && (e.pm|0)>0){
@@ -4081,7 +4337,7 @@
 
       /* 6) dernier recours cast */
       if(sp && d <= need){
-        const dead = enemyCast(sp);
+        const dead = enemyCast(sp, p);
         if(dead) return;
         setTimeout(stepOnce, 380);
         return;
@@ -4249,7 +4505,7 @@
       ? (ent.layers && ent.layers.length
           ? ent.layers
           : [{folder:"NakedBody",tint:"#8a6060",alpha:1}])
-      : layersForRow(sheetRowForDir(ent.dir|0, "Die"));
+      : layersForRow(sheetRowForDir(ent.dir|0, "Die"), (ent.kind==="mirror" && ent.look) ? ent : null);
     const nude = [];
     let bodyTint = isEnemy ? "#8a6060" : null;
     try{ if(!isEnemy) bodyTint = tint("body"); }catch(_e){}
@@ -4302,7 +4558,8 @@
           ? ent.layers
           : [{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}];
     } else {
-      layers = layersForRow(sheetRowForDir(ent.dir|0, anim));
+      const layerEnt = (ent && ent.kind==="mirror" && ent.look) ? ent : null;
+      layers = layersForRow(sheetRowForDir(ent.dir|0, anim), layerEnt);
     }
 
     ctx.imageSmoothingEnabled=false;
@@ -4322,7 +4579,7 @@
       try{ tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, (L.alpha||1)*baseAlpha); drawn++; }catch(_e){}
     }
     /* Aura buff magie : corps 3 + armes Magie par-dessus tout l’équipement */
-    if(!isEnemy && !dying && !opts.clone){
+    if(!isEnemy && !dying && !opts.clone && ent === G.player){
       const overlays = buffOverlayLayers(ent, anim);
       for(const L of overlays){
         const resolved = resolveSheet(L.folder, anim, mounted);
@@ -4402,7 +4659,7 @@
 
     const ents=[];
     if(G.enemy.alive || G.enemy.anim==="Die") ents.push({e:G.enemy, enemy:true});
-    if(G.clone && G.clone.alive) ents.push({e:G.clone, enemy:false, clone:true});
+    if(G.clone && G.clone.alive) ents.push({e:G.clone, enemy:false, clone:G.clone.kind!=="mirror"});
     if(G.player.alive || G.player.anim==="Die") ents.push({e:G.player, enemy:false});
     ents.sort((a,b)=>{
       const pa = entityDrawPos(a.e), pb = entityDrawPos(b.e);

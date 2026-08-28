@@ -57,6 +57,7 @@
     bouclier: { name: "Égide", school: "Lumière", desc: "Bouclier temporaire." },
     overclock: { name: "Ivresse de bataille", school: "Ombre", desc: "Bonus dégâts / mobilité." },
     double: { name: "Sosie", school: "Arcane", desc: "Clone qui charge et tacle l’ennemi." },
+    double_squelette: { name: "Double squelette", school: "Arcane", desc: "Invoque un double (½ PV, corps osseux) avec tes stats, sorts et équipement." },
     invisibilite: { name: "Voile d’ombre", school: "Ombre", desc: "Devient invisible quelques tours." },
   };
 
@@ -574,6 +575,18 @@
         { name: "Mirage", d: "Clone +HP.", anim: "Taunt", fx: "Effect5", apply: (st) => evoAdd(st, "cloneHp", 20) },
       ],
     },
+    double_squelette: {
+      1: [
+        { name: "Os solide", d: "Double +10 PV max.", anim: "Special1", fx: "Effect1", apply: (st) => evoAdd(st, "mirrorHp", 10) },
+        { name: "Économe", d: "-1 PA.", anim: "Attack2", fx: null, apply: (st) => evoAdd(st, "cost", -1) },
+        { name: "Rituel rapide", d: "Anim Special1.", anim: "Special1", fx: "Effect3", apply: (_st) => {} },
+      ],
+      2: [
+        { name: "Double renfort", d: "Double +20 PV max.", anim: "Taunt", fx: "Effect5", apply: (st) => evoAdd(st, "mirrorHp", 20) },
+        { name: "Frénésie", d: "Double +1 PA/tour.", anim: "AttackRun", fx: "Slash2", apply: (st) => evoAdd(st, "mirrorPa", 1) },
+        { name: "Marche rapide", d: "Double +1 PM/tour.", anim: "Run", fx: "Effect2", apply: (st) => evoAdd(st, "mirrorPm", 1) },
+      ],
+    },
     invisibilite: {
       1: [
         { name: "Voile long", d: "+1 tour.", anim: "Special1", fx: "Effect3", apply: (st) => evoAdd(st, "invisTurns", 1) },
@@ -859,6 +872,7 @@
       spellId === "overclock" ||
       spellId === "invisibilite" ||
       spellId === "double" ||
+      spellId === "double_squelette" ||
       spellId === "roulade" ||
       spellId === "peau_de_pierre"
     );

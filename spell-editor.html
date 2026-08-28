@@ -853,6 +853,45 @@ const SAVED_PEAU_DE_PIERRE = {
   }],
   evoConfig: {},
 };
+  evoConfig: {},
+};
+const SAVED_DOUBLE_SQUELETTE = {
+  id: "double_squelette",
+  name: "Double squelette",
+  cost: 5,
+  range: 0,
+  anim: "Special1",
+  type: "clone",
+  mirrorClone: true,
+  bodyOverlay: "NakedBody2",
+  aoe: 0,
+  desc: "Invoque un double : mêmes stats/sorts/équipement, ½ PV max, corps squelette (NakedBody2).",
+  steps: [{
+    anim: "Special1", delay: 0, move: "Idle", fps: 14,
+    slash: "None", effect: "Effect5", hitTarget: false,
+    hitAnim: "TakeDamage", hitAnimFps: 14, hitDelay: null,
+    fxHold: true, hideMount: false, clearMount: false, forceGround: false,
+    posDc: 0, posDr: 0, frameStart: 0, frameEnd: 14,
+    hitFrameStart: 0, hitFrameEnd: 14,
+  }],
+  evoConfig: {},
+};
+function ensureDoubleSquelette(){
+  const preset = JSON.parse(JSON.stringify(SAVED_DOUBLE_SQUELETTE));
+  let sp = (customSpells||[]).find(s=>s && s.id==="double_squelette");
+  if(!sp){
+    customSpells = [...(customSpells||[]), preset];
+    return;
+  }
+  sp.name = "Double squelette";
+  sp.type = "clone";
+  sp.mirrorClone = true;
+  if(!sp.bodyOverlay) sp.bodyOverlay = "NakedBody2";
+  if(!sp.desc) sp.desc = preset.desc;
+  if(!Array.isArray(sp.steps) || !sp.steps.length){
+    sp.steps = JSON.parse(JSON.stringify(preset.steps));
+  }
+}
 function ensurePeauDePierre(){
   const preset = JSON.parse(JSON.stringify(SAVED_PEAU_DE_PIERRE));
   (customSpells||[]).forEach(s=>{
@@ -923,6 +962,7 @@ function loadCustom(){
   ensureGlissade();
   ensureTirArcTendu();
   ensurePeauDePierre();
+  ensureDoubleSquelette();
   ensureSpellEffects();
   /* Ne jamais muter / resauver automatiquement les choix joueur ici. */
 }
