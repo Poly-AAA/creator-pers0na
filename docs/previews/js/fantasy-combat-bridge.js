@@ -57,7 +57,7 @@
     bouclier: { name: "Égide", school: "Lumière", desc: "Bouclier temporaire." },
     overclock: { name: "Ivresse de bataille", school: "Ombre", desc: "Bonus dégâts / mobilité." },
     double: { name: "Sosie", school: "Arcane", desc: "Clone qui charge et tacle l’ennemi." },
-    double_squelette: { name: "Double squelette", school: "Arcane", desc: "Invoque un double (½ PV, corps osseux) avec tes stats, sorts et équipement." },
+    double_squelette: { name: "Double squelette", school: "Arcane", desc: "Invoque un allié IA (½ PV, squelette) avec tes sorts — va au CàC sans bloquer ta LdV." },
     invisibilite: { name: "Voile d’ombre", school: "Ombre", desc: "Devient invisible quelques tours." },
   };
 

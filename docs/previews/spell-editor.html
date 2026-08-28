@@ -861,9 +861,9 @@ const SAVED_DOUBLE_SQUELETTE = {
   anim: "Special1",
   type: "clone",
   mirrorClone: true,
-  bodyOverlay: "NakedBody2",
+  cloneBody: "NakedBody2",
   aoe: 0,
-  desc: "Invoque un double : mêmes stats/sorts/équipement, ½ PV max, corps squelette (NakedBody2).",
+  desc: "Invoque un allié IA (½ PV, corps squelette) : mêmes sorts/équipement, va au corps à corps sans bloquer ta ligne de vue.",
   steps: [{
     anim: "Special1", delay: 0, move: "Idle", fps: 14,
     slash: "None", effect: "Effect5", hitTarget: false,
@@ -884,7 +884,8 @@ function ensureDoubleSquelette(){
   sp.name = "Double squelette";
   sp.type = "clone";
   sp.mirrorClone = true;
-  if(!sp.bodyOverlay) sp.bodyOverlay = "NakedBody2";
+  if(!sp.cloneBody) sp.cloneBody = "NakedBody2";
+  if(sp.bodyOverlay === "NakedBody2"){ sp.bodyOverlay = null; }
   if(!sp.desc) sp.desc = preset.desc;
   if(!Array.isArray(sp.steps) || !sp.steps.length){
     sp.steps = JSON.parse(JSON.stringify(preset.steps));

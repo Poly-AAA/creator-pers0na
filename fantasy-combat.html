@@ -2619,6 +2619,15 @@
     const labelY = sh > 0 ? hpY - 13 : hpY - 5;
     ctx.strokeText(pvLabel, s.x, labelY);
     ctx.fillText(pvLabel, s.x, labelY);
+    if(ent.label && ent.kind==="mirror"){
+      ctx.font = "8px Helvetica, Arial, sans-serif";
+      ctx.fillStyle = "#4a6080";
+      ctx.strokeStyle = "rgba(255,255,255,0.75)";
+      ctx.lineWidth = 1.5;
+      const tagY = labelY - 9;
+      ctx.strokeText(ent.label, s.x, tagY);
+      ctx.fillText(ent.label, s.x, tagY);
+    }
 
     if(sh > 0){
       const shY = hpY - 7;
@@ -2996,9 +3005,14 @@
     } else if(sp.id==="double_squelette" || sp.mirrorClone){
       if(!spawnMirrorClone(sp, evo)){
         G.player.pa += cost;
+        G.castPlaying = false;
         return;
       }
-      setStatus("Double squelette invoqué");
+      setStatus("Double squelette invoqué · IA après ta fin de tour");
+      G.combo = Math.min(100, G.combo + 18);
+      G.armed=null; G.armedSlot=null;
+      recomputeMoves(); recomputeTargets(); renderSpells(); hud();
+      return;
     } else if(sp.id==="invisibilite"){
       const turns = 2 + (evo.invisTurns|0);
       G.player.invis = Math.max(G.player.invis||0, turns);
@@ -3561,23 +3575,66 @@
   }
 
   function cloneSpawnCell(){
-    const p = G.player, e = G.enemy;
-    let c = p.c, r = p.r;
-    if(e.alive){
-      if(e.c !== p.c) c = p.c + Math.sign(e.c - p.c);
-      else if(e.r !== p.r) r = p.r + Math.sign(e.r - p.r);
+    return mirrorSpawnCell(false);
+  }
+
+  /** Case d’invocation : jamais sur le lanceur ; de préférence flanc (ne bloque pas la LdV). */
+  function blocksPlayerLos(cell, player, enemy){
+    if(!player || !enemy || !enemy.alive || !cell) return false;
+    if(cell.c === player.c && cell.r === player.r) return true;
+    const pc = player.c, pr = player.r, ec = enemy.c, er = enemy.r;
+    if(cell.c === pc && cell.c === ec){
+      const lo = Math.min(pr, er), hi = Math.max(pr, er);
+      if(cell.r > lo && cell.r < hi) return true;
     }
-    if(!inBounds(c,r) || occupied(c,r,"player") || (e.alive && e.c===c && e.r===r)){
-      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
-      for(const [dc,dr] of dirs){
-        const nc=p.c+dc, nr=p.r+dr;
-        if(inBounds(nc,nr) && !occupied(nc,nr,"player") && !(e.alive && e.c===nc && e.r===nr)){
-          c=nc; r=nr; break;
-        }
+    if(cell.r === pr && cell.r === er){
+      const lo = Math.min(pc, ec), hi = Math.max(pc, ec);
+      if(cell.c > lo && cell.c < hi) return true;
+    }
+    const dc = ec - pc, dr = er - pr;
+    if(dc !== 0 && dr !== 0 && Math.abs(dc) === Math.abs(dr)){
+      const sc = Math.sign(dc), sr = Math.sign(dr);
+      let c = pc + sc, r = pr + sr;
+      while(c !== ec || r !== er){
+        if(c === cell.c && r === cell.r) return true;
+        c += sc; r += sr;
       }
     }
-    if(!inBounds(c,r) || occupied(c,r,"player") || (e.alive && e.c===c && e.r===r)) return null;
-    return { c, r };
+    return false;
+  }
+
+  function mirrorSpawnCandidates(){
+    const p = G.player, e = G.enemy;
+    const out = [];
+    for(const [dc,dr] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nc = p.c + dc, nr = p.r + dr;
+      if(!inBounds(nc,nr)) continue;
+      if(nc === p.c && nr === p.r) continue;
+      if(e.alive && nc === e.c && nr === e.r) continue;
+      if(occupied(nc,nr,"player")) continue;
+      out.push({ c:nc, r:nr });
+    }
+    return out;
+  }
+
+  function mirrorSpawnCell(forMirror){
+    const p = G.player, e = G.enemy;
+    const cands = mirrorSpawnCandidates();
+    if(!cands.length) return null;
+    const score = (cell)=>{
+      let s = 0;
+      if(forMirror && e.alive){
+        if(blocksPlayerLos(cell, p, e)) s -= 120;
+        const onAxis = (cell.c === p.c && cell.c === e.c) || (cell.r === p.r && cell.r === e.r);
+        if(!onAxis) s += 12;
+        s -= dist(cell, e) * 3;
+      } else if(e.alive){
+        s -= dist(cell, e);
+      }
+      return s;
+    };
+    cands.sort((a,b)=> score(b) - score(a));
+    return cands[0];
   }
 
   function spawnMirrorClone(sp, evo){
@@ -3585,22 +3642,24 @@
       setStatus("Un double est déjà actif");
       return false;
     }
-    const cell = cloneSpawnCell();
+    const cell = mirrorSpawnCell(true);
     if(!cell){ setStatus("Pas de place pour invoquer"); return false; }
     const p = G.player;
     faceToward(p, cell.c, cell.r);
     const look = JSON.parse(JSON.stringify(lookState.look || {}));
     if(!look.body) look.body = "NakedBody";
     const colors = JSON.parse(JSON.stringify(lookState.colors || DEFAULT_COLORS));
-    look.body = "NakedBody2";
+    const skelBody = (sp && sp.cloneBody) || "NakedBody2";
+    look.body = skelBody;
     const boneTint = colors.body && colors.body !== "#ffffff" ? colors.body : "#c8c8c8";
-    const bodies = [{ folder:"NakedBody2", opacity:1, color:boneTint }];
+    const bodies = [{ folder:skelBody, opacity:1, color:boneTint }];
     const bar = (G.spellBar && G.spellBar.length) ? G.spellBar : refreshSpellBar();
     const spellBar = bar.filter(s=>s && s.spellId && s.spellId!=="double_squelette" && s.spellId!=="double")
       .map(s=>JSON.parse(JSON.stringify(s)));
     const pvMax = Math.max(1, Math.floor((p.pvMax|0) / 2) + (evo.mirrorHp|0));
     G.clone = {
       kind:"mirror",
+      label:"Double",
       c:cell.c, r:cell.r, dir:p.dir,
       anim:"Idle", frame:0, t0:performance.now(), flash:0, alive:true,
       pv:pvMax, pvMax,
@@ -3612,6 +3671,7 @@
     };
     bumpShieldMax(G.clone);
     playAnim(G.clone, "Special1");
+    setTimeout(()=>{ if(G.clone && G.clone.alive) playAnim(G.clone, "Idle"); }, 420);
     return true;
   }
 
@@ -3634,35 +3694,57 @@
 
   function mirrorSpellsFor(cl){
     const bar = cl.spellBar || [];
-    return bar.filter(s=>s && s.spellId && !s.locked).map(s=>spellById(s.spellId)).filter(Boolean);
+    const ids = bar.filter(s=>s && s.spellId && !s.locked).map(s=>s.spellId);
+    if(!ids.includes("punch")) ids.unshift("punch");
+    const seen = new Set();
+    return ids.filter(id=>{
+      if(seen.has(id) || id==="double_squelette" || id==="double") return false;
+      seen.add(id);
+      return !!spellById(id);
+    }).map(id=>spellById(id));
   }
   function mirrorCanSelf(sp){
     if(!sp) return false;
     if(sp.id==="double_squelette" || sp.id==="double") return false;
+    if(sp.type==="clone" || sp.mirrorClone) return false;
     return !!(sp.heal || sp.type==="heal" || sp.type==="shield" || sp.type==="buff" || (typeof FantasyBridge!=="undefined" && FantasyBridge.isSelfSpellId && FantasyBridge.isSelfSpellId(sp.id)));
   }
   function mirrorPickSpell(cl){
     const spells = mirrorSpellsFor(cl);
     if(!spells.length || !G.enemy.alive) return null;
     const d = dist(cl, G.enemy);
-    if((cl.pv|0) < (cl.pvMax|0) * 0.55){
-      const sup = spells.filter(s=> mirrorCanSelf(s) && (s.heal || s.type==="heal" || s.type==="shield") && (cl.pa|0) >= (s.cost|0));
+    const canCast = (s)=> (cl.pa|0) >= Math.max(1, (s.cost|0) + (evoBonusesFor(s).cost|0));
+    if(d <= 1){
+      const punch = spells.find(s=>s.id==="punch" && canCast(s));
+      if(punch) return punch;
+      const melee = spells.filter(s=> s.dmg && spellRange(s) <= 1 && canCast(s));
+      if(melee.length) return melee.sort((a,b)=>(a.range|0)-(b.range|0))[0];
+    }
+    if((cl.pv|0) < (cl.pvMax|0) * 0.5){
+      const sup = spells.filter(s=> mirrorCanSelf(s) && (s.heal || s.type==="heal" || s.type==="shield") && canCast(s));
       if(sup.length) return sup[0];
     }
-    const dmg = spells.filter(s=> s.dmg && !mirrorCanSelf(s) && d <= spellRange(s) && (cl.pa|0) >= (s.cost|0));
-    if(dmg.length) return dmg.sort((a,b)=>(b.dmg[1]|0)-(a.dmg[1]|0))[0];
-    const any = spells.filter(s=> !mirrorCanSelf(s) && s.dmg && (cl.pa|0) >= (s.cost|0));
-    return any.length ? any.sort((a,b)=>(b.range|0)-(a.range|0))[0] : null;
+    const inRange = spells.filter(s=> s.dmg && !mirrorCanSelf(s) && d <= spellRange(s) && canCast(s));
+    if(inRange.length) return inRange.sort((a,b)=>(b.dmg[1]|0)-(a.dmg[1]|0))[0];
+    return null;
   }
   function mirrorStepToward(cl, goalC, goalR){
     if((cl.pm|0) <= 0) return false;
-    const opts=[];
-    if(cl.c!==goalC) opts.push({c:cl.c+Math.sign(goalC-cl.c), r:cl.r});
-    if(cl.r!==goalR) opts.push({c:cl.c, r:cl.r+Math.sign(goalR-cl.r)});
-    opts.sort((a,b)=> dist(a,{c:goalC,r:goalR}) - dist(b,{c:goalC,r:goalR}));
+    const p = G.player, e = G.enemy;
+    const opts = [];
+    if(cl.c !== goalC) opts.push({ c:cl.c+Math.sign(goalC-cl.c), r:cl.r });
+    if(cl.r !== goalR) opts.push({ c:cl.c, r:cl.r+Math.sign(goalR-cl.r) });
+    const rank = (o)=>{
+      let score = -dist(o, { c:goalC, r:goalR }) * 10;
+      if(e.alive && blocksPlayerLos(o, p, e)) score -= 80;
+      if(G.player.alive && o.c === p.c && o.r === p.r) score -= 200;
+      return score;
+    };
+    opts.sort((a,b)=> rank(b) - rank(a));
     for(const o of opts){
       if(!inBounds(o.c,o.r) || occupied(o.c,o.r,"clone")) continue;
-      if(G.enemy.alive && G.enemy.c===o.c && G.enemy.r===o.r) continue;
+      if(G.player.alive && o.c === p.c && o.r === p.r) continue;
+      if(e.alive && o.c === e.c && o.r === e.r) continue;
       faceToward(cl, o.c, o.r);
       cl.c=o.c; cl.r=o.r; cl.pm -= 1;
       playAnim(cl, "Run");
@@ -3723,7 +3805,7 @@
     G.busy = true;
     cl.pa = cl.paMax|0;
     cl.pm = cl.pmMax|0;
-    setStatus("Double squelette · tour…");
+    setStatus("Double squelette · tour IA…");
     let actions = 0;
     const finish = ()=>{
       G.busy = false;
