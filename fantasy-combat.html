@@ -221,7 +221,7 @@
   wireFccNav();
 
   const BASE_LOCAL = "assets/packs/fantasy-cc/";
-  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@cursor/glissade-spell-66c0/assets/packs/fantasy-cc/";
+  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@main/assets/packs/fantasy-cc/";
   const FW=128, FH=128, COLS=15, FPS=14;
   const KEY_LOOK = "neuro.fantasyLook";
   const KEY_DIR = "neuro.fantasyDirRow";
@@ -4715,6 +4715,18 @@
     });
   }
 
+  async function fetchJsonFirst(urls, ms){
+    ms = ms || 4500;
+    for(const u of urls){
+      if(!u) continue;
+      try{
+        const r = await fetch(u, { cache:"no-store", mode:"cors", signal: AbortSignal.timeout(ms) });
+        if(r.ok) return await r.json();
+      }catch(_e){}
+    }
+    return null;
+  }
+
   async function boot(){
     importCustomSpellsFromHash();
     window.addEventListener("hashchange", ()=>{ importCustomSpellsFromHash(); renderSpells(); });
@@ -4725,25 +4737,14 @@
     G.turn = "player";
     if(!loadLook()) defaultLook();
     lastLookSig = lookSig();
-    try{
-      for(const u of [BASE_CDN+"catalog.json", BASE_LOCAL+"catalog.json"]){
-        const r=await fetch(u,{cache:"no-store",mode:"cors"});
-        if(r.ok){ catalog=await r.json(); break; }
-      }
-    }catch(_e){}
+    catalog = await fetchJsonFirst([BASE_CDN+"catalog.json", BASE_LOCAL+"catalog.json"]) || catalog;
     if(catalog){
       if(catalog.weaponAfterShieldRows) weaponAfterShieldRows=catalog.weaponAfterShieldRows;
       if(catalog.backpackInFrontRows) backpackInFrontRows=catalog.backpackInFrontRows;
     }
     try{
       if(typeof FantasyBridge!=="undefined" && FantasyBridge.setEquipCategories){
-        let packCats = null;
-        for(const u of [BASE_LOCAL+"equip-categories.json", BASE_CDN+"equip-categories.json"]){
-          try{
-            const r=await fetch(u,{cache:"no-store",mode:"cors"});
-            if(r.ok){ packCats=await r.json(); break; }
-          }catch(_e){}
-        }
+        let packCats = await fetchJsonFirst([BASE_LOCAL+"equip-categories.json", BASE_CDN+"equip-categories.json"]);
         if(packCats) FantasyBridge.setEquipCategories(packCats);
         try{
           const raw=localStorage.getItem(KEY_LOOK);
