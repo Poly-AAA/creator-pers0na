@@ -12246,7 +12246,8 @@ function init(){
     const q = new URLSearchParams(location.search);
     const e2e = q.get("e2e");
     const mode = q.get("mode");
-    if(mode === "aleatoire" || q.get("random") === "1"){ UI.hide("introOverlay"); RandomGauntlet.start(); }
+    const hash = (location.hash || "").replace(/^#/, "");
+    if(mode === "aleatoire" || q.get("random") === "1" || hash === "aleatoire" || hash === "combat"){ UI.hide("introOverlay"); RandomGauntlet.start(); }
     else if(e2e === "hub"){ UI.hide("introOverlay"); UI.hub.open(); }
     else if(e2e === "creator"){ UI.hide("introOverlay"); UI.charGen.open(); }
     else if(e2e === "spells"){ UI.hide("introOverlay"); UI.spellEd.open(); UI.spellEd.compose(); }

@@ -16,7 +16,11 @@ Ouvre [http://localhost:8765/neuro-core.html](http://localhost:8765/neuro-core.h
 
 Depuis l’accueil : **Combat**, **Mode aléatoire**, **Créateur** ou **Éditeur de sorts**.
 
-Le mode aléatoire tire un personnage (morphologie, arme, armure, casque) et 3 sorts avec des améliorations. Chaque victoire lance le combat suivant avec le même kit, pour tester ces sorts. Lien direct : [http://localhost:8765/neuro-core.html?mode=aleatoire](http://localhost:8765/neuro-core.html?mode=aleatoire).
+Le mode aléatoire tire un personnage (morphologie, arme, armure, casque) et 3 sorts avec des améliorations. Chaque victoire lance le combat suivant avec le même kit, pour tester ces sorts.
+
+Sur téléphone, sans installer quoi que ce soit :
+
+https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/cursor/trois-modes-sorts-ia-1889/neuro-core.html#combat
 
 Le créateur de planches est aussi accessible directement : `character-creator-fantasy.html`.
 

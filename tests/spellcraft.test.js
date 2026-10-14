@@ -118,6 +118,7 @@ describe("intégration dans le jeu", () => {
     assert.match(html, /id:"spells"/);
     assert.match(html, /id:"random"/);
     assert.match(html, /mode === "aleatoire"/);
+    assert.match(html, /hash === "combat"/);
     assert.match(html, /ÉDITEUR DE SORTS/);
     assert.doesNotMatch(html, /name:"BUREAU LOCAL"/);
     assert.doesNotMatch(html, /name:"NEURONET"/);
