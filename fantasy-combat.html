@@ -2,8 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Combat Fantasy</title>
+<link rel="stylesheet" href="css/skin-d.css">
 <script src="js/fantasy-combat-bridge.js"></script>
 <style>
   :root{
@@ -143,7 +144,7 @@
   .evo-opts button:active span{color:#cfcfc8}
 </style>
 </head>
-<body>
+<body class="skin-d">
 <div class="app">
   <section class="game" aria-label="Zone de jeu">
     <div class="top-chips">
@@ -151,6 +152,8 @@
         <div class="chip"><span>PV</span><b id="hudPv">—</b></div>
         <div class="chip" id="chipPa"><span>PA</span><b id="hudPa">—</b></div>
         <div class="chip" id="chipPm"><span>PM</span><b id="hudPm">—</b></div>
+        <div class="chip grade-chip" id="chipTime"><span>Tour</span><b id="hudTime">30</b></div>
+        <div class="chip grade-chip" id="chipGrade"><span>Style</span><b id="hudGrade">—</b></div>
       </div>
       <div style="display:flex;gap:6px;pointer-events:auto">
         <a class="link-cc" href="#" id="btnEvo">Évo</a>
@@ -164,6 +167,7 @@
 
   <div class="midbar">
     <p class="hint" id="spellHint">Croix = déplacement iso · centre = lancer</p>
+    <button type="button" id="btnFlee">Fuir</button>
     <button type="button" class="btn-end" id="btnEnd">Fin de tour</button>
   </div>
 
@@ -803,6 +807,7 @@
     return (L && L.anim) || null;
   }
   function refreshSpellBar(){
+    if(G.rogueliteBar){ G.spellBar = G.rogueliteBar; return G.spellBar; }
     try{
       if(typeof FantasyBridge!=="undefined" && FantasyBridge.buildSpellBar){
         G.spellBar = FantasyBridge.buildSpellBar(lookState.look || FantasyBridge.currentLook());
@@ -1228,6 +1233,7 @@
     return Object.values(custom.evoConfig).some(e=> e && e.enabled);
   }
   function onCombatEnd(kind){
+    if(G.roguelite){ rlFinish(kind); return; }
     if(G.awaitingNext) return;
     G.awaitingNext = true;
     G.busy = false;
@@ -1266,6 +1272,22 @@
     el("chipPm").classList.toggle("zero", G.player.pm<=0);
     el("comboFill").style.width = Math.min(100, G.combo)+"%";
     el("btnEnd").disabled = G.turn!=="player" || G.busy;
+    const grade = el("hudGrade");
+    if(grade && G.rl) grade.textContent = rlGrade(rlStyle());
+    const tim = el("hudTime");
+    if(tim){
+      if(G.roguelite && G.turn==="player" && G.turnDeadline){
+        const left = Math.max(0, Math.ceil((G.turnDeadline - performance.now())/1000));
+        tim.textContent = left+"s";
+        if(left<=0 && !G.busy && !G._timingOut && G.turn==="player"){
+          G._timingOut = true;
+          endTurn();
+          G._timingOut = false;
+        }
+      } else tim.textContent = "—";
+    }
+    const flee = el("btnFlee");
+    if(flee) flee.disabled = !G.roguelite || G.turn!=="player" || G.busy;
   }
 
   function lookSig(){
@@ -1440,19 +1462,20 @@
       const viewW = VIEW_TILES * TILE_W;
       const viewH = VIEW_TILES * TILE_H * 0.72;
       const sc = Math.min(w / (viewW + 24), h / (viewH + 48), 1.55);
-      cam.sc = Math.max(0.72, sc);
+      if(cam.userSc == null) cam.sc = Math.max(0.72, sc);
     }
+    if(cam.userSc != null) cam.sc = cam.userSc;
     updateCamera();
     const cx = w / (2 * cam.sc);
     const cy = h / (2 * cam.sc) + 10;
     const px = (cam.fx - cam.fy) * (TILE_W/2);
     const py = (cam.fx + cam.fy) * (TILE_H/2);
-    cam.ox = cx - px;
-    cam.oy = cy - py;
+    cam.ox = cx - px + (cam.panX || 0) / cam.sc;
+    cam.oy = cy - py + (cam.panY || 0) / cam.sc;
   }
   function tileInView(c, r){
     /* cull rapide autour du focus caméra */
-    const pad = 5;
+    const pad = 9;
     return Math.abs(c - cam.fx) <= pad && Math.abs(r - cam.fy) <= pad;
   }
 
@@ -1462,6 +1485,7 @@
     if(G.player.alive && skip!=="player" && G.player.c===c && G.player.r===r) return "player";
     if(G.enemy.alive && skip!=="enemy" && G.enemy.c===c && G.enemy.r===r) return "enemy";
     if(G.clone && G.clone.alive && skip!=="clone" && G.clone.c===c && G.clone.r===r) return "clone";
+    if(skip!=="pawn" && (G.pawns||[]).some(p=>p.alive && p.c===c && p.r===r)) return "pawn";
     return null;
   }
   function dist(a,b){ return Math.max(Math.abs(a.c-b.c), Math.abs(a.r-b.r)); }
@@ -1545,6 +1569,7 @@
     if(!inBounds(c,r) || occupied(c,r,"player")){ setStatus("Case bloquée"); return; }
     faceToward(G.player, c, r);
     G.player.c=c; G.player.r=r; G.player.pm-=1;
+    if(G.rl) G.rl.moved = true;
     playAnim(G.player, randomMoveAnim());
     recomputeMoves(); recomputeTargets(); hud();
     setStatus("Dir "+DIR_LABEL[G.player.dir]+" · −1 PM");
@@ -1650,9 +1675,15 @@
     } else if(sp.id==="overclock"){
       G.player.pm = Math.min(G.player.pmMax+1, G.player.pm+1);
       setStatus("Ivresse · +1 PM");
+    } else if(sp.type==="summon" || sp.effect==="summon"){
+      rlSpawnBones();
+      setStatus(sp.name+" · ossement");
+      if(G.rl) G.rl.summoned = (G.rl.summoned|0)+1;
     } else if(sp.heal){
       let h = roll(sp.heal) + (evo.heal|0);
       G.player.pv = Math.min(G.player.pvMax, G.player.pv + h);
+      if(G.rl) G.rl.healed = (G.rl.healed|0) + h;
+      rlFloat(G.player, "+"+h, "#2f6f4e");
       if(sp.id==="bouclier" || sp.id==="armure_nanites" || sp.type==="shield"){
         G.player.shield = (G.player.shield||0) + Math.floor(h/2) + (evo.shield|0);
       }
@@ -1949,6 +1980,8 @@
 
     const hits = spellHitCount(sp);
     let dmgEach = roll(sp.dmg || [6,10]) + (evo.dmg|0);
+    if(G.roguelite) dmgEach = rlScale(G.player, G.enemy, sp, dmgEach);
+    if(G.rl) G.rl.casts = (G.rl.casts|0) + 1;
     if(G.player.invis>0 && evo.invisBurst) dmgEach += evo.invisBurst|0;
     let total = 0;
     let pushed = 0;
@@ -1962,7 +1995,9 @@
       if(!G.enemy.alive || G.enemy.pv <= 0) return;
       let dmg = dmgEach;
       if(G.enemy.shield>0){ const a=Math.min(G.enemy.shield,dmg); G.enemy.shield-=a; dmg-=a; }
-      G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
+      if(G.roguelite) dmg = rlErode(G.enemy, dmg);
+      G.enemy.pv = Math.max(0, Math.min(G.enemy.pvMax, G.enemy.pv - dmg));
+      if(dmg) rlFloat(G.enemy, "-"+dmg, "#EA7020");
       total += dmg;
       G.enemy.flash = performance.now()+180;
       faceToward(G.enemy, G.player.c, G.player.r);
@@ -1981,9 +2016,15 @@
       if(G.player.invis>0) G.player.invis = 0;
       if(G.enemy.pv<=0){
         G.enemy.alive=false;
-        setStatus("Victoire · "+label+" → "+total+(hits>1?" ×"+hits:""));
-        G.busy = false;
-        onCombatEnd("win");
+        if(G.rl) G.rl.kills = (G.rl.kills|0)+1;
+        if(rlPromote()){
+          setStatus(G.enemy.name+" entre en lice");
+          G.busy = false;
+        } else {
+          setStatus("Victoire · "+label+" → "+total+(hits>1?" ×"+hits:""));
+          G.busy = false;
+          onCombatEnd("win");
+        }
       } else {
         setStatus(label+" → "+total+(hits>1?" ×"+hits:"")+(pushed?" · poussé "+pushed:""));
         G.busy = false;
@@ -2091,11 +2132,14 @@
     tickClone();
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     if(!G.enemy.alive){
+      if(rlPromote()){ setStatus(G.enemy.name+" entre en lice"); setTimeout(enemyTurn, 280); return; }
       if(!G.awaitingNext) onCombatEnd("win");
       return;
     }
+    if(G.rl && (G.rl.casts|0) >= 3) G.rl.combos = (G.rl.combos|0)+1;
+    if(G.rl) G.rl.casts = 0;
     setStatus("Tour ennemi…");
-    setTimeout(enemyTurn, 420);
+    setTimeout(()=> rlPawnPhase(()=> enemyTurn()), G.roguelite ? 180 : 420);
   }
 
   function enemySpellDmg(sp){
@@ -2203,8 +2247,11 @@
     let dmg = 0;
     if(sp.dmg){
       dmg = sp.dmg[0] + Math.floor(Math.random()*Math.max(1, sp.dmg[1]-sp.dmg[0]+1));
-      const boost = 1.0 + Math.min(0.2, (G.fightN-1)*0.03);
-      dmg = Math.max(4, Math.floor(dmg * boost));
+      if(G.roguelite) dmg = rlScale(e, p, sp, dmg);
+      else {
+        const boost = 1.0 + Math.min(0.2, (G.fightN-1)*0.03);
+        dmg = Math.max(4, Math.floor(dmg * boost));
+      }
     }
     if(sp.effect==="drainPA"){ /* flavor : petit bonus */ dmg += 2; }
     if(sp.effect==="push"){
@@ -2217,8 +2264,10 @@
     }
     if(p.shield>0 && dmg){ const absorb=Math.min(p.shield,dmg); p.shield-=absorb; dmg-=absorb; }
     if(dmg){
-      p.pv = Math.max(0, p.pv-dmg);
+      if(G.roguelite) dmg = rlErode(p, dmg);
+      p.pv = Math.max(0, Math.min(p.pvMax, p.pv-dmg));
       p.flash = performance.now()+180;
+      rlFloat(p, "-"+dmg, "#8A3030");
     }
     setStatus(e.name+" · "+sp.name+(dmg?" → "+dmg:"")+(e.pa>0?" · …":""));
     hud();
@@ -2342,7 +2391,7 @@
 
   function beginPlayerTurn(){
     G.busy = false;
-    G.player.pmMax = playerBasePm();
+    if(!G.roguelite) G.player.pmMax = playerBasePm();
     G.player.pa = G.player.paMax;
     G.player.pm = G.player.pmMax;
     if(G.player.invis>0) G.player.invis -= 1;
@@ -2352,6 +2401,10 @@
     const mount = isPlayerMounted() ? " · monture +"+mountPmBonus()+" PM" : "";
     const invis = G.player.invis>0 ? " · voile "+G.player.invis : "";
     setStatus("Ton tour"+mount+invis);
+    if(G.roguelite){
+      G.turnDeadline = performance.now() + 30000;
+      if(G.rl) G.rl.turns = (G.rl.turns|0) + 1;
+    }
   }
 
   function offerEvo(forceId, fromVictory){
@@ -2534,6 +2587,8 @@
       layers = ent.layers && ent.layers.length
           ? ent.layers
           : [{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}];
+    } else if(G.roguelite && ent===G.player && G.player.gearLayers){
+      layers = G.player.gearLayers;
     } else {
       layers = layersForRow(sheetRowForDir(ent.dir|0, anim));
     }
@@ -2550,6 +2605,21 @@
       if(loopAnims.test(sheetAnim)) col = col % COLS;
       else col = Math.min(col, COLS-1);
       try{ tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, (L.alpha||1)*baseAlpha); drawn++; }catch(_e){}
+    }
+    if(ent.overlay==="squelette" || ent.overlay==="spectre"){
+      const bone = ent.overlay==="squelette";
+      const tintHex = bone ? "#efe8dc" : "#d9cbb8";
+      const ovA = bone ? 0.8 : 0.45;
+      for(const L of layers){
+        const resolved = resolveSheet(L.folder, anim, mounted);
+        if(!resolved) continue;
+        const { im, sheetAnim } = resolved;
+        const row = sheetRowForDir(ent.dir|0, sheetAnim);
+        let col = Math.floor(elapsed*animFps);
+        if(loopAnims.test(sheetAnim)) col = col % COLS;
+        else col = Math.min(col, COLS-1);
+        try{ tintDraw(im, col*FW, row*FH, FW, FH, dx+3, dy-4, dw, dh, tintHex, ovA*baseAlpha); }catch(_e){}
+      }
     }
     if(!drawn){
       ctx.save(); ctx.globalAlpha = baseAlpha;
@@ -2587,7 +2657,7 @@
     const W=canvas.width, H=canvas.height;
     ctx.setTransform(1,0,0,1,0,0);
     ctx.clearRect(0,0,W,H);
-    ctx.fillStyle="#d8ddd4";
+    ctx.fillStyle = document.body.classList.contains("skin-d") ? "#F3EFE6" : "#d8ddd4";
     ctx.fillRect(0,0,W,H);
 
     ctx.save();
@@ -2597,7 +2667,8 @@
     for(const t of order){
       if(!tileInView(t.c, t.r)) continue;
       const a = ((t.c+t.r)&1);
-      const fill = a ? "#e8e8e2" : "#dcdcd6";
+      const sand = document.body.classList.contains("skin-d");
+      const fill = sand ? (a ? "#F7F1E6" : "#E7DCCB") : (a ? "#e8e8e2" : "#dcdcd6");
       tileDiamond(t.c, t.r, fill, "rgba(80,80,70,0.12)");
       const k=key(t.c,t.r);
       if(G.moves.has(k)){
@@ -2621,11 +2692,27 @@
     if(G.enemy.alive || G.enemy.anim==="Die") ents.push({e:G.enemy, enemy:true});
     if(G.clone && G.clone.alive) ents.push({e:G.clone, enemy:false, clone:true});
     if(G.player.alive || G.player.anim==="Die") ents.push({e:G.player, enemy:false});
+    (G.pawns||[]).forEach(p=>{ if(p.alive) ents.push({e:p, enemy:p.side==="b", pawn:true}); });
     ents.sort((a,b)=>{
       const pa = entityDrawPos(a.e), pb = entityDrawPos(b.e);
       return (pa.c+pa.r)-(pb.c+pb.r) || pa.c-pb.c;
     });
-    for(const o of ents) drawEntity(o.e, o.enemy, o.clone ? {clone:true, alpha:o.e.alpha||0.42} : null);
+    for(const o of ents){
+      if(o.pawn && !(o.e.layers && o.e.layers.length)) rlDrawPawn(o.e);
+      else drawEntity(o.e, o.enemy, o.clone ? {clone:true, alpha:o.e.alpha||0.42} : (o.pawn ? {alpha:0.95} : null));
+    }
+    (G.floats||[]).forEach(f=>{
+      const age = performance.now() - f.t0;
+      if(age>700) return;
+      const s = toScreen(f.c, f.r);
+      ctx.save();
+      ctx.globalAlpha = 1 - age/700;
+      ctx.fillStyle = f.color;
+      ctx.font = "700 14px Pixelify Sans, sans-serif";
+      ctx.fillText(f.text, s.x-8, s.y - 36 - age/18);
+      ctx.restore();
+    });
+    G.floats = (G.floats||[]).filter(f=> performance.now()-f.t0 < 700);
 
     ctx.restore();
   }
@@ -2675,6 +2762,205 @@
     });
   }
 
+  function rlGrade(score){
+    if(score>=140) return "S+";
+    if(score>=100) return "S";
+    if(score>=70) return "A";
+    if(score>=45) return "B";
+    if(score>=25) return "C";
+    return "D";
+  }
+  function rlStyle(){
+    const t = (G.rl && G.rl.turns) || 1;
+    return (G.rl.kills|0)*26 + (G.rl.combos|0)*12 + ((G.rl.healed|0)>0 ? 16 : 0) + (G.rl.shielded|0)*10 + (t<=6 ? 14 : 0);
+  }
+  function rlFloat(ent, text, color){
+    if(!ent) return;
+    G.floats = G.floats || [];
+    G.floats.push({ c:ent.c, r:ent.r, text:String(text), color:color||"#EA7020", t0:performance.now() });
+  }
+  function rlScale(caster, target, spell, dmg){
+    const map = { terre:"force", neutre:"force", feu:"intel", eau:"chance", air:"agi" };
+    const stat = (caster.stats && caster.stats[map[spell.element] || "force"]) || 0;
+    let d = Math.max(1, Math.round(dmg * (1 + stat/85) * 0.5));
+    if(spell.effect==="glyph" || spell.effect==="trap") d = Math.round(d * 1.35);
+    const res = target && target.res ? (target.res[spell.element] || 0) : 0;
+    d = Math.max(1, Math.round(d * (1 - Math.min(0.5, res))));
+    if(spell.overlay==="squelette" || spell.overlay==="spectre") caster.overlay = spell.overlay;
+    return d;
+  }
+  function rlErode(target, dmg){
+    const ero = Math.floor(dmg * 0.1);
+    if(ero>0) target.pvMax = Math.max(1, target.pvMax - ero);
+    return dmg;
+  }
+  function rlSpawnBones(){
+    if(G.clone && G.clone.alive) return;
+    G.clone = {
+      c:G.player.c, r:Math.min(GRID-1, G.player.r+1), alive:true,
+      pv:22, pvMax:22, pm:2, pa:3, dmg:[5,8], overlay:"squelette",
+      anim:"Idle", t0:performance.now(), dir:3, name:"Ossement",
+      layers:[{folder:"Shadow",tint:null,alpha:1},{folder:"NakedBody",tint:"#efe8dc",alpha:1}],
+    };
+  }
+  function rlDrawPawn(p){
+    const s = toScreen(p.c, p.r);
+    ctx.save();
+    ctx.fillStyle = p.side==="b" ? "#2F3133" : "#EA7020";
+    ctx.beginPath();
+    ctx.ellipse(s.x, s.y-10, 7, 12, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.font = "10px Pixelify Sans, sans-serif";
+    ctx.fillText(p.name || "", s.x-16, s.y-26);
+    ctx.restore();
+  }
+  function rlPromote(){
+    if(!G.roguelite) return false;
+    const next = (G.pawns||[]).find(p=>p.side==="b" && p.alive);
+    if(!next) return false;
+    next.alive = false;
+    G.enemy = Object.assign(G.enemy, {
+      name: next.name, pv: next.pv, pvMax: next.pvMax, alive:true,
+      pa: next.paMax||6, paMax: next.paMax||6, pm: next.pmMax||3, pmMax: next.pmMax||3,
+      c: next.c, r: next.r, stats: next.stats||{}, res: next.res||{},
+      spells: (next.spells||[]).map(s=>s.id), layers: next.layers||G.enemy.layers,
+      anim:"Idle", t0:performance.now(), flash:0, shield:0,
+    });
+    try{ playAnim(G.enemy, "Idle"); }catch(_e){}
+    return true;
+  }
+  function rlPawnPhase(done){
+    const list = (G.pawns||[]).filter(p=>p.alive).slice(0, 8);
+    if(!G.roguelite || !list.length){ done(); return; }
+    let i = 0;
+    const step = ()=>{
+      if(i>=list.length || !G.player.alive){ done(); return; }
+      const p = list[i++];
+      if(!p.alive){ step(); return; }
+      const foes = p.side==="a"
+        ? [G.enemy].concat((G.pawns||[]).filter(x=>x.side==="b" && x.alive)).filter(x=>x && x.alive)
+        : [G.player].concat((G.pawns||[]).filter(x=>x.side==="a" && x.alive)).filter(x=>x && x.alive);
+      let target = null, best = 99;
+      foes.forEach(f=>{
+        const d = Math.max(Math.abs(f.c-p.c), Math.abs(f.r-p.r));
+        if(d<best){ best=d; target=f; }
+      });
+      if(target){
+        if(best>1){
+          p.c = Math.max(0, Math.min(GRID-1, p.c + Math.sign(target.c-p.c)));
+          p.r = Math.max(0, Math.min(GRID-1, p.r + Math.sign(target.r-p.r)));
+        } else {
+          let dmg = 4 + Math.floor((p.level||1)/3);
+          if(target.shield>0){ const a=Math.min(target.shield,dmg); target.shield-=a; dmg-=a; }
+          target.pv = Math.max(0, target.pv - dmg);
+          rlFloat(target, "-"+dmg, p.side==="a" ? "#EA7020" : "#8A3030");
+          if(target.pv<=0){
+            target.alive = false;
+            if(target===G.player){ onCombatEnd("defeat"); return; }
+            if(target===G.enemy && !rlPromote()){ onCombatEnd("win"); return; }
+          }
+        }
+      }
+      setTimeout(step, 90);
+    };
+    step();
+  }
+  function rlRead(){
+    try{
+      const raw = localStorage.getItem("roguelite.fight");
+      if(!raw) return null;
+      const o = JSON.parse(raw);
+      if(!o || !o.player) return null;
+      return o;
+    }catch(_e){ return null; }
+  }
+  function rlInstallSpell(sp){
+    if(!sp || !sp.id) return;
+    if(!SPELLS.some(s=>s.id===sp.id)){
+      SPELLS.push({
+        id:sp.id, name:sp.name, cost:sp.cost|0||2, range:sp.range|0, aoe:sp.aoe|0,
+        dmg:sp.dmg||null, heal:sp.heal||null, anim:sp.anim||"Attack1",
+        type:sp.type||"damage", effect:sp.effect||"", element:sp.element||"neutre",
+        overlay:sp.overlay||null, push:sp.push|0,
+      });
+    }
+  }
+  function rlBar(spells){
+    const labels = ["F1","F2","F3","F4","F5","F6"];
+    return (spells||[]).slice(0, 6).map((sp, i)=>{
+      rlInstallSpell(sp);
+      return { slot:i+1, label:labels[i]+" "+(sp.cost|0)+" PA", spellId:sp.id, locked:false, anim:sp.anim||"Attack1" };
+    });
+  }
+  function rlApply(payload){
+    G.roguelite = payload;
+    G.rl = { kills:0, combos:0, healed:0, shielded:0, casts:0, turns:0, moved:false, t0:Date.now() };
+    G.pawns = [];
+    const p = payload.player;
+    (p.spells||[]).forEach(rlInstallSpell);
+    (payload.foes||[]).forEach(f=>(f.spells||[]).forEach(rlInstallSpell));
+    (payload.allies||[]).forEach(f=>(f.spells||[]).forEach(rlInstallSpell));
+    G.player.pv = p.pv; G.player.pvMax = p.pvMax;
+    G.player.paMax = p.paMax||6; G.player.pmMax = p.pmMax||3;
+    G.player.pa = G.player.paMax; G.player.pm = G.player.pmMax;
+    G.player.stats = p.stats||{}; G.player.res = p.res||{};
+    G.player.c = 1; G.player.r = 4; G.player.alive = true;
+    G.player.gearLayers = p.layers && p.layers.length ? p.layers : null;
+    G.rogueliteBar = rlBar(p.spells);
+    const foes = payload.foes||[];
+    const main = foes[0];
+    if(main){
+      (main.spells||[]).forEach(rlInstallSpell);
+      G.enemy = makeEnemy(1);
+      G.enemy.name = main.name;
+      G.enemy.pv = main.pv; G.enemy.pvMax = main.pvMax;
+      G.enemy.paMax = main.paMax||6; G.enemy.pmMax = main.pmMax||3;
+      G.enemy.stats = main.stats||{}; G.enemy.res = main.res||{};
+      G.enemy.spells = (main.spells||[]).map(s=>s.id);
+      G.enemy.layers = main.layers && main.layers.length ? main.layers : G.enemy.layers;
+      G.enemy.c = 8; G.enemy.r = 4; G.enemy.alive = true;
+    }
+    (foes.slice(1)).forEach((f,i)=>{
+      G.pawns.push(Object.assign({}, f, { side:"b", alive:true, c:Math.min(9, 8-(i%2)), r:Math.min(9, i+1) }));
+    });
+    (payload.allies||[]).forEach((f,i)=>{
+      G.pawns.push(Object.assign({}, f, { side:"a", alive:true, c:Math.min(2, i%3), r:Math.min(9, i) }));
+    });
+    const hint = el("spellHint");
+    if(hint) hint.textContent = (payload.mode||"1v1")+" · pincer pour zoomer";
+    const flee = el("btnFlee");
+    if(flee) flee.style.display = (payload.gold>0 || payload.fleeCharges>0) ? "inline-flex" : "none";
+  }
+  function rlFinish(kind){
+    if(G._rlDone) return;
+    G._rlDone = true;
+    G.turn = "over";
+    G.busy = false;
+    const style = G.rl ? rlStyle() : 0;
+    const report = {
+      winner: kind==="win" ? "a" : kind==="flee" ? "draw" : "b",
+      playerAlive: kind!=="defeat",
+      playerPv: G.player.pv|0,
+      turns: (G.rl && G.rl.turns) || 1,
+      seconds: G.rl ? Math.max(1, Math.round((Date.now()-G.rl.t0)/1000)) : 30,
+      style, kills: G.rl ? G.rl.kills|0 : 0,
+      healed: G.rl ? G.rl.healed|0 : 0,
+      shielded: G.rl ? G.rl.shielded|0 : 0,
+      combos: G.rl ? G.rl.combos|0 : 0,
+      fastTurns: (G.rl && G.rl.turns<=6) ? 1 : 0,
+      playerMoved: !!(G.rl && G.rl.moved),
+      challenges: (G.roguelite && G.roguelite.challenges) || [],
+      foeItems: (G.roguelite && G.roguelite.foeItems) || [],
+      foeLevels: (G.roguelite && G.roguelite.foeLevels) || [],
+      fled: kind==="flee",
+      paid: 0,
+    };
+    try{ localStorage.setItem("roguelite.result", JSON.stringify(report)); }catch(_e){}
+    setStatus(kind==="flee" ? "Fuite…" : kind==="win" ? "Victoire · retour" : "Défaite · retour");
+    setTimeout(()=>{ location.href = "index.html"; }, 500);
+  }
+
   async function boot(){
     importCustomSpellsFromHash();
     window.addEventListener("hashchange", ()=>{ importCustomSpellsFromHash(); renderSpells(); });
@@ -2711,11 +2997,13 @@
       FantasyBridge.registerSpellEvoAliases(customSpells);
 
     warm();
-    /* premier adversaire aléatoire */
+    /* premier adversaire, ou le combat envoyé par l’arène */
     G.player.c = 2; G.player.r = Math.floor(GRID/2);
     cam.fx = G.player.c; cam.fy = G.player.r;
     G.fightN = 0;
-    G.enemy = makeEnemy(1);
+    const rlPayload = rlRead();
+    if(rlPayload) rlApply(rlPayload);
+    else G.enemy = makeEnemy(1);
     try{ warmFolders((G.enemy.layers||[]).map(L=>L.folder), { mounted: !!G.enemy.mount }); }catch(_e){}
     try{ playAnim(G.player, "Idle"); }catch(_e){}
     try{ playAnim(G.enemy, "Idle"); }catch(_e){}
@@ -2739,18 +3027,53 @@
       setTimeout(()=> forceRestartCombat(), 300);
     }
 
-    canvas.addEventListener("click", onTap);
-    canvas.addEventListener("touchend", (e)=>{
-      e.preventDefault();
-      const t=e.changedTouches[0];
-      if(t) onTap({clientX:t.clientX, clientY:t.clientY});
-    }, {passive:false});
+    const pointers = new Map();
+    let pinch = null;
+    canvas.addEventListener("pointerdown", (e)=>{
+      try{ canvas.setPointerCapture(e.pointerId); }catch(_e){}
+      pointers.set(e.pointerId, { x:e.clientX, y:e.clientY, moved:false });
+      if(pointers.size===2){
+        const pts=[...pointers.values()];
+        pinch = { dist:Math.max(8, Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y)), sc:cam.sc };
+      }
+    });
+    canvas.addEventListener("pointermove", (e)=>{
+      const prev = pointers.get(e.pointerId);
+      if(!prev) return;
+      const dx=e.clientX-prev.x, dy=e.clientY-prev.y;
+      if(Math.abs(dx)+Math.abs(dy)>6) prev.moved = true;
+      prev.x=e.clientX; prev.y=e.clientY;
+      if(pointers.size>=2 && pinch){
+        const pts=[...pointers.values()];
+        const d=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+        cam.userSc = Math.max(0.55, Math.min(2.6, pinch.sc * (d / pinch.dist)));
+        cam.sc = cam.userSc;
+      } else if(pointers.size===1 && prev.moved){
+        cam.panX = (cam.panX||0) + dx;
+        cam.panY = (cam.panY||0) + dy;
+      }
+    });
+    canvas.addEventListener("pointerup", (e)=>{
+      const prev = pointers.get(e.pointerId);
+      pointers.delete(e.pointerId);
+      if(pointers.size<2) pinch = null;
+      if(prev && !prev.moved && pointers.size===0) onTap(e);
+    });
     canvas.addEventListener("mousemove", (e)=>{
       const {x,y}=pointer(e); const t=toTile(x,y);
       G.hover = inBounds(t.c,t.r) ? t : null;
       if(G.armed) recomputeTargets();
     });
     el("btnEnd").onclick=endTurn;
+    const btnFlee = el("btnFlee");
+    if(btnFlee){
+      btnFlee.addEventListener("click", ()=>{
+        if(!G.roguelite || G.turn!=="player" || G.busy) return;
+        const pay = G.roguelite;
+        if(!(pay.gold>0) && !(pay.fleeCharges>0)){ setStatus("Pas de quoi fuir"); return; }
+        rlFinish("flee");
+      });
+    }
     const btnRestart=el("btnRestart");
     if(btnRestart){
       btnRestart.addEventListener("click", (e)=>{

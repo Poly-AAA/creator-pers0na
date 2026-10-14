@@ -1,0 +1,140 @@
+/* Variante D — Minimal. Fond clair, orange plein, aucune bordure décorative. */
+@import url("https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Kufi+Arabic:wght@500;700&family=Pixelify+Sans:wght@500;700&display=swap");
+
+:root{
+  --bg:#FAF7F0;
+  --panel:#FFFFFF;
+  --ink:#2F3133;
+  --ink2:#8A8278;
+  --acc:#EA7020;
+  --acc2:#F4B07A;
+  --soft:#EFE6D6;
+  --onacc:#FFFFFF;
+  --line:#E7DFD2;
+  --bad:#8A3030;
+  --ok:#2F6F4E;
+  --shadow:0 1px 0 rgba(47,49,51,.06);
+  --tap:48px;
+  --safe-t:env(safe-area-inset-top);
+  --safe-b:env(safe-area-inset-bottom);
+}
+
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink)}
+body.skin-d{
+  font-family:"Pixelify Sans","DotGothic16",ui-sans-serif,sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+}
+body.skin-d *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body.skin-d button,body.skin-d a.tap{
+  min-height:var(--tap);touch-action:manipulation;
+}
+.ar{font-family:"Noto Kufi Arabic","Pixelify Sans",sans-serif}
+
+.hazard{
+  height:10px;background:repeating-linear-gradient(-45deg,var(--acc) 0 8px,var(--bg) 8px 16px);
+}
+.app-hub{
+  min-height:100dvh;max-width:430px;margin:0 auto;display:flex;flex-direction:column;
+  padding:var(--safe-t) 0 var(--safe-b);
+  background:var(--bg);
+}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:12px 14px 8px;
+}
+.topbar h1{margin:0;font-size:22px;letter-spacing:.04em;font-weight:700}
+.badge{
+  background:var(--acc);color:var(--onacc);padding:6px 10px;font-size:13px;letter-spacing:.08em;
+}
+.screen{flex:1;padding:6px 14px 18px;display:flex;flex-direction:column;gap:12px}
+.kicker{color:var(--ink2);font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+.panel{background:var(--panel);box-shadow:var(--shadow);padding:12px}
+.panel h2{margin:0 0 8px;font-size:16px}
+.row{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.muted{color:var(--ink2);font-size:13px}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px}
+.bars{display:flex;flex-direction:column;gap:6px}
+.bar{height:10px;background:var(--soft);display:flex;gap:2px}
+.bar i{flex:1;background:transparent}
+.bar i.on{background:var(--acc)}
+.actions{display:flex;flex-direction:column;gap:8px}
+.actions button,.tap{
+  border:0;background:var(--panel);color:var(--ink);box-shadow:var(--shadow);
+  font:inherit;font-size:16px;text-align:left;padding:12px 14px;width:100%;
+  text-decoration:none;display:flex;justify-content:space-between;align-items:center;
+}
+.actions button.primary,.tap.primary{background:var(--acc);color:var(--onacc)}
+.actions button:disabled{opacity:.4}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.slot{
+  background:var(--panel);box-shadow:var(--shadow);padding:10px;min-height:64px;
+  border:0;font:inherit;text-align:left;color:var(--ink);width:100%;
+}
+.slot b{display:block;font-size:14px}
+.slot span{color:var(--ink2);font-size:12px}
+.load{
+  flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:24px 8px;
+}
+.load h1{margin:0;font-size:42px;letter-spacing:.18em}
+.load .track{height:8px;background:var(--soft)}
+.load .track i{display:block;height:100%;width:0;background:var(--acc);animation:fill .7s linear forwards}
+@keyframes fill{to{width:100%}}
+.footer-links{padding:8px 14px 16px;display:flex;gap:10px;flex-wrap:wrap}
+.footer-links a{color:var(--ink2);font-size:12px;letter-spacing:.06em}
+.float-note{font-size:13px;color:var(--acc)}
+.list{display:flex;flex-direction:column;gap:8px}
+.offer{display:flex;justify-content:space-between;gap:8px;align-items:center;background:var(--panel);box-shadow:var(--shadow);padding:10px}
+.offer button{min-height:44px;border:0;background:var(--acc);color:#fff;font:inherit;padding:8px 12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:0;background:var(--soft);font:inherit;padding:8px 10px;min-height:44px}
+.chips button.on{background:var(--acc);color:#fff}
+
+/* Combat : garde la croix iso, la carte en haut, les sorts en bas. */
+body.skin-d .app{
+  max-width:430px;background:var(--bg);
+  background-image:linear-gradient(180deg,var(--bg),var(--bg));
+}
+body.skin-d .game{
+  background:#F3EFE6;
+}
+body.skin-d .top-chips{top:calc(8px + var(--safe-t))}
+body.skin-d .chip{
+  border:0;border-radius:0;background:var(--panel);box-shadow:var(--shadow);color:var(--ink);
+}
+body.skin-d .link-cc{
+  border:0;border-radius:0;background:var(--soft);color:var(--ink);min-height:32px;
+}
+body.skin-d .midbar{background:transparent}
+body.skin-d .hint{color:var(--ink2)}
+body.skin-d .btn-end{
+  min-height:48px;border:0;border-radius:0;background:var(--acc);color:#fff;
+  font-family:inherit;letter-spacing:.08em;padding:0 16px;
+}
+body.skin-d .panel{
+  border:0;border-radius:0;box-shadow:none;background:var(--bg);
+  padding-bottom:calc(12px + var(--safe-b));
+}
+body.skin-d .combo{border:0;border-radius:0;background:var(--soft);height:8px}
+body.skin-d .combo>i{background:var(--acc);border-radius:0}
+body.skin-d .controls{grid-template-columns:148px 1fr}
+body.skin-d .dpad-wrap{width:148px;height:148px}
+body.skin-d .dpad button{
+  width:48px;height:48px;border:0;border-radius:0;background:#fff;color:var(--ink);
+  box-shadow:var(--shadow);
+}
+body.skin-d .dpad button.on,body.skin-d .dpad button:active{background:var(--acc);color:#fff}
+body.skin-d .dpad .c{width:44px;height:44px;background:var(--acc);color:#fff}
+body.skin-d .spells button{
+  min-height:48px;border:0;border-radius:0;background:#fff;box-shadow:var(--shadow);color:var(--ink);
+}
+body.skin-d .spells button.on{background:var(--acc);color:#fff}
+body.skin-d .spells button.on small{color:#fff}
+body.skin-d .status{color:var(--ink2);font-size:12px}
+body.skin-d .evo-ov{background:rgba(250,247,240,.92)}
+body.skin-d .evo-card{border:0;border-radius:0;box-shadow:var(--shadow)}
+body.skin-d #btnFlee{
+  display:none;min-height:48px;border:0;background:#fff;color:var(--ink);box-shadow:var(--shadow);
+  font:inherit;letter-spacing:.08em;padding:0 14px;
+}
+.grade-chip b{color:var(--acc);font-size:16px}
