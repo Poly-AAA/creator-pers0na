@@ -14,7 +14,9 @@ python3 -m http.server 8765
 
 Ouvre [http://localhost:8765/neuro-core.html](http://localhost:8765/neuro-core.html).
 
-Depuis l’accueil : **Combat**, **Créateur** ou **Éditeur de sorts**.
+Depuis l’accueil : **Combat**, **Mode aléatoire**, **Créateur** ou **Éditeur de sorts**.
+
+Le mode aléatoire tire un personnage (morphologie, arme, armure, casque) et 3 sorts avec des améliorations. Chaque victoire lance le combat suivant avec le même kit, pour tester ces sorts. Lien direct : [http://localhost:8765/neuro-core.html?mode=aleatoire](http://localhost:8765/neuro-core.html?mode=aleatoire).
 
 Le créateur de planches est aussi accessible directement : `character-creator-fantasy.html`.
 

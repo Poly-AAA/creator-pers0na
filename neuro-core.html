@@ -1269,6 +1269,7 @@ aside.side{
     <button class="btn orange" id="restartBtn">Recommencer</button>
   </div>
 </div>
+<div id="randomBanner" style="display:none;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:35;max-width:92vw;background:rgba(8,18,32,.92);color:#d7f6ff;border:1px solid #27e0ff;border-radius:10px;padding:6px 12px;font:12px/1.35 Trebuchet MS,sans-serif;text-align:center;pointer-events:none"></div>
 
 <script src="data/spellcraft-browser.js?v=3.5.0"></script>
 <script src="data/generated-spells.js?v=3.5.0"></script>
@@ -6509,6 +6510,15 @@ const Combat = {
   },
 
   victory(){
+    if(State.randomMode){
+      State.over = true;
+      inputLocked = true;
+      State.wins = (State.wins || 0) + 1;
+      UI.log("sys", "✦ VICTOIRE — Combat " + State.fight + " · le suivant commence.");
+      FX.victoryFlash();
+      setTimeout(()=> RandomGauntlet.chain(), 1100);
+      return;
+    }
     State.over = true;
     inputLocked = true;
     State.wins++;
@@ -6564,6 +6574,7 @@ const Combat = {
   defeat(){
     State.over = true;
     inputLocked = true;
+    if(State.randomMode){ UI.showDeath(); return; }
     UI.results.show("defeat");   // V0.95.5 — fin d'Ascension → écran Résultats → Hub
   }
 };
@@ -11375,6 +11386,7 @@ const UI = {
   hub:{
     SECTIONS:[
       {id:"combat",  name:"COMBAT",            ico:"⚔", zone:"cmd",     desc:"Arène tactique — tes sorts contre l'IA", act:()=>{ UI.hub.launchCombat(); }},
+      {id:"random",  name:"MODE ALÉATOIRE",    ico:"🎲", zone:"cmd",     desc:"Personnage au hasard, 3 sorts, enchaînement tant que tu gagnes", act:()=>{ RandomGauntlet.start(); }},
       {id:"chargen", name:"CRÉATEUR",          ico:"🧍", zone:"gen",     desc:"Morphologie, arme, armure, planches fantasy", act:()=>{ UI.charGen.open(); }},
       {id:"spells",  name:"ÉDITEUR DE SORTS",  ico:"✦", zone:"arsenal", desc:"Composer animations, effets et améliorations", act:()=>{ UI.spellEd.open(); }},
     ],
@@ -11597,6 +11609,8 @@ const UI = {
 
   showDeath(){
     const p=State.player;
+    const rb = UI.el("restartBtn");
+    if(rb) rb.textContent = (State && State.randomMode) ? "Nouveau tirage" : "Recommencer";
     UI.el("dWins").textContent  = State.wins;
     UI.el("dLevel").textContent = State.fight;
     UI.el("dPow").textContent   = p.pow;
@@ -11904,7 +11918,91 @@ function inProgressOverlay(){
 /* =====================================================================
    INITIALISATION / NOUVELLE RUN
    ===================================================================== */
+/* Mode aléatoire : personnage tiré au sort, 3 sorts avec améliorations,
+   nouveau combat immédiat après chaque victoire (test des sorts). */
+let _pendingRandom = false;
+const RandomGauntlet = {
+  start(){
+    _pendingRandom = true;
+    _pendingSimulator = true;
+    UI.hide("hubOverlay");
+    UI.hide("introOverlay");
+    UI.hide("deathOverlay");
+    UI.hide("resultsOverlay");
+    const go = ()=>{ try{ newRun(); }catch(err){ console.error(err); } };
+    if(UI.load && UI.load.show) UI.load.show({ title:"MODE ALÉATOIRE", sub:"Tirage du personnage et de 3 sorts…", ms:450 }, go);
+    else go();
+  },
+  applyKit(){
+    const src = (MetaProgress.data && MetaProgress.data.spellbook) || {};
+    const book = {};
+    for(const id in src){
+      try{ book[id] = JSON.parse(JSON.stringify(src[id])); }catch(_e){}
+    }
+    State.player.spellbook = book;
+    const bag = SPELL_DEFS.slice();
+    const ids = [];
+    while(ids.length < 3 && bag.length){
+      ids.push(bag.splice(Math.floor(Math.random()*bag.length), 1)[0].id);
+    }
+    const sc = (typeof window !== "undefined" && window.SpellCraft) ? window.SpellCraft : null;
+    const lines = [];
+    ids.forEach(id=>{
+      const def = Spells.def(id);
+      if(!def) return;
+      if(!book[id]) book[id] = { level:1, xp:0, evo:{}, evoTiers:[], evoPending:[], evoChoice:{} };
+      const st = book[id];
+      st.evo = Object.assign({}, def.bakedEvo || {}, st.evo || {});
+      const ups = [];
+      const pool = (sc && sc.upgradesFor) ? sc.upgradesFor(def.type).slice() : [];
+      const nUp = pool.length ? (1 + Math.floor(Math.random()*Math.min(2, pool.length))) : 0;
+      for(let i=0;i<nUp && pool.length;i++){
+        const u = pool.splice(Math.floor(Math.random()*pool.length), 1)[0];
+        st.evo[u.key] = (st.evo[u.key] || 0) + u.val;
+        ups.push(u.name);
+      }
+      lines.push(def.name + (ups.length ? " (" + ups.join(", ") + ")" : ""));
+    });
+    State.equipped = ids.slice(0, 3);
+    State.slots = Math.max(State.slots || 3, 3);
+    const look = {
+      morphId: pick(Object.keys(CHAR_MORPH)),
+      weapon: pick(Object.keys(CHAR_WEAPON_CATALOG)),
+      armor: pick(Object.keys(CHAR_ARMOR_CATALOG)),
+      helm: pick(Object.keys(CHAR_HELM_CATALOG)),
+    };
+    State.player.look = look;
+    State.player.morphId = look.morphId;
+    State._randomKit = lines;
+    const w = CHAR_WEAPON_CATALOG[look.weapon], a = CHAR_ARMOR_CATALOG[look.armor], h = CHAR_HELM_CATALOG[look.helm];
+    UI.log("sys", "🎲 Personnage — " + look.morphId + " · " + (w?w.label:look.weapon) + " · " + (a?a.label:look.armor) + " · " + (h?h.label:look.helm));
+    lines.forEach(l => UI.log("you", "✦ " + l));
+    this.banner();
+    UI.refreshAll && UI.refreshAll();
+  },
+  banner(){
+    const ban = document.getElementById("randomBanner");
+    if(!ban) return;
+    ban.style.display = "block";
+    const kit = (State._randomKit || []).join(" · ");
+    ban.innerHTML = "<b>MODE ALÉATOIRE</b> · victoires " + (State.wins||0) + " · combat " + State.fight + "<br>" + kit;
+  },
+  chain(){
+    if(!State || !State.randomMode || !State.player) return;
+    State.over = false;
+    inputLocked = false;
+    State.player.alive = true;
+    State.player.pv = State.player.pvMax;
+    State.fight++;
+    UI.log("sys", "↻ Combat " + State.fight + " — même personnage, mêmes 3 sorts.");
+    this.banner();
+    Combat.startFight();
+  }
+};
+
 function newRun(){
+  const randomRun = !!_pendingRandom;
+  _pendingRandom = false;
   // état entièrement réinitialisé (aucune fuite : on remplace l'objet)
   FX.clear();
   State = {
@@ -11935,7 +12033,11 @@ function newRun(){
   // V2.0 — modificateurs de combat du contrat actif (légers, lus au lancement)
   State.contractMods = {};
   State.missionPowerMult = 1;
-  if(State.run.contract){
+  if(randomRun){
+    State.run.contract = null;
+    State.run.scenes = 0;
+    State.run.simulator = true;
+  } else if(State.run.contract){
     const mod = contractModDef(State.run.contract.mod);
     State.contractMods = mod.combat || {};
     State.run.resMult = State.run.contract.resMult || 1;
@@ -12006,6 +12108,10 @@ function newRun(){
   hoverTile=null; hoverEnemy=null; armedSkill=null;
   Render.layout();
   Combat.startFight();
+  if(randomRun){
+    State.randomMode = true;
+    RandomGauntlet.applyKit();
+  }
 }
 
 function init(){
@@ -12108,7 +12214,12 @@ function init(){
   // V0.95.5 — navigation du Hub
   UI.el("neuroClose").addEventListener("click", ()=> UI.neuro.close());
   UI.el("resToHub").addEventListener("click", ()=> UI.hub.open());
-  UI.el("restartBtn").addEventListener("click", ()=>{ UI.hide("deathOverlay"); UI.hub.open(); });
+  UI.el("restartBtn").addEventListener("click", ()=>{
+    UI.hide("deathOverlay");
+    if(State && State.randomMode){ RandomGauntlet.start(); return; }
+    const ban = document.getElementById("randomBanner"); if(ban) ban.style.display = "none";
+    UI.hub.open();
+  });
 
   // ===== V0.91.1 — ZOOM (boutons uniquement ; la molette est désactivée) =====
   UI.el("zoomIn").addEventListener("click", ()=> UI.stepZoom(+1));
@@ -12132,8 +12243,11 @@ function init(){
   // affichage intro
   UI.show("introOverlay");
   try{
-    const e2e = new URLSearchParams(location.search).get("e2e");
-    if(e2e === "hub"){ UI.hide("introOverlay"); UI.hub.open(); }
+    const q = new URLSearchParams(location.search);
+    const e2e = q.get("e2e");
+    const mode = q.get("mode");
+    if(mode === "aleatoire" || q.get("random") === "1"){ UI.hide("introOverlay"); RandomGauntlet.start(); }
+    else if(e2e === "hub"){ UI.hide("introOverlay"); UI.hub.open(); }
     else if(e2e === "creator"){ UI.hide("introOverlay"); UI.charGen.open(); }
     else if(e2e === "spells"){ UI.hide("introOverlay"); UI.spellEd.open(); UI.spellEd.compose(); }
     else if(e2e === "combat"){ UI.hide("introOverlay"); _pendingSimulator = true; newRun(); }
