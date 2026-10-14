@@ -89,10 +89,13 @@ describe("G — game feel", () => {
     assert.match(html, /DÉPLOIEMENT TACTIQUE/);
   });
 
-  it("hub thématisé par biome + flux galactique", () => {
-    assert.match(html, /biome-"\+planet\.biome/);
+  it("hub limité au combat, au créateur et à l'éditeur de sorts", () => {
     assert.match(html, /id="hubPlanet"/);
-    assert.match(html, /FLUX GALACTIQUE/);
+    assert.match(html, /id:"combat"/);
+    assert.match(html, /id:"chargen"/);
+    assert.match(html, /id:"spells"/);
+    assert.doesNotMatch(html, /FLUX GALACTIQUE/);
+    assert.doesNotMatch(html, /name:"BUREAU LOCAL"/);
   });
 
   it("ECHO : équipement visible + marqueur cible", () => {
@@ -102,8 +105,8 @@ describe("G — game feel", () => {
   });
 });
 
-describe("V3.4 — version", () => {
-  it("titre V3.4.x", () => {
-    assert.match(html, /NEURO CORE — V3\.4\.\d/);
+describe("V3.5 — version", () => {
+  it("titre V3.5.x", () => {
+    assert.match(html, /NEURO CORE — V3\.5\.\d/);
   });
 });

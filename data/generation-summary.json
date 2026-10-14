@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-10-14T14:44:01.645Z",
+  "seed": 1889,
+  "composed": 168,
+  "discardedAtCompose": 0,
+  "droppedAtAudit": 0,
+  "adjusted": 93,
+  "kept": 168,
+  "metrics": {
+    "byType": {
+      "damage": 126,
+      "heal": 21,
+      "shield": 21
+    },
+    "avgDamagePerCost": 4.1,
+    "minPerCost": 4,
+    "maxPerCost": 6
+  }
+}

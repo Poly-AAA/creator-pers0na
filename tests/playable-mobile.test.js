@@ -27,11 +27,13 @@ describe("V3.4.8 — jeu jouable mobile", () => {
     assert.match(html, /ascensions\|\|0\) < 1/);
   });
 
-  it("CTA hub Bureau local premier run", () => {
-    assert.match(html, /COMMENCER — BUREAU LOCAL/);
+  it("CTA hub combat premier run", () => {
+    assert.match(html, /COMMENCER — COMBAT/);
+    assert.match(html, /ÉDITEUR DE SORTS/);
+    assert.match(html, /CRÉATEUR/);
   });
 
-  it("version V3.4.8", () => {
-    assert.match(html, /NEURO CORE — V3\.4\.8/);
+  it("version V3.5.0", () => {
+    assert.match(html, /NEURO CORE — V3\.5\.0/);
   });
 });

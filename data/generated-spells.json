@@ -1,0 +1,4740 @@
+[
+  {
+    "id": "gen_attack_entaille_base",
+    "name": "Entaille · Attack1",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Entaille (Attack1).",
+    "anim": "attack",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_attack_entaille_percage",
+    "name": "Entaille · Attack1 (Perçage)",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Entaille (Attack1) · Perçage.",
+    "anim": "attack",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      }
+    ],
+    "bakedEvo": {
+      "pierce": 0.25
+    },
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_attack_entaille_poussee_allonge",
+    "name": "Entaille · Attack1 (Poussée, Allonge)",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Entaille (Attack1) · Poussée, Allonge.",
+    "anim": "attack",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      },
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "push": 1,
+      "range": 1
+    },
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_attack_impact_base",
+    "name": "Impact · Attack1",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Impact (Attack1) · repousse.",
+    "anim": "attack",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack_impact_percage",
+    "name": "Impact · Attack1 (Perçage)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Impact (Attack1) · repousse · Perçage.",
+    "anim": "attack",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      }
+    ],
+    "bakedEvo": {
+      "pierce": 0.25
+    },
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack_impact_drain_econome",
+    "name": "Impact · Attack1 (Drain neural, Économe)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Impact (Attack1) · repousse · Drain neural, Économe.",
+    "anim": "attack",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      },
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1,
+      "cost": -1
+    },
+    "dmg": [
+      9,
+      15
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack_arc_base",
+    "name": "Arc · Attack1",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Arc (Attack1) · retire des PA.",
+    "anim": "attack",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack_arc_drain",
+    "name": "Arc · Attack1 (Drain neural)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Arc (Attack1) · retire des PA · Drain neural.",
+    "anim": "attack",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack_arc_drain_poussee",
+    "name": "Arc · Attack1 (Drain neural, Poussée)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Arc (Attack1) · retire des PA · Drain neural, Poussée.",
+    "anim": "attack",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      },
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1,
+      "push": 1
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack_brulure_base",
+    "name": "Brûlure · Attack1",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Brûlure (Attack1).",
+    "anim": "attack",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_attack_brulure_frappe",
+    "name": "Brûlure · Attack1 (Frappe lourde)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Brûlure (Attack1) · Frappe lourde.",
+    "anim": "attack",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "frappe",
+        "name": "Frappe lourde",
+        "key": "dmg",
+        "val": 2
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 2
+    },
+    "dmg": [
+      12,
+      17
+    ]
+  },
+  {
+    "id": "gen_attack_brulure_allonge_drain",
+    "name": "Brûlure · Attack1 (Allonge, Drain neural)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Brûlure (Attack1) · Allonge, Drain neural.",
+    "anim": "attack",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      },
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1,
+      "drain": 1
+    },
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_attack_parasite_base",
+    "name": "Parasite · Attack1",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Parasite (Attack1) · retire des PA.",
+    "anim": "attack",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack_parasite_econome",
+    "name": "Parasite · Attack1 (Économe)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Parasite (Attack1) · retire des PA · Économe.",
+    "anim": "attack",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack_parasite_drain_percage",
+    "name": "Parasite · Attack1 (Drain neural, Perçage)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Parasite (Attack1) · retire des PA · Drain neural, Perçage.",
+    "anim": "attack",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      },
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1,
+      "pierce": 0.25
+    },
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack_onde_base",
+    "name": "Onde · Attack1",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Onde (Attack1) · repousse.",
+    "anim": "attack",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack_onde_poussee",
+    "name": "Onde · Attack1 (Poussée)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Onde (Attack1) · repousse · Poussée.",
+    "anim": "attack",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "push": 1
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack_onde_surcharge_drain",
+    "name": "Onde · Attack1 (Surcharge, Drain neural)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Onde (Attack1) · repousse · Surcharge, Drain neural.",
+    "anim": "attack",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      },
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 4,
+      "drain": 1
+    },
+    "dmg": [
+      6,
+      10
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack_soin_base",
+    "name": "Soin · Attack1",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "heal",
+    "desc": "Soin (Attack1).",
+    "anim": "attack",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "heal": 14
+  },
+  {
+    "id": "gen_attack_soin_allonge",
+    "name": "Soin · Attack1 (Allonge)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "heal",
+    "desc": "Soin (Attack1) · Allonge.",
+    "anim": "attack",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1
+    },
+    "heal": 14
+  },
+  {
+    "id": "gen_attack_soin_econome_allonge",
+    "name": "Soin · Attack1 (Économe, Allonge)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "heal",
+    "desc": "Soin (Attack1) · Économe, Allonge.",
+    "anim": "attack",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      },
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1,
+      "range": 1
+    },
+    "heal": 14
+  },
+  {
+    "id": "gen_attack_barriere_base",
+    "name": "Barrière · Attack1",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "shield",
+    "desc": "Barrière (Attack1).",
+    "anim": "attack",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_attack_barriere_allonge",
+    "name": "Barrière · Attack1 (Allonge)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "shield",
+    "desc": "Barrière (Attack1) · Allonge.",
+    "anim": "attack",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_attack_barriere_econome_allonge",
+    "name": "Barrière · Attack1 (Économe, Allonge)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "shield",
+    "desc": "Barrière (Attack1) · Économe, Allonge.",
+    "anim": "attack",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      },
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1,
+      "range": 1
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_attack2_entaille_base",
+    "name": "Entaille · Attack2",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Entaille (Attack2).",
+    "anim": "attack2",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_attack2_entaille_drain",
+    "name": "Entaille · Attack2 (Drain neural)",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Entaille (Attack2) · Drain neural.",
+    "anim": "attack2",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1
+    },
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_attack2_entaille_percage_econome",
+    "name": "Entaille · Attack2 (Perçage, Économe)",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Entaille (Attack2) · Perçage, Économe.",
+    "anim": "attack2",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      },
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "pierce": 0.25,
+      "cost": -1
+    },
+    "dmg": [
+      6,
+      10
+    ]
+  },
+  {
+    "id": "gen_attack2_impact_base",
+    "name": "Impact · Attack2",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Impact (Attack2) · repousse.",
+    "anim": "attack2",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack2_impact_poussee",
+    "name": "Impact · Attack2 (Poussée)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Impact (Attack2) · repousse · Poussée.",
+    "anim": "attack2",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "push": 1
+    },
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack2_impact_drain_allonge",
+    "name": "Impact · Attack2 (Drain neural, Allonge)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Impact (Attack2) · repousse · Drain neural, Allonge.",
+    "anim": "attack2",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      },
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1,
+      "range": 1
+    },
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack2_arc_base",
+    "name": "Arc · Attack2",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Arc (Attack2) · retire des PA.",
+    "anim": "attack2",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack2_arc_drain",
+    "name": "Arc · Attack2 (Drain neural)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Arc (Attack2) · retire des PA · Drain neural.",
+    "anim": "attack2",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack2_arc_econome_allonge",
+    "name": "Arc · Attack2 (Économe, Allonge)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Arc (Attack2) · retire des PA · Économe, Allonge.",
+    "anim": "attack2",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      },
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1,
+      "range": 1
+    },
+    "dmg": [
+      6,
+      10
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack2_brulure_base",
+    "name": "Brûlure · Attack2",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Brûlure (Attack2).",
+    "anim": "attack2",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_attack2_brulure_drain",
+    "name": "Brûlure · Attack2 (Drain neural)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Brûlure (Attack2) · Drain neural.",
+    "anim": "attack2",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1
+    },
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_attack2_brulure_allonge_drain",
+    "name": "Brûlure · Attack2 (Allonge, Drain neural)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Brûlure (Attack2) · Allonge, Drain neural.",
+    "anim": "attack2",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      },
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1,
+      "drain": 1
+    },
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_attack2_parasite_base",
+    "name": "Parasite · Attack2",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Parasite (Attack2) · retire des PA.",
+    "anim": "attack2",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack2_parasite_frappe",
+    "name": "Parasite · Attack2 (Frappe lourde)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Parasite (Attack2) · retire des PA · Frappe lourde.",
+    "anim": "attack2",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "frappe",
+        "name": "Frappe lourde",
+        "key": "dmg",
+        "val": 2
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 2
+    },
+    "dmg": [
+      12,
+      16
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack2_parasite_drain_percage",
+    "name": "Parasite · Attack2 (Drain neural, Perçage)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Parasite (Attack2) · retire des PA · Drain neural, Perçage.",
+    "anim": "attack2",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      },
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1,
+      "pierce": 0.25
+    },
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack2_onde_base",
+    "name": "Onde · Attack2",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Onde (Attack2) · repousse.",
+    "anim": "attack2",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack2_onde_percage",
+    "name": "Onde · Attack2 (Perçage)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Onde (Attack2) · repousse · Perçage.",
+    "anim": "attack2",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      }
+    ],
+    "bakedEvo": {
+      "pierce": 0.25
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack2_onde_drain_surcharge",
+    "name": "Onde · Attack2 (Drain neural, Surcharge)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Onde (Attack2) · repousse · Drain neural, Surcharge.",
+    "anim": "attack2",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      },
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1,
+      "dmg": 4
+    },
+    "dmg": [
+      6,
+      10
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack2_soin_base",
+    "name": "Soin · Attack2",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "heal",
+    "desc": "Soin (Attack2).",
+    "anim": "attack2",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "heal": 14
+  },
+  {
+    "id": "gen_attack2_soin_econome",
+    "name": "Soin · Attack2 (Économe)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "heal",
+    "desc": "Soin (Attack2) · Économe.",
+    "anim": "attack2",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1
+    },
+    "heal": 14
+  },
+  {
+    "id": "gen_attack2_soin_soinplus_econome",
+    "name": "Soin · Attack2 (Régénération, Économe)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "heal",
+    "desc": "Soin (Attack2) · Régénération, Économe.",
+    "anim": "attack2",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "soinplus",
+        "name": "Régénération",
+        "key": "heal",
+        "val": 6
+      },
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "heal": 6,
+      "cost": -1
+    },
+    "heal": 9
+  },
+  {
+    "id": "gen_attack2_barriere_base",
+    "name": "Barrière · Attack2",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "shield",
+    "desc": "Barrière (Attack2).",
+    "anim": "attack2",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_attack2_barriere_allonge",
+    "name": "Barrière · Attack2 (Allonge)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "shield",
+    "desc": "Barrière (Attack2) · Allonge.",
+    "anim": "attack2",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_attack2_barriere_allonge_blindage",
+    "name": "Barrière · Attack2 (Allonge, Blindage)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "shield",
+    "desc": "Barrière (Attack2) · Allonge, Blindage.",
+    "anim": "attack2",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      },
+      {
+        "id": "blindage",
+        "name": "Blindage",
+        "key": "shieldAmt",
+        "val": 8
+      }
+    ],
+    "bakedEvo": {
+      "range": 1,
+      "shieldAmt": 8
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_attack3_entaille_base",
+    "name": "Entaille · Attack3",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Entaille (Attack3).",
+    "anim": "attack3",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_attack3_entaille_allonge",
+    "name": "Entaille · Attack3 (Allonge)",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Entaille (Attack3) · Allonge.",
+    "anim": "attack3",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1
+    },
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_attack3_entaille_surcharge_drain",
+    "name": "Entaille · Attack3 (Surcharge, Drain neural)",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Entaille (Attack3) · Surcharge, Drain neural.",
+    "anim": "attack3",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      },
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 4,
+      "drain": 1
+    },
+    "dmg": [
+      6,
+      10
+    ]
+  },
+  {
+    "id": "gen_attack3_impact_base",
+    "name": "Impact · Attack3",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Impact (Attack3) · repousse.",
+    "anim": "attack3",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack3_impact_drain",
+    "name": "Impact · Attack3 (Drain neural)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Impact (Attack3) · repousse · Drain neural.",
+    "anim": "attack3",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1
+    },
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack3_impact_surcharge_allonge",
+    "name": "Impact · Attack3 (Surcharge, Allonge)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Impact (Attack3) · repousse · Surcharge, Allonge.",
+    "anim": "attack3",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      },
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 4,
+      "range": 1
+    },
+    "dmg": [
+      9,
+      15
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack3_arc_base",
+    "name": "Arc · Attack3",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Arc (Attack3) · retire des PA.",
+    "anim": "attack3",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack3_arc_frappe",
+    "name": "Arc · Attack3 (Frappe lourde)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Arc (Attack3) · retire des PA · Frappe lourde.",
+    "anim": "attack3",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "frappe",
+        "name": "Frappe lourde",
+        "key": "dmg",
+        "val": 2
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 2
+    },
+    "dmg": [
+      8,
+      12
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack3_arc_drain_econome",
+    "name": "Arc · Attack3 (Drain neural, Économe)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Arc (Attack3) · retire des PA · Drain neural, Économe.",
+    "anim": "attack3",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      },
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1,
+      "cost": -1
+    },
+    "dmg": [
+      6,
+      10
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack3_brulure_base",
+    "name": "Brûlure · Attack3",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Brûlure (Attack3).",
+    "anim": "attack3",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_attack3_brulure_poussee",
+    "name": "Brûlure · Attack3 (Poussée)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Brûlure (Attack3) · Poussée.",
+    "anim": "attack3",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "push": 1
+    },
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_attack3_brulure_allonge_drain",
+    "name": "Brûlure · Attack3 (Allonge, Drain neural)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Brûlure (Attack3) · Allonge, Drain neural.",
+    "anim": "attack3",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      },
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1,
+      "drain": 1
+    },
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_attack3_parasite_base",
+    "name": "Parasite · Attack3",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Parasite (Attack3) · retire des PA.",
+    "anim": "attack3",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack3_parasite_percage",
+    "name": "Parasite · Attack3 (Perçage)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Parasite (Attack3) · retire des PA · Perçage.",
+    "anim": "attack3",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      }
+    ],
+    "bakedEvo": {
+      "pierce": 0.25
+    },
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack3_parasite_surcharge_econome",
+    "name": "Parasite · Attack3 (Surcharge, Économe)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 1,
+    "type": "damage",
+    "desc": "Parasite (Attack3) · retire des PA · Surcharge, Économe.",
+    "anim": "attack3",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      },
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 4,
+      "cost": -1
+    },
+    "dmg": [
+      6,
+      10
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack3_onde_base",
+    "name": "Onde · Attack3",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Onde (Attack3) · repousse.",
+    "anim": "attack3",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack3_onde_poussee",
+    "name": "Onde · Attack3 (Poussée)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Onde (Attack3) · repousse · Poussée.",
+    "anim": "attack3",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "push": 1
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack3_onde_drain_surcharge",
+    "name": "Onde · Attack3 (Drain neural, Surcharge)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 1,
+    "type": "damage",
+    "desc": "Onde (Attack3) · repousse · Drain neural, Surcharge.",
+    "anim": "attack3",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      },
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1,
+      "dmg": 4
+    },
+    "dmg": [
+      6,
+      10
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack3_soin_base",
+    "name": "Soin · Attack3",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "heal",
+    "desc": "Soin (Attack3).",
+    "anim": "attack3",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "heal": 14
+  },
+  {
+    "id": "gen_attack3_soin_soinplus",
+    "name": "Soin · Attack3 (Régénération)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "heal",
+    "desc": "Soin (Attack3) · Régénération.",
+    "anim": "attack3",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "soinplus",
+        "name": "Régénération",
+        "key": "heal",
+        "val": 6
+      }
+    ],
+    "bakedEvo": {
+      "heal": 6
+    },
+    "heal": 14
+  },
+  {
+    "id": "gen_attack3_soin_allonge_econome",
+    "name": "Soin · Attack3 (Allonge, Économe)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "heal",
+    "desc": "Soin (Attack3) · Allonge, Économe.",
+    "anim": "attack3",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      },
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1,
+      "cost": -1
+    },
+    "heal": 14
+  },
+  {
+    "id": "gen_attack3_barriere_base",
+    "name": "Barrière · Attack3",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "shield",
+    "desc": "Barrière (Attack3).",
+    "anim": "attack3",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_attack3_barriere_econome",
+    "name": "Barrière · Attack3 (Économe)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "shield",
+    "desc": "Barrière (Attack3) · Économe.",
+    "anim": "attack3",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_attack3_barriere_blindage_econome",
+    "name": "Barrière · Attack3 (Blindage, Économe)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 1,
+    "type": "shield",
+    "desc": "Barrière (Attack3) · Blindage, Économe.",
+    "anim": "attack3",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "blindage",
+        "name": "Blindage",
+        "key": "shieldAmt",
+        "val": 8
+      },
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "shieldAmt": 8,
+      "cost": -1
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_attack4_entaille_base",
+    "name": "Entaille · Attack4",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 2,
+    "type": "damage",
+    "desc": "Entaille (Attack4).",
+    "anim": "attack4",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_attack4_entaille_drain",
+    "name": "Entaille · Attack4 (Drain neural)",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 2,
+    "type": "damage",
+    "desc": "Entaille (Attack4) · Drain neural.",
+    "anim": "attack4",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1
+    },
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_attack4_entaille_drain_percage",
+    "name": "Entaille · Attack4 (Drain neural, Perçage)",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 2,
+    "type": "damage",
+    "desc": "Entaille (Attack4) · Drain neural, Perçage.",
+    "anim": "attack4",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      },
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1,
+      "pierce": 0.25
+    },
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_attack4_impact_base",
+    "name": "Impact · Attack4",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 2,
+    "type": "damage",
+    "desc": "Impact (Attack4) · repousse.",
+    "anim": "attack4",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack4_impact_econome",
+    "name": "Impact · Attack4 (Économe)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 2,
+    "type": "damage",
+    "desc": "Impact (Attack4) · repousse · Économe.",
+    "anim": "attack4",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1
+    },
+    "dmg": [
+      9,
+      15
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack4_impact_allonge_poussee",
+    "name": "Impact · Attack4 (Allonge, Poussée)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 2,
+    "type": "damage",
+    "desc": "Impact (Attack4) · repousse · Allonge, Poussée.",
+    "anim": "attack4",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      },
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1,
+      "push": 1
+    },
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack4_arc_base",
+    "name": "Arc · Attack4",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 2,
+    "type": "damage",
+    "desc": "Arc (Attack4) · retire des PA.",
+    "anim": "attack4",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack4_arc_percage",
+    "name": "Arc · Attack4 (Perçage)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 2,
+    "type": "damage",
+    "desc": "Arc (Attack4) · retire des PA · Perçage.",
+    "anim": "attack4",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      }
+    ],
+    "bakedEvo": {
+      "pierce": 0.25
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack4_arc_percage_surcharge",
+    "name": "Arc · Attack4 (Perçage, Surcharge)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 2,
+    "type": "damage",
+    "desc": "Arc (Attack4) · retire des PA · Perçage, Surcharge.",
+    "anim": "attack4",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      },
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      }
+    ],
+    "bakedEvo": {
+      "pierce": 0.25,
+      "dmg": 4
+    },
+    "dmg": [
+      6,
+      10
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack4_brulure_base",
+    "name": "Brûlure · Attack4",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 2,
+    "type": "damage",
+    "desc": "Brûlure (Attack4).",
+    "anim": "attack4",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_attack4_brulure_allonge",
+    "name": "Brûlure · Attack4 (Allonge)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 2,
+    "type": "damage",
+    "desc": "Brûlure (Attack4) · Allonge.",
+    "anim": "attack4",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1
+    },
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_attack4_brulure_frappe_allonge",
+    "name": "Brûlure · Attack4 (Frappe lourde, Allonge)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 2,
+    "type": "damage",
+    "desc": "Brûlure (Attack4) · Frappe lourde, Allonge.",
+    "anim": "attack4",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "frappe",
+        "name": "Frappe lourde",
+        "key": "dmg",
+        "val": 2
+      },
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 2,
+      "range": 1
+    },
+    "dmg": [
+      12,
+      17
+    ]
+  },
+  {
+    "id": "gen_attack4_parasite_base",
+    "name": "Parasite · Attack4",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 2,
+    "type": "damage",
+    "desc": "Parasite (Attack4) · retire des PA.",
+    "anim": "attack4",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack4_parasite_drain",
+    "name": "Parasite · Attack4 (Drain neural)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 2,
+    "type": "damage",
+    "desc": "Parasite (Attack4) · retire des PA · Drain neural.",
+    "anim": "attack4",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1
+    },
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack4_parasite_percage_frappe",
+    "name": "Parasite · Attack4 (Perçage, Frappe lourde)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 2,
+    "type": "damage",
+    "desc": "Parasite (Attack4) · retire des PA · Perçage, Frappe lourde.",
+    "anim": "attack4",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      },
+      {
+        "id": "frappe",
+        "name": "Frappe lourde",
+        "key": "dmg",
+        "val": 2
+      }
+    ],
+    "bakedEvo": {
+      "pierce": 0.25,
+      "dmg": 2
+    },
+    "dmg": [
+      12,
+      16
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_attack4_onde_base",
+    "name": "Onde · Attack4",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 2,
+    "type": "damage",
+    "desc": "Onde (Attack4) · repousse.",
+    "anim": "attack4",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack4_onde_surcharge",
+    "name": "Onde · Attack4 (Surcharge)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 2,
+    "type": "damage",
+    "desc": "Onde (Attack4) · repousse · Surcharge.",
+    "anim": "attack4",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 4
+    },
+    "dmg": [
+      6,
+      10
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack4_onde_poussee_drain",
+    "name": "Onde · Attack4 (Poussée, Drain neural)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 2,
+    "type": "damage",
+    "desc": "Onde (Attack4) · repousse · Poussée, Drain neural.",
+    "anim": "attack4",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      },
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "push": 1,
+      "drain": 1
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_attack4_soin_base",
+    "name": "Soin · Attack4",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 2,
+    "type": "heal",
+    "desc": "Soin (Attack4).",
+    "anim": "attack4",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "heal": 14
+  },
+  {
+    "id": "gen_attack4_soin_econome",
+    "name": "Soin · Attack4 (Économe)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 2,
+    "type": "heal",
+    "desc": "Soin (Attack4) · Économe.",
+    "anim": "attack4",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1
+    },
+    "heal": 14
+  },
+  {
+    "id": "gen_attack4_soin_econome_soinplus",
+    "name": "Soin · Attack4 (Économe, Régénération)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 2,
+    "type": "heal",
+    "desc": "Soin (Attack4) · Économe, Régénération.",
+    "anim": "attack4",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      },
+      {
+        "id": "soinplus",
+        "name": "Régénération",
+        "key": "heal",
+        "val": 6
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1,
+      "heal": 6
+    },
+    "heal": 9
+  },
+  {
+    "id": "gen_attack4_barriere_base",
+    "name": "Barrière · Attack4",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 2,
+    "type": "shield",
+    "desc": "Barrière (Attack4).",
+    "anim": "attack4",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_attack4_barriere_allonge",
+    "name": "Barrière · Attack4 (Allonge)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 2,
+    "type": "shield",
+    "desc": "Barrière (Attack4) · Allonge.",
+    "anim": "attack4",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_attack4_barriere_econome_blindage",
+    "name": "Barrière · Attack4 (Économe, Blindage)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 2,
+    "type": "shield",
+    "desc": "Barrière (Attack4) · Économe, Blindage.",
+    "anim": "attack4",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      },
+      {
+        "id": "blindage",
+        "name": "Blindage",
+        "key": "shieldAmt",
+        "val": 8
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1,
+      "shieldAmt": 8
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_runAttack_entaille_base",
+    "name": "Entaille · Course-attaque",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 3,
+    "type": "damage",
+    "desc": "Entaille (Course-attaque).",
+    "anim": "runAttack",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_runAttack_entaille_surcharge",
+    "name": "Entaille · Course-attaque (Surcharge)",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 3,
+    "type": "damage",
+    "desc": "Entaille (Course-attaque) · Surcharge.",
+    "anim": "runAttack",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 4
+    },
+    "dmg": [
+      6,
+      10
+    ]
+  },
+  {
+    "id": "gen_runAttack_entaille_frappe_allonge",
+    "name": "Entaille · Course-attaque (Frappe lourde, Allonge)",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 3,
+    "type": "damage",
+    "desc": "Entaille (Course-attaque) · Frappe lourde, Allonge.",
+    "anim": "runAttack",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "frappe",
+        "name": "Frappe lourde",
+        "key": "dmg",
+        "val": 2
+      },
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 2,
+      "range": 1
+    },
+    "dmg": [
+      8,
+      12
+    ]
+  },
+  {
+    "id": "gen_runAttack_impact_base",
+    "name": "Impact · Course-attaque",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 3,
+    "type": "damage",
+    "desc": "Impact (Course-attaque) · repousse.",
+    "anim": "runAttack",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_runAttack_impact_poussee",
+    "name": "Impact · Course-attaque (Poussée)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 3,
+    "type": "damage",
+    "desc": "Impact (Course-attaque) · repousse · Poussée.",
+    "anim": "runAttack",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "push": 1
+    },
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_runAttack_impact_percage_surcharge",
+    "name": "Impact · Course-attaque (Perçage, Surcharge)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 3,
+    "type": "damage",
+    "desc": "Impact (Course-attaque) · repousse · Perçage, Surcharge.",
+    "anim": "runAttack",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      },
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      }
+    ],
+    "bakedEvo": {
+      "pierce": 0.25,
+      "dmg": 4
+    },
+    "dmg": [
+      9,
+      15
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_runAttack_arc_base",
+    "name": "Arc · Course-attaque",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 3,
+    "type": "damage",
+    "desc": "Arc (Course-attaque) · retire des PA.",
+    "anim": "runAttack",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_runAttack_arc_drain",
+    "name": "Arc · Course-attaque (Drain neural)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 3,
+    "type": "damage",
+    "desc": "Arc (Course-attaque) · retire des PA · Drain neural.",
+    "anim": "runAttack",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_runAttack_arc_econome_surcharge",
+    "name": "Arc · Course-attaque (Économe, Surcharge)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 3,
+    "type": "damage",
+    "desc": "Arc (Course-attaque) · retire des PA · Économe, Surcharge.",
+    "anim": "runAttack",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      },
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1,
+      "dmg": 4
+    },
+    "dmg": [
+      5,
+      7
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_runAttack_brulure_base",
+    "name": "Brûlure · Course-attaque",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 3,
+    "type": "damage",
+    "desc": "Brûlure (Course-attaque).",
+    "anim": "runAttack",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_runAttack_brulure_surcharge",
+    "name": "Brûlure · Course-attaque (Surcharge)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 3,
+    "type": "damage",
+    "desc": "Brûlure (Course-attaque) · Surcharge.",
+    "anim": "runAttack",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 4
+    },
+    "dmg": [
+      10,
+      15
+    ]
+  },
+  {
+    "id": "gen_runAttack_brulure_drain_frappe",
+    "name": "Brûlure · Course-attaque (Drain neural, Frappe lourde)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 3,
+    "type": "damage",
+    "desc": "Brûlure (Course-attaque) · Drain neural, Frappe lourde.",
+    "anim": "runAttack",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      },
+      {
+        "id": "frappe",
+        "name": "Frappe lourde",
+        "key": "dmg",
+        "val": 2
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1,
+      "dmg": 2
+    },
+    "dmg": [
+      12,
+      17
+    ]
+  },
+  {
+    "id": "gen_runAttack_parasite_base",
+    "name": "Parasite · Course-attaque",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 3,
+    "type": "damage",
+    "desc": "Parasite (Course-attaque) · retire des PA.",
+    "anim": "runAttack",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_runAttack_parasite_econome",
+    "name": "Parasite · Course-attaque (Économe)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 3,
+    "type": "damage",
+    "desc": "Parasite (Course-attaque) · retire des PA · Économe.",
+    "anim": "runAttack",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_runAttack_parasite_drain_allonge",
+    "name": "Parasite · Course-attaque (Drain neural, Allonge)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 3,
+    "type": "damage",
+    "desc": "Parasite (Course-attaque) · retire des PA · Drain neural, Allonge.",
+    "anim": "runAttack",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      },
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1,
+      "range": 1
+    },
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_runAttack_onde_base",
+    "name": "Onde · Course-attaque",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 3,
+    "type": "damage",
+    "desc": "Onde (Course-attaque) · repousse.",
+    "anim": "runAttack",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_runAttack_onde_percage",
+    "name": "Onde · Course-attaque (Perçage)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 3,
+    "type": "damage",
+    "desc": "Onde (Course-attaque) · repousse · Perçage.",
+    "anim": "runAttack",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      }
+    ],
+    "bakedEvo": {
+      "pierce": 0.25
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_runAttack_onde_drain_percage",
+    "name": "Onde · Course-attaque (Drain neural, Perçage)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 3,
+    "type": "damage",
+    "desc": "Onde (Course-attaque) · repousse · Drain neural, Perçage.",
+    "anim": "runAttack",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      },
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1,
+      "pierce": 0.25
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_runAttack_soin_base",
+    "name": "Soin · Course-attaque",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 3,
+    "type": "heal",
+    "desc": "Soin (Course-attaque).",
+    "anim": "runAttack",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "heal": 14
+  },
+  {
+    "id": "gen_runAttack_soin_soinplus",
+    "name": "Soin · Course-attaque (Régénération)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 3,
+    "type": "heal",
+    "desc": "Soin (Course-attaque) · Régénération.",
+    "anim": "runAttack",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "soinplus",
+        "name": "Régénération",
+        "key": "heal",
+        "val": 6
+      }
+    ],
+    "bakedEvo": {
+      "heal": 6
+    },
+    "heal": 14
+  },
+  {
+    "id": "gen_runAttack_soin_soinplus_allonge",
+    "name": "Soin · Course-attaque (Régénération, Allonge)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 3,
+    "type": "heal",
+    "desc": "Soin (Course-attaque) · Régénération, Allonge.",
+    "anim": "runAttack",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "soinplus",
+        "name": "Régénération",
+        "key": "heal",
+        "val": 6
+      },
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "heal": 6,
+      "range": 1
+    },
+    "heal": 14
+  },
+  {
+    "id": "gen_runAttack_barriere_base",
+    "name": "Barrière · Course-attaque",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 3,
+    "type": "shield",
+    "desc": "Barrière (Course-attaque).",
+    "anim": "runAttack",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_runAttack_barriere_econome",
+    "name": "Barrière · Course-attaque (Économe)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 3,
+    "type": "shield",
+    "desc": "Barrière (Course-attaque) · Économe.",
+    "anim": "runAttack",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_runAttack_barriere_econome_blindage",
+    "name": "Barrière · Course-attaque (Économe, Blindage)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 3,
+    "type": "shield",
+    "desc": "Barrière (Course-attaque) · Économe, Blindage.",
+    "anim": "runAttack",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      },
+      {
+        "id": "blindage",
+        "name": "Blindage",
+        "key": "shieldAmt",
+        "val": 8
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1,
+      "shieldAmt": 8
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_strafeL_entaille_base",
+    "name": "Entaille · Strafe gauche",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Entaille (Strafe gauche).",
+    "anim": "strafeL",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_strafeL_entaille_allonge",
+    "name": "Entaille · Strafe gauche (Allonge)",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Entaille (Strafe gauche) · Allonge.",
+    "anim": "strafeL",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1
+    },
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_strafeL_entaille_frappe_econome",
+    "name": "Entaille · Strafe gauche (Frappe lourde, Économe)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Entaille (Strafe gauche) · Frappe lourde, Économe.",
+    "anim": "strafeL",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "frappe",
+        "name": "Frappe lourde",
+        "key": "dmg",
+        "val": 2
+      },
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 2,
+      "cost": -1
+    },
+    "dmg": [
+      8,
+      12
+    ]
+  },
+  {
+    "id": "gen_strafeL_impact_base",
+    "name": "Impact · Strafe gauche",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Impact (Strafe gauche) · repousse.",
+    "anim": "strafeL",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_strafeL_impact_econome",
+    "name": "Impact · Strafe gauche (Économe)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Impact (Strafe gauche) · repousse · Économe.",
+    "anim": "strafeL",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1
+    },
+    "dmg": [
+      9,
+      15
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_strafeL_impact_econome_percage",
+    "name": "Impact · Strafe gauche (Économe, Perçage)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Impact (Strafe gauche) · repousse · Économe, Perçage.",
+    "anim": "strafeL",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      },
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1,
+      "pierce": 0.25
+    },
+    "dmg": [
+      9,
+      15
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_strafeL_arc_base",
+    "name": "Arc · Strafe gauche",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Arc (Strafe gauche) · retire des PA.",
+    "anim": "strafeL",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_strafeL_arc_poussee",
+    "name": "Arc · Strafe gauche (Poussée)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Arc (Strafe gauche) · retire des PA · Poussée.",
+    "anim": "strafeL",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "push": 1
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_strafeL_arc_econome_poussee",
+    "name": "Arc · Strafe gauche (Économe, Poussée)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Arc (Strafe gauche) · retire des PA · Économe, Poussée.",
+    "anim": "strafeL",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      },
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1,
+      "push": 1
+    },
+    "dmg": [
+      6,
+      10
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_strafeL_brulure_base",
+    "name": "Brûlure · Strafe gauche",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Brûlure (Strafe gauche).",
+    "anim": "strafeL",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_strafeL_brulure_allonge",
+    "name": "Brûlure · Strafe gauche (Allonge)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Brûlure (Strafe gauche) · Allonge.",
+    "anim": "strafeL",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1
+    },
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_strafeL_brulure_econome_poussee",
+    "name": "Brûlure · Strafe gauche (Économe, Poussée)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Brûlure (Strafe gauche) · Économe, Poussée.",
+    "anim": "strafeL",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      },
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1,
+      "push": 1
+    },
+    "dmg": [
+      10,
+      15
+    ]
+  },
+  {
+    "id": "gen_strafeL_parasite_base",
+    "name": "Parasite · Strafe gauche",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Parasite (Strafe gauche) · retire des PA.",
+    "anim": "strafeL",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_strafeL_parasite_drain",
+    "name": "Parasite · Strafe gauche (Drain neural)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Parasite (Strafe gauche) · retire des PA · Drain neural.",
+    "anim": "strafeL",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1
+    },
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_strafeL_parasite_surcharge_frappe",
+    "name": "Parasite · Strafe gauche (Surcharge, Frappe lourde)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Parasite (Strafe gauche) · retire des PA · Surcharge, Frappe lourde.",
+    "anim": "strafeL",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      },
+      {
+        "id": "frappe",
+        "name": "Frappe lourde",
+        "key": "dmg",
+        "val": 2
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 6
+    },
+    "dmg": [
+      8,
+      12
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_strafeL_onde_base",
+    "name": "Onde · Strafe gauche",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Onde (Strafe gauche) · repousse.",
+    "anim": "strafeL",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_strafeL_onde_allonge",
+    "name": "Onde · Strafe gauche (Allonge)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Onde (Strafe gauche) · repousse · Allonge.",
+    "anim": "strafeL",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_strafeL_onde_frappe_poussee",
+    "name": "Onde · Strafe gauche (Frappe lourde, Poussée)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Onde (Strafe gauche) · repousse · Frappe lourde, Poussée.",
+    "anim": "strafeL",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "frappe",
+        "name": "Frappe lourde",
+        "key": "dmg",
+        "val": 2
+      },
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 2,
+      "push": 1
+    },
+    "dmg": [
+      8,
+      12
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_strafeL_soin_base",
+    "name": "Soin · Strafe gauche",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 4,
+    "type": "heal",
+    "desc": "Soin (Strafe gauche).",
+    "anim": "strafeL",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "heal": 14
+  },
+  {
+    "id": "gen_strafeL_soin_allonge",
+    "name": "Soin · Strafe gauche (Allonge)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 4,
+    "type": "heal",
+    "desc": "Soin (Strafe gauche) · Allonge.",
+    "anim": "strafeL",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1
+    },
+    "heal": 14
+  },
+  {
+    "id": "gen_strafeL_soin_soinplus_allonge",
+    "name": "Soin · Strafe gauche (Régénération, Allonge)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 4,
+    "type": "heal",
+    "desc": "Soin (Strafe gauche) · Régénération, Allonge.",
+    "anim": "strafeL",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "soinplus",
+        "name": "Régénération",
+        "key": "heal",
+        "val": 6
+      },
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "heal": 6,
+      "range": 1
+    },
+    "heal": 14
+  },
+  {
+    "id": "gen_strafeL_barriere_base",
+    "name": "Barrière · Strafe gauche",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 4,
+    "type": "shield",
+    "desc": "Barrière (Strafe gauche).",
+    "anim": "strafeL",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_strafeL_barriere_blindage",
+    "name": "Barrière · Strafe gauche (Blindage)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 4,
+    "type": "shield",
+    "desc": "Barrière (Strafe gauche) · Blindage.",
+    "anim": "strafeL",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "blindage",
+        "name": "Blindage",
+        "key": "shieldAmt",
+        "val": 8
+      }
+    ],
+    "bakedEvo": {
+      "shieldAmt": 8
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_strafeL_barriere_allonge_econome",
+    "name": "Barrière · Strafe gauche (Allonge, Économe)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 4,
+    "type": "shield",
+    "desc": "Barrière (Strafe gauche) · Allonge, Économe.",
+    "anim": "strafeL",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      },
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1,
+      "cost": -1
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_strafeR_entaille_base",
+    "name": "Entaille · Strafe droite",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Entaille (Strafe droite).",
+    "anim": "strafeR",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_strafeR_entaille_drain",
+    "name": "Entaille · Strafe droite (Drain neural)",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Entaille (Strafe droite) · Drain neural.",
+    "anim": "strafeR",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1
+    },
+    "dmg": [
+      10,
+      14
+    ]
+  },
+  {
+    "id": "gen_strafeR_entaille_econome_drain",
+    "name": "Entaille · Strafe droite (Économe, Drain neural)",
+    "school": "Cinétique",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Entaille (Strafe droite) · Économe, Drain neural.",
+    "anim": "strafeR",
+    "fx": "entaille",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      },
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1,
+      "drain": 1
+    },
+    "dmg": [
+      6,
+      10
+    ]
+  },
+  {
+    "id": "gen_strafeR_impact_base",
+    "name": "Impact · Strafe droite",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Impact (Strafe droite) · repousse.",
+    "anim": "strafeR",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_strafeR_impact_poussee",
+    "name": "Impact · Strafe droite (Poussée)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Impact (Strafe droite) · repousse · Poussée.",
+    "anim": "strafeR",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "push": 1
+    },
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_strafeR_impact_poussee_drain",
+    "name": "Impact · Strafe droite (Poussée, Drain neural)",
+    "school": "Cinétique",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Impact (Strafe droite) · repousse · Poussée, Drain neural.",
+    "anim": "strafeR",
+    "fx": "impact",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      },
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "push": 1,
+      "drain": 1
+    },
+    "dmg": [
+      13,
+      19
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_strafeR_arc_base",
+    "name": "Arc · Strafe droite",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Arc (Strafe droite) · retire des PA.",
+    "anim": "strafeR",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_strafeR_arc_frappe",
+    "name": "Arc · Strafe droite (Frappe lourde)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Arc (Strafe droite) · retire des PA · Frappe lourde.",
+    "anim": "strafeR",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "frappe",
+        "name": "Frappe lourde",
+        "key": "dmg",
+        "val": 2
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 2
+    },
+    "dmg": [
+      8,
+      12
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_strafeR_arc_drain_surcharge",
+    "name": "Arc · Strafe droite (Drain neural, Surcharge)",
+    "school": "Électrique",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Arc (Strafe droite) · retire des PA · Drain neural, Surcharge.",
+    "anim": "strafeR",
+    "fx": "arc",
+    "anchor": "limb",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      },
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1,
+      "dmg": 4
+    },
+    "dmg": [
+      6,
+      10
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_strafeR_brulure_base",
+    "name": "Brûlure · Strafe droite",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Brûlure (Strafe droite).",
+    "anim": "strafeR",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_strafeR_brulure_surcharge",
+    "name": "Brûlure · Strafe droite (Surcharge)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Brûlure (Strafe droite) · Surcharge.",
+    "anim": "strafeR",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "surcharge",
+        "name": "Surcharge",
+        "key": "dmg",
+        "val": 4
+      }
+    ],
+    "bakedEvo": {
+      "dmg": 4
+    },
+    "dmg": [
+      10,
+      15
+    ]
+  },
+  {
+    "id": "gen_strafeR_brulure_percage_poussee",
+    "name": "Brûlure · Strafe droite (Perçage, Poussée)",
+    "school": "Thermique",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Brûlure (Strafe droite) · Perçage, Poussée.",
+    "anim": "strafeR",
+    "fx": "brulure",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      },
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "pierce": 0.25,
+      "push": 1
+    },
+    "dmg": [
+      14,
+      19
+    ]
+  },
+  {
+    "id": "gen_strafeR_parasite_base",
+    "name": "Parasite · Strafe droite",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Parasite (Strafe droite) · retire des PA.",
+    "anim": "strafeR",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_strafeR_parasite_percage",
+    "name": "Parasite · Strafe droite (Perçage)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Parasite (Strafe droite) · retire des PA · Perçage.",
+    "anim": "strafeR",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "percage",
+        "name": "Perçage",
+        "key": "pierce",
+        "val": 0.25
+      }
+    ],
+    "bakedEvo": {
+      "pierce": 0.25
+    },
+    "dmg": [
+      14,
+      18
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_strafeR_parasite_econome_drain",
+    "name": "Parasite · Strafe droite (Économe, Drain neural)",
+    "school": "Neuro",
+    "cost": 4,
+    "range": 4,
+    "type": "damage",
+    "desc": "Parasite (Strafe droite) · retire des PA · Économe, Drain neural.",
+    "anim": "strafeR",
+    "fx": "parasite",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      },
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "cost": -1,
+      "drain": 1
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "drainPA"
+  },
+  {
+    "id": "gen_strafeR_onde_base",
+    "name": "Onde · Strafe droite",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Onde (Strafe droite) · repousse.",
+    "anim": "strafeR",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_strafeR_onde_drain",
+    "name": "Onde · Strafe droite (Drain neural)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Onde (Strafe droite) · repousse · Drain neural.",
+    "anim": "strafeR",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "drain",
+        "name": "Drain neural",
+        "key": "drain",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "drain": 1
+    },
+    "dmg": [
+      10,
+      14
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_strafeR_onde_poussee_frappe",
+    "name": "Onde · Strafe droite (Poussée, Frappe lourde)",
+    "school": "Gravité",
+    "cost": 3,
+    "range": 4,
+    "type": "damage",
+    "desc": "Onde (Strafe droite) · repousse · Poussée, Frappe lourde.",
+    "anim": "strafeR",
+    "fx": "onde",
+    "anchor": "grid",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "poussee",
+        "name": "Poussée",
+        "key": "push",
+        "val": 1
+      },
+      {
+        "id": "frappe",
+        "name": "Frappe lourde",
+        "key": "dmg",
+        "val": 2
+      }
+    ],
+    "bakedEvo": {
+      "push": 1,
+      "dmg": 2
+    },
+    "dmg": [
+      8,
+      12
+    ],
+    "effect": "push"
+  },
+  {
+    "id": "gen_strafeR_soin_base",
+    "name": "Soin · Strafe droite",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 4,
+    "type": "heal",
+    "desc": "Soin (Strafe droite).",
+    "anim": "strafeR",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "heal": 14
+  },
+  {
+    "id": "gen_strafeR_soin_soinplus",
+    "name": "Soin · Strafe droite (Régénération)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 4,
+    "type": "heal",
+    "desc": "Soin (Strafe droite) · Régénération.",
+    "anim": "strafeR",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "soinplus",
+        "name": "Régénération",
+        "key": "heal",
+        "val": 6
+      }
+    ],
+    "bakedEvo": {
+      "heal": 6
+    },
+    "heal": 14
+  },
+  {
+    "id": "gen_strafeR_soin_soinplus_allonge",
+    "name": "Soin · Strafe droite (Régénération, Allonge)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 4,
+    "type": "heal",
+    "desc": "Soin (Strafe droite) · Régénération, Allonge.",
+    "anim": "strafeR",
+    "fx": "soin",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "soinplus",
+        "name": "Régénération",
+        "key": "heal",
+        "val": 6
+      },
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "heal": 6,
+      "range": 1
+    },
+    "heal": 14
+  },
+  {
+    "id": "gen_strafeR_barriere_base",
+    "name": "Barrière · Strafe droite",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 4,
+    "type": "shield",
+    "desc": "Barrière (Strafe droite).",
+    "anim": "strafeR",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [],
+    "bakedEvo": {},
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_strafeR_barriere_allonge",
+    "name": "Barrière · Strafe droite (Allonge)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 4,
+    "type": "shield",
+    "desc": "Barrière (Strafe droite) · Allonge.",
+    "anim": "strafeR",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "allonge",
+        "name": "Allonge",
+        "key": "range",
+        "val": 1
+      }
+    ],
+    "bakedEvo": {
+      "range": 1
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  },
+  {
+    "id": "gen_strafeR_barriere_blindage_econome",
+    "name": "Barrière · Strafe droite (Blindage, Économe)",
+    "school": "Nanites",
+    "cost": 3,
+    "range": 4,
+    "type": "shield",
+    "desc": "Barrière (Strafe droite) · Blindage, Économe.",
+    "anim": "strafeR",
+    "fx": "barriere",
+    "anchor": "bodyCenter",
+    "generated": true,
+    "custom": false,
+    "upgrades": [
+      {
+        "id": "blindage",
+        "name": "Blindage",
+        "key": "shieldAmt",
+        "val": 8
+      },
+      {
+        "id": "econome",
+        "name": "Économe",
+        "key": "cost",
+        "val": -1
+      }
+    ],
+    "bakedEvo": {
+      "shieldAmt": 8,
+      "cost": -1
+    },
+    "shield": 18,
+    "shieldTurns": 2
+  }
+]

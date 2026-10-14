@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NEURO CORE — V3.4.8</title>
+<title>NEURO CORE — V3.5.0</title>
 <style>
 /* =====================================================================
-   NEURO CORE — V3.4.8 (Attack1 calibré case ennemi)
+   NEURO CORE — V3.5.0 (combat, créateur, éditeur de sorts)
    Tactical Roguelite — HTML / CSS / JS Vanilla — Fichier unique autonome
    Direction artistique : 70% Dofus Touch / 20% Ghost in the Shell / 10% Esport
    Palette : cyan lumineux, turquoise, violet, orange, blanc, acier bleuté
@@ -589,6 +589,21 @@ aside.side{
 .cg-chip{font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid rgba(90,122,156,.45);background:rgba(10,26,40,.75);color:var(--blanc);cursor:pointer}
 .cg-chip.on{border-color:var(--cyan);box-shadow:0 0 10px rgba(39,224,255,.25);color:var(--cyan)}
 .cg-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
+.cg-actions a.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;width:auto}
+#spellEditorOverlay .panel{max-width:860px;width:min(96vw,860px);max-height:min(92vh,820px);overflow:auto}
+.se-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.se-list{max-height:420px;overflow:auto;display:flex;flex-direction:column;gap:4px}
+.se-row{text-align:left;cursor:pointer;border:1px solid rgba(90,122,156,.4);border-left:3px solid var(--sc,#27e0ff);
+  background:rgba(10,24,38,.65);color:var(--blanc);border-radius:8px;padding:6px 8px;font-size:12px}
+.se-row.on{border-color:var(--orange);box-shadow:0 0 10px rgba(255,138,60,.35)}
+.se-row small{display:block;color:var(--acier-clair);font-size:10px}
+.se-form label{display:block;font-size:10px;letter-spacing:1px;color:var(--acier-clair);margin:8px 0 4px;text-transform:uppercase}
+.se-form select,.se-form input{width:100%;background:#0e2233;color:var(--blanc);border:1px solid rgba(90,122,156,.5);border-radius:8px;padding:6px 8px}
+.se-ups{display:flex;flex-wrap:wrap;gap:4px}
+.se-ups button{font-size:11px}
+.se-detail{font-size:12px;line-height:1.45;color:var(--acier-clair);margin-top:8px}
+.se-detail b{color:var(--blanc)}
+@media(max-width:720px){.se-grid{grid-template-columns:1fr}}
 @media(max-width:520px){.cg-wrap{grid-template-columns:1fr}}
 
 .hub-tile.soon{opacity:.62}
@@ -1028,15 +1043,14 @@ aside.side{
 <div class="overlay" id="introOverlay">
   <div class="modal">
     <h1>NEURO CORE</h1>
-    <div class="sub">NEURO CORE — V3.4.8 · Mercenaire tactique (mobile OK)</div>
+    <div class="sub">NEURO CORE — V3.5.0 · Combat, créateur, éditeur de sorts</div>
     <div class="introbody">
-      Autrefois esclave d'arène des grandes corporations, ton <b>ECHO</b> — une conscience numérique immortelle — a brisé ses chaînes.
-      Désormais <b>mercenaire indépendant</b>, tu loues tes Enveloppes au plus offrant.
+      Trois outils : le <b>créateur</b> (morphologie et planches), le <b>combat</b> tactique, et l'<b>éditeur de sorts</b>
+      (animations, effets, améliorations — y compris les sorts générés automatiquement).
       <br><br>
-      <b>Pour jouer</b> : Station → <b>Bureau local</b> → Accepter un contrat → Préparer → Lancer.<br>
       <b>Déplacement</b> : tape une case cyan (2 taps pour confirmer).<br>
       <b>Sorts</b> : barre en bas de l'écran → tape la cible · bouton <b>FIN DE TOUR</b> quand tu as fini.<br>
-      <b>Objectif</b> : affiché en haut du combat — éliminer, tenir, extraire ou abattre la cible ★.
+      <b>Objectif</b> : affiché en haut du combat — éliminer l'opposition.
     </div>
     <div class="codex-intro">
       <b>CODEX // PREMIER DÉPLOIEMENT</b><br>
@@ -1079,8 +1093,37 @@ aside.side{
       <div class="cg-cols" id="cgCols"></div>
     </div>
     <div class="cg-actions">
+      <a class="btn ghost" href="character-creator-fantasy.html">Planches fantasy</a>
       <button class="btn ghost" id="cgClose">Fermer</button>
       <button class="btn" id="cgSave">Enregistrer look</button>
+    </div>
+  </div>
+</div>
+<!-- ====== ÉDITEUR DE SORTS ====== -->
+<div class="overlay" id="spellEditorOverlay">
+  <div class="panel">
+    <h2>ÉDITEUR DE SORTS</h2>
+    <div class="sub">Animation + effet + améliorations — le même format que le combat</div>
+    <div class="se-grid">
+      <div>
+        <div class="side-title">Catalogue</div>
+        <div class="se-list" id="seList"></div>
+      </div>
+      <div class="se-form">
+        <label for="seAnim">Animation</label>
+        <select id="seAnim"></select>
+        <label for="seEffect">Effet</label>
+        <select id="seEffect"></select>
+        <label>Améliorations</label>
+        <div class="se-ups" id="seUps"></div>
+        <div class="se-detail" id="seDetail">Choisis une animation et un effet, puis compose.</div>
+        <div class="cg-actions">
+          <button class="btn" id="seCompose" type="button">Composer</button>
+          <button class="btn ghost" id="seUpgrade" type="button">Améliorer</button>
+          <button class="btn" id="seFight" type="button">Lancer le combat</button>
+          <button class="btn ghost" id="seClose" type="button">Fermer</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1226,7 +1269,11 @@ aside.side{
     <button class="btn orange" id="restartBtn">Recommencer</button>
   </div>
 </div>
+<div id="randomBanner" style="display:none;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:35;max-width:92vw;background:rgba(8,18,32,.92);color:#d7f6ff;border:1px solid #27e0ff;border-radius:10px;padding:6px 12px;font:12px/1.35 Trebuchet MS,sans-serif;text-align:center;pointer-events:none"></div>
 
+<script src="data/spellcraft-browser.js?v=3.5.0"></script>
+<script src="data/generated-spells.js?v=3.5.0"></script>
+<script src="data/ai-policy.js?v=3.5.0"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -2046,6 +2093,45 @@ const SPELL_DEFS = [
   {id:"overclock", name:"Overclock", school:"Neuro", cost:2, range:0, type:"buff", ocDmg:0.25, ocMob:1, ocTurns:2, locked:true,
    desc:"Bonus temporaire : +25% dégâts et +1 PM (2 tours)."},
 ];
+
+/* Sorts générés (data/generated-spells.js) + compositions de l'éditeur.
+   Même format que SPELL_DEFS ; bakedEvo est recopié dans le grimoire. */
+function installGeneratedSpells(){
+  const lists = [];
+  if(typeof window !== "undefined" && Array.isArray(window.GENERATED_SPELLS)) lists.push(window.GENERATED_SPELLS);
+  try{
+    const raw = localStorage.getItem("neuro_spellcraft_custom");
+    if(raw){ const extra = JSON.parse(raw); if(Array.isArray(extra)) lists.push(extra); }
+  }catch(_e){}
+  for(const list of lists){
+    for(const s of list){
+      if(!s || !s.id) continue;
+      const i = SPELL_DEFS.findIndex(d => d.id === s.id);
+      if(i >= 0) SPELL_DEFS[i] = s;
+      else SPELL_DEFS.push(s);
+    }
+  }
+  const bySchool = {};
+  for(const s of SPELL_DEFS){
+    if(s.generated && s.type === "damage"){
+      if(!bySchool[s.school]) bySchool[s.school] = [];
+      bySchool[s.school].push(s.id);
+    }
+  }
+  const schoolOf = { brute:"Cinétique", duelist:"Cinétique", gunner:"Électrique", tech:"Nanites", neuro:"Neuro", gravity:"Gravité" };
+  if(typeof ARCHETYPES !== "undefined"){
+    for(const a of ARCHETYPES){
+      const pool = bySchool[schoolOf[a.id]] || [];
+      if(pool[0] && !a.spells.includes(pool[0])) a.spells.push(pool[0]);
+    }
+  }
+}
+installGeneratedSpells();
+
+function spellCastAnim(def){
+  if(def && def.anim && typeof PackSprites !== "undefined" && PackSprites.ANIMS && PackSprites.ANIMS[def.anim]) return def.anim;
+  return def && def.id === "punch" ? "attack2" : "attack";
+}
 
 // types de sorts qui ciblent une CASE (et non une entité) côté joueur
 const CELL_TARGET_TYPES = ["teleport","gravjump","mine","summon","dash"];
@@ -3854,7 +3940,10 @@ const Spells = {
   // grimoire neuf : tous les sorts niveau 1, XP 0, sans évolution
   freshBook(){
     const b = {};
-    for(const s of SPELL_DEFS) b[s.id] = { level:1, xp:0, evo:{}, evoTiers:[], evoPending:[] };
+    for(const s of SPELL_DEFS){
+      const evo = (s.bakedEvo && typeof s.bakedEvo === "object") ? Object.assign({}, s.bakedEvo) : {};
+      b[s.id] = { level:1, xp:0, evo, evoTiers:[], evoPending:[] };
+    }
     return b;
   },
   // maîtrises neuves : une par école
@@ -3866,7 +3955,9 @@ const Spells = {
 
   state(entity, id){
     if(entity && entity.spellbook && entity.spellbook[id]) return entity.spellbook[id];
-    return { level:1, xp:0, evo:{}, evoTiers:[], evoPending:[] };
+    const def = Spells.def(id);
+    const evo = (def && def.bakedEvo && typeof def.bakedEvo === "object") ? def.bakedEvo : {};
+    return { level:1, xp:0, evo, evoTiers:[], evoPending:[] };
   },
 
   // XP nécessaire pour passer au niveau suivant (accélérée). N1:10, N2:18, N3:26...
@@ -4330,6 +4421,7 @@ const MetaProgress = {
     const base = BASE_SPELL_IDS.slice();
     const ars = (MetaProgress.data && MetaProgress.data.arsenal) ? MetaProgress.data.arsenal : [];
     for(const id of ars){ if(Spells.def(id) && !base.includes(id)) base.push(id); }
+    for(const s of SPELL_DEFS){ if(s.generated && !base.includes(s.id)) base.push(s.id); }
     return base;
   },
 
@@ -5951,7 +6043,7 @@ const Combat = {
     // Toujours s’orienter vers la cible au moment du coup (joueur + IA)
     if(target) charFaceToward(attacker, target);
     if(attacker && attacker.isPlayer && typeof PackSprites!=="undefined" && def && def.type === "damage"){
-      PackSprites.pulseAttack(attacker, 720, target, def.id === "punch" ? "attack2" : "attack");
+      PackSprites.pulseAttack(attacker, 720, target, spellCastAnim(def));
     }
     // evo réelle (grimoire) OU evo virtuelle d'une invocation (tourelle/sniper)
     const stv = attacker._virtEvo ? attacker._virtEvo
@@ -6325,7 +6417,7 @@ const Combat = {
     // Orientation vers la cible (entité, case, ou direction dash) avant l’anim d’attaque
     if(arg) charFaceToward(caster, arg);
     if(caster.isPlayer && typeof PackSprites!=="undefined"){
-      PackSprites.pulseAttack(caster, 720, arg, def.id === "punch" ? "attack2" : "attack");
+      PackSprites.pulseAttack(caster, 720, arg, spellCastAnim(def));
     }
     // V1.9c — caractéristiques par usage (permanent, très lent)
     if(caster.isPlayer){
@@ -6418,6 +6510,15 @@ const Combat = {
   },
 
   victory(){
+    if(State.randomMode){
+      State.over = true;
+      inputLocked = true;
+      State.wins = (State.wins || 0) + 1;
+      UI.log("sys", "✦ VICTOIRE — Combat " + State.fight + " · le suivant commence.");
+      FX.victoryFlash();
+      setTimeout(()=> RandomGauntlet.chain(), 1100);
+      return;
+    }
     State.over = true;
     inputLocked = true;
     State.wins++;
@@ -6473,6 +6574,7 @@ const Combat = {
   defeat(){
     State.over = true;
     inputLocked = true;
+    if(State.randomMode){ UI.showDeath(); return; }
     UI.results.show("defeat");   // V0.95.5 — fin d'Ascension → écran Résultats → Hub
   }
 };
@@ -6518,6 +6620,13 @@ const AI = {
   // score tactique d'un sort offensif (dégâts + collision + affaiblissement selon archétype)
   spellScore(e, def, target){
     let s = Spells.estMaxDamage(e, def, target);
+    const _pol = (typeof window !== "undefined" && window.NEURO_AI_POLICY && window.NEURO_AI_POLICY.weights) || null;
+    if(_pol){
+      if(def.type === "damage") s *= (_pol.damage || 1);
+      if(def.effect === "push") s += (_pol.push || 0);
+      if(def.effect === "drainPA") s += (_pol.drain || 0);
+      if(def.type === "heal" || def.type === "shield") s += (_pol.heal || 0) * 8;
+    }
     if(def.effect === "push"){
       const cg = AI.collisionGain(e, target);
       s += cg;
@@ -7382,6 +7491,11 @@ const PackSprites = {
     run:     { file:"Run.png",         fps:12 },
     attack:  { file:"Attack1.png",     fps:12 },  // distance / sorts dégâts
     attack2: { file:"Attack2.png",     fps:12 },  // coup de poing
+    attack3: { file:"Attack3.png",     fps:12 },
+    attack4: { file:"Attack4.png",     fps:12 },
+    runAttack:{ file:"RunAttack.png",  fps:12 },
+    strafeL: { file:"StrafeLeftAttack.png", fps:12 },
+    strafeR: { file:"StrafeRightAttack.png", fps:12 },
     hit:     { file:"TakeDamage.png",  fps:10 },
     die:     { file:"Die.png",         fps:8 },
   },
@@ -11123,25 +11237,169 @@ const UI = {
     }
   },
 
+  // ===================== ÉDITEUR DE SORTS =====================
+  spellEd:{
+    _sel:null,
+    _ups:[],
+    open(){
+      UI.hide("hubOverlay");
+      UI.show("spellEditorOverlay");
+      this._fillSelects();
+      this.render();
+    },
+    close(){
+      UI.hide("spellEditorOverlay");
+      if(UI.hub) UI.hub.open();
+    },
+    _craft(){ return (typeof window !== "undefined") ? window.SpellCraft : null; },
+    _fillSelects(){
+      const sc = this._craft();
+      const anim = UI.el("seAnim");
+      const fx = UI.el("seEffect");
+      if(!anim || !fx || !sc) return;
+      anim.innerHTML = sc.ANIMATIONS.map(a=>'<option value="'+a.id+'">'+a.label+'</option>').join("");
+      fx.innerHTML = sc.EFFECTS.map(e=>'<option value="'+e.id+'">'+e.name+" · "+e.school+'</option>').join("");
+      if(!fx._bound){
+        fx._bound = true;
+        fx.addEventListener("change", ()=>{ UI.spellEd._ups = []; UI.spellEd._renderUps(); });
+      }
+      this._renderUps();
+    },
+    _renderUps(){
+      const sc = this._craft();
+      const box = UI.el("seUps");
+      if(!box || !sc) return;
+      const effect = sc.findEffect(UI.el("seEffect").value);
+      const ups = sc.upgradesFor(effect ? effect.type : "damage");
+      box.innerHTML = "";
+      ups.forEach(u=>{
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "cg-chip"+(this._ups.includes(u.id)?" on":"");
+        b.textContent = u.name;
+        b.onclick = ()=>{
+          const i = UI.spellEd._ups.indexOf(u.id);
+          if(i>=0) UI.spellEd._ups.splice(i,1);
+          else if(UI.spellEd._ups.length<2) UI.spellEd._ups.push(u.id);
+          UI.spellEd._renderUps();
+        };
+        box.appendChild(b);
+      });
+    },
+    _persist(spell){
+      try{
+        const prev = JSON.parse(localStorage.getItem("neuro_spellcraft_custom") || "[]");
+        const arr = (Array.isArray(prev) ? prev : []).filter(s=>s && s.id !== spell.id);
+        arr.push(spell);
+        localStorage.setItem("neuro_spellcraft_custom", JSON.stringify(arr));
+      }catch(_e){}
+      if(MetaProgress.data){
+        if(!MetaProgress.data.spellbook) MetaProgress.data.spellbook = {};
+        if(!MetaProgress.data.spellbook[spell.id]){
+          MetaProgress.data.spellbook[spell.id] = { level:1, xp:0, evo:Object.assign({}, spell.bakedEvo||{}), evoTiers:[], evoPending:[] };
+        } else {
+          MetaProgress.data.spellbook[spell.id].evo = Object.assign({}, spell.bakedEvo||{});
+        }
+        try{ MetaProgress.save(); }catch(_e){}
+      }
+    },
+    compose(){
+      const sc = this._craft();
+      const detail = UI.el("seDetail");
+      if(!sc){ if(detail) detail.textContent = "SpellCraft indisponible."; return; }
+      const built = sc.composeSpell({
+        animId: UI.el("seAnim").value,
+        effectId: UI.el("seEffect").value,
+        upgradeIds: this._ups.slice(),
+        custom: true
+      });
+      if(!built.spell){ if(detail) detail.textContent = (built.errors||[]).join(" · "); return; }
+      let spell = sc.balanceSpell(built.spell);
+      spell.custom = true;
+      const check = sc.validateSpell(spell);
+      if(!check.ok){ if(detail) detail.textContent = "Sort écarté : " + check.errors.join(", "); return; }
+      const i = SPELL_DEFS.findIndex(d=>d.id===spell.id);
+      if(i>=0) SPELL_DEFS[i] = spell; else SPELL_DEFS.push(spell);
+      this._persist(spell);
+      this._sel = spell.id;
+      const st = sc.effectiveStats(spell);
+      if(detail){
+        detail.innerHTML = "<b>"+spell.name+"</b> ajouté à l'arsenal. PA "+st.cost+" · portée "+st.range+
+          (st.dmg ? " · dégâts "+Math.round(st.dmg[0])+"–"+Math.round(st.dmg[1]) : " · soin "+Math.round(st.avg))+
+          " · "+st.perCost.toFixed(1)+" / PA";
+      }
+      this.render();
+    },
+    upgradeSel(){
+      const sc = this._craft();
+      const def = this._sel && Spells.def(this._sel);
+      const detail = UI.el("seDetail");
+      if(!sc || !def){ if(detail) detail.textContent = "Sélectionne un sort."; return; }
+      const pool = sc.upgradesFor(def.type).filter(u => !(def.upgrades||[]).some(x=>x.id===u.id));
+      if(!pool.length){ if(detail) detail.textContent = "Plus d'amélioration compatible."; return; }
+      const res = sc.applyUpgrade(def, pool[0].id);
+      if(!res.ok){ if(detail) detail.textContent = res.reason || "amélioration refusée"; return; }
+      this._persist(def);
+      if(detail) detail.textContent = "Amélioration appliquée : " + pool[0].name + ".";
+      this.render();
+    },
+    fight(){
+      const known = UI.neuro.knownIds();
+      const loadout = [];
+      if(this._sel && known.includes(this._sel)) loadout.push(this._sel);
+      for(const id of START_EQUIPPED){
+        if(loadout.length >= 4) break;
+        if(known.includes(id) && !loadout.includes(id)) loadout.push(id);
+      }
+      for(const id of known){
+        if(loadout.length >= 4) break;
+        if(!String(id).startsWith("gen_") && !loadout.includes(id)) loadout.push(id);
+      }
+      UI.hub.launchCombat(loadout);
+    },
+    render(){
+      const list = UI.el("seList");
+      if(!list) return;
+      list.innerHTML = "";
+      const sc = this._craft();
+      UI.neuro.knownIds().forEach(id=>{
+        const def = Spells.def(id);
+        if(!def) return;
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "se-row"+(this._sel===id?" on":"");
+        row.style.setProperty("--sc", (typeof SCHOOL_COLOR!=="undefined" && SCHOOL_COLOR[def.school]) || "#27e0ff");
+        const st = sc ? sc.effectiveStats(def) : { cost: def.cost, range: def.range, perCost: 0 };
+        row.innerHTML = def.name + '<small>' + def.school + " · " + (def.anim || "—") + " · PA " + st.cost + " · port. " + st.range + "</small>";
+        row.onclick = ()=>{
+          UI.spellEd._sel = id;
+          const d = UI.el("seDetail");
+          if(d) d.innerHTML = "<b>"+def.name+"</b><br>"+(def.desc||"")+(def.generated?"<br>Sort généré.":"");
+          UI.spellEd.render();
+        };
+        list.appendChild(row);
+      });
+    }
+  },
+
   // ===================== V0.95.5 — HUB PRINCIPAL : NEURO CORE HQ =====================
   hub:{
     SECTIONS:[
-      {id:"contrats",    name:"BUREAU LOCAL",  ico:"📜", zone:"cmd",      desc:"Contrats de la planète", act:()=>{ UI.neuro.openFromHub("contrats"); }},
-      {id:"neuronet",    name:"NEURONET",      ico:"🛰", zone:"cmd",      desc:"Terminal galactique", act:()=>{ UI.neuro.openFromHub("neuronet"); }},
-      {id:"navigation",  name:"NAVIGATION",    ico:"🧭", zone:"cmd",      desc:"Carte stellaire & voyage", act:()=>{ UI.neuro.openFromHub("navigation"); }},
-      {id:"factions",    name:"FACTIONS",      ico:"🎖", zone:"cmd",      desc:"Réputation & soutien", act:()=>{ UI.neuro.openFromHub("factions"); }},
-      {id:"simulateur",  name:"SIMULATEUR DE COMBAT", ico:"🎯", zone:"cmd", desc:"Banc d'essai — entraînement & homologation", act:()=>{ _pendingSimulator = true; UI.neuro.openFromHub("prep"); }},
-      {id:"arsenal",     name:"ARSENAL",       ico:"📖", zone:"arsenal",  desc:"Sorts connus & évolutions", tab:"arsenal"},
-      {id:"echo",        name:"ECHO",          ico:"🧬", zone:"cmd",      desc:"Profil immortel & historique", tab:"echo"},
-      {id:"chargen",     name:"GÉNÉRATEUR",   ico:"🧍", zone:"gen",      desc:"Apparence · armes · armures · casques", act:()=>{ UI.charGen.open(); }},
-      {id:"hangar",      name:"HANGAR",        ico:"🦾", zone:"hangar",   desc:"Enveloppes · synchro · usure", tab:"hangar"},
-      {id:"recherche",   name:"RECHERCHE",     ico:"⚗", zone:"research",  desc:"Prototypes & hybrides", tab:"recherche", soon:true},
-      {id:"ingenieurs",  name:"INGÉNIEURS",    ico:"🛠", zone:"research",  desc:"Équipe & recrutement", tab:"ingenieurs"},
-      {id:"inventaire",  name:"INVENTAIRE",    ico:"🎒", zone:"arsenal",  desc:"Équipements possédés", tab:"inventory"},
-      {id:"ressources",  name:"RESSOURCES",    ico:"⛏", zone:"data",     desc:"Matériaux & économie", tab:"resources"},
-      {id:"statistiques",name:"STATISTIQUES",  ico:"📊", zone:"data",     desc:"Statistiques globales", tab:"echo"},
-      {id:"options",     name:"OPTIONS",       ico:"⚙", zone:"data",     desc:"Affichage & confort", tab:"options"},
+      {id:"combat",  name:"COMBAT",            ico:"⚔", zone:"cmd",     desc:"Arène tactique — tes sorts contre l'IA", act:()=>{ UI.hub.launchCombat(); }},
+      {id:"random",  name:"MODE ALÉATOIRE",    ico:"🎲", zone:"cmd",     desc:"Personnage au hasard, 3 sorts, enchaînement tant que tu gagnes", act:()=>{ RandomGauntlet.start(); }},
+      {id:"chargen", name:"CRÉATEUR",          ico:"🧍", zone:"gen",     desc:"Morphologie, arme, armure, planches fantasy", act:()=>{ UI.charGen.open(); }},
+      {id:"spells",  name:"ÉDITEUR DE SORTS",  ico:"✦", zone:"arsenal", desc:"Composer animations, effets et améliorations", act:()=>{ UI.spellEd.open(); }},
     ],
+    launchCombat(loadout){
+      _pendingSimulator = true;
+      if(Array.isArray(loadout) && loadout.length) _pendingLoadout = loadout.slice(0, 4);
+      UI.hide("hubOverlay");
+      UI.hide("spellEditorOverlay");
+      UI.hide("chargenOverlay");
+      const go = ()=>{ try{ newRun(); }catch(err){ console.error(err); } };
+      if(UI.load && UI.load.show) UI.load.show({ title:"DÉPLOIEMENT TACTIQUE", sub:"Simulateur de combat…", ms:700 }, go);
+      else go();
+    },
     open(){
       const e = MetaProgress.data.echo || {name:"ECHO-01"};
       const st = MetaProgress.st();
@@ -11155,22 +11413,11 @@ const UI = {
         if(planet && planet.biome) hubEl.classList.add("biome-"+planet.biome);
       }
       const hp = UI.el("hubPlanet");
-      if(hp){
-        if(planet){
-          const b = contractBiomeDef(planet.biome), fa = factionDef(planet.faction), si = situationDef(planet.situation);
-          hp.innerHTML = (b?b.ico+" ":"")+"<b>"+planet.name+"</b> · "+(b?b.name:"?")+" · "+fa.ico+" "+fa.name+" · "+si.ico+" "+si.label;
-        } else hp.textContent = "";
-      }
+      if(hp) hp.textContent = "";
       const hw = UI.el("hubWorld");
-      if(hw && typeof WorldSim!=="undefined"){
-        const logs = WorldSim.recentLog(4);
-        hw.innerHTML = logs.length
-          ? ('<div style="color:var(--cyan);margin-bottom:2px">FLUX GALACTIQUE</div>'+logs.map(l=>'<div class="hw-line">· <b>'+l.msg+'</b></div>').join(""))
-          : '<div class="hw-line">Aucun mouvement sectoriel récent.</div>';
-      }
+      if(hw) hw.innerHTML = "";
       const grid = UI.el("hubGrid"); grid.innerHTML = "";
-      // V3.4.1 — premier run : CTA vers Bureau local
-      const firstRun = (st.ascensions||0) < 1 && !(MetaProgress.data.future && MetaProgress.data.future.activeContract);
+      const firstRun = (st.ascensions||0) < 1;
       if(firstRun){
         const cta = document.createElement("div");
         cta.className = "hub-tile zone-cmd";
@@ -11178,14 +11425,13 @@ const UI = {
         cta.style.minHeight = "72px";
         cta.style.borderColor = "var(--cyan)";
         cta.style.boxShadow = "0 0 22px rgba(39,224,255,.25)";
-        cta.innerHTML = '<div class="ht-ico">📜</div><div class="ht-name">COMMENCER — BUREAU LOCAL</div><div class="ht-desc">Accepte ton premier contrat (objectif simple : éliminer l\'opposition)</div>';
-        cta.onclick = ()=> UI.neuro.openFromHub("contrats");
+        cta.innerHTML = '<div class="ht-ico">⚔</div><div class="ht-name">COMMENCER — COMBAT</div><div class="ht-desc">Entre dans l\'arène avec tes sorts de départ</div>';
+        cta.onclick = ()=> UI.hub.launchCombat();
         grid.appendChild(cta);
       }
       UI.hub.SECTIONS.forEach(sec=>{
         const t = document.createElement("div");
-        t.className = "hub-tile zone-"+sec.zone+(sec.soon?" soon":"")+(firstRun && sec.id==="contrats"?" ":"") ;
-        if(firstRun && sec.id==="contrats"){ t.style.outline = "2px solid var(--cyan)"; }
+        t.className = "hub-tile zone-"+sec.zone+(sec.soon?" soon":"");
         t.innerHTML = (sec.soon?'<div class="ht-soon">BIENTÔT</div>':'')+
           '<div class="ht-ico">'+sec.ico+'</div>'+
           '<div class="ht-name">'+sec.name+'</div>'+
@@ -11194,20 +11440,10 @@ const UI = {
         grid.appendChild(t);
       });
       UI.el("hubFoot").innerHTML =
-        'Ascensions : <b>'+(st.ascensions||0)+'</b> · Meilleur palier : <b>Combat '+(st.bestFight||0)+'</b> · '+
-        'Boss vaincus : <b>'+(st.bossKills||0)+'</b> · Enveloppe : <b>'+(env.name||"—")+'</b> (synchro '+(env.synchro||0)+'% · usure '+(env.wear||0)+'%)';
-      // V1.2 — tableau de bord ressources (style corporation)
+        'Combats : <b>'+(st.bestFight||0)+'</b> · Sorts connus : <b>'+MetaProgress.knownArsenal().length+'</b> · '+
+        'Victoires : <b>'+(st.victories||0)+'</b>';
       const hubResEl = UI.el("hubRes");
-      if(hubResEl){
-        const q = id=>MetaProgress.resourceQty(id);
-        const cell = (ico,lbl,val)=> '<div class="hr"><span class="hr-ico">'+ico+'</span>'+lbl+' <b>'+val+'</b></div>';
-        hubResEl.innerHTML =
-          cell("💠","Crédits", MetaProgress.bank()) +
-          cell("🔩","Ferraille", q("ferraille")) +
-          cell("🔌","Composants", q("composants")) +
-          cell("💎","Cristaux", q("crist_grav")) +
-          cell("🧠","Matrices Neuro", q("matrices_nu"));
-      }
+      if(hubResEl) hubResEl.innerHTML = "";
       ["introOverlay","resultsOverlay","neuroOverlay","deathOverlay"].forEach(id=>UI.hide(id));
       MetaProgress.flush();
       UI.show("hubOverlay");
@@ -11373,6 +11609,8 @@ const UI = {
 
   showDeath(){
     const p=State.player;
+    const rb = UI.el("restartBtn");
+    if(rb) rb.textContent = (State && State.randomMode) ? "Nouveau tirage" : "Recommencer";
     UI.el("dWins").textContent  = State.wins;
     UI.el("dLevel").textContent = State.fight;
     UI.el("dPow").textContent   = p.pow;
@@ -11531,7 +11769,7 @@ const Input = {
             charFaceToward(p, aim);
             if(clickedFoe && typeof PackSprites!=="undefined"){
               // Preview courte de la pose d’attaque orientée
-              PackSprites.pulseAttack(p, 280, clickedFoe, armedSkill === "punch" ? "attack2" : "attack");
+              PackSprites.pulseAttack(p, 280, clickedFoe, spellCastAnim(Spells.def(armedSkill)));
             }
           }
         }
@@ -11561,7 +11799,7 @@ const Input = {
           const [lo,hi] = Spells.dmgRange(p, def);
           charFaceToward(p, { c:t.c, r:t.r });
           p.pa -= cost; Spells.gainXP(p, def.id);
-          if(typeof PackSprites!=="undefined") PackSprites.pulseAttack(p, 720, { c:t.c, r:t.r }, def.id === "punch" ? "attack2" : "attack");
+          if(typeof PackSprites!=="undefined") PackSprites.pulseAttack(p, 720, { c:t.c, r:t.r }, spellCastAnim(def));
           Combat.damageObstacle(Grid.key(t.c,t.r), randi(lo,hi));
           armedSkill = null;
           UI.spells.update(); UI.refreshAll();
@@ -11671,7 +11909,7 @@ function loop(ts){
 
 // l'un des overlays modaux est-il affiché ? (récompense / mort / intro)
 function inProgressOverlay(){
-  return ["introOverlay","rewardOverlay","deathOverlay","recapOverlay","evoOverlay","buildOverlay","lootOverlay","shopOverlay","neuroOverlay","hubOverlay","resultsOverlay","loadOverlay"].some(id=>{
+  return ["introOverlay","rewardOverlay","deathOverlay","recapOverlay","evoOverlay","buildOverlay","lootOverlay","shopOverlay","neuroOverlay","hubOverlay","resultsOverlay","loadOverlay","chargenOverlay","spellEditorOverlay"].some(id=>{
     const el = document.getElementById(id);
     return el && el.classList.contains("show");
   });
@@ -11680,7 +11918,91 @@ function inProgressOverlay(){
 /* =====================================================================
    INITIALISATION / NOUVELLE RUN
    ===================================================================== */
+/* Mode aléatoire : personnage tiré au sort, 3 sorts avec améliorations,
+   nouveau combat immédiat après chaque victoire (test des sorts). */
+let _pendingRandom = false;
+const RandomGauntlet = {
+  start(){
+    _pendingRandom = true;
+    _pendingSimulator = true;
+    UI.hide("hubOverlay");
+    UI.hide("introOverlay");
+    UI.hide("deathOverlay");
+    UI.hide("resultsOverlay");
+    const go = ()=>{ try{ newRun(); }catch(err){ console.error(err); } };
+    if(UI.load && UI.load.show) UI.load.show({ title:"MODE ALÉATOIRE", sub:"Tirage du personnage et de 3 sorts…", ms:450 }, go);
+    else go();
+  },
+  applyKit(){
+    const src = (MetaProgress.data && MetaProgress.data.spellbook) || {};
+    const book = {};
+    for(const id in src){
+      try{ book[id] = JSON.parse(JSON.stringify(src[id])); }catch(_e){}
+    }
+    State.player.spellbook = book;
+    const bag = SPELL_DEFS.slice();
+    const ids = [];
+    while(ids.length < 3 && bag.length){
+      ids.push(bag.splice(Math.floor(Math.random()*bag.length), 1)[0].id);
+    }
+    const sc = (typeof window !== "undefined" && window.SpellCraft) ? window.SpellCraft : null;
+    const lines = [];
+    ids.forEach(id=>{
+      const def = Spells.def(id);
+      if(!def) return;
+      if(!book[id]) book[id] = { level:1, xp:0, evo:{}, evoTiers:[], evoPending:[], evoChoice:{} };
+      const st = book[id];
+      st.evo = Object.assign({}, def.bakedEvo || {}, st.evo || {});
+      const ups = [];
+      const pool = (sc && sc.upgradesFor) ? sc.upgradesFor(def.type).slice() : [];
+      const nUp = pool.length ? (1 + Math.floor(Math.random()*Math.min(2, pool.length))) : 0;
+      for(let i=0;i<nUp && pool.length;i++){
+        const u = pool.splice(Math.floor(Math.random()*pool.length), 1)[0];
+        st.evo[u.key] = (st.evo[u.key] || 0) + u.val;
+        ups.push(u.name);
+      }
+      lines.push(def.name + (ups.length ? " (" + ups.join(", ") + ")" : ""));
+    });
+    State.equipped = ids.slice(0, 3);
+    State.slots = Math.max(State.slots || 3, 3);
+    const look = {
+      morphId: pick(Object.keys(CHAR_MORPH)),
+      weapon: pick(Object.keys(CHAR_WEAPON_CATALOG)),
+      armor: pick(Object.keys(CHAR_ARMOR_CATALOG)),
+      helm: pick(Object.keys(CHAR_HELM_CATALOG)),
+    };
+    State.player.look = look;
+    State.player.morphId = look.morphId;
+    State._randomKit = lines;
+    const w = CHAR_WEAPON_CATALOG[look.weapon], a = CHAR_ARMOR_CATALOG[look.armor], h = CHAR_HELM_CATALOG[look.helm];
+    UI.log("sys", "🎲 Personnage — " + look.morphId + " · " + (w?w.label:look.weapon) + " · " + (a?a.label:look.armor) + " · " + (h?h.label:look.helm));
+    lines.forEach(l => UI.log("you", "✦ " + l));
+    this.banner();
+    UI.refreshAll && UI.refreshAll();
+  },
+  banner(){
+    const ban = document.getElementById("randomBanner");
+    if(!ban) return;
+    ban.style.display = "block";
+    const kit = (State._randomKit || []).join(" · ");
+    ban.innerHTML = "<b>MODE ALÉATOIRE</b> · victoires " + (State.wins||0) + " · combat " + State.fight + "<br>" + kit;
+  },
+  chain(){
+    if(!State || !State.randomMode || !State.player) return;
+    State.over = false;
+    inputLocked = false;
+    State.player.alive = true;
+    State.player.pv = State.player.pvMax;
+    State.fight++;
+    UI.log("sys", "↻ Combat " + State.fight + " — même personnage, mêmes 3 sorts.");
+    this.banner();
+    Combat.startFight();
+  }
+};
+
 function newRun(){
+  const randomRun = !!_pendingRandom;
+  _pendingRandom = false;
   // état entièrement réinitialisé (aucune fuite : on remplace l'objet)
   FX.clear();
   State = {
@@ -11711,7 +12033,11 @@ function newRun(){
   // V2.0 — modificateurs de combat du contrat actif (légers, lus au lancement)
   State.contractMods = {};
   State.missionPowerMult = 1;
-  if(State.run.contract){
+  if(randomRun){
+    State.run.contract = null;
+    State.run.scenes = 0;
+    State.run.simulator = true;
+  } else if(State.run.contract){
     const mod = contractModDef(State.run.contract.mod);
     State.contractMods = mod.combat || {};
     State.run.resMult = State.run.contract.resMult || 1;
@@ -11782,6 +12108,10 @@ function newRun(){
   hoverTile=null; hoverEnemy=null; armedSkill=null;
   Render.layout();
   Combat.startFight();
+  if(randomRun){
+    State.randomMode = true;
+    RandomGauntlet.applyKit();
+  }
 }
 
 function init(){
@@ -11870,6 +12200,10 @@ function init(){
   UI.el("shopClose").addEventListener("click", ()=> UI.shop.close());
   UI.el("cgClose").addEventListener("click", ()=> UI.charGen.close());
   UI.el("cgSave").addEventListener("click", ()=> UI.charGen.save());
+  UI.el("seClose").addEventListener("click", ()=> UI.spellEd.close());
+  UI.el("seCompose").addEventListener("click", ()=> UI.spellEd.compose());
+  UI.el("seUpgrade").addEventListener("click", ()=> UI.spellEd.upgradeSel());
+  UI.el("seFight").addEventListener("click", ()=> UI.spellEd.fight());
   UI.el("buildBtnFloat").addEventListener("click", ()=>{
     if(!State || State.over) return;
     // entre deux combats l'écran est éditable ; pendant un combat, consultation seule
@@ -11880,7 +12214,12 @@ function init(){
   // V0.95.5 — navigation du Hub
   UI.el("neuroClose").addEventListener("click", ()=> UI.neuro.close());
   UI.el("resToHub").addEventListener("click", ()=> UI.hub.open());
-  UI.el("restartBtn").addEventListener("click", ()=>{ UI.hide("deathOverlay"); UI.hub.open(); });
+  UI.el("restartBtn").addEventListener("click", ()=>{
+    UI.hide("deathOverlay");
+    if(State && State.randomMode){ RandomGauntlet.start(); return; }
+    const ban = document.getElementById("randomBanner"); if(ban) ban.style.display = "none";
+    UI.hub.open();
+  });
 
   // ===== V0.91.1 — ZOOM (boutons uniquement ; la molette est désactivée) =====
   UI.el("zoomIn").addEventListener("click", ()=> UI.stepZoom(+1));
@@ -11903,6 +12242,17 @@ function init(){
 
   // affichage intro
   UI.show("introOverlay");
+  try{
+    const q = new URLSearchParams(location.search);
+    const e2e = q.get("e2e");
+    const mode = q.get("mode");
+    const hash = (location.hash || "").replace(/^#/, "");
+    if(mode === "aleatoire" || q.get("random") === "1" || hash === "aleatoire" || hash === "combat"){ UI.hide("introOverlay"); RandomGauntlet.start(); }
+    else if(e2e === "hub"){ UI.hide("introOverlay"); UI.hub.open(); }
+    else if(e2e === "creator"){ UI.hide("introOverlay"); UI.charGen.open(); }
+    else if(e2e === "spells"){ UI.hide("introOverlay"); UI.spellEd.open(); UI.spellEd.compose(); }
+    else if(e2e === "combat"){ UI.hide("introOverlay"); _pendingSimulator = true; newRun(); }
+  }catch(_e){}
   requestAnimationFrame(loop);
 }
 
