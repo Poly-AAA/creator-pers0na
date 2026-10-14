@@ -125,7 +125,11 @@ function generation(polA, polB, salt) {
     let w = 0;
     for (let i = 0; i < count; i++) {
       seed = (seed + 1) >>> 0;
-      if (simulateBattle(A, B, { seed }).winner === "a") w++;
+      const swap = (i & 1) === 1;
+      for (const u of A) u._policy = swap ? polB : polA;
+      for (const u of B) u._policy = swap ? polA : polB;
+      const sideA = simulateBattle(A, B, { seed }).winner === "a";
+      if (swap ? !sideA : sideA) w++;
     }
     by[label] = { n: count, wins: w, rate: w / count };
     wins += w;
@@ -154,6 +158,7 @@ let gen = 0;
 const rng = mulberry32(20261014);
 const mirror = generation(champion, champion, 11);
 aiFights += mirror.fights;
+let bestRate = mirror.rate;
 history.push({ gen, kind: "miroir", policy: Object.assign({}, champion), rate: mirror.rate, by: mirror.by, fights: mirror.fights, accepted: false });
 log("miroir " + (100 * mirror.rate).toFixed(2) + "% en " + mirror.fights + " combats");
 gen = 1;
@@ -161,9 +166,10 @@ while (aiFights < MAX_FIGHTS && !(stall >= STALL_LIMIT && aiFights >= MIN_FIGHTS
   const challenger = mutate(champion, rng);
   const g = generation(challenger, champion, 1000 + gen * 17);
   aiFights += g.fights;
-  const improved = g.rate > 0.5 + 0.005;
+  const improved = g.rate > bestRate + 0.005;
   if (improved) {
     champion = challenger;
+    bestRate = g.rate;
     stall = 0;
   } else stall++;
   history.push({ gen, kind: "mutant", policy: challenger, rate: g.rate, by: g.by, fights: g.fights, accepted: improved, stall });

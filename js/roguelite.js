@@ -467,17 +467,18 @@ function mixHero(hero) {
 
 export function layersForHero(hero) {
   const h = mixHero(hero);
+  const eq = hero.equipped || {};
+  const weapons = ["Melee2", "Melee8", "Magic2", "Magic3", "Ranged1"];
   const layers = [
     { folder: "Shadow", tint: null, alpha: 1 },
     { folder: "NakedBody", tint: null, alpha: 1 },
+    { folder: GEAR_LEGS[(eq.bottes ? h : (h >>> 2)) % GEAR_LEGS.length], tint: null, alpha: 1 },
   ];
-  const eq = hero.equipped || {};
-  if (eq.bottes) layers.push({ folder: GEAR_LEGS[h % GEAR_LEGS.length], tint: null, alpha: 1 });
-  if (eq.cape) layers.push({ folder: GEAR_CHESTS[(h >>> 3) % GEAR_CHESTS.length], tint: null, alpha: 1 });
-  else if (eq.ceinture) layers.push({ folder: (h & 1) ? "Belt1" : "Belt2", tint: null, alpha: 1 });
+  if (eq.ceinture && !eq.cape) layers.push({ folder: (h & 1) ? "Belt1" : "Belt2", tint: null, alpha: 1 });
+  else layers.push({ folder: GEAR_CHESTS[(h >>> 3) % GEAR_CHESTS.length], tint: null, alpha: 1 });
   if (eq.bouclier) layers.push({ folder: GEAR_OFF[(h >>> 5) % GEAR_OFF.length], tint: null, alpha: 1 });
-  if (eq.arme) layers.push({ folder: weaponFolder(eq.arme), tint: null, alpha: 1 });
-  layers.push({ folder: eq.coiffe ? GEAR_HEADS[(h >>> 8) % GEAR_HEADS.length] : "Head3", tint: null, alpha: 1 });
+  layers.push({ folder: eq.arme ? weaponFolder(eq.arme) : weapons[(h >>> 6) % weapons.length], tint: null, alpha: 1 });
+  layers.push({ folder: GEAR_HEADS[(h >>> 8) % GEAR_HEADS.length], tint: null, alpha: 1 });
   return layers;
 }
 

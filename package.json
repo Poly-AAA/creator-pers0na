@@ -13,5 +13,8 @@
     "volume": "node scripts/volume.js",
     "ergo": "node scripts/ergo.js",
     "start": "python3 -m http.server 8765"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.1"
   }
 }

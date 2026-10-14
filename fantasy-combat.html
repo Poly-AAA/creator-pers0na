@@ -1361,7 +1361,7 @@
         urls.push(`hat-refs/Head25/${anim}.png`);
         urls.push(`assets/packs/fantasy-cc/spritesheets/Head25/${anim}.png`);
       }
-      urls.push(BASE_CDN+rel, BASE_LOCAL+rel);
+      urls.push(BASE_LOCAL+rel, BASE_CDN+rel);
       let i=0, useCors=true;
       const tryOne=()=>{
         if(i>=urls.length){
@@ -1448,11 +1448,21 @@
     return { c, r };
   }
   function updateCamera(){
-    const focusEnt = G.player && G.player.alive
-      ? G.player
-      : (G.enemy && G.enemy.alive ? G.enemy : { c:cam.fx, r:cam.fy });
-    const focus = (focusEnt === G.player) ? entityDrawPos(focusEnt) : { c:focusEnt.c, r:focusEnt.r };
-    const tc = focus.c, tr = focus.r;
+    let tc, tr;
+    const crowd = G.roguelite && G.roster && G.roster.length > 2;
+    if(crowd){
+      const live = [];
+      if(G.player && (G.player.alive || G.player.anim==="Die")) live.push(G.player);
+      G.roster.forEach(p=>{ if(p.alive || p.anim==="Die") live.push(p); });
+      tc = live.reduce((s,u)=>s+u.c,0) / Math.max(1, live.length);
+      tr = live.reduce((s,u)=>s+u.r,0) / Math.max(1, live.length);
+    } else {
+      const focusEnt = G.player && G.player.alive
+        ? G.player
+        : (G.enemy && G.enemy.alive ? G.enemy : { c:cam.fx, r:cam.fy });
+      const focus = (focusEnt === G.player) ? entityDrawPos(focusEnt) : { c:focusEnt.c, r:focusEnt.r };
+      tc = focus.c; tr = focus.r;
+    }
     cam.fx += (tc - cam.fx) * cam.smooth;
     cam.fy += (tr - cam.fy) * cam.smooth;
     if(Math.abs(tc - cam.fx) < 0.02) cam.fx = tc;
@@ -2588,7 +2598,7 @@
     const loopAnims = /^(Idle|Walk|Run|RunBackwards|StrafeLeft|StrafeRight|CrouchRun|RideIdle|RideRun|RideIdleAttack1|RideRunAttack1)$/i;
     const pos = entityDrawPos(ent);
     const s = toScreen(pos.c, pos.r);
-    const scale = (G.roster && G.roster.length > 6) ? 0.88 : 1.15;
+    const scale = (G.roster && G.roster.length > 12) ? 0.7 : (G.roster && G.roster.length > 6) ? 0.82 : 1.15;
     const dw=FW*scale, dh=FH*scale;
     const FOOT_Y = 88;
     const GROUND = 0;
@@ -3002,6 +3012,8 @@
     });
     G.enemy = (G.roster.find(u=>u.side==="b") ) || G.enemy;
     rlWarmRoster();
+    if(G.roster.length >= 9) cam.userSc = 0.58;
+    else if(G.roster.length >= 3) cam.userSc = 0.82;
     const hint = el("spellHint");
     if(hint) hint.textContent = (payload.mode||"1v1")+" · "+(foes.length)+" adversaires · pincer pour zoomer";
     const flee = el("btnFlee");
@@ -3051,9 +3063,11 @@
     if(!loadLook()) defaultLook();
     lastLookSig = lookSig();
     try{
-      for(const u of [BASE_CDN+"catalog.json", BASE_LOCAL+"catalog.json"]){
-        const r=await fetch(u,{cache:"no-store",mode:"cors"});
-        if(r.ok){ catalog=await r.json(); break; }
+      for(const u of [BASE_LOCAL+"catalog.json", BASE_CDN+"catalog.json"]){
+        try{
+          const r=await fetch(u,{cache:"no-store",mode:"cors",signal:AbortSignal.timeout(4000)});
+          if(r.ok){ catalog=await r.json(); break; }
+        }catch(_e){}
       }
     }catch(_e){}
     if(catalog){

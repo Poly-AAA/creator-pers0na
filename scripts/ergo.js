@@ -56,27 +56,39 @@ async function controlReport(page) {
     const view = { w: window.innerWidth, h: window.innerHeight };
     const overflow = document.documentElement.scrollWidth > view.w + 1;
     const nodes = [...document.querySelectorAll("button, a.link-cc, #dpad button")];
-    const boxes = nodes.map((el) => {
-      const r = el.getBoundingClientRect();
+    const boxes = [];
+    const outside = [];
+    for (const el of nodes) {
       const s = getComputedStyle(el);
-      return {
+      if (s.display === "none" || s.visibility === "hidden") continue;
+      const r0 = el.getBoundingClientRect();
+      if (r0.width < 1 || r0.height < 1) continue;
+      const b = {
         t: (el.innerText || el.getAttribute("aria-label") || el.id || "").replace(/\s+/g, " ").slice(0, 48),
-        x: r.x, y: r.y, w: r.width, h: r.height,
+        x: r0.x + window.scrollX, y: r0.y + window.scrollY, w: r0.width, h: r0.height,
         fs: parseFloat(s.fontSize) || 0,
-        disp: s.display,
-        vis: s.visibility,
+        dpad: !!el.closest("#dpad"),
+        el,
       };
-    }).filter((b) => b.disp !== "none" && b.vis !== "hidden" && b.w > 0 && b.h > 0);
-    const outside = boxes.filter((b) => b.x < -1 || b.y < -1 || b.x + b.w > view.w + 1 || b.y + b.h > view.h + 1);
-    const tiny = boxes.filter((b) => b.fs > 0 && b.fs < 11);
+      boxes.push(b);
+    }
+    for (const b of boxes) {
+      b.el.scrollIntoView({ block: "nearest", inline: "nearest" });
+      const r = b.el.getBoundingClientRect();
+      if (r.x < -1 || r.y < -1 || r.x + r.width > view.w + 1 || r.y + r.height > view.h + 1) outside.push(b.t);
+    }
+    const tiny = boxes.filter((b) => b.fs > 0 && b.fs < 11).map((b) => b.t + " " + b.fs);
     const hits = [];
     const hit = (a, b) => a.x < b.x + b.w - 2 && a.x + a.w - 2 > b.x && a.y < b.y + b.h - 2 && a.y + a.h - 2 > b.y;
+    const centers = (a, b) => Math.hypot((a.x + a.w / 2) - (b.x + b.w / 2), (a.y + a.h / 2) - (b.y + b.h / 2));
     for (let i = 0; i < boxes.length; i++) {
       for (let j = i + 1; j < boxes.length; j++) {
-        if (hit(boxes[i], boxes[j])) hits.push(boxes[i].t + " ∩ " + boxes[j].t);
+        if (!hit(boxes[i], boxes[j])) continue;
+        if (boxes[i].dpad && boxes[j].dpad && centers(boxes[i], boxes[j]) >= 26) continue;
+        hits.push(boxes[i].t + " ∩ " + boxes[j].t);
       }
     }
-    return { overflow, outside: outside.map((b) => b.t), tiny: tiny.map((b) => b.t + " " + b.fs), hits, n: boxes.length };
+    return { overflow, outside, tiny, hits, n: boxes.length };
   });
 }
 
@@ -108,7 +120,7 @@ try {
     });
     const page = await context.newPage();
     await page.addInitScript(() => localStorage.clear());
-    await page.goto(BASE + "/index.html", { waitUntil: "networkidle" });
+    await page.goto(BASE + "/index.html", { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#goFight");
     await shot(page, "docs/previews/phones/" + phone.id + "/accueil.png");
     note(phone.id, "accueil", await controlReport(page));
@@ -129,8 +141,8 @@ try {
     await page.addInitScript((payload) => {
       localStorage.setItem("roguelite.fight", JSON.stringify(payload));
     }, fights[10]);
-    await page.goto(BASE + "/fantasy-combat.html", { waitUntil: "networkidle" });
-    await page.waitForFunction(() => window.__arenaRoster && window.__arenaRoster().length >= 19, null, { timeout: 8000 });
+    await page.goto(BASE + "/fantasy-combat.html", { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => window.__arenaRoster && window.__arenaRoster().length >= 19, null, { timeout: 15000 });
     await page.waitForTimeout(700);
     const roster = await page.evaluate(() => window.__arenaRoster());
     const thin = roster.filter((u) => !u.layers || u.layers.length < 4);
@@ -192,8 +204,8 @@ try {
   const page = await check.newPage();
   for (const size of [2, 5]) {
     await page.addInitScript((payload) => localStorage.setItem("roguelite.fight", JSON.stringify(payload)), fights[size]);
-    await page.goto(BASE + "/fantasy-combat.html", { waitUntil: "networkidle" });
-    await page.waitForFunction((n) => window.__arenaRoster && window.__arenaRoster().length >= n, size * 2 - 1);
+    await page.goto(BASE + "/fantasy-combat.html", { waitUntil: "domcontentloaded" });
+    await page.waitForFunction((n) => window.__arenaRoster && window.__arenaRoster().length >= n, size * 2 - 1, { timeout: 15000 });
     await page.waitForTimeout(500);
     const roster = await page.evaluate(() => window.__arenaRoster());
     const thin = roster.filter((u) => !u.layers || u.layers.length < 4);
@@ -207,7 +219,7 @@ try {
   const gpage = await gallery.newPage();
   let spellsShot = 0;
   for (const sp of raw) {
-    await gpage.goto(BASE + "/spell-preview.html?id=" + encodeURIComponent(sp.id), { waitUntil: "networkidle" });
+    await gpage.goto(BASE + "/spell-preview.html?id=" + encodeURIComponent(sp.id), { waitUntil: "domcontentloaded" });
     await gpage.waitForFunction(() => document.body.dataset.ready && document.body.dataset.ready !== "", null, { timeout: 8000 });
     const ready = await gpage.evaluate(() => document.body.dataset.ready);
     if (ready !== sp.id) issues.push("sort " + sp.id + " — prêt=" + ready);

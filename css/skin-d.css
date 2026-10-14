@@ -19,11 +19,12 @@
   --safe-b:env(safe-area-inset-bottom);
 }
 
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink)}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink)}
 body.skin-d{
-  font-family:"Pixelify Sans","DotGothic16",ui-sans-serif,sans-serif;
+  font-family:"Pixelify Sans","DotGothic16",ui-sans-serif;
   background:var(--bg);
   color:var(--ink);
+  overflow-y:auto;
 }
 body.skin-d *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body.skin-d button,body.skin-d a.tap{
@@ -81,7 +82,19 @@ body.skin-d button,body.skin-d a.tap{
 .load .track i{display:block;height:100%;width:0;background:var(--acc);animation:fill .7s linear forwards}
 @keyframes fill{to{width:100%}}
 .footer-links{padding:8px 14px 16px;display:flex;gap:10px;flex-wrap:wrap}
-.footer-links a{color:var(--ink2);font-size:12px;letter-spacing:.06em}
+.footer-links a{color:var(--ink2);font-size:13px;letter-spacing:.06em}
+@media (max-height:740px){
+  .topbar{padding:6px 12px 4px}
+  .topbar h1{font-size:18px}
+  .screen{gap:6px;padding:4px 12px 8px}
+  .panel{padding:8px}
+  .panel h2{font-size:15px;margin-bottom:4px}
+  .statgrid{font-size:13px;gap:2px 10px}
+  .muted{font-size:12px}
+  .actions{gap:4px}
+  .actions button,.tap{min-height:40px;padding:6px 12px;font-size:15px}
+  .footer-links{padding:6px 12px 10px}
+}
 .float-note{font-size:13px;color:var(--acc)}
 .list{display:flex;flex-direction:column;gap:8px}
 .offer{display:flex;justify-content:space-between;gap:8px;align-items:center;background:var(--panel);box-shadow:var(--shadow);padding:10px}
@@ -103,7 +116,8 @@ body.skin-d .chip{
   border:0;border-radius:0;background:var(--panel);box-shadow:var(--shadow);color:var(--ink);
 }
 body.skin-d .link-cc{
-  border:0;border-radius:0;background:var(--soft);color:var(--ink);min-height:32px;
+  border:0;border-radius:0;background:var(--soft);color:var(--ink);
+  min-height:36px;font-size:12px;padding:6px 8px;
 }
 body.skin-d .midbar{background:transparent}
 body.skin-d .hint{color:var(--ink2)}
@@ -120,13 +134,18 @@ body.skin-d .combo>i{background:var(--acc);border-radius:0}
 body.skin-d .controls{grid-template-columns:148px 1fr}
 body.skin-d .dpad-wrap{width:148px;height:148px}
 body.skin-d .dpad button{
-  width:48px;height:48px;border:0;border-radius:0;background:#fff;color:var(--ink);
+  width:40px;height:40px;border:0;border-radius:0;background:#fff;color:var(--ink);
   box-shadow:var(--shadow);
 }
+body.skin-d .dpad .u{top:2px}
+body.skin-d .dpad .d{bottom:2px}
+body.skin-d .dpad .l{left:2px}
+body.skin-d .dpad .r{right:2px}
 body.skin-d .dpad button.on,body.skin-d .dpad button:active{background:var(--acc);color:#fff}
 body.skin-d .dpad .c{width:44px;height:44px;background:var(--acc);color:#fff}
 body.skin-d .spells button{
   min-height:48px;border:0;border-radius:0;background:#fff;box-shadow:var(--shadow);color:var(--ink);
+  font-size:12px;
 }
 body.skin-d .spells button.on{background:var(--acc);color:#fff}
 body.skin-d .spells button.on small{color:#fff}

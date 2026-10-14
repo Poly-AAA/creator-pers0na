@@ -31,11 +31,7 @@ npm run train
 npm run campaign
 ```
 
-`npm run campaign` écrit `docs/rapport-parties.md`. Sans variables, c’est un échantillon. Le volume du cahier se demande ainsi :
-
-```bash
-ROGUELITE_RUNS=10000 ROGUELITE_DUELS=100000 ROGUELITE_TEAMS=2000 npm run campaign
-```
+`npm run campaign` écrit un échantillon dans `docs/rapport-parties.md`. Le volume du cahier (cinq passes d’environ 100 000 combats, self-play, 10 000 parties) est `npm run volume`. La suite portrait sur quatre téléphones et les captures de sorts est `npm run ergo`.
 
 Les rapports chiffrés sont dans `docs/`.
 
