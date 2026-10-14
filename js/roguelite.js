@@ -116,7 +116,9 @@ export function tagSpell(spell, index) {
   return s;
 }
 
+let _specialCache = null;
 function specialSpells() {
+  if (_specialCache) return _specialCache;
   const mk = (partial) => {
     const anims = partial.anims;
     const spell = Object.assign({
@@ -132,22 +134,25 @@ function specialSpells() {
     spell.animSeq = anims.slice();
     return spell;
   };
-  return [
+  _specialCache = [
     mk({ id: "ov_ossuaire", name: "Ossuaire", role: "summon", type: "summon", cost: 4, range: 2, dmg: [6, 10], effect: "summon", overlay: "squelette", element: "neutre", anims: ["Special1", "Attack3"], desc: "Invoque un squelette superposé." }),
     mk({ id: "ov_spectre", name: "Voile spectral", role: "control", type: "damage", cost: 3, range: 4, dmg: [6, 9], effect: "drainPM", overlay: "spectre", element: "air", anims: ["Special1", "Attack6"], desc: "Malédiction : retrait de PM, spectre superposé." }),
     mk({ id: "ov_glyphe", name: "Glyphe de braise", role: "aoe", type: "damage", cost: 4, range: 3, dmg: [7, 11], aoe: 1, effect: "glyph", overlay: "spectre", element: "feu", anims: ["Attack5", "Special1"], desc: "Glyphe au sol." }),
     mk({ id: "ov_piege", name: "Piège d'os", role: "control", type: "damage", cost: 3, range: 3, dmg: [8, 12], effect: "trap", overlay: "squelette", element: "terre", anims: ["Kick", "Special1"], desc: "Piège qui se déclenche au passage." }),
     mk({ id: "ov_relique", name: "Relique de quartz", role: "ranged", type: "damage", cost: 3, range: 5, dmg: [12, 16], effect: "", overlay: "spectre", element: "feu", rare: true, anims: ["Attack6", "Special1"], desc: "Sort rare, synergie forte." }),
   ];
+  return _specialCache;
 }
 
 export function prepareCatalog(list) {
+  if (list && list._prepared) return list;
   const base = (list && list.length) ? list.map((s, i) => tagSpell(Object.assign({}, s), i)) : [];
   const have = new Set(base.map((s) => s.id));
   const extra = specialSpells().filter((s) => !have.has(s.id));
   const all = base.concat(extra);
-  if (all.length >= 8) return all;
-  return all.concat(specialSpells());
+  const out = all.length >= 8 ? all : all.concat(specialSpells());
+  out._prepared = true;
+  return out;
 }
 
 function gainAmount(rng, gene) {
@@ -448,18 +453,40 @@ function weaponFolder(item) {
   return table[el] || "Melee2";
 }
 
+const GEAR_HEADS = ["Head1", "Head3", "Head5", "Head8", "Head12", "Head16", "Head18", "Head22"];
+const GEAR_CHESTS = ["Chest2", "Chest4", "Chest6", "Chest8", "Chest10", "Chest14"];
+const GEAR_LEGS = ["Legs1", "Legs3", "Legs5", "Legs7", "Legs9"];
+const GEAR_OFF = ["Offhand1", "Offhand2", "Shield1", "Shield2"];
+
+function mixHero(hero) {
+  const s = String((hero && (hero.id || hero.name)) || "x");
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
 export function layersForHero(hero) {
+  const h = mixHero(hero);
   const layers = [
     { folder: "Shadow", tint: null, alpha: 1 },
-    { folder: "NakedBody", tint: "#d4a574", alpha: 1 },
+    { folder: "NakedBody", tint: null, alpha: 1 },
   ];
   const eq = hero.equipped || {};
-  if (eq.bottes) layers.push({ folder: "Legs3", tint: null, alpha: 1 });
-  if (eq.cape || eq.ceinture) layers.push({ folder: eq.cape ? "Chest6" : "Belt1", tint: null, alpha: 1 });
-  if (eq.bouclier) layers.push({ folder: "Offhand1", tint: null, alpha: 1 });
+  if (eq.bottes) layers.push({ folder: GEAR_LEGS[h % GEAR_LEGS.length], tint: null, alpha: 1 });
+  if (eq.cape) layers.push({ folder: GEAR_CHESTS[(h >>> 3) % GEAR_CHESTS.length], tint: null, alpha: 1 });
+  else if (eq.ceinture) layers.push({ folder: (h & 1) ? "Belt1" : "Belt2", tint: null, alpha: 1 });
+  if (eq.bouclier) layers.push({ folder: GEAR_OFF[(h >>> 5) % GEAR_OFF.length], tint: null, alpha: 1 });
   if (eq.arme) layers.push({ folder: weaponFolder(eq.arme), tint: null, alpha: 1 });
-  layers.push({ folder: eq.coiffe ? "Head12" : "Head3", tint: null, alpha: 1 });
+  layers.push({ folder: eq.coiffe ? GEAR_HEADS[(h >>> 8) % GEAR_HEADS.length] : "Head3", tint: null, alpha: 1 });
   return layers;
+}
+
+function leaderFade(level) {
+  const lv = level | 0 || 1;
+  if (lv >= 40) return 0.24;
+  if (lv >= 35) return 0.42;
+  if (lv >= 28) return 0.72;
+  return 1;
 }
 
 export function powerScore(heroOrFighter) {
@@ -819,7 +846,7 @@ function fighterFrom(source, side, spot, leader) {
 function npcHero(rng, level, catalog, gearQuality) {
   const h = createHero((rng() * 1e9) >>> 0, catalog);
   while (h.level < level) gainXp(h, xpNeed(h.level));
-  const n = level < 14 ? 1 : level < 24 ? 2 : level < 35 ? 3 : level < 42 ? 4 : 5;
+  const n = level < 14 ? 1 : level < 24 ? 2 : level < 35 ? 3 : level < 40 ? 4 : 6;
   for (let i = 0; i < n; i++) {
     const it = makeItem(rng, { level: clamp(level + roll(rng, -2, 1), 1, 50), quality: gearQuality, element: pick(rng, h.elements) });
     h.inventory.push(it);
@@ -870,7 +897,7 @@ export function buildEncounter(state, mode, rng, catalog) {
   }
   const sum = hero.level + allyHeroes.reduce((a, h) => a + (h.level | 0), 0);
   const foeLevels = splitLevels(sum, size, rng);
-  const late = hero.level >= 42 ? 1.42 : hero.level >= 35 ? 1.18 : hero.level >= 18 ? 0.92 : hero.level >= 8 ? 0.62 : 0.35;
+  const late = hero.level >= 48 ? 2.02 : hero.level >= 45 ? 1.96 : hero.level >= 40 ? 1.74 : hero.level >= 35 ? 1.48 : hero.level >= 18 ? 0.92 : hero.level >= 8 ? 0.62 : 0.35;
   const foes = foeLevels.map((lv) => npcHero(rng, lv, catalog, late * (0.9 + rng() * 0.25)));
   if (hero.level >= 45 && rng() < BALANCE.rareDrop * 8) {
     const rare = makeItem(rng, { level: 50, rare: true, quality: 1.5, element: pick(rng, ["terre", "feu", "eau", "air"]) });
@@ -980,13 +1007,17 @@ function castOn(rng, caster, spell, target, allies, foes, log, zones) {
   const statName = ELEMENT_STAT[spell.element] || "force";
   const stat = caster.stats[statName] || 0;
   let power = (1 + stat / BALANCE.statScale) * BALANCE.dmgFactor;
-  if (caster.leader) power *= BALANCE.playerSkill;
+  if (caster.leader) power *= 1 + (BALANCE.playerSkill - 1) * leaderFade(caster.level);
   const res = Math.min(BALANCE.resistCap, (target.res && target.res[spell.element]) || 0);
   for (let h = 0; h < hits; h++) {
     if (!target.alive) break;
     let d = Math.max(1, Math.round(roll(rng, spell.dmg[0] || 4, spell.dmg[1] || spell.dmg[0] || 6) * power * (1 - res)));
     if (spell.rare) d = Math.round(d * 1.08);
-    if (target.leader) d = Math.max(1, Math.round(d * BALANCE.playerGuard));
+    if (target.leader) {
+      const fade = leaderFade(target.level);
+      const guard = 1 - (1 - BALANCE.playerGuard) * fade;
+      d = Math.max(1, Math.round(d * guard));
+    }
     if (target.shield > 0) {
       const a = Math.min(target.shield, d);
       target.shield -= a;
@@ -1036,11 +1067,17 @@ function chooseAndAct(rng, unit, allies, foes, log, zones) {
   for (let g = 0; g < budget && unit.alive; g++) {
     const liveFoes = foes.filter((f) => f.alive);
     if (!liveFoes.length) break;
-    const target = nearest(unit, liveFoes);
+    const policy = unit._policy;
+    const target = policy && policy.focus === "weakest"
+      ? liveFoes.reduce((best, f) => (!best || f.pv < best.pv ? f : best), null)
+      : policy && policy.focus === "leader"
+        ? (liveFoes.find((f) => f.leader) || nearest(unit, liveFoes))
+        : nearest(unit, liveFoes);
     const spells = unit.spells || [];
     const hp = unit.pv / Math.max(1, unit.pvMax);
+    const healAt = policy && policy.healAt != null ? policy.healAt : 0.62;
     let acted = false;
-    if (hp < 0.62) {
+    if (hp < healAt) {
       const heal = spells.find((s) => (s.type === "heal" || s.type === "shield") && unit.pa >= (s.cost | 0));
       if (heal && castOn(rng, unit, heal, unit, allies, foes, log, zones)) { casts++; acted = true; }
     }
@@ -1061,7 +1098,8 @@ function chooseAndAct(rng, unit, allies, foes, log, zones) {
     if (acted) continue;
     if (unit.pm <= 0 || !target) break;
     const ranged = spells.some((s) => (s.range | 0) >= 3 && s.type === "damage");
-    const moved = ranged && chebyshev(unit, target) <= 1 ? stepAway(unit, target, allies.concat(foes)) : stepToward(unit, target, allies.concat(foes));
+    const kite = !(policy && policy.kite === false);
+    const moved = kite && ranged && chebyshev(unit, target) <= 1 ? stepAway(unit, target, allies.concat(foes)) : stepToward(unit, target, allies.concat(foes));
     if (!moved) break;
     unit.pm -= 1;
   }
@@ -1169,7 +1207,9 @@ export function unitsFromEncounter(hero, encounter) {
     f.layers = layersForHero(h);
     return f;
   });
-  allies.forEach((u, i) => { if (i === 0) u.layers = layersForHero(hero); });
+  allies.forEach((u, i) => {
+    u.layers = i === 0 ? layersForHero(hero) : layersForHero(encounter.allies[i - 1] || u);
+  });
   return { allies, foes };
 }
 

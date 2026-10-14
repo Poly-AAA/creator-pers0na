@@ -10,6 +10,8 @@
     "balance": "node scripts/balance-spells.js",
     "train": "node scripts/train-ai.js",
     "campaign": "node scripts/campaign.js",
+    "volume": "node scripts/volume.js",
+    "ergo": "node scripts/ergo.js",
     "start": "python3 -m http.server 8765"
   }
 }

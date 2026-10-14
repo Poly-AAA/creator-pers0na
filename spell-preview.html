@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sort</title>
+  <link rel="stylesheet" href="css/skin-d.css" />
+  <style>
+    html, body { margin: 0; background: #F3EFE6; color: #2F3133; }
+    body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 18px 12px 28px; }
+    h1 { font-family: "Pixelify Sans", ui-sans-serif, sans-serif; font-size: 22px; margin: 8px 0 4px; text-align: center; }
+    p { margin: 0; text-align: center; font-size: 14px; line-height: 1.4; }
+    canvas { margin-top: 12px; image-rendering: pixelated; background: #E4D2B4; border: 1px solid rgba(47,49,51,.22); }
+    .k { letter-spacing: .14em; font-size: 11px; text-transform: uppercase; color: #8A8175; }
+  </style>
+</head>
+<body>
+  <div class="k" id="kicker">Grimoire</div>
+  <h1 id="name">Sort</h1>
+  <p id="meta"></p>
+  <canvas id="view" width="240" height="240"></canvas>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const id = params.get("id") || "";
+    const FW = 128, FH = 128;
+    const folders = ["Shadow", "NakedBody", "Legs3", "Chest6", "Melee8", "Head12"];
+    const canvas = document.getElementById("view");
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+
+    function sheet(folder, anim) {
+      return "assets/packs/fantasy-cc/spritesheets/" + folder + "/" + anim + ".png";
+    }
+    function load(src) {
+      return new Promise((resolve) => {
+        const im = new Image();
+        im.onload = () => resolve(im);
+        im.onerror = () => resolve(null);
+        im.src = src;
+      });
+    }
+    fetch("data/generated-spells.json").then((r) => r.json()).then(async (list) => {
+      const sp = list.find((s) => s.id === id) || list[0];
+      if (!sp) { document.body.dataset.ready = "missing"; return; }
+      document.getElementById("name").textContent = sp.name;
+      const dmg = sp.dmg ? (sp.dmg[0] + "-" + sp.dmg[1]) : (sp.heal ? ("soin " + sp.heal[0] + "-" + sp.heal[1]) : "sans dégâts");
+      document.getElementById("meta").textContent = (sp.element || "") + " · " + (sp.type || "") + " · " + (sp.cost || 0) + " PA · " + dmg + " · " + (sp.anim || "Attack1");
+      document.title = sp.name;
+      const anim = sp.anim || "Attack1";
+      const images = [];
+      for (const f of folders) {
+        let im = await load(sheet(f, anim));
+        if (!im) im = await load(sheet(f, "Idle"));
+        if (im) images.push(im);
+      }
+      ctx.fillStyle = "#F6E7D2";
+      ctx.fillRect(0, 0, 240, 240);
+      images.forEach((im) => ctx.drawImage(im, 4 * FW, 3 * FH, FW, FH, 56, 48, 128, 128));
+      document.body.dataset.ready = sp.id;
+      document.body.dataset.spell = sp.name;
+    }).catch(() => { document.body.dataset.ready = "error"; });
+  </script>
+</body>
+</html>

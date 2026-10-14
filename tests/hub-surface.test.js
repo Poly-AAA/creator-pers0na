@@ -30,5 +30,8 @@ describe("arène", () => {
     assert.match(combat, /skin-d\.css/);
     assert.match(combat, /squelette/);
     assert.match(combat, /spectre/);
+    assert.match(combat, /G\.roster/);
+    assert.match(combat, /rlRosterPhase/);
+    assert.equal(combat.includes("rlDrawPawn"), false);
   });
 });

@@ -1411,21 +1411,27 @@
     return L.filter(x=>x.folder);
   }
 
+  const tintCache = new Map();
+  const TINT_MAX = 240;
   function tintDraw(img,sx,sy,sw,sh,dx,dy,dw,dh,tintHex,alpha){
     const a=(alpha==null)?1:alpha;
     ctx.save(); ctx.globalAlpha=a;
     if(!tintHex){ ctx.drawImage(img,sx,sy,sw,sh,dx,dy,dw,dh); ctx.restore(); return; }
-    const tw=Math.max(1,Math.round(dw)), th=Math.max(1,Math.round(dh));
-    if(tintCv.width!==tw) tintCv.width=tw;
-    if(tintCv.height!==th) tintCv.height=th;
-    const t=tintCx;
-    t.setTransform(1,0,0,1,0,0); t.globalCompositeOperation="source-over"; t.globalAlpha=1;
-    t.clearRect(0,0,tw,th); t.imageSmoothingEnabled=false;
-    t.drawImage(img,sx,sy,sw,sh,0,0,tw,th);
-    t.globalCompositeOperation="multiply"; t.fillStyle=tintHex; t.fillRect(0,0,tw,th);
-    t.globalCompositeOperation="destination-in"; t.drawImage(img,sx,sy,sw,sh,0,0,tw,th);
-    t.globalCompositeOperation="source-over";
-    ctx.drawImage(tintCv,dx,dy); ctx.restore();
+    const k=(img.currentSrc||img.src||"")+"|"+sx+","+sy+","+sw+","+sh+"|"+tintHex;
+    let cv=tintCache.get(k);
+    if(cv){ tintCache.delete(k); tintCache.set(k, cv); }
+    else {
+      cv=document.createElement("canvas");
+      cv.width=Math.max(1, sw|0); cv.height=Math.max(1, sh|0);
+      const t=cv.getContext("2d");
+      t.imageSmoothingEnabled=false;
+      t.drawImage(img,sx,sy,sw,sh,0,0,cv.width,cv.height);
+      t.globalCompositeOperation="multiply"; t.fillStyle=tintHex; t.fillRect(0,0,cv.width,cv.height);
+      t.globalCompositeOperation="destination-in"; t.drawImage(img,sx,sy,sw,sh,0,0,cv.width,cv.height);
+      tintCache.set(k, cv);
+      if(tintCache.size>TINT_MAX) tintCache.delete(tintCache.keys().next().value);
+    }
+    ctx.drawImage(cv,dx,dy,dw,dh); ctx.restore();
   }
 
   function toScreen(c, r){
@@ -1483,9 +1489,13 @@
   function inBounds(c,r){ return c>=0&&r>=0&&c<GRID&&r<GRID; }
   function occupied(c,r, skip){
     if(G.player.alive && skip!=="player" && G.player.c===c && G.player.r===r) return "player";
-    if(G.enemy.alive && skip!=="enemy" && G.enemy.c===c && G.enemy.r===r) return "enemy";
+    if(G.enemy && G.enemy.alive && skip!=="enemy" && G.enemy.c===c && G.enemy.r===r) return "enemy";
     if(G.clone && G.clone.alive && skip!=="clone" && G.clone.c===c && G.clone.r===r) return "clone";
-    if(skip!=="pawn" && (G.pawns||[]).some(p=>p.alive && p.c===c && p.r===r)) return "pawn";
+    if(skip==="pawn") return null;
+    for(const p of (G.roster||[])){
+      if(!p.alive || p===G.enemy) continue;
+      if(p.c===c && p.r===r) return p.side==="b" ? "enemy" : "ally";
+    }
     return null;
   }
   function dist(a,b){ return Math.max(Math.abs(a.c-b.c), Math.abs(a.r-b.r)); }
@@ -1527,11 +1537,15 @@
     for(let c=0;c<GRID;c++) for(let r=0;r<GRID;r++){
       if(dist(G.player,{c,r})<=spellRange(sp)) G.range.add(key(c,r));
     }
-    if(!G.enemy.alive) return;
-    if(G.range.has(key(G.enemy.c, G.enemy.r))){
-      G.targets.add(key(G.enemy.c, G.enemy.r));
-      const focus = (G.hover && G.range.has(key(G.hover.c,G.hover.r))) ? G.hover : G.enemy;
-      const rad = sp.aoe|0;
+    const foes = G.roguelite
+      ? (G.roster||[]).filter(p=>p.side==="b" && p.alive)
+      : (G.enemy && G.enemy.alive ? [G.enemy] : []);
+    foes.forEach(f=>{ if(G.range.has(key(f.c, f.r))) G.targets.add(key(f.c, f.r)); });
+    const focusEnt = (G.enemy && G.enemy.alive) ? G.enemy : foes[0];
+    if(!focusEnt) return;
+    const focus = (G.hover && G.range.has(key(G.hover.c,G.hover.r))) ? G.hover : focusEnt;
+    const rad = sp.aoe|0;
+    if(G.range.has(key(focus.c, focus.r)) || G.targets.has(key(focus.c, focus.r))){
       for(let c=focus.c-rad;c<=focus.c+rad;c++) for(let r=focus.r-rad;r<=focus.r+rad;r++){
         if(!inBounds(c,r)) continue;
         if(dist(focus,{c,r})<=rad) G.aoe.add(key(c,r));
@@ -1943,7 +1957,12 @@
         playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
         setStatus("Sosie tacle → "+dmg);
         if(cl.stun){ /* retire 1 PA conceptuel au prochain tour ennemi via flag */ G.enemy._stunned = true; }
-        if(G.enemy.pv<=0){ G.enemy.alive=false; setStatus("Victoire · sosie"); onCombatEnd("win"); }
+        if(G.enemy.pv<=0){
+          G.enemy.alive=false;
+          if(G.rl) G.rl.kills = (G.rl.kills|0)+1;
+          if(rlPromote()) setStatus(G.enemy.name+" entre en lice");
+          else { setStatus("Victoire · sosie"); onCombatEnd("win"); }
+        }
         cl.alive = false; G.clone = null;
         hud();
         return;
@@ -2076,7 +2095,11 @@
       return;
     }
 
-    if(!G.enemy.alive || G.enemy.c!==c || G.enemy.r!==r){ setStatus("Pas de cible"); return; }
+    if(G.roguelite){
+      const foe = (G.roster||[]).find(p=>p.alive && p.side==="b" && p.c===c && p.r===r);
+      if(foe) G.enemy = foe;
+    }
+    if(!G.enemy || !G.enemy.alive || G.enemy.c!==c || G.enemy.r!==r){ setStatus("Pas de cible"); return; }
     if(dist(G.player, G.enemy) > spellRange(sp)){
       approachThen(sp, ()=> finishCastEnemy(sp));
       return;
@@ -2139,7 +2162,7 @@
     if(G.rl && (G.rl.casts|0) >= 3) G.rl.combos = (G.rl.combos|0)+1;
     if(G.rl) G.rl.casts = 0;
     setStatus("Tour ennemi…");
-    setTimeout(()=> rlPawnPhase(()=> enemyTurn()), G.roguelite ? 180 : 420);
+    setTimeout(()=> rlRosterPhase(()=> enemyTurn()), G.roguelite ? 120 : 420);
   }
 
   function enemySpellDmg(sp){
@@ -2531,11 +2554,11 @@
 
   /** À la mort : corps nu seulement (plus de chapeau / stuff flottant sur Die). */
   function layersForDeathPose(ent, isEnemy){
-    const raw = isEnemy
-      ? (ent.layers && ent.layers.length
-          ? ent.layers
-          : [{folder:"NakedBody",tint:"#8a6060",alpha:1}])
-      : layersForRow(sheetRowForDir(ent.dir|0, "Die"));
+    const raw = (ent.layers && ent.layers.length)
+      ? ent.layers
+      : (isEnemy
+          ? [{folder:"NakedBody",tint:null,alpha:1},{folder:"Head3",tint:null,alpha:1}]
+          : layersForRow(sheetRowForDir(ent.dir|0, "Die")));
     const nude = [];
     let bodyTint = isEnemy ? "#8a6060" : null;
     try{ if(!isEnemy) bodyTint = tint("body"); }catch(_e){}
@@ -2565,7 +2588,7 @@
     const loopAnims = /^(Idle|Walk|Run|RunBackwards|StrafeLeft|StrafeRight|CrouchRun|RideIdle|RideRun|RideIdleAttack1|RideRunAttack1)$/i;
     const pos = entityDrawPos(ent);
     const s = toScreen(pos.c, pos.r);
-    const scale = 1.15;
+    const scale = (G.roster && G.roster.length > 6) ? 0.88 : 1.15;
     const dw=FW*scale, dh=FH*scale;
     const FOOT_Y = 88;
     const GROUND = 0;
@@ -2583,12 +2606,12 @@
     let layers;
     if(dying){
       layers = layersForDeathPose(ent, isEnemy);
-    } else if(isEnemy){
-      layers = ent.layers && ent.layers.length
-          ? ent.layers
-          : [{folder:"NakedBody",tint:"#8a6060",alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}];
+    } else if(ent.layers && ent.layers.length){
+      layers = ent.layers;
     } else if(G.roguelite && ent===G.player && G.player.gearLayers){
       layers = G.player.gearLayers;
+    } else if(isEnemy){
+      layers = [{folder:"NakedBody",tint:null,alpha:1},{folder:"Chest4",tint:null,alpha:1},{folder:"Head3",tint:null,alpha:1},{folder:"Melee2",tint:null,alpha:1}];
     } else {
       layers = layersForRow(sheetRowForDir(ent.dir|0, anim));
     }
@@ -2689,17 +2712,18 @@
     }
 
     const ents=[];
-    if(G.enemy.alive || G.enemy.anim==="Die") ents.push({e:G.enemy, enemy:true});
+    const roster = G.roster || [];
+    const enemyInRoster = G.enemy && roster.indexOf(G.enemy)>=0;
+    if(G.enemy && !enemyInRoster && (G.enemy.alive || G.enemy.anim==="Die")) ents.push({e:G.enemy, enemy:true});
     if(G.clone && G.clone.alive) ents.push({e:G.clone, enemy:false, clone:true});
     if(G.player.alive || G.player.anim==="Die") ents.push({e:G.player, enemy:false});
-    (G.pawns||[]).forEach(p=>{ if(p.alive) ents.push({e:p, enemy:p.side==="b", pawn:true}); });
+    roster.forEach(p=>{ if(p.alive || p.anim==="Die") ents.push({e:p, enemy:p.side==="b"}); });
     ents.sort((a,b)=>{
       const pa = entityDrawPos(a.e), pb = entityDrawPos(b.e);
       return (pa.c+pa.r)-(pb.c+pb.r) || pa.c-pb.c;
     });
     for(const o of ents){
-      if(o.pawn && !(o.e.layers && o.e.layers.length)) rlDrawPawn(o.e);
-      else drawEntity(o.e, o.enemy, o.clone ? {clone:true, alpha:o.e.alpha||0.42} : (o.pawn ? {alpha:0.95} : null));
+      drawEntity(o.e, o.enemy, o.clone ? {clone:true, alpha:o.e.alpha||0.42} : null);
     }
     (G.floats||[]).forEach(f=>{
       const age = performance.now() - f.t0;
@@ -2803,66 +2827,123 @@
       layers:[{folder:"Shadow",tint:null,alpha:1},{folder:"NakedBody",tint:"#efe8dc",alpha:1}],
     };
   }
-  function rlDrawPawn(p){
-    const s = toScreen(p.c, p.r);
-    ctx.save();
-    ctx.fillStyle = p.side==="b" ? "#2F3133" : "#EA7020";
-    ctx.beginPath();
-    ctx.ellipse(s.x, s.y-10, 7, 12, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.fillStyle = "#fff";
-    ctx.font = "10px Pixelify Sans, sans-serif";
-    ctx.fillText(p.name || "", s.x-16, s.y-26);
-    ctx.restore();
+  function rlFallbackLayers(name){
+    let h = 2166136261;
+    const s = String(name || "x");
+    for(let i=0;i<s.length;i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+    h = h >>> 0;
+    const heads = ["Head1","Head3","Head5","Head8","Head12","Head16"];
+    const weapons = ["Melee2","Melee8","Magic2","Magic3","Ranged1"];
+    const chests = ["Chest2","Chest4","Chest6","Chest8"];
+    const legs = ["Legs1","Legs3","Legs5","Legs7"];
+    return [
+      {folder:"Shadow", tint:null, alpha:1},
+      {folder:"NakedBody", tint:null, alpha:1},
+      {folder:legs[h % legs.length], tint:null, alpha:1},
+      {folder:chests[(h>>>3) % chests.length], tint:null, alpha:1},
+      {folder:weapons[(h>>>6) % weapons.length], tint:null, alpha:1},
+      {folder:heads[(h>>>9) % heads.length], tint:null, alpha:1},
+    ];
+  }
+  function rlPlace(side, index, taken){
+    for(let k=0;k<90;k++){
+      const i = index + k;
+      const c = side==="a" ? (i % 3) : (9 - (i % 3));
+      const r = (side==="a" ? 2 : 1) + Math.floor(i / 3);
+      if(c<0 || r<0 || c>=GRID || r>=GRID) continue;
+      if(c===1 && r===4) continue;
+      const id = c+","+r;
+      if(taken.has(id)) continue;
+      taken.add(id);
+      return {c, r};
+    }
+    return side==="a" ? {c:0, r:0} : {c:9, r:9};
+  }
+  function rlActor(unit, side, spot){
+    (unit.spells||[]).forEach(rlInstallSpell);
+    const layers = (unit.layers && unit.layers.length) ? unit.layers : rlFallbackLayers(unit.name || side);
+    return {
+      name: unit.name || (side==="b" ? "Adversaire" : "Allié"),
+      level: unit.level|0 || 1,
+      side, alive:true,
+      c: spot.c, r: spot.r,
+      dir: side==="a" ? 3 : 7,
+      pv: unit.pv|0, pvMax: unit.pvMax|0 || 1,
+      pa: unit.paMax|0 || 6, paMax: unit.paMax|0 || 6,
+      pm: unit.pmMax|0 || 3, pmMax: unit.pmMax|0 || 3,
+      stats: unit.stats || {}, res: unit.res || {},
+      spells: (unit.spells||[]).map(s=> (s && s.id) || s),
+      layers, overlay: unit.overlay || null,
+      anim:"Idle", t0:performance.now(), frame:0, flash:0, shield:0,
+      weaponAnim:"Attack1",
+    };
+  }
+  function rlWarmRoster(){
+    const anims = ["Idle","Walk","Attack1","TakeDamage","Die"];
+    const folders = new Set();
+    const add = (layers)=> (layers||[]).forEach(L=>{ if(L && L.folder) folders.add(L.folder); });
+    add(G.player && G.player.gearLayers);
+    (G.roster||[]).forEach(p=> add(p.layers));
+    folders.forEach(f=> anims.forEach(a=> loadImg(f, a)));
   }
   function rlPromote(){
     if(!G.roguelite) return false;
-    const next = (G.pawns||[]).find(p=>p.side==="b" && p.alive);
-    if(!next) return false;
-    next.alive = false;
-    G.enemy = Object.assign(G.enemy, {
-      name: next.name, pv: next.pv, pvMax: next.pvMax, alive:true,
-      pa: next.paMax||6, paMax: next.paMax||6, pm: next.pmMax||3, pmMax: next.pmMax||3,
-      c: next.c, r: next.r, stats: next.stats||{}, res: next.res||{},
-      spells: (next.spells||[]).map(s=>s.id), layers: next.layers||G.enemy.layers,
-      anim:"Idle", t0:performance.now(), flash:0, shield:0,
-    });
+    const next = (G.roster||[]).find(p=>p.side==="b" && p.alive);
+    if(!next || next===G.enemy) return false;
+    G.enemy = next;
     try{ playAnim(G.enemy, "Idle"); }catch(_e){}
     return true;
   }
-  function rlPawnPhase(done){
-    const list = (G.pawns||[]).filter(p=>p.alive).slice(0, 8);
+  function rlRosterPhase(done){
+    const list = (G.roster||[]).filter(p=>p.alive && p!==G.enemy);
     if(!G.roguelite || !list.length){ done(); return; }
+    const delay = list.length > 8 ? 42 : 72;
     let i = 0;
     const step = ()=>{
-      if(i>=list.length || !G.player.alive){ done(); return; }
+      if(i>=list.length || !G.player.alive || G.turn==="over"){ done(); return; }
       const p = list[i++];
       if(!p.alive){ step(); return; }
       const foes = p.side==="a"
-        ? [G.enemy].concat((G.pawns||[]).filter(x=>x.side==="b" && x.alive)).filter(x=>x && x.alive)
-        : [G.player].concat((G.pawns||[]).filter(x=>x.side==="a" && x.alive)).filter(x=>x && x.alive);
+        ? (G.roster||[]).filter(x=>x.side==="b" && x.alive)
+        : [G.player].concat((G.roster||[]).filter(x=>x.side==="a" && x.alive)).filter(x=>x && x.alive);
       let target = null, best = 99;
       foes.forEach(f=>{
         const d = Math.max(Math.abs(f.c-p.c), Math.abs(f.r-p.r));
         if(d<best){ best=d; target=f; }
       });
-      if(target){
-        if(best>1){
-          p.c = Math.max(0, Math.min(GRID-1, p.c + Math.sign(target.c-p.c)));
-          p.r = Math.max(0, Math.min(GRID-1, p.r + Math.sign(target.r-p.r)));
-        } else {
-          let dmg = 4 + Math.floor((p.level||1)/3);
-          if(target.shield>0){ const a=Math.min(target.shield,dmg); target.shield-=a; dmg-=a; }
-          target.pv = Math.max(0, target.pv - dmg);
-          rlFloat(target, "-"+dmg, p.side==="a" ? "#EA7020" : "#8A3030");
-          if(target.pv<=0){
-            target.alive = false;
-            if(target===G.player){ onCombatEnd("defeat"); return; }
-            if(target===G.enemy && !rlPromote()){ onCombatEnd("win"); return; }
+      let visual = delay;
+      if(target && best>1){
+        const nc = Math.max(0, Math.min(GRID-1, p.c + Math.sign(target.c-p.c)));
+        const nr = Math.max(0, Math.min(GRID-1, p.r + Math.sign(target.r-p.r)));
+        if((nc!==p.c || nr!==p.r) && !occupied(nc, nr)){
+          faceToward(p, nc, nr);
+          p.c = nc; p.r = nr;
+          try{ playAnim(p, "Walk"); }catch(_e){}
+        }
+      } else if(target){
+        visual = Math.max(delay, 130);
+        faceToward(p, target.c, target.r);
+        try{ playAnim(p, "Attack1"); }catch(_e){}
+        let dmg = 4 + Math.floor((p.level||1)/3);
+        if(target.shield>0){ const a=Math.min(target.shield, dmg); target.shield-=a; dmg-=a; }
+        if(dmg) dmg = rlErode(target, dmg);
+        target.pv = Math.max(0, target.pv - dmg);
+        target.flash = performance.now()+160;
+        rlFloat(target, "-"+dmg, p.side==="a" ? "#EA7020" : "#8A3030");
+        try{ playAnim(target, target.pv<=0 ? "Die" : "TakeDamage"); }catch(_e){}
+        if(target.pv<=0){
+          target.alive = false;
+          if(target===G.player){ onCombatEnd("defeat"); return; }
+          if(target===G.enemy){
+            if(G.rl) G.rl.kills = (G.rl.kills|0)+1;
+            if(!rlPromote()){ onCombatEnd("win"); return; }
           }
         }
       }
-      setTimeout(step, 90);
+      setTimeout(()=>{
+        if(p.alive && (p.anim==="Walk" || p.anim==="Attack1")){ try{ playAnim(p, "Idle"); }catch(_e){} }
+        step();
+      }, visual);
     };
     step();
   }
@@ -2896,7 +2977,7 @@
   function rlApply(payload){
     G.roguelite = payload;
     G.rl = { kills:0, combos:0, healed:0, shielded:0, casts:0, turns:0, moved:false, t0:Date.now() };
-    G.pawns = [];
+    G.roster = [];
     const p = payload.player;
     (p.spells||[]).forEach(rlInstallSpell);
     (payload.foes||[]).forEach(f=>(f.spells||[]).forEach(rlInstallSpell));
@@ -2906,31 +2987,29 @@
     G.player.pa = G.player.paMax; G.player.pm = G.player.pmMax;
     G.player.stats = p.stats||{}; G.player.res = p.res||{};
     G.player.c = 1; G.player.r = 4; G.player.alive = true;
-    G.player.gearLayers = p.layers && p.layers.length ? p.layers : null;
+    G.player.anim = "Idle"; G.player.t0 = performance.now(); G.player.dir = 3;
+    G.player.gearLayers = (p.layers && p.layers.length) ? p.layers : rlFallbackLayers(p.name||"heros");
+    G.player.layers = G.player.gearLayers;
     G.rogueliteBar = rlBar(p.spells);
+    const taken = new Set(["1,4"]);
     const foes = payload.foes||[];
-    const main = foes[0];
-    if(main){
-      (main.spells||[]).forEach(rlInstallSpell);
-      G.enemy = makeEnemy(1);
-      G.enemy.name = main.name;
-      G.enemy.pv = main.pv; G.enemy.pvMax = main.pvMax;
-      G.enemy.paMax = main.paMax||6; G.enemy.pmMax = main.pmMax||3;
-      G.enemy.stats = main.stats||{}; G.enemy.res = main.res||{};
-      G.enemy.spells = (main.spells||[]).map(s=>s.id);
-      G.enemy.layers = main.layers && main.layers.length ? main.layers : G.enemy.layers;
-      G.enemy.c = 8; G.enemy.r = 4; G.enemy.alive = true;
-    }
-    (foes.slice(1)).forEach((f,i)=>{
-      G.pawns.push(Object.assign({}, f, { side:"b", alive:true, c:Math.min(9, 8-(i%2)), r:Math.min(9, i+1) }));
+    foes.forEach((f,i)=>{
+      const actor = rlActor(f, "b", rlPlace("b", i, taken));
+      G.roster.push(actor);
     });
     (payload.allies||[]).forEach((f,i)=>{
-      G.pawns.push(Object.assign({}, f, { side:"a", alive:true, c:Math.min(2, i%3), r:Math.min(9, i) }));
+      G.roster.push(rlActor(f, "a", rlPlace("a", i, taken)));
     });
+    G.enemy = (G.roster.find(u=>u.side==="b") ) || G.enemy;
+    rlWarmRoster();
     const hint = el("spellHint");
-    if(hint) hint.textContent = (payload.mode||"1v1")+" · pincer pour zoomer";
+    if(hint) hint.textContent = (payload.mode||"1v1")+" · "+(foes.length)+" adversaires · pincer pour zoomer";
     const flee = el("btnFlee");
     if(flee) flee.style.display = (payload.gold>0 || payload.fleeCharges>0) ? "inline-flex" : "none";
+    window.__arenaRoster = () => (G.roster||[]).map(u => ({
+      name: u.name, side: u.side, alive: u.alive, anim: u.anim,
+      layers: (u.layers||[]).map(L => L.folder),
+    }));
   }
   function rlFinish(kind){
     if(G._rlDone) return;
@@ -3005,6 +3084,7 @@
     if(rlPayload) rlApply(rlPayload);
     else G.enemy = makeEnemy(1);
     try{ warmFolders((G.enemy.layers||[]).map(L=>L.folder), { mounted: !!G.enemy.mount }); }catch(_e){}
+    try{ rlWarmRoster(); }catch(_e){}
     try{ playAnim(G.player, "Idle"); }catch(_e){}
     try{ playAnim(G.enemy, "Idle"); }catch(_e){}
     G.fightN = 1;
