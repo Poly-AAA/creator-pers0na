@@ -2668,8 +2668,8 @@
       if(!tileInView(t.c, t.r)) continue;
       const a = ((t.c+t.r)&1);
       const sand = document.body.classList.contains("skin-d");
-      const fill = sand ? (a ? "#F7F1E6" : "#E7DCCB") : (a ? "#e8e8e2" : "#dcdcd6");
-      tileDiamond(t.c, t.r, fill, "rgba(80,80,70,0.12)");
+      const fill = sand ? (a ? "#F6E7D2" : "#E4D2B4") : (a ? "#e8e8e2" : "#dcdcd6");
+      tileDiamond(t.c, t.r, fill, sand ? "rgba(47,49,51,0.22)" : "rgba(80,80,70,0.12)");
       const k=key(t.c,t.r);
       if(G.moves.has(k)){
         tileDiamond(t.c, t.r, "rgba(47,111,78,0.28)", "rgba(47,111,78,0.45)");
