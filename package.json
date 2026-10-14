@@ -1,10 +1,14 @@
 {
-  "name": "neuro-core",
-  "version": "3.4.4",
+  "name": "fantasy-combat",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "NEURO-CORE \u2014 RPG tactique HTML autonome (jeu jouable d'abord)",
+  "description": "Créateur, combat et éditeur de sorts fantasy",
   "scripts": {
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "generate": "node scripts/generate-spells.js",
+    "balance": "node scripts/balance-spells.js",
+    "train": "node scripts/train-ai.js",
+    "start": "python3 -m http.server 8765"
   }
 }

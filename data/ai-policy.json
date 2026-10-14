@@ -1,0 +1,136 @@
+{
+  "noise": 0.19,
+  "healBias": 1.15,
+  "kiteBias": 1.16,
+  "controlBias": 0.94,
+  "pushBias": 0.7,
+  "mobilityBias": 0.6,
+  "weights": {
+    "gen_001": 1,
+    "gen_002": 1,
+    "gen_003": 1,
+    "gen_004": 1,
+    "gen_005": 1,
+    "gen_006": 1,
+    "gen_007": 1,
+    "gen_008": 1,
+    "gen_009": 1,
+    "gen_010": 1,
+    "gen_011": 1,
+    "gen_012": 1,
+    "gen_013": 1,
+    "gen_014": 1,
+    "gen_015": 1,
+    "gen_016": 1,
+    "gen_017": 1,
+    "gen_018": 1,
+    "gen_019": 1,
+    "gen_020": 1,
+    "gen_021": 1,
+    "gen_022": 1,
+    "gen_023": 1,
+    "gen_024": 1,
+    "gen_025": 1,
+    "gen_026": 1,
+    "gen_027": 1,
+    "gen_028": 1,
+    "gen_029": 1,
+    "gen_030": 1,
+    "gen_031": 1,
+    "gen_032": 1,
+    "gen_033": 1,
+    "gen_034": 1,
+    "gen_035": 1,
+    "gen_036": 1,
+    "gen_037": 1,
+    "gen_038": 1,
+    "gen_039": 1,
+    "gen_040": 1,
+    "gen_041": 1,
+    "gen_042": 1,
+    "gen_043": 1,
+    "gen_044": 1,
+    "gen_045": 1,
+    "gen_046": 1,
+    "gen_047": 1,
+    "gen_048": 1,
+    "gen_049": 1,
+    "gen_050": 1,
+    "gen_051": 1,
+    "gen_052": 1,
+    "gen_053": 1,
+    "gen_054": 1,
+    "gen_055": 1,
+    "gen_056": 1,
+    "gen_057": 1,
+    "gen_058": 1,
+    "gen_059": 1,
+    "gen_060": 1,
+    "gen_061": 1,
+    "gen_062": 1,
+    "gen_063": 1,
+    "gen_064": 1,
+    "gen_065": 1,
+    "gen_066": 1,
+    "gen_067": 1,
+    "gen_068": 1,
+    "gen_069": 1,
+    "gen_070": 1,
+    "gen_071": 1,
+    "gen_072": 1
+  },
+  "loadouts": [
+    {
+      "name": "Brute",
+      "spellIds": [
+        "gen_001",
+        "gen_002",
+        "gen_009"
+      ]
+    },
+    {
+      "name": "Tireur",
+      "spellIds": [
+        "gen_004",
+        "gen_005",
+        "gen_011"
+      ]
+    },
+    {
+      "name": "Pyromancien",
+      "spellIds": [
+        "gen_007",
+        "gen_004",
+        "gen_009"
+      ]
+    },
+    {
+      "name": "Duelliste",
+      "spellIds": [
+        "gen_001",
+        "gen_011",
+        "gen_009"
+      ]
+    },
+    {
+      "name": "Clerc",
+      "spellIds": [
+        "gen_013",
+        "gen_015",
+        "gen_004"
+      ]
+    },
+    {
+      "name": "Harceleur",
+      "spellIds": [
+        "gen_011",
+        "gen_001",
+        "gen_004"
+      ]
+    }
+  ],
+  "trainedWinRate": 0.644,
+  "baselineWinRate": 0.5,
+  "trainedWins": 58,
+  "trainedGames": 90
+}
