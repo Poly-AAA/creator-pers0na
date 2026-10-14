@@ -1,0 +1,574 @@
+{
+  "generatedAt": "2026-10-14T14:44:45.541Z",
+  "before": {
+    "count": 168,
+    "avgDamagePerCost": 4.1,
+    "min": 4,
+    "max": 6
+  },
+  "after": {
+    "count": 168,
+    "avgDamagePerCost": 4.03,
+    "min": 4,
+    "max": 5,
+    "byType": {
+      "damage": 126,
+      "heal": 21,
+      "shield": 21
+    }
+  },
+  "dropped": [],
+  "notes": [
+    {
+      "id": "gen_attack_entaille_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_entaille_percage",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_entaille_poussee_allonge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_impact_percage",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_impact_drain_econome",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_arc_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_arc_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_arc_drain_poussee",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_parasite_econome",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_onde_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_onde_poussee",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_onde_surcharge_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack2_entaille_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack2_entaille_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack2_entaille_percage_econome",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack2_impact_base",
+      "action": "nerf",
+      "winRate": 0.9
+    },
+    {
+      "id": "gen_attack2_impact_poussee",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack2_impact_drain_allonge",
+      "action": "nerf",
+      "winRate": 0.9
+    },
+    {
+      "id": "gen_attack2_arc_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack2_arc_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack2_arc_econome_allonge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack2_onde_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack2_onde_percage",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack2_onde_drain_surcharge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack3_entaille_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack3_entaille_allonge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack3_entaille_surcharge_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack3_impact_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack3_impact_surcharge_allonge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack3_arc_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack3_arc_frappe",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack3_arc_drain_econome",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack3_parasite_surcharge_econome",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack3_onde_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack3_onde_poussee",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack3_onde_drain_surcharge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack4_entaille_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack4_entaille_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack4_entaille_drain_percage",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack4_impact_econome",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack4_impact_allonge_poussee",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack4_arc_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack4_arc_percage",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack4_arc_percage_surcharge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack4_brulure_allonge",
+      "action": "nerf",
+      "winRate": 0.9
+    },
+    {
+      "id": "gen_attack4_parasite_base",
+      "action": "nerf",
+      "winRate": 0.9
+    },
+    {
+      "id": "gen_attack4_onde_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack4_onde_surcharge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack4_onde_poussee_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_runAttack_entaille_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_runAttack_entaille_surcharge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_runAttack_entaille_frappe_allonge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_runAttack_impact_base",
+      "action": "nerf",
+      "winRate": 0.9
+    },
+    {
+      "id": "gen_runAttack_impact_poussee",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_runAttack_impact_percage_surcharge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_runAttack_arc_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_runAttack_arc_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_runAttack_arc_econome_surcharge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_runAttack_parasite_econome",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_runAttack_onde_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_runAttack_onde_percage",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_runAttack_onde_drain_percage",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeL_entaille_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeL_entaille_allonge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeL_entaille_frappe_econome",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeL_impact_econome",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeL_impact_econome_percage",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeL_arc_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeL_arc_poussee",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeL_arc_econome_poussee",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeL_brulure_econome_poussee",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeL_onde_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeL_onde_allonge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeL_onde_frappe_poussee",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeR_entaille_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeR_entaille_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeR_entaille_econome_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeR_impact_poussee",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeR_impact_poussee_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeR_arc_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeR_arc_frappe",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeR_arc_drain_surcharge",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeR_brulure_percage_poussee",
+      "action": "nerf",
+      "winRate": 0.9
+    },
+    {
+      "id": "gen_strafeR_parasite_econome_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeR_onde_base",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeR_onde_drain",
+      "action": "nerf",
+      "winRate": 1
+    },
+    {
+      "id": "gen_strafeR_onde_poussee_frappe",
+      "action": "nerf",
+      "winRate": 1
+    }
+  ],
+  "top": [
+    {
+      "id": "gen_attack_entaille_base",
+      "name": "Entaille · Attack1",
+      "school": "Cinétique",
+      "perCost": 4,
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_entaille_percage",
+      "name": "Entaille · Attack1 (Perçage)",
+      "school": "Cinétique",
+      "perCost": 4,
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_entaille_poussee_allonge",
+      "name": "Entaille · Attack1 (Poussée, Allonge)",
+      "school": "Cinétique",
+      "perCost": 4,
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_impact_drain_econome",
+      "name": "Impact · Attack1 (Drain neural, Économe)",
+      "school": "Cinétique",
+      "perCost": 4,
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_arc_base",
+      "name": "Arc · Attack1",
+      "school": "Électrique",
+      "perCost": 4,
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_arc_drain",
+      "name": "Arc · Attack1 (Drain neural)",
+      "school": "Électrique",
+      "perCost": 4,
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_arc_drain_poussee",
+      "name": "Arc · Attack1 (Drain neural, Poussée)",
+      "school": "Électrique",
+      "perCost": 4,
+      "winRate": 1
+    },
+    {
+      "id": "gen_attack_parasite_econome",
+      "name": "Parasite · Attack1 (Économe)",
+      "school": "Neuro",
+      "perCost": 4,
+      "winRate": 1
+    }
+  ],
+  "bottom": [
+    {
+      "id": "gen_attack2_parasite_frappe",
+      "name": "Parasite · Attack2 (Frappe lourde)",
+      "school": "Neuro",
+      "perCost": 4,
+      "winRate": 0.125
+    },
+    {
+      "id": "gen_strafeR_brulure_base",
+      "name": "Brûlure · Strafe droite",
+      "school": "Thermique",
+      "perCost": 4.13,
+      "winRate": 0.25
+    },
+    {
+      "id": "gen_attack3_parasite_base",
+      "name": "Parasite · Attack3",
+      "school": "Neuro",
+      "perCost": 4,
+      "winRate": 0.25
+    },
+    {
+      "id": "gen_attack_parasite_base",
+      "name": "Parasite · Attack1",
+      "school": "Neuro",
+      "perCost": 4,
+      "winRate": 0.25
+    },
+    {
+      "id": "gen_runAttack_parasite_base",
+      "name": "Parasite · Course-attaque",
+      "school": "Neuro",
+      "perCost": 4,
+      "winRate": 0.375
+    },
+    {
+      "id": "gen_runAttack_brulure_drain_frappe",
+      "name": "Brûlure · Course-attaque (Drain neural, Frappe lourde)",
+      "school": "Thermique",
+      "perCost": 4.13,
+      "winRate": 0.375
+    },
+    {
+      "id": "gen_runAttack_brulure_surcharge",
+      "name": "Brûlure · Course-attaque (Surcharge)",
+      "school": "Thermique",
+      "perCost": 4.13,
+      "winRate": 0.375
+    },
+    {
+      "id": "gen_attack4_parasite_drain",
+      "name": "Parasite · Attack4 (Drain neural)",
+      "school": "Neuro",
+      "perCost": 4,
+      "winRate": 0.375
+    }
+  ]
+}

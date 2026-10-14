@@ -45,15 +45,15 @@ Source Dropbox (achat) — 3 fichiers, ~1,24 Go compressé.
 
 ## Déjà dans le repo (lié)
 
-- Pack jeu `knight-2d/` / `x180p/` (sous-ensemble / autre export)
-- `CharCreator` dans `neuro-core-sprite.html` : slots **placeholders** (teintes), pas encore branché sur ces sheets modulaires
+- Le combat joue les sprites `thug-16bit-outlined/`
+- Le créateur web est `character-creator-fantasy.html` (planches `fantasy-cc/`)
 - Doc : `docs/analyse-character-creator-modern.md`
 
 ## Intégration web (état)
 
 - Pack repo : `assets/packs/fantasy-cc/` — **30 anims × ~132 dossiers** (~519 Mo PNG)
 - Compositeur standalone : `character-creator-fantasy.html`
-- `CharCreator` dans `neuro-core-sprite.html` compose les vraies couches (ordre Unity + policies row)
+- Le créateur web compose les couches (ordre Unity + policies de rangée)
 - FPS défaut **14** (potard 1–30 conservé) + teinte couleur par slot
 - Catalogue : `assets/packs/fantasy-cc/catalog.json`
 

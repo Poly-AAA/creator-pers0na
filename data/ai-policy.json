@@ -1,0 +1,50 @@
+{
+  "weights": {
+    "damage": 1.89,
+    "push": 9.97,
+    "drain": 7.91,
+    "heal": 1.84,
+    "kite": 0.75,
+    "thrift": 0.31
+  },
+  "holdoutWinRate": 0.667,
+  "generations": 6,
+  "history": [
+    {
+      "generation": 1,
+      "bestFitness": 1.093,
+      "bestWinRate": 0.833,
+      "meanFitness": 0.688
+    },
+    {
+      "generation": 2,
+      "bestFitness": 0.924,
+      "bestWinRate": 0.667,
+      "meanFitness": 0.771
+    },
+    {
+      "generation": 3,
+      "bestFitness": 1.234,
+      "bestWinRate": 1,
+      "meanFitness": 0.783
+    },
+    {
+      "generation": 4,
+      "bestFitness": 1.075,
+      "bestWinRate": 0.833,
+      "meanFitness": 0.712
+    },
+    {
+      "generation": 5,
+      "bestFitness": 0.677,
+      "bestWinRate": 0.5,
+      "meanFitness": 0.492
+    },
+    {
+      "generation": 6,
+      "bestFitness": 0.862,
+      "bestWinRate": 0.667,
+      "meanFitness": 0.577
+    }
+  ]
+}
