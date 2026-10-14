@@ -1,5 +1,11 @@
 # Rapport final
 
+## Sur le téléphone
+
+[https://litter.catbox.moe/r00zh6.html](https://litter.catbox.moe/r00zh6.html)
+
+Page unique (accueil, combat, créateur, éditeur), portrait, HTTPS. Déposée le 14 octobre 2026 à 23:32 UTC, elle reste en ligne environ 72 heures, jusqu’au 17 octobre 2026 à 23:32 UTC. Les sprites sont servis par jsDelivr au commit `f2e5a50`.
+
 ## Ce qui est en place
 
 Le roguelite se joue dans le navigateur, en portrait.

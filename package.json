@@ -12,6 +12,7 @@
     "campaign": "node scripts/campaign.js",
     "volume": "node scripts/volume.js",
     "ergo": "node scripts/ergo.js",
+    "phone": "node scripts/phone-bundle.js",
     "start": "python3 -m http.server 8765"
   },
   "devDependencies": {

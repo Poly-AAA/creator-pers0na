@@ -10,6 +10,8 @@ npm start
 
 Puis va sur http://localhost:8765/ . L’écran est prévu en portrait, du petit téléphone (360×640) au grand (430×932).
 
+La page unique pour un téléphone, sans serveur, se construit avec `npm run phone` (`/tmp/arene-phone.html`). Le lien public du moment est dans `docs/previews/live-links.json`.
+
 ## Boucle
 
 - **ADN** tiré sur un dé 8, écrit pour les 50 niveaux. Niveau 1 : nu, toutes les stats à 5, 6 PA, 3 PM, 50 PV.

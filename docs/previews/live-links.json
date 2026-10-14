@@ -1,1 +1,6 @@
-{"updated":"2026-10-14T14:02:39Z","combat":"https://litter.catbox.moe/2gxxce.html","spell":"https://litter.catbox.moe/t0ldtn.html","creator":"https://litter.catbox.moe/e5b2g3.html","restoreSpell":"https://litter.catbox.moe/t0ldtn.html?restore=coup-brut"}
+{
+  "updated": "2026-10-14T23:32:22Z",
+  "expires": "2026-10-17T23:32:22Z",
+  "phone": "https://litter.catbox.moe/r00zh6.html",
+  "note": "Page unique HTTPS : accueil, combat, créateur et éditeur. Les sprites viennent de jsDelivr au commit f2e5a50. Litterbox garde le fichier environ 72 heures."
+}
