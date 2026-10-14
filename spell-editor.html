@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
-<title>Éditeur de sorts · NEURO-CORE</title>
+<title>Éditeur de sorts</title>
 <style>
   :root{
     --bg:#ecece8;--bg2:#f5f5f2;--ink:#3d3d3a;--ink2:#888884;
@@ -105,6 +105,7 @@
     <button type="button" id="btnCopySave" style="flex:1 1 32%;font-size:11px">Copier config</button>
     <button type="button" id="btnPasteSave" style="flex:1 1 32%;font-size:11px;background:#6b4a2e;color:#fff;border-color:#6b4a2e">Coller config</button>
     <button type="button" id="btnRestoreCoup" style="flex:1 1 32%;font-size:11px;background:#c45c26;color:#fff;border-color:#c45c26">Restaurer Coup brut</button>
+    <button type="button" id="btnGrimoire" style="flex:1 1 32%;font-size:11px;background:#2f6f4e;color:#fff;border-color:#2f6f4e">Grimoire</button>
   </div>
 </div>
 
@@ -409,6 +410,8 @@ function loadCustom(){
   ensureCoupDePied();
   ensureRoulade();
   ensureSpellEffects();
+  if(typeof FantasyBridge!=="undefined" && FantasyBridge.registerSpellEvoAliases)
+    FantasyBridge.registerSpellEvoAliases(customSpells);
   /* Double Impact = évolution, pas équipé de base (décocher les saves seedées). */
   (function stripDefaultDoubleImpact(){
     const MIG = "neuro.diNotBase.v1";
@@ -575,7 +578,13 @@ function ensureEditable(id){
 /* ── Catalogue évolutions (EVO_TREE du jeu) ── */
 function getEvoTree(spellId){
   if(typeof FantasyBridge==="undefined" || !FantasyBridge.EVO_TREE) return null;
-  return FantasyBridge.EVO_TREE[spellId] || null;
+  if(FantasyBridge.EVO_TREE[spellId]) return FantasyBridge.EVO_TREE[spellId];
+  const sp = spellById(spellId);
+  if(sp && sp.evoArchetype && FantasyBridge.registerSpellEvoAliases){
+    FantasyBridge.registerSpellEvoAliases([sp]);
+    return FantasyBridge.EVO_TREE[spellId] || null;
+  }
+  return null;
 }
 function evoKey(tier, name){
   if(typeof FantasyBridge!=="undefined" && FantasyBridge.evoCatalogKey) return FantasyBridge.evoCatalogKey(tier, name);
@@ -964,6 +973,22 @@ function renderEditor(){
       fieldNum("Push (cases)", sp.push!=null?sp.push:1, "push", 0, 4)
     )
   );
+  const eq = document.createElement("label");
+  eq.className = "field";
+  eq.style.flexDirection = "row";
+  eq.style.alignItems = "center";
+  eq.style.gap = "8px";
+  const eqBox = document.createElement("input");
+  eqBox.type = "checkbox";
+  eqBox.checked = !!sp.equipped;
+  eqBox.onchange = ()=>{
+    const s2 = ensureEditable(activeId);
+    s2.equipped = eqBox.checked;
+    scheduleAutoSave();
+  };
+  eq.appendChild(eqBox);
+  eq.appendChild(document.createTextNode("Équipé dans la barre de combat"));
+  idCard.appendChild(eq);
   host.appendChild(idCard);
 
   /* ── Chaîne de steps ── */
@@ -1279,6 +1304,38 @@ function fieldTextAreaEvo(label, val, key, evoIdx){
 /* ────────────────────────────────────────────────────────────
    Init
 ──────────────────────────────────────────────────────────── */
+async function mergeGrimoire(replace){
+  let arr = null;
+  try{
+    const r = await fetch("data/generated-spells.json", { cache:"no-store" });
+    if(r.ok) arr = await r.json();
+  }catch(_e){}
+  if(!Array.isArray(arr)){
+    const st = document.getElementById("pvStatus");
+    if(st) st.textContent = "Grimoire introuvable (data/generated-spells.json)";
+    return 0;
+  }
+  let n = 0;
+  arr.forEach(s=>{
+    if(!s || !s.id) return;
+    const i = customSpells.findIndex(x=>x && x.id===s.id);
+    if(i >= 0){
+      if(replace){ customSpells[i] = s; n++; }
+      return;
+    }
+    customSpells.push(s);
+    n++;
+  });
+  if(typeof FantasyBridge!=="undefined" && FantasyBridge.registerSpellEvoAliases)
+    FantasyBridge.registerSpellEvoAliases(customSpells);
+  if(n) saveCustom();
+  if(!customSpells.find(s=>s.id===activeId) && customSpells[0]) activeId = customSpells[0].id;
+  renderNav();
+  renderEditor();
+  const st = document.getElementById("pvStatus");
+  if(st) st.textContent = "Grimoire · " + customSpells.filter(s=>s && s.generated).length + " sorts générés";
+  return n;
+}
 function boot(){
   wireFccNav();
   loadCustom(); loadLook();
@@ -1348,6 +1405,8 @@ function boot(){
     }
   };
   document.getElementById("btnRestoreCoup").onclick=()=> restorePresetCoupBrut();
+  document.getElementById("btnGrimoire").onclick=()=> mergeGrimoire(true);
+  mergeGrimoire(false);
   if(/(?:^|[?&])restore=(coup-brut|spells)/i.test(location.search||"")) restorePresetCoupBrut();
   showSavedStatus();
 

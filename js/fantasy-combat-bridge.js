@@ -693,6 +693,14 @@
     return out;
   }
 
+  /** Les sorts générés pointent vers un arbre existant (evoArchetype). */
+  function registerSpellEvoAliases(spells) {
+    (spells || []).forEach(function (s) {
+      if (!s || !s.id || !s.evoArchetype) return;
+      if (!EVO_TREE[s.id] && EVO_TREE[s.evoArchetype]) EVO_TREE[s.id] = EVO_TREE[s.evoArchetype];
+    });
+  }
+
   function buildSpellBar(look) {
     const L = look || currentLook();
     const weapon = L.weapon && L.weapon !== "None" ? L.weapon : "None";
@@ -700,6 +708,21 @@
     const customs = readCustomSpells().filter(function (s) {
       return s && s.id && s.id !== "punch";
     });
+    const coreIds = ["coup_de_pied", "roulade"];
+    const cores = [];
+    coreIds.forEach(function (id) {
+      const found = customs.find(function (s) { return s.id === id; });
+      if (found) cores.push(found);
+    });
+    const equipped = customs.filter(function (s) {
+      return s.equipped && coreIds.indexOf(s.id) < 0;
+    });
+    const pool = cores.concat(equipped);
+    customs.forEach(function (s) {
+      if (pool.length >= 5) return;
+      if (!pool.some(function (p) { return p.id === s.id; })) pool.push(s);
+    });
+    const picked = pool.slice(0, 5);
     const slots = [
       {
         slot: "weapon",
@@ -712,7 +735,7 @@
     ];
     const names = ["kick", "offhand", "hero", "bonusA", "bonusB"];
     for (let i = 0; i < names.length; i++) {
-      const s = customs[i];
+      const s = picked[i];
       if (s) {
         const step0 = s.steps && s.steps[0];
         slots.push({
@@ -984,6 +1007,7 @@
     MOUNT_PM,
     currentLook,
     buildSpellBar,
+    registerSpellEvoAliases,
     isSelfSpellId,
     OFFHAND_SPELL,
     BACKPACK_SPELL,

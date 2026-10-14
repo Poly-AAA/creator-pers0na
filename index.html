@@ -2,25 +2,28 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<meta http-equiv="refresh" content="0; url=neuro-core.html">
-<title>NEURO CORE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Combat fantasy</title>
 <style>
   html,body{height:100%;margin:0;font-family:Trebuchet MS,Segoe UI,sans-serif;
-    background:linear-gradient(160deg,#163b57,#0c1f30);color:#eaf6ff;
-    display:flex;align-items:center;justify-content:center;text-align:center}
-  a{display:inline-block;margin-top:14px;padding:14px 22px;border-radius:12px;
-    background:#27e0ff;color:#06202e;font-weight:bold;text-decoration:none;font-size:16px}
-  p{opacity:.8;font-size:13px;max-width:280px}
+    background:linear-gradient(165deg,#ecece8,#d5d8d0);color:#3d3d3a}
+  main{max-width:420px;margin:0 auto;padding:28px 18px}
+  h1{margin:0 0 6px;letter-spacing:.04em}
+  p{margin:0 0 18px;color:#5c5c58;line-height:1.4}
+  a{display:block;margin:10px 0;padding:16px 18px;border-radius:14px;
+    background:#4a3870;color:#fff;font-weight:700;text-decoration:none;font-size:17px}
+  a.combat{background:#2f6f4e}
+  a.editor{background:#3d3d3a}
+  small{display:block;font-weight:500;opacity:.85;margin-top:4px;font-size:12px}
 </style>
 </head>
 <body>
-  <div>
-    <h1 style="letter-spacing:3px;margin:0 0 8px">NEURO <span style="color:#27e0ff">CORE</span></h1>
-    <p>Redirection vers le jeu…</p>
-    <a href="neuro-core.html">▶ Ouvrir le jeu</a>
-    <p style="margin-top:18px"><a href="moteur-graphique.html" style="background:transparent;color:#aac6e0;border:1px solid #5a7a9c;font-size:12px;padding:8px 12px">Moteur graphique (SVG)</a></p>
-  </div>
-  <script>location.replace("neuro-core.html");</script>
+<main>
+  <h1>Combat fantasy</h1>
+  <p>Trois écrans : le créateur de personnage, le combat, et l’éditeur de sorts.</p>
+  <a href="character-creator-fantasy.html">Créateur<small>Apparence, couleurs, équipement</small></a>
+  <a class="combat" href="fantasy-combat.html">Combat<small>Arène, barre de sorts, adversaire</small></a>
+  <a class="editor" href="spell-editor.html">Éditeur de sorts<small>Anims chaînées, évolutions, grimoire</small></a>
+</main>
 </body>
 </html>

@@ -1,0 +1,7439 @@
+[
+  {
+    "id": "gen_001",
+    "name": "Frappe magique",
+    "cost": 2,
+    "range": 1,
+    "dmg": [
+      11,
+      14
+    ],
+    "anim": "Attack1",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack1",
+      "Attack2"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Frappe magique — melee, anims Attack1 → Attack2",
+    "steps": [
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 13,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack2",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 60,
+        "fps": 13,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "melee",
+    "generated": true,
+    "equipped": true,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Brise-Os",
+      "2:Percutant"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 6.25
+    }
+  },
+  {
+    "id": "gen_002",
+    "name": "Entaille rouge",
+    "cost": 3,
+    "range": 2,
+    "dmg": [
+      10,
+      13
+    ],
+    "anim": "Attack3",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack3",
+      "Kick"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Entaille rouge — melee, anims Attack3 → Kick",
+    "steps": [
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 14,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Boxeur",
+      "2:Uppercut"
+    ],
+    "balance": {
+      "winRate": 0.625,
+      "damagePerCost": 3.83
+    }
+  },
+  {
+    "id": "gen_003",
+    "name": "Uppercut calme",
+    "cost": 3,
+    "range": 1,
+    "dmg": [
+      18,
+      24
+    ],
+    "anim": "Kick",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Kick",
+      "Attack6",
+      "Attack1"
+    ],
+    "effect": "push",
+    "push": 2,
+    "desc": "Uppercut calme — melee, anims Kick → Attack6 → Attack1",
+    "steps": [
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 18,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack6",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 18,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 80,
+        "fps": 18,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "mine",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Charge": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Capteur": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Zone": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Aimant": {
+        "enabled": true,
+        "anim": "Attack4",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Immobilise": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Charge",
+      "2:Aimant"
+    ],
+    "balance": {
+      "winRate": 1,
+      "damagePerCost": 7
+    }
+  },
+  {
+    "id": "gen_004",
+    "name": "Rayon magique",
+    "cost": 3,
+    "range": 4,
+    "dmg": [
+      6,
+      9
+    ],
+    "anim": "Attack1",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack1"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Rayon magique — ranged, anims Attack1",
+    "steps": [
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "Effect5",
+        "delay": 0,
+        "fps": 15,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "tir_magnetique",
+    "role": "ranged",
+    "generated": true,
+    "equipped": true,
+    "evoConfig": {
+      "1:Précision": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Recul": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Perforant": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Longue vue": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Salve": {
+        "enabled": true,
+        "anim": "Attack6",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Recul",
+      "2:Salve"
+    ],
+    "balance": {
+      "winRate": 1,
+      "damagePerCost": 5
+    }
+  },
+  {
+    "id": "gen_005",
+    "name": "Dard rapide",
+    "cost": 4,
+    "range": 5,
+    "dmg": [
+      15,
+      20
+    ],
+    "anim": "Attack5",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack5",
+      "Special1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Dard rapide — ranged, anims Attack5 → Special1",
+    "steps": [
+      {
+        "anim": "Attack5",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect3",
+        "delay": 0,
+        "fps": 19,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect3",
+        "delay": 60,
+        "fps": 19,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Saturation"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 4.38
+    }
+  },
+  {
+    "id": "gen_006",
+    "name": "Salve funeste",
+    "cost": 3,
+    "range": 3,
+    "dmg": [
+      10,
+      13
+    ],
+    "anim": "AttackRun",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "AttackRun",
+      "Attack3"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Salve funeste — ranged, anims AttackRun → Attack3",
+    "steps": [
+      {
+        "anim": "AttackRun",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect2",
+        "delay": 0,
+        "fps": 15,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect2",
+        "delay": 60,
+        "fps": 15,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "dash",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Élan": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Bélier": {
+        "enabled": true,
+        "anim": "AttackRun2",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Percussion": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Transperçant": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Onde de choc": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Relance": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Bélier"
+    ],
+    "balance": {
+      "winRate": 0.75,
+      "damagePerCost": 3.83
+    }
+  },
+  {
+    "id": "gen_007",
+    "name": "Brasier lunaire",
+    "cost": 4,
+    "range": 3,
+    "dmg": [
+      13,
+      17
+    ],
+    "anim": "Attack5",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "Attack5",
+      "Special1",
+      "Kick"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Brasier lunaire — aoe, anims Attack5 → Special1 → Kick",
+    "steps": [
+      {
+        "anim": "Attack5",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 12,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 12,
+        "hitTarget": false
+      },
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 80,
+        "fps": 12,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "surchauffe",
+    "role": "aoe",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brûlure": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Longue portée": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Fusion": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Fournaise": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Brasier élargi": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "2:Fusion"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 3.75
+    }
+  },
+  {
+    "id": "gen_008",
+    "name": "Orbe fragile",
+    "cost": 4,
+    "range": 4,
+    "dmg": [
+      13,
+      19
+    ],
+    "anim": "Special1",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "Special1",
+      "Attack5"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Orbe fragile — aoe, anims Special1 → Attack5",
+    "steps": [
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect1",
+        "delay": 0,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack5",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect1",
+        "delay": 60,
+        "fps": 14,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "aoe",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 4
+    }
+  },
+  {
+    "id": "gen_009",
+    "name": "Maléfice sombre",
+    "cost": 4,
+    "range": 4,
+    "dmg": [
+      15,
+      21
+    ],
+    "anim": "Attack3",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack3",
+      "Special1",
+      "Attack3"
+    ],
+    "effect": "drainPA",
+    "push": 0,
+    "desc": "Maléfice sombre — control, anims Attack3 → Special1 → Attack3",
+    "steps": [
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 18,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 60,
+        "fps": 18,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 80,
+        "fps": 18,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "control",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Saturation",
+      "2:Paralysie"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 4.5
+    }
+  },
+  {
+    "id": "gen_010",
+    "name": "Emprise magique",
+    "cost": 5,
+    "range": 2,
+    "dmg": [
+      20,
+      31
+    ],
+    "anim": "AttackRun2",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "AttackRun2",
+      "Kick"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Emprise magique — control, anims AttackRun2 → Kick",
+    "steps": [
+      {
+        "anim": "AttackRun2",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect5",
+        "delay": 0,
+        "fps": 12,
+        "hitTarget": false
+      },
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect5",
+        "delay": 60,
+        "fps": 12,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "dash",
+    "role": "control",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Élan": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Bélier": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Percussion": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Transperçant": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Onde de choc": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Relance": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [],
+    "balance": {
+      "winRate": 0.25,
+      "damagePerCost": 5.1
+    }
+  },
+  {
+    "id": "gen_011",
+    "name": "Pas solaire",
+    "cost": 2,
+    "range": 2,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Rolling",
+    "type": "buff",
+    "aoe": 0,
+    "animSeq": [
+      "Rolling",
+      "Rolling"
+    ],
+    "effect": "roulade",
+    "push": 0,
+    "desc": "Pas solaire — mobility, anims Rolling → Rolling",
+    "steps": [
+      {
+        "anim": "Rolling",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 15,
+        "hitTarget": false
+      },
+      {
+        "anim": "Rolling",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 60,
+        "fps": 15,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "mobility",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": true,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Rapide",
+      "2:Double Impact"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_012",
+    "name": "Charge rapide",
+    "cost": 3,
+    "range": 5,
+    "dmg": [
+      9,
+      13
+    ],
+    "anim": "Slide",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "Slide",
+      "AttackRun"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Charge rapide — mobility, anims Slide → AttackRun",
+    "steps": [
+      {
+        "anim": "Slide",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 0,
+        "fps": 17,
+        "hitTarget": false
+      },
+      {
+        "anim": "AttackRun",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 60,
+        "fps": 17,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "dash",
+    "role": "mobility",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Élan": {
+        "enabled": true,
+        "anim": "AttackRun",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Bélier": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Percussion": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Transperçant": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Onde de choc": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Relance": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Élan",
+      "2:Onde de choc"
+    ],
+    "balance": {
+      "winRate": 0.625,
+      "damagePerCost": 3.67
+    }
+  },
+  {
+    "id": "gen_013",
+    "name": "Baume funeste",
+    "cost": 2,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Special1",
+    "type": "heal",
+    "aoe": 0,
+    "animSeq": [
+      "Special1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Baume funeste — heal, anims Special1",
+    "steps": [
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 12,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "nanites",
+    "role": "heal",
+    "generated": true,
+    "equipped": true,
+    "heal": [
+      20,
+      24
+    ],
+    "evoConfig": {
+      "1:Réparation": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Diffusion": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Régénération": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Surcadence": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Bénédiction": {
+        "enabled": true,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe",
+      "2:Bénédiction"
+    ],
+    "balance": {
+      "winRate": 0.75,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_014",
+    "name": "Lueur solaire",
+    "cost": 3,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Taunt",
+    "type": "heal",
+    "aoe": 0,
+    "animSeq": [
+      "Taunt",
+      "Special1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Lueur solaire — heal, anims Taunt → Special1",
+    "steps": [
+      {
+        "anim": "Taunt",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 17,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 17,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "nanites",
+    "role": "heal",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      26,
+      32
+    ],
+    "evoConfig": {
+      "1:Réparation": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Diffusion": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Régénération": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Surcadence": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Bénédiction": {
+        "enabled": true,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe",
+      "2:Bénédiction"
+    ],
+    "balance": {
+      "winRate": 1,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_015",
+    "name": "Carapace solaire",
+    "cost": 3,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Special1",
+    "type": "shield",
+    "aoe": 0,
+    "animSeq": [
+      "Special1",
+      "Taunt"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Carapace solaire — shield, anims Special1 → Taunt",
+    "steps": [
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect2",
+        "delay": 0,
+        "fps": 12,
+        "hitTarget": false
+      },
+      {
+        "anim": "Taunt",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect2",
+        "delay": 60,
+        "fps": 12,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "bouclier",
+    "role": "shield",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      8,
+      12
+    ],
+    "shield": 12,
+    "evoConfig": {
+      "1:Renfort": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Durée": {
+        "enabled": false,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Égide sacrée": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Riposte": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Rempart": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "2:Riposte"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_016",
+    "name": "Aurore solaire",
+    "cost": 3,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Taunt",
+    "type": "shield",
+    "aoe": 0,
+    "animSeq": [
+      "Taunt",
+      "Attack6"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Aurore solaire — shield, anims Taunt → Attack6",
+    "steps": [
+      {
+        "anim": "Taunt",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect3",
+        "delay": 0,
+        "fps": 18,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack6",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect3",
+        "delay": 60,
+        "fps": 18,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "bouclier",
+    "role": "shield",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      10,
+      14
+    ],
+    "shield": 25,
+    "evoConfig": {
+      "1:Renfort": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Durée": {
+        "enabled": false,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Égide sacrée": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Riposte": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Rempart": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe",
+      "2:Rempart"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_017",
+    "name": "Morsure runique",
+    "cost": 2,
+    "range": 1,
+    "dmg": [
+      11,
+      14
+    ],
+    "anim": "Attack1",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack1",
+      "Attack2",
+      "Taunt"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Morsure runique — melee, anims Attack1 → Attack2 → Taunt",
+    "steps": [
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "Effect5",
+        "delay": 0,
+        "fps": 15,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack2",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "Effect5",
+        "delay": 60,
+        "fps": 15,
+        "hitTarget": false
+      },
+      {
+        "anim": "Taunt",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "Effect5",
+        "delay": 80,
+        "fps": 15,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Brise-Os"
+    ],
+    "balance": {
+      "winRate": 0.125,
+      "damagePerCost": 6.25
+    }
+  },
+  {
+    "id": "gen_018",
+    "name": "Talon solaire",
+    "cost": 3,
+    "range": 2,
+    "dmg": [
+      13,
+      20
+    ],
+    "anim": "Attack3",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack3",
+      "Kick",
+      "AttackRun2"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Talon solaire — melee, anims Attack3 → Kick → AttackRun2",
+    "steps": [
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 0,
+        "fps": 19,
+        "hitTarget": false
+      },
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 60,
+        "fps": 19,
+        "hitTarget": false
+      },
+      {
+        "anim": "AttackRun2",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 80,
+        "fps": 19,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Boxeur",
+      "2:Percutant"
+    ],
+    "balance": {
+      "winRate": 0.5,
+      "damagePerCost": 5.5
+    }
+  },
+  {
+    "id": "gen_019",
+    "name": "Frappe solaire",
+    "cost": 3,
+    "range": 2,
+    "dmg": [
+      12,
+      19
+    ],
+    "anim": "Kick",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Kick",
+      "Attack6",
+      "Attack1"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Frappe solaire — melee, anims Kick → Attack6 → Attack1",
+    "steps": [
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "Effect3",
+        "delay": 0,
+        "fps": 16,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack6",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "Effect3",
+        "delay": 60,
+        "fps": 16,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "Effect3",
+        "delay": 80,
+        "fps": 16,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "mine",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Charge": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Capteur": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Zone": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Aimant": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Immobilise": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Capteur",
+      "2:Immobilise"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 5.17
+    }
+  },
+  {
+    "id": "gen_020",
+    "name": "Éclair rouge",
+    "cost": 3,
+    "range": 4,
+    "dmg": [
+      8,
+      11
+    ],
+    "anim": "Attack1",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack1"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Éclair rouge — ranged, anims Attack1",
+    "steps": [
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 13,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "tir_magnetique",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Précision": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Recul": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Perforant": {
+        "enabled": true,
+        "anim": "Attack4",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Longue vue": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Salve": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Recul",
+      "2:Perforant"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 3.17
+    }
+  },
+  {
+    "id": "gen_021",
+    "name": "Flèche fragile",
+    "cost": 3,
+    "range": 5,
+    "dmg": [
+      8,
+      11
+    ],
+    "anim": "Attack5",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack5",
+      "Special1",
+      "Attack4"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Flèche fragile — ranged, anims Attack5 → Special1 → Attack4",
+    "steps": [
+      {
+        "anim": "Attack5",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 60,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack4",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 80,
+        "fps": 14,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 3.17
+    }
+  },
+  {
+    "id": "gen_022",
+    "name": "Rayon solaire",
+    "cost": 4,
+    "range": 3,
+    "dmg": [
+      16,
+      21
+    ],
+    "anim": "AttackRun",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "AttackRun",
+      "Attack3"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Rayon solaire — ranged, anims AttackRun → Attack3",
+    "steps": [
+      {
+        "anim": "AttackRun",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect1",
+        "delay": 0,
+        "fps": 19,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect1",
+        "delay": 60,
+        "fps": 19,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "dash",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Élan": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Bélier": {
+        "enabled": true,
+        "anim": "AttackRun2",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Percussion": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Transperçant": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Onde de choc": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Relance": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Bélier",
+      "2:Onde de choc"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 4.63
+    }
+  },
+  {
+    "id": "gen_023",
+    "name": "Tempête funeste",
+    "cost": 4,
+    "range": 3,
+    "dmg": [
+      16,
+      20
+    ],
+    "anim": "Attack5",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "Attack5",
+      "Special1",
+      "Attack1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Tempête funeste — aoe, anims Attack5 → Special1 → Attack1",
+    "steps": [
+      {
+        "anim": "Attack5",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect5",
+        "delay": 0,
+        "fps": 15,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect5",
+        "delay": 60,
+        "fps": 15,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect5",
+        "delay": 80,
+        "fps": 15,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "surchauffe",
+    "role": "aoe",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brûlure": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Longue portée": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Fusion": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Fournaise": {
+        "enabled": true,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Brasier élargi": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "2:Fournaise"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 4.5
+    }
+  },
+  {
+    "id": "gen_024",
+    "name": "Fournaise funeste",
+    "cost": 4,
+    "range": 4,
+    "dmg": [
+      17,
+      24
+    ],
+    "anim": "Special1",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "Special1"
+    ],
+    "effect": "drainPA",
+    "push": 0,
+    "desc": "Fournaise funeste — aoe, anims Special1",
+    "steps": [
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect3",
+        "delay": 0,
+        "fps": 15,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "aoe",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe",
+      "2:Paralysie"
+    ],
+    "balance": {
+      "winRate": 0.75,
+      "damagePerCost": 5.13
+    }
+  },
+  {
+    "id": "gen_025",
+    "name": "Entrave runique",
+    "cost": 3,
+    "range": 4,
+    "dmg": [
+      8,
+      13
+    ],
+    "anim": "Attack3",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "Attack3",
+      "Special1"
+    ],
+    "effect": "drainPA",
+    "push": 0,
+    "desc": "Entrave runique — control, anims Attack3 → Special1",
+    "steps": [
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 0,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 60,
+        "fps": 14,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "control",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe",
+      "2:Orage"
+    ],
+    "balance": {
+      "winRate": 0.5,
+      "damagePerCost": 3.5
+    }
+  },
+  {
+    "id": "gen_026",
+    "name": "Poussée fragile",
+    "cost": 4,
+    "range": 2,
+    "dmg": [
+      12,
+      17
+    ],
+    "anim": "AttackRun2",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "AttackRun2",
+      "Kick"
+    ],
+    "effect": "push",
+    "push": 2,
+    "desc": "Poussée fragile — control, anims AttackRun2 → Kick",
+    "steps": [
+      {
+        "anim": "AttackRun2",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 17,
+        "hitTarget": false
+      },
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 17,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "dash",
+    "role": "control",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Élan": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Bélier": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Percussion": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Transperçant": {
+        "enabled": true,
+        "anim": "AttackRun2",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Onde de choc": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Relance": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Percussion",
+      "2:Transperçant"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 3.63
+    }
+  },
+  {
+    "id": "gen_027",
+    "name": "Bond lunaire",
+    "cost": 3,
+    "range": 2,
+    "dmg": [
+      4,
+      4
+    ],
+    "anim": "Rolling",
+    "type": "buff",
+    "aoe": 0,
+    "animSeq": [
+      "Rolling"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Bond lunaire — mobility, anims Rolling",
+    "steps": [
+      {
+        "anim": "Rolling",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 12,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "mobility",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Brise-Os",
+      "2:Percutant"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 1.33
+    }
+  },
+  {
+    "id": "gen_028",
+    "name": "Élan solaire",
+    "cost": 3,
+    "range": 5,
+    "dmg": [
+      8,
+      11
+    ],
+    "anim": "Slide",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Slide",
+      "AttackRun",
+      "Rolling"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Élan solaire — mobility, anims Slide → AttackRun → Rolling",
+    "steps": [
+      {
+        "anim": "Slide",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect1",
+        "delay": 0,
+        "fps": 17,
+        "hitTarget": false
+      },
+      {
+        "anim": "AttackRun",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect1",
+        "delay": 60,
+        "fps": 17,
+        "hitTarget": false
+      },
+      {
+        "anim": "Rolling",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect1",
+        "delay": 80,
+        "fps": 17,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "dash",
+    "role": "mobility",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Élan": {
+        "enabled": true,
+        "anim": "AttackRun",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Bélier": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Percussion": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Transperçant": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Onde de choc": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Relance": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Élan"
+    ],
+    "balance": {
+      "winRate": 0.625,
+      "damagePerCost": 3.17
+    }
+  },
+  {
+    "id": "gen_029",
+    "name": "Grâce solaire",
+    "cost": 3,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Special1",
+    "type": "heal",
+    "aoe": 0,
+    "animSeq": [
+      "Special1",
+      "Kick"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Grâce solaire — heal, anims Special1 → Kick",
+    "steps": [
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 16,
+        "hitTarget": false
+      },
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 60,
+        "fps": 16,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "nanites",
+    "role": "heal",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      12,
+      16
+    ],
+    "evoConfig": {
+      "1:Réparation": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Diffusion": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Régénération": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Surcadence": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Bénédiction": {
+        "enabled": false,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Diffusion"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_030",
+    "name": "Sève fragile",
+    "cost": 4,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Taunt",
+    "type": "heal",
+    "aoe": 0,
+    "animSeq": [
+      "Taunt",
+      "Special1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Sève fragile — heal, anims Taunt → Special1",
+    "steps": [
+      {
+        "anim": "Taunt",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect1",
+        "delay": 0,
+        "fps": 15,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect1",
+        "delay": 60,
+        "fps": 15,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "nanites",
+    "role": "heal",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      30,
+      36
+    ],
+    "evoConfig": {
+      "1:Réparation": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Diffusion": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Régénération": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Surcadence": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Bénédiction": {
+        "enabled": false,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Diffusion",
+      "2:Régénération"
+    ],
+    "balance": {
+      "winRate": 1,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_031",
+    "name": "Égide fragile",
+    "cost": 3,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Special1",
+    "type": "shield",
+    "aoe": 0,
+    "animSeq": [
+      "Special1",
+      "Attack4"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Égide fragile — shield, anims Special1 → Attack4",
+    "steps": [
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 18,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack4",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 60,
+        "fps": 18,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "bouclier",
+    "role": "shield",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      8,
+      12
+    ],
+    "shield": 27,
+    "evoConfig": {
+      "1:Renfort": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Durée": {
+        "enabled": false,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Égide sacrée": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Riposte": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Rempart": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "2:Rempart"
+    ],
+    "balance": {
+      "winRate": 0.125,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_032",
+    "name": "Rempart magique",
+    "cost": 4,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Taunt",
+    "type": "shield",
+    "aoe": 0,
+    "animSeq": [
+      "Taunt",
+      "Attack3"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Rempart magique — shield, anims Taunt → Attack3",
+    "steps": [
+      {
+        "anim": "Taunt",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 0,
+        "fps": 12,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 60,
+        "fps": 12,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "bouclier",
+    "role": "shield",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      18,
+      22
+    ],
+    "shield": 25,
+    "evoConfig": {
+      "1:Renfort": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Durée": {
+        "enabled": false,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Égide sacrée": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Riposte": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Rempart": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Renfort",
+      "2:Rempart"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_033",
+    "name": "Uppercut sombre",
+    "cost": 2,
+    "range": 1,
+    "dmg": [
+      5,
+      7
+    ],
+    "anim": "Attack1",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack1",
+      "Attack2"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Uppercut sombre — melee, anims Attack1 → Attack2",
+    "steps": [
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect4",
+        "delay": 0,
+        "fps": 15,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack2",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect4",
+        "delay": 60,
+        "fps": 15,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": true,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Brise-Os",
+      "2:Double Impact"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 6
+    }
+  },
+  {
+    "id": "gen_034",
+    "name": "Estoc sombre",
+    "cost": 4,
+    "range": 1,
+    "dmg": [
+      21,
+      28
+    ],
+    "anim": "Attack3",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack3",
+      "Kick",
+      "Attack4"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Estoc sombre — melee, anims Attack3 → Kick → Attack4",
+    "steps": [
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect2",
+        "delay": 0,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect2",
+        "delay": 60,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack4",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect2",
+        "delay": 80,
+        "fps": 14,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Brise-Os",
+      "2:Percutant"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 6.13
+    }
+  },
+  {
+    "id": "gen_035",
+    "name": "Morsure magique",
+    "cost": 3,
+    "range": 1,
+    "dmg": [
+      18,
+      24
+    ],
+    "anim": "Kick",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Kick",
+      "Attack6",
+      "Attack3"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Morsure magique — melee, anims Kick → Attack6 → Attack3",
+    "steps": [
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 19,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack6",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 19,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 80,
+        "fps": 19,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "mine",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Charge": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Capteur": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Zone": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Aimant": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Immobilise": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Charge"
+    ],
+    "balance": {
+      "winRate": 1,
+      "damagePerCost": 7
+    }
+  },
+  {
+    "id": "gen_036",
+    "name": "Salve sombre",
+    "cost": 3,
+    "range": 4,
+    "dmg": [
+      9,
+      11
+    ],
+    "anim": "Attack1",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack1",
+      "Attack2"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Salve sombre — ranged, anims Attack1 → Attack2",
+    "steps": [
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect2",
+        "delay": 0,
+        "fps": 18,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack2",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect2",
+        "delay": 60,
+        "fps": 18,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "tir_magnetique",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Précision": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Recul": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Perforant": {
+        "enabled": true,
+        "anim": "Attack4",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Longue vue": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Salve": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Précision",
+      "2:Perforant"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 3.33
+    }
+  },
+  {
+    "id": "gen_037",
+    "name": "Trait fragile",
+    "cost": 4,
+    "range": 5,
+    "dmg": [
+      15,
+      20
+    ],
+    "anim": "Attack5",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack5",
+      "Special1"
+    ],
+    "effect": "drainPA",
+    "push": 0,
+    "desc": "Trait fragile — ranged, anims Attack5 → Special1",
+    "steps": [
+      {
+        "anim": "Attack5",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 13,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 13,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Saturation",
+      "2:Paralysie"
+    ],
+    "balance": {
+      "winRate": 0.5,
+      "damagePerCost": 4.38
+    }
+  },
+  {
+    "id": "gen_038",
+    "name": "Éclair rouge 38",
+    "cost": 3,
+    "range": 3,
+    "dmg": [
+      8,
+      12
+    ],
+    "anim": "AttackRun",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "AttackRun",
+      "Attack3",
+      "Special1"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Éclair rouge 38 — ranged, anims AttackRun → Attack3 → Special1",
+    "steps": [
+      {
+        "anim": "AttackRun",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 19,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 19,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 80,
+        "fps": 19,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "dash",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Élan": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Bélier": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Percussion": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Transperçant": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Onde de choc": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Relance": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Percussion",
+      "2:Onde de choc"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 3.33
+    }
+  },
+  {
+    "id": "gen_039",
+    "name": "Onde lunaire",
+    "cost": 3,
+    "range": 3,
+    "dmg": [
+      11,
+      14
+    ],
+    "anim": "Attack5",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "Attack5",
+      "Special1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Onde lunaire — aoe, anims Attack5 → Special1",
+    "steps": [
+      {
+        "anim": "Attack5",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 18,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 60,
+        "fps": 18,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "surchauffe",
+    "role": "aoe",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brûlure": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Longue portée": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Fusion": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Fournaise": {
+        "enabled": true,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Brasier élargi": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe",
+      "2:Fournaise"
+    ],
+    "balance": {
+      "winRate": 1,
+      "damagePerCost": 4.17
+    }
+  },
+  {
+    "id": "gen_040",
+    "name": "Nuée rouge",
+    "cost": 4,
+    "range": 4,
+    "dmg": [
+      17,
+      21
+    ],
+    "anim": "Special1",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "Special1",
+      "Kick"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Nuée rouge — aoe, anims Special1 → Kick",
+    "steps": [
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 0,
+        "fps": 19,
+        "hitTarget": false
+      },
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 60,
+        "fps": 19,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "aoe",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": true,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe",
+      "2:Conducteur"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 4.75
+    }
+  },
+  {
+    "id": "gen_041",
+    "name": "Répulsion rouge",
+    "cost": 4,
+    "range": 4,
+    "dmg": [
+      17,
+      24
+    ],
+    "anim": "Attack3",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack3",
+      "Special1"
+    ],
+    "effect": "drainPA",
+    "push": 0,
+    "desc": "Répulsion rouge — control, anims Attack3 → Special1",
+    "steps": [
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 12,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 12,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "control",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Saturation",
+      "2:Paralysie"
+    ],
+    "balance": {
+      "winRate": 0.625,
+      "damagePerCost": 5.13
+    }
+  },
+  {
+    "id": "gen_042",
+    "name": "Lien solaire",
+    "cost": 4,
+    "range": 4,
+    "dmg": [
+      13,
+      19
+    ],
+    "anim": "AttackRun2",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "AttackRun2",
+      "Kick"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Lien solaire — control, anims AttackRun2 → Kick",
+    "steps": [
+      {
+        "anim": "AttackRun2",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 14,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "dash",
+    "role": "control",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Élan": {
+        "enabled": true,
+        "anim": "AttackRun",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Bélier": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Percussion": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Transperçant": {
+        "enabled": true,
+        "anim": "AttackRun2",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Onde de choc": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Relance": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Élan",
+      "2:Transperçant"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 4
+    }
+  },
+  {
+    "id": "gen_043",
+    "name": "Roulade sombre",
+    "cost": 3,
+    "range": 3,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Rolling",
+    "type": "buff",
+    "aoe": 0,
+    "animSeq": [
+      "Rolling"
+    ],
+    "effect": "roulade",
+    "push": 0,
+    "desc": "Roulade sombre — mobility, anims Rolling",
+    "steps": [
+      {
+        "anim": "Rolling",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 0,
+        "fps": 13,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "mobility",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": true,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Boxeur",
+      "2:Double Impact"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_044",
+    "name": "Glissade fragile",
+    "cost": 2,
+    "range": 3,
+    "dmg": [
+      7,
+      10
+    ],
+    "anim": "Slide",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Slide",
+      "AttackRun"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Glissade fragile — mobility, anims Slide → AttackRun",
+    "steps": [
+      {
+        "anim": "Slide",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 0,
+        "fps": 18,
+        "hitTarget": false
+      },
+      {
+        "anim": "AttackRun",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 60,
+        "fps": 18,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "dash",
+    "role": "mobility",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Élan": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Bélier": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Percussion": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Transperçant": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Onde de choc": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Relance": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Percussion"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 4.25
+    }
+  },
+  {
+    "id": "gen_045",
+    "name": "Soin runique",
+    "cost": 3,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Special1",
+    "type": "heal",
+    "aoe": 0,
+    "animSeq": [
+      "Special1",
+      "Attack6"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Soin runique — heal, anims Special1 → Attack6",
+    "steps": [
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect3",
+        "delay": 0,
+        "fps": 13,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack6",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect3",
+        "delay": 60,
+        "fps": 13,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "nanites",
+    "role": "heal",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      12,
+      16
+    ],
+    "evoConfig": {
+      "1:Réparation": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Diffusion": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Régénération": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Surcadence": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Bénédiction": {
+        "enabled": false,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_046",
+    "name": "Ondée calme",
+    "cost": 4,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Taunt",
+    "type": "heal",
+    "aoe": 0,
+    "animSeq": [
+      "Taunt",
+      "Special1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Ondée calme — heal, anims Taunt → Special1",
+    "steps": [
+      {
+        "anim": "Taunt",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect3",
+        "delay": 0,
+        "fps": 15,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect3",
+        "delay": 60,
+        "fps": 15,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "nanites",
+    "role": "heal",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      18,
+      24
+    ],
+    "evoConfig": {
+      "1:Réparation": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Diffusion": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Régénération": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Surcadence": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Bénédiction": {
+        "enabled": false,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Diffusion"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_047",
+    "name": "Mur rapide",
+    "cost": 2,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Special1",
+    "type": "shield",
+    "aoe": 0,
+    "animSeq": [
+      "Special1",
+      "AttackRun2"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Mur rapide — shield, anims Special1 → AttackRun2",
+    "steps": [
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "AttackRun2",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 14,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "bouclier",
+    "role": "shield",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      8,
+      12
+    ],
+    "shield": 26,
+    "evoConfig": {
+      "1:Renfort": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Durée": {
+        "enabled": false,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Égide sacrée": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Riposte": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Rempart": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe",
+      "2:Rempart"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_048",
+    "name": "Bulle lunaire",
+    "cost": 5,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Taunt",
+    "type": "shield",
+    "aoe": 0,
+    "animSeq": [
+      "Taunt",
+      "Attack2"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Bulle lunaire — shield, anims Taunt → Attack2",
+    "steps": [
+      {
+        "anim": "Taunt",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 17,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack2",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 17,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "bouclier",
+    "role": "shield",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      10,
+      14
+    ],
+    "shield": 13,
+    "evoConfig": {
+      "1:Renfort": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Durée": {
+        "enabled": true,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Égide sacrée": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Riposte": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Rempart": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Durée"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_049",
+    "name": "Frappe lunaire",
+    "cost": 2,
+    "range": 2,
+    "dmg": [
+      8,
+      10
+    ],
+    "anim": "Attack1",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack1",
+      "Attack2"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Frappe lunaire — melee, anims Attack1 → Attack2",
+    "steps": [
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect3",
+        "delay": 0,
+        "fps": 16,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack2",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect3",
+        "delay": 60,
+        "fps": 16,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Boxeur",
+      "2:Uppercut"
+    ],
+    "balance": {
+      "winRate": 1,
+      "damagePerCost": 4.5
+    }
+  },
+  {
+    "id": "gen_050",
+    "name": "Entaille lunaire",
+    "cost": 3,
+    "range": 2,
+    "dmg": [
+      8,
+      11
+    ],
+    "anim": "Attack3",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack3",
+      "Kick"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Entaille lunaire — melee, anims Attack3 → Kick",
+    "steps": [
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 16,
+        "hitTarget": false
+      },
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 60,
+        "fps": 16,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Boxeur"
+    ],
+    "balance": {
+      "winRate": 0.125,
+      "damagePerCost": 3.17
+    }
+  },
+  {
+    "id": "gen_051",
+    "name": "Uppercut calme 51",
+    "cost": 3,
+    "range": 1,
+    "dmg": [
+      18,
+      24
+    ],
+    "anim": "Kick",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Kick",
+      "Attack6",
+      "Special1"
+    ],
+    "effect": "push",
+    "push": 2,
+    "desc": "Uppercut calme 51 — melee, anims Kick → Attack6 → Special1",
+    "steps": [
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 18,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack6",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 60,
+        "fps": 18,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 80,
+        "fps": 18,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "mine",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Charge": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Capteur": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Zone": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Aimant": {
+        "enabled": true,
+        "anim": "Attack4",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Immobilise": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Charge",
+      "2:Aimant"
+    ],
+    "balance": {
+      "winRate": 1,
+      "damagePerCost": 7
+    }
+  },
+  {
+    "id": "gen_052",
+    "name": "Rayon funeste",
+    "cost": 3,
+    "range": 4,
+    "dmg": [
+      9,
+      11
+    ],
+    "anim": "Attack1",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Rayon funeste — ranged, anims Attack1",
+    "steps": [
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 19,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "tir_magnetique",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Précision": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Recul": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Perforant": {
+        "enabled": true,
+        "anim": "Attack4",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Longue vue": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Salve": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Précision",
+      "2:Perforant"
+    ],
+    "balance": {
+      "winRate": 0.625,
+      "damagePerCost": 3.33
+    }
+  },
+  {
+    "id": "gen_053",
+    "name": "Dard sombre",
+    "cost": 5,
+    "range": 5,
+    "dmg": [
+      15,
+      21
+    ],
+    "anim": "Attack5",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack5",
+      "Special1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Dard sombre — ranged, anims Attack5 → Special1",
+    "steps": [
+      {
+        "anim": "Attack5",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 15,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 15,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Saturation"
+    ],
+    "balance": {
+      "winRate": 0.625,
+      "damagePerCost": 3.6
+    }
+  },
+  {
+    "id": "gen_054",
+    "name": "Salve rouge",
+    "cost": 3,
+    "range": 3,
+    "dmg": [
+      10,
+      13
+    ],
+    "anim": "AttackRun",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "AttackRun",
+      "Attack3"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Salve rouge — ranged, anims AttackRun → Attack3",
+    "steps": [
+      {
+        "anim": "AttackRun",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 17,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 17,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "dash",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Élan": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Bélier": {
+        "enabled": true,
+        "anim": "AttackRun2",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Percussion": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Transperçant": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Onde de choc": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Relance": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Bélier"
+    ],
+    "balance": {
+      "winRate": 0.625,
+      "damagePerCost": 3.83
+    }
+  },
+  {
+    "id": "gen_055",
+    "name": "Brasier runique",
+    "cost": 4,
+    "range": 3,
+    "dmg": [
+      17,
+      22
+    ],
+    "anim": "Attack5",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "Attack5",
+      "Special1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Brasier runique — aoe, anims Attack5 → Special1",
+    "steps": [
+      {
+        "anim": "Attack5",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 60,
+        "fps": 14,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "surchauffe",
+    "role": "aoe",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brûlure": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Longue portée": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Fusion": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Fournaise": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Brasier élargi": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Brûlure"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 4.88
+    }
+  },
+  {
+    "id": "gen_056",
+    "name": "Orbe runique",
+    "cost": 6,
+    "range": 4,
+    "dmg": [
+      18,
+      25
+    ],
+    "anim": "Special1",
+    "type": "damage",
+    "aoe": 2,
+    "animSeq": [
+      "Special1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Orbe runique — aoe, anims Special1",
+    "steps": [
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "Effect1",
+        "delay": 0,
+        "fps": 13,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "aoe",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Chaîne",
+      "2:Orage"
+    ],
+    "balance": {
+      "winRate": 0.625,
+      "damagePerCost": 3.58
+    }
+  },
+  {
+    "id": "gen_057",
+    "name": "Maléfice fragile",
+    "cost": 3,
+    "range": 4,
+    "dmg": [
+      8,
+      12
+    ],
+    "anim": "Attack3",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack3",
+      "Special1",
+      "Attack1"
+    ],
+    "effect": "drainPA",
+    "push": 0,
+    "desc": "Maléfice fragile — control, anims Attack3 → Special1 → Attack1",
+    "steps": [
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect1",
+        "delay": 0,
+        "fps": 12,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect1",
+        "delay": 60,
+        "fps": 12,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect1",
+        "delay": 80,
+        "fps": 12,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "control",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe",
+      "2:Paralysie"
+    ],
+    "balance": {
+      "winRate": 0.5,
+      "damagePerCost": 3.33
+    }
+  },
+  {
+    "id": "gen_058",
+    "name": "Emprise rapide",
+    "cost": 4,
+    "range": 4,
+    "dmg": [
+      17,
+      24
+    ],
+    "anim": "AttackRun2",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "AttackRun2",
+      "Kick",
+      "Attack6"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Emprise rapide — control, anims AttackRun2 → Kick → Attack6",
+    "steps": [
+      {
+        "anim": "AttackRun2",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 12,
+        "hitTarget": false
+      },
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 12,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack6",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 80,
+        "fps": 12,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "dash",
+    "role": "control",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Élan": {
+        "enabled": true,
+        "anim": "AttackRun",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Bélier": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Percussion": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Transperçant": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Onde de choc": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Relance": {
+        "enabled": true,
+        "anim": "AttackRun",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Élan",
+      "2:Relance"
+    ],
+    "balance": {
+      "winRate": 0.75,
+      "damagePerCost": 5.13
+    }
+  },
+  {
+    "id": "gen_059",
+    "name": "Pas sombre",
+    "cost": 3,
+    "range": 2,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Rolling",
+    "type": "buff",
+    "aoe": 0,
+    "animSeq": [
+      "Rolling",
+      "Slide"
+    ],
+    "effect": "roulade",
+    "push": 0,
+    "desc": "Pas sombre — mobility, anims Rolling → Slide",
+    "steps": [
+      {
+        "anim": "Rolling",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 18,
+        "hitTarget": false
+      },
+      {
+        "anim": "Slide",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 60,
+        "fps": 18,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "mobility",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Rapide",
+      "2:Uppercut"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_060",
+    "name": "Charge fragile",
+    "cost": 3,
+    "range": 3,
+    "dmg": [
+      8,
+      11
+    ],
+    "anim": "Slide",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Slide",
+      "AttackRun"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Charge fragile — mobility, anims Slide → AttackRun",
+    "steps": [
+      {
+        "anim": "Slide",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect1",
+        "delay": 0,
+        "fps": 13,
+        "hitTarget": false
+      },
+      {
+        "anim": "AttackRun",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect1",
+        "delay": 60,
+        "fps": 13,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "dash",
+    "role": "mobility",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Élan": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Bélier": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Percussion": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Transperçant": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Onde de choc": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Relance": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Percussion"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 3.17
+    }
+  },
+  {
+    "id": "gen_061",
+    "name": "Baume fragile",
+    "cost": 3,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Special1",
+    "type": "heal",
+    "aoe": 0,
+    "animSeq": [
+      "Special1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Baume fragile — heal, anims Special1",
+    "steps": [
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect5",
+        "delay": 0,
+        "fps": 13,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "nanites",
+    "role": "heal",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      12,
+      16
+    ],
+    "evoConfig": {
+      "1:Réparation": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Diffusion": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Régénération": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Surcadence": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Bénédiction": {
+        "enabled": false,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Diffusion"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_062",
+    "name": "Lueur rouge",
+    "cost": 5,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Taunt",
+    "type": "heal",
+    "aoe": 0,
+    "animSeq": [
+      "Taunt",
+      "Special1",
+      "AttackRun"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Lueur rouge — heal, anims Taunt → Special1 → AttackRun",
+    "steps": [
+      {
+        "anim": "Taunt",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 0,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 60,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "AttackRun",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 80,
+        "fps": 14,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "nanites",
+    "role": "heal",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      36,
+      42
+    ],
+    "evoConfig": {
+      "1:Réparation": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Diffusion": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Régénération": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Surcadence": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Bénédiction": {
+        "enabled": false,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Réparation",
+      "2:Régénération"
+    ],
+    "balance": {
+      "winRate": 1,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_063",
+    "name": "Carapace rouge",
+    "cost": 4,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Special1",
+    "type": "shield",
+    "aoe": 0,
+    "animSeq": [
+      "Special1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Carapace rouge — shield, anims Special1",
+    "steps": [
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "Effect2",
+        "delay": 0,
+        "fps": 18,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "bouclier",
+    "role": "shield",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      20,
+      24
+    ],
+    "shield": 12,
+    "evoConfig": {
+      "1:Renfort": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Durée": {
+        "enabled": true,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Égide sacrée": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Riposte": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Rempart": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Durée",
+      "2:Égide sacrée"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_064",
+    "name": "Aurore sombre",
+    "cost": 3,
+    "range": 0,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Taunt",
+    "type": "shield",
+    "aoe": 0,
+    "animSeq": [
+      "Taunt"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Aurore sombre — shield, anims Taunt",
+    "steps": [
+      {
+        "anim": "Taunt",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 18,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "bouclier",
+    "role": "shield",
+    "generated": true,
+    "equipped": false,
+    "heal": [
+      22,
+      26
+    ],
+    "shield": 8,
+    "evoConfig": {
+      "1:Renfort": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Durée": {
+        "enabled": false,
+        "anim": "Taunt",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Égide sacrée": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Riposte": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Rempart": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe",
+      "2:Égide sacrée"
+    ],
+    "balance": {
+      "winRate": 0,
+      "damagePerCost": 0
+    }
+  },
+  {
+    "id": "gen_065",
+    "name": "Morsure solaire",
+    "cost": 2,
+    "range": 1,
+    "dmg": [
+      5,
+      7
+    ],
+    "anim": "Attack1",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack1",
+      "Attack2"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Morsure solaire — melee, anims Attack1 → Attack2",
+    "steps": [
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 0,
+        "fps": 16,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack2",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 60,
+        "fps": 16,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": true,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Brise-Os",
+      "2:Double Impact"
+    ],
+    "balance": {
+      "winRate": 0.125,
+      "damagePerCost": 6
+    }
+  },
+  {
+    "id": "gen_066",
+    "name": "Talon calme",
+    "cost": 3,
+    "range": 1,
+    "dmg": [
+      17,
+      22
+    ],
+    "anim": "Attack3",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack3",
+      "Kick"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Talon calme — melee, anims Attack3 → Kick",
+    "steps": [
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 17,
+        "hitTarget": false
+      },
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 60,
+        "fps": 17,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "punch",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Brise-Os"
+    ],
+    "balance": {
+      "winRate": 0.125,
+      "damagePerCost": 6.5
+    }
+  },
+  {
+    "id": "gen_067",
+    "name": "Frappe funeste",
+    "cost": 3,
+    "range": 2,
+    "dmg": [
+      13,
+      21
+    ],
+    "anim": "Kick",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "Kick",
+      "Attack6",
+      "Attack2"
+    ],
+    "effect": "push",
+    "push": 1,
+    "desc": "Frappe funeste — melee, anims Kick → Attack6 → Attack2",
+    "steps": [
+      {
+        "anim": "Kick",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 0,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack6",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 60,
+        "fps": 14,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack2",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "None",
+        "delay": 80,
+        "fps": 14,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "mine",
+    "role": "melee",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Charge": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Capteur": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Zone": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Aimant": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Immobilise": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Capteur",
+      "2:Zone"
+    ],
+    "balance": {
+      "winRate": 1,
+      "damagePerCost": 5.67
+    }
+  },
+  {
+    "id": "gen_068",
+    "name": "Éclair calme",
+    "cost": 4,
+    "range": 5,
+    "dmg": [
+      17,
+      24
+    ],
+    "anim": "Attack1",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "Attack1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Éclair calme — ranged, anims Attack1",
+    "steps": [
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 18,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "tir_magnetique",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Précision": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Recul": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Perforant": {
+        "enabled": false,
+        "anim": "Attack4",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Longue vue": {
+        "enabled": true,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Salve": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "2:Longue vue"
+    ],
+    "balance": {
+      "winRate": 0.5,
+      "damagePerCost": 5.13
+    }
+  },
+  {
+    "id": "gen_069",
+    "name": "Flèche funeste",
+    "cost": 4,
+    "range": 5,
+    "dmg": [
+      17,
+      24
+    ],
+    "anim": "Attack5",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "Attack5",
+      "Special1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Flèche funeste — ranged, anims Attack5 → Special1",
+    "steps": [
+      {
+        "anim": "Attack5",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect4",
+        "delay": 0,
+        "fps": 16,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash2",
+        "effect": "Effect4",
+        "delay": 60,
+        "fps": 16,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": true,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Économe",
+      "2:Orage"
+    ],
+    "balance": {
+      "winRate": 0.5,
+      "damagePerCost": 5.13
+    }
+  },
+  {
+    "id": "gen_070",
+    "name": "Rayon solaire 70",
+    "cost": 3,
+    "range": 3,
+    "dmg": [
+      10,
+      13
+    ],
+    "anim": "AttackRun",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [
+      "AttackRun",
+      "Attack3"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Rayon solaire 70 — ranged, anims AttackRun → Attack3",
+    "steps": [
+      {
+        "anim": "AttackRun",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 16,
+        "hitTarget": false
+      },
+      {
+        "anim": "Attack3",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 60,
+        "fps": 16,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "dash",
+    "role": "ranged",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Élan": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Bélier": {
+        "enabled": true,
+        "anim": "AttackRun2",
+        "slash": "Slash1",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Percussion": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Transperçant": {
+        "enabled": false,
+        "anim": "AttackRun2",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Onde de choc": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Relance": {
+        "enabled": false,
+        "anim": "AttackRun",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Bélier"
+    ],
+    "balance": {
+      "winRate": 0.75,
+      "damagePerCost": 3.83
+    }
+  },
+  {
+    "id": "gen_071",
+    "name": "Tempête solaire",
+    "cost": 4,
+    "range": 3,
+    "dmg": [
+      15,
+      20
+    ],
+    "anim": "Attack5",
+    "type": "damage",
+    "aoe": 2,
+    "animSeq": [
+      "Attack5",
+      "Special1"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Tempête solaire — aoe, anims Attack5 → Special1",
+    "steps": [
+      {
+        "anim": "Attack5",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 0,
+        "fps": 16,
+        "hitTarget": false
+      },
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "Slash1",
+        "effect": "None",
+        "delay": 60,
+        "fps": 16,
+        "hitTarget": true
+      }
+    ],
+    "evoArchetype": "surchauffe",
+    "role": "aoe",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Brûlure": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Longue portée": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Fusion": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Fournaise": {
+        "enabled": false,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Brasier élargi": {
+        "enabled": true,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "1:Brûlure",
+      "2:Brasier élargi"
+    ],
+    "balance": {
+      "winRate": 0.375,
+      "damagePerCost": 4.38
+    }
+  },
+  {
+    "id": "gen_072",
+    "name": "Fournaise funeste 72",
+    "cost": 5,
+    "range": 4,
+    "dmg": [
+      16,
+      20
+    ],
+    "anim": "Special1",
+    "type": "damage",
+    "aoe": 1,
+    "animSeq": [
+      "Special1",
+      "Taunt"
+    ],
+    "effect": "",
+    "push": 0,
+    "desc": "Fournaise funeste 72 — aoe, anims Special1 → Taunt",
+    "steps": [
+      {
+        "anim": "Special1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect2",
+        "delay": 0,
+        "fps": 15,
+        "hitTarget": false
+      },
+      {
+        "anim": "Taunt",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "Effect2",
+        "delay": 60,
+        "fps": 15,
+        "hitTarget": false
+      }
+    ],
+    "evoArchetype": "arc",
+    "role": "aoe",
+    "generated": true,
+    "equipped": false,
+    "evoConfig": {
+      "1:Chaîne": {
+        "enabled": false,
+        "anim": "Attack1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Économe": {
+        "enabled": false,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
+      "1:Saturation": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "None",
+        "effect": "Effect2",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Paralysie": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 14,
+        "delay": 0
+      },
+      "2:Conducteur": {
+        "enabled": true,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "Effect4",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Orage": {
+        "enabled": false,
+        "anim": "Attack3",
+        "slash": "None",
+        "effect": "Effect5",
+        "fps": 14,
+        "delay": 0
+      }
+    },
+    "upgrades": [
+      "2:Conducteur"
+    ],
+    "balance": {
+      "winRate": 0.5,
+      "damagePerCost": 3.6
+    }
+  }
+]

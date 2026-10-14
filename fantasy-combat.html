@@ -156,8 +156,6 @@
         <a class="link-cc" href="#" id="btnEvo">Évo</a>
         <a class="link-cc" href="#" id="btnRestart" title="Relancer un combat">Relancer</a>
         <a class="link-cc" data-fcc="spell" href="spell-editor.html">Sorts</a>
-        <a class="link-cc" data-fcc="anims" href="fantasy-weapon-anim.html">Anims</a>
-        <a class="link-cc" data-fcc="dirs" href="fantasy-dir-calibrate.html">Dirs</a>
         <a class="link-cc" data-fcc="creator" href="character-creator-fantasy.html">Créateur</a>
       </div>
     </div>
@@ -894,7 +892,84 @@
     return pick(["bruiser","sniper","caster","skirmisher","controller","assassin"]);
   }
 
+  let aiPolicy = null;
+  function policyWeight(id){
+    if(!aiPolicy || !aiPolicy.weights) return 1;
+    const w = aiPolicy.weights[id];
+    return typeof w === "number" ? w : 1;
+  }
+  function pickWeighted(ids){
+    if(!ids.length) return null;
+    const weights = ids.map(id => Math.max(0.05, policyWeight(id)));
+    let sum = 0;
+    weights.forEach(w => { sum += w; });
+    let r = Math.random() * sum;
+    for(let i=0;i<ids.length;i++){
+      r -= weights[i];
+      if(r <= 0) return ids[i];
+    }
+    return ids[ids.length-1];
+  }
+  function generatedIdsFor(roles){
+    const out = [];
+    (customSpells||[]).forEach(s=>{
+      if(!s || !s.generated || !s.id) return;
+      if(roles && roles.length && roles.indexOf(s.role) < 0) return;
+      if(out.indexOf(s.id) < 0) out.push(s.id);
+    });
+    return out;
+  }
+  async function loadGeneratedGrimoire(){
+    try{
+      const r = await fetch("data/generated-spells.json", { cache:"no-store" });
+      if(!r.ok) return 0;
+      const arr = await r.json();
+      if(!Array.isArray(arr)) return 0;
+      let n = 0;
+      arr.forEach(s=>{
+        if(!s || !s.id) return;
+        if((customSpells||[]).some(x=>x && x.id===s.id)) return;
+        customSpells.push(s);
+        n++;
+      });
+      if(n){
+        try{ localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+        try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+      }
+      if(typeof FantasyBridge!=="undefined" && FantasyBridge.registerSpellEvoAliases)
+        FantasyBridge.registerSpellEvoAliases(customSpells);
+      return n;
+    }catch(_e){ return 0; }
+  }
+  async function loadAiPolicy(){
+    try{
+      const r = await fetch("data/ai-policy.json", { cache:"no-store" });
+      if(r.ok) aiPolicy = await r.json();
+    }catch(_e){}
+  }
+
   function rollEnemySpells(weapon, strategy){
+    const roleMap = {
+      bruiser:["melee","control"],
+      sniper:["ranged","mobility"],
+      caster:["aoe","ranged","control"],
+      skirmisher:["mobility","melee","ranged"],
+      controller:["control","aoe"],
+      assassin:["melee","mobility"],
+    };
+    const gen = generatedIdsFor(roleMap[strategy] || ["melee"]);
+    if(gen.length >= 2){
+      const out = [];
+      const pool = gen.slice();
+      const n = 3;
+      while(out.length < n && pool.length){
+        const id = pickWeighted(pool);
+        const at = pool.indexOf(id);
+        if(at >= 0) pool.splice(at, 1);
+        if(id) out.push(id);
+      }
+      if(out.length) return out;
+    }
     const dmgPool = ENEMY_SPELL_POOL.slice();
     let prefer = dmgPool;
     if(strategy==="sniper" || /^Ranged/i.test(weapon))
@@ -2052,10 +2127,10 @@
     const inRange = dmg.filter(s=>d <= (s.range|0));
     if(inRange.length){
       if(prof.waitForKill){
-        inRange.sort((a,b)=> enemySpellDmg(b)-enemySpellDmg(a));
+        inRange.sort((a,b)=> enemySpellDmg(b)*policyWeight(b.id)-enemySpellDmg(a)*policyWeight(a.id));
         return inRange[0];
       }
-      inRange.sort((a,b)=> enemySpellDmg(b)-enemySpellDmg(a) || (a.cost|0)-(b.cost|0));
+      inRange.sort((a,b)=> enemySpellDmg(b)*policyWeight(b.id)-enemySpellDmg(a)*policyWeight(a.id) || (a.cost|0)-(b.cost|0));
       return inRange[0];
     }
     dmg.sort((a,b)=> (b.range|0)-(a.range|0) || enemySpellDmg(b)-enemySpellDmg(a));
@@ -2629,6 +2704,11 @@
         });
       }
     }catch(_e){}
+
+    try{ await loadGeneratedGrimoire(); }catch(_e){}
+    try{ await loadAiPolicy(); }catch(_e){}
+    if(typeof FantasyBridge!=="undefined" && FantasyBridge.registerSpellEvoAliases)
+      FantasyBridge.registerSpellEvoAliases(customSpells);
 
     warm();
     /* premier adversaire aléatoire */
