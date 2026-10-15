@@ -193,3 +193,26 @@ ${bundled}
 const out = "/tmp/arene-phone.html";
 writeFileSync(out, page);
 console.log("wrote", out, page.length);
+
+let editorPage = readFileSync("spell-editor.html", "utf8");
+editorPage = editorPage.replace(
+  '<script src="js/fantasy-combat-bridge.js"></script>',
+  "<script>\n" + bridge + "\n</script>",
+);
+editorPage = editorPage.replace(
+  'const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@main/assets/packs/fantasy-cc/";',
+  "const BASE_CDN = " + JSON.stringify(CDN) + ";",
+);
+editorPage = editorPage.replace(
+  "<head>",
+  "<head>\n<script>window.__PHONE_SPELLS = " + jsEmbed(JSON.parse(spells)) + ";</script>\n",
+);
+if (!editorPage.includes("fantasy-combat-bridge") && !editorPage.includes("EVO_TREE")) {
+  throw new Error("éditeur sans pont d’animations");
+}
+if (!editorPage.includes("Coup brut") || !editorPage.includes("1:Rapide")) {
+  throw new Error("éditeur sans les évolutions écrites");
+}
+const editorOut = "/tmp/editeur-phone.html";
+writeFileSync(editorOut, editorPage);
+console.log("wrote", editorOut, editorPage.length);
