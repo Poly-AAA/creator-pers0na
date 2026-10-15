@@ -1,5 +1,19 @@
 # Rapport final
 
+## Preuve : une variante sur les sprites d'origine
+
+Lecteur : [https://litter.catbox.moe/jtqdn4.html](https://litter.catbox.moe/jtqdn4.html)
+
+Déposé le 15 octobre 2026 à 05:00 UTC. Il reste en ligne environ 72 heures, jusqu'au 18 octobre 2026 vers 05:00 UTC. La page contient les feuilles d'origine (corps nu et ancre de tête). Le bouton passe de la variante à l'original. Les trente animations et les huit directions y sont.
+
+La variante est unique. Elle est peinte sur `NakedBody`, image par image. L'ancre est la couche `Head1`, déjà calée par le pack sur chaque image :
+
+- Corps : peau cuivrée, torse élargi d'un pixel de chaque côté. Les pieds, sur les cinq dernières lignes de la silhouette, gardent exactement les mêmes pixels.
+- Visage : yeux et bouche, uniquement sur des pixels du corps, sous le crâne.
+- Coupe : frange courte et deux mèches, parties des pixels de `Head1`.
+
+Contrôle : 30 animations × 8 directions × 15 images = 3 600 images. Aucun écart de pieds, le visage reste sur le corps, la frange reste près du crâne. Les planches sont dans `docs/previews/sprites/variante/` (une feuille par animation, plus `apercu-idle.png`). Les trois sorts du grimoire ne sont pas modifiés. Pas de simulation.
+
 ## Sur le téléphone
 
 Jeu : [https://litter.catbox.moe/k6gu1b.html](https://litter.catbox.moe/k6gu1b.html)
