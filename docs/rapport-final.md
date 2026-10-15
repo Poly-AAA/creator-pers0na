@@ -1,8 +1,22 @@
 # Rapport final
 
+## Poses d'attente
+
+Lecteur : [https://litter.catbox.moe/0lvlyt.html](https://litter.catbox.moe/0lvlyt.html)
+
+Déposé le 15 octobre 2026 à 05:13 UTC. Il reste en ligne environ 72 heures, jusqu'au 18 octobre 2026 vers 05:13 UTC. La page contient les feuilles d'origine. Elle ouvre sur Lecture. Le bouton passe de la pose à l'original. Les trente animations et les huit directions restent dans la liste.
+
+Trois boucles de 11 images, à 15 images/s (environ 0,73 s). Le corps est la pose Idle tenue : il ne change pas d'image. La main, la mèche, l'accessoire et une petite lueur bougent. L'image 11 est identique à l'image 0.
+
+- Lecture : livre dans la main gauche, page qui suit la main, lueur sur le chapeau.
+- Sac : sacoche à droite, qui se soulève d'un pixel, avec une boucle lumineuse.
+- Bijou : gemme sous le col, éclat qui oscille, lueur sur le chapeau.
+
+Contrôle : 3 poses × 8 directions. Pieds inchangés, boucle fermée, accessoire, lueur et mèche présents. Planches : `docs/previews/sprites/variante/idle-Lecture.png`, `idle-Sac.png`, `idle-Bijou.png`. Playwright en paysage sur 640×360, 667×375, 915×412 et 932×430 : pas de défilement, 33 entrées, le bouton change les pixels, aucune erreur de page. Coup brut, Coup de pied et Roulade ne sont pas modifiés. Pas de simulation.
+
 ## Preuve : une variante sur les sprites d'origine
 
-Lecteur : [https://litter.catbox.moe/jtqdn4.html](https://litter.catbox.moe/jtqdn4.html)
+Lecteur précédent, sans ces poses : [https://litter.catbox.moe/jtqdn4.html](https://litter.catbox.moe/jtqdn4.html)
 
 Déposé le 15 octobre 2026 à 05:00 UTC. Il reste en ligne environ 72 heures, jusqu'au 18 octobre 2026 vers 05:00 UTC. La page contient les feuilles d'origine (corps nu et ancre de tête). Le bouton passe de la variante à l'original. Les trente animations et les huit directions y sont.
 

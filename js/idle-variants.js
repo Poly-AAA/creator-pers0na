@@ -13,30 +13,30 @@ export const GLOW_HI = [170, 230, 120, 255];
 export const GLOW_LO = [90, 160, 70, 255];
 export const BOOK = [96, 56, 36, 255];
 export const PAGE = [244, 236, 214, 255];
-export const PACK = [62, 44, 34, 255];
+export const SACK = [62, 44, 34, 255];
 export const GEM = [220, 186, 72, 255];
 
-function at(x, y) {
+function cell(x, y) {
   return (y * FRAME + x) * 4;
 }
 
-function solid(px, x, y) {
+function ink(px, x, y) {
   if (x < 0 || y < 0 || x >= FRAME || y >= FRAME) return false;
-  return px[at(x, y) + 3] > 40;
+  return px[cell(x, y) + 3] > 40;
 }
 
-function put(px, x, y, rgba) {
+function dot(px, x, y, rgba) {
   if (x < 0 || y < 0 || x >= FRAME || y >= FRAME) return;
-  const i = at(x, y);
+  const i = cell(x, y);
   px[i] = rgba[0];
   px[i + 1] = rgba[1];
   px[i + 2] = rgba[2];
   px[i + 3] = rgba[3];
 }
 
-function footBottom(px) {
+function sole(px) {
   for (let y = FRAME - 1; y >= 0; y--) {
-    for (let x = 0; x < FRAME; x++) if (solid(px, x, y)) return y;
+    for (let x = 0; x < FRAME; x++) if (ink(px, x, y)) return y;
   }
   return -1;
 }
@@ -63,7 +63,7 @@ function hands(body, box, foot) {
   let right = null;
   for (let y = y0; y <= y1; y++) {
     for (let x = 0; x < FRAME; x++) {
-      if (!solid(body, x, y)) continue;
+      if (!ink(body, x, y)) continue;
       if (!left || x < left.x) left = { x, y };
       if (!right || x > right.x) right = { x, y };
     }
@@ -78,29 +78,29 @@ function swayHair(px, box, frame, foot) {
   const x = shift > 0 ? box.x1 + 2 : box.x0 - 2;
   for (let y = box.y0; y <= Math.min(box.y1, box.y0 + 4); y++) {
     if (y >= foot - 5) return;
-    if (solid(px, x, y)) continue;
-    if (!solid(px, x - shift, y) && !solid(px, x - 2 * shift, y)) continue;
-    put(px, x, y, HAIR);
-    if (y + 1 < foot - 5 && !solid(px, x, y + 1)) put(px, x, y + 1, HAIR);
+    if (ink(px, x, y)) continue;
+    if (!ink(px, x - shift, y) && !ink(px, x - 2 * shift, y)) continue;
+    dot(px, x, y, HAIR);
+    if (y + 1 < foot - 5 && !ink(px, x, y + 1)) dot(px, x, y + 1, HAIR);
     return;
   }
 }
 
 function paintGlow(px, x, y, frame, foot) {
   if (y >= foot - 4) return;
-  put(px, x, y, glowColor(frame));
+  dot(px, x, y, glowColor(frame));
 }
 
 function paintLecture(px, box, hold, frame, foot) {
   const page = bob(frame);
   const x = Math.max(0, hold.x - 1);
   const y = Math.min(Math.max(hold.y, box.y1 + 4), foot - 8);
-  put(px, x, y, BOOK);
-  put(px, x + 1, y, BOOK);
-  put(px, x, y + 1, PAGE);
-  put(px, x + 1, y + 1, PAGE);
+  dot(px, x, y, BOOK);
+  dot(px, x + 1, y, BOOK);
+  dot(px, x, y + 1, PAGE);
+  dot(px, x + 1, y + 1, PAGE);
   const hy = y - 1 + (page > 0 ? -1 : page < 0 ? 1 : 0);
-  if (hy > box.y1 && hy < foot - 4) put(px, x + 1, hy, PAGE);
+  if (hy > box.y1 && hy < foot - 4) dot(px, x + 1, hy, PAGE);
   paintGlow(px, Math.round(box.cx), Math.max(0, box.y0 - 1), frame, foot);
 }
 
@@ -108,9 +108,9 @@ function paintPack(px, box, hold, frame, foot) {
   const lift = bob(frame) > 0 ? -1 : 0;
   const x = Math.min(FRAME - 2, hold.x + 1);
   const y = Math.max(box.y1 + 2, Math.min(hold.y, foot - 8)) + lift;
-  put(px, x, y, PACK);
-  put(px, x, y + 1, PACK);
-  put(px, x + 1, y + 1, PACK);
+  dot(px, x, y, SACK);
+  dot(px, x, y + 1, SACK);
+  dot(px, x + 1, y + 1, SACK);
   paintGlow(px, x + 1, Math.max(box.y1, y - 1), frame, foot);
 }
 
@@ -118,9 +118,9 @@ function paintGem(px, box, frame, foot) {
   const x = Math.round(box.cx);
   const y = Math.min(box.y1 + 5, foot - 6);
   const hover = bob(frame);
-  put(px, x, y, GEM);
+  dot(px, x, y, GEM);
   const py = y - 1 + (hover < 0 ? 1 : hover > 0 ? -1 : 0);
-  if (py > box.y1 && py < foot - 4) put(px, x + 1, py, PAGE);
+  if (py > box.y1 && py < foot - 4) dot(px, x + 1, py, PAGE);
   paintGlow(px, x, Math.max(0, box.y0 - 1), frame, foot);
 }
 
@@ -132,7 +132,7 @@ function paintGem(px, box, frame, foot) {
 export function idleFrame(kind, body, head, frame) {
   const out = applyVariant(body, head);
   const box = headBox(head);
-  const foot = footBottom(out);
+  const foot = sole(out);
   if (!box) return out;
   swayHair(out, box, frame, foot);
   const arms = hands(body, box, foot);
@@ -144,11 +144,11 @@ export function idleFrame(kind, body, head, frame) {
 }
 
 export function sameFeet(a, b) {
-  const foot = footBottom(a);
+  const foot = sole(a);
   if (foot < 0) return true;
   for (let y = Math.max(0, foot - 4); y <= foot; y++) {
     for (let x = 0; x < FRAME; x++) {
-      if ((a[at(x, y) + 3] > 40) !== (b[at(x, y) + 3] > 40)) return false;
+      if ((a[cell(x, y) + 3] > 40) !== (b[cell(x, y) + 3] > 40)) return false;
     }
   }
   return true;
@@ -180,7 +180,7 @@ export function idleIssues(kind, body, head) {
   let moved = false;
   for (let i = 0; i < frames[0].length; i++) if (frames[0][i] !== frames[3][i]) moved = true;
   if (!moved) issues.push("immobile");
-  const mark = kind === "Lecture" ? BOOK : kind === "Sac" ? PACK : GEM;
+  const mark = kind === "Lecture" ? BOOK : kind === "Sac" ? SACK : GEM;
   if (countColor(frames[0], mark) < 1) issues.push("accessoire");
   const glow = countColor(frames[0], GLOW_LO) + countColor(frames[3], GLOW_HI);
   if (glow < 1) issues.push("lueur");

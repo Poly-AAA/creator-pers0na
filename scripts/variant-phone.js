@@ -15,10 +15,10 @@ for (const folder of ["NakedBody", "Head1"]) {
 
 const lib = readFileSync("js/sheet-variant.js", "utf8").replace(/^export /gm, "");
 const idle = readFileSync("js/idle-variants.js", "utf8")
-  .replace(/^import [\s\S]*?;\n/, "")
+  .replace(/^import [\s\S]*?;\n/m, "")
   .replace(/^export /gm, "");
 let view = readFileSync("js/variant-view.js", "utf8").replace(
-  /^import \{[\s\S]*?\} from "\.\/[^"]+";\n/g,
+  /^import \{[\s\S]*?\} from "\.\/[^"]+";\n/gm,
   "",
 );
 view = view.replace(
