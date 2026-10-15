@@ -9,6 +9,7 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f2e5a50/assets/packs/fantasy-cc/";
 const spells = readFileSync("data/user-spells.json", "utf8");
+const rigSpells = readFileSync("data/rig-spells.json", "utf8");
 const policy = readFileSync("data/ai-policy.json", "utf8");
 const skin = readFileSync("css/skin-d.css", "utf8");
 const bridge = readFileSync("js/fantasy-combat-bridge.js", "utf8");
@@ -152,6 +153,7 @@ const page = hubBody.replace(
   "</body>",
   `<script>
 window.__PHONE_SPELLS = ${jsEmbed(JSON.parse(spells))};
+window.__RIG_SPELLS = ${jsEmbed(JSON.parse(rigSpells))};
 window.__PHONE_POLICY = ${jsEmbed(JSON.parse(policy))};
 const __PAGES = {
   combat: ${jsEmbed(combat)},
@@ -205,7 +207,7 @@ editorPage = editorPage.replace(
 );
 editorPage = editorPage.replace(
   "<head>",
-  "<head>\n<script>window.__PHONE_SPELLS = " + jsEmbed(JSON.parse(spells)) + ";</script>\n",
+  "<head>\n<script>window.__PHONE_SPELLS = " + jsEmbed(JSON.parse(spells)) + ";window.__RIG_SPELLS = " + jsEmbed(JSON.parse(rigSpells)) + ";</script>\n",
 );
 if (!editorPage.includes("fantasy-combat-bridge") && !editorPage.includes("EVO_TREE")) {
   throw new Error("éditeur sans pont d’animations");
@@ -213,6 +215,27 @@ if (!editorPage.includes("fantasy-combat-bridge") && !editorPage.includes("EVO_T
 if (!editorPage.includes("Coup brut") || !editorPage.includes("1:Rapide")) {
   throw new Error("éditeur sans les évolutions écrites");
 }
+if (!editorPage.includes("poing_rig") && !editorPage.includes("__RIG_SPELLS")) {
+  throw new Error("éditeur sans le poing cumulatif");
+}
 const editorOut = "/tmp/editeur-phone.html";
 writeFileSync(editorOut, editorPage);
 console.log("wrote", editorOut, editorPage.length);
+
+const labSrc = "/tmp/phone-src";
+execFileSync(
+  "npx",
+  ["--yes", "esbuild", "js/creator-app.js", "--bundle", "--format=iife", "--outfile=" + labSrc + "/creator-bundle.js"],
+  { stdio: "inherit" },
+);
+let labJs = readFileSync(labSrc + "/creator-bundle.js", "utf8").replace(/<\/script/gi, "<\\/script");
+let labPage = readFileSync("character-lab.html", "utf8").replace(
+  '<script type="module" src="js/creator-app.js"></script>',
+  "<script>\n" + labJs + "\n</script>",
+);
+if (!labPage.includes("renderActor") && !labPage.includes("poing_rig")) {
+  throw new Error("créateur non assemblé");
+}
+const labOut = "/tmp/createur-phone.html";
+writeFileSync(labOut, labPage);
+console.log("wrote", labOut, labPage.length);

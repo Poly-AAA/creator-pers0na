@@ -2,15 +2,25 @@
 
 ## Sur le téléphone
 
-Jeu : [https://litter.catbox.moe/a20zvc.html](https://litter.catbox.moe/a20zvc.html)
+Jeu : [https://litter.catbox.moe/k6gu1b.html](https://litter.catbox.moe/k6gu1b.html)
 
-Éditeur de sorts : [https://litter.catbox.moe/br5br3.html](https://litter.catbox.moe/br5br3.html)
+Créateur et lecteur d’animations : [https://litter.catbox.moe/4tcwn4.html](https://litter.catbox.moe/4tcwn4.html)
 
-Les deux pages sont en HTTPS, en paysage. Déposées le 15 octobre 2026 à 04:03 UTC, elles restent en ligne environ 72 heures, jusqu’au 18 octobre 2026 à 04:03 UTC. Les sprites sont servis par jsDelivr au commit `f2e5a50`. Le jeu est une page unique (accueil, combat, créateur, et l’éditeur intégré). L’éditeur a aussi son lien direct, avec les trois sorts et leurs évolutions.
+Éditeur de sorts : [https://litter.catbox.moe/ndulaw.html](https://litter.catbox.moe/ndulaw.html)
 
-Un contrôle Playwright en 932×430 ouvre l’accueil (Quartz-23), lance un duel contre Nacre-62, dont les sorts affichés sont Coup brut, Roulade et Coup de pied. La croix a 5 touches, le bouton de fin de tour est là, sans erreur de page. Sur l’éditeur public, les six évolutions de Coup brut sont là : Brise-Os (Attack2, 12 images/s, cochée), Boxeur (Attack6, 17, cochée), Rapide (Kick, 14, décochée), Uppercut (Special1 + Effect1, 17, cochée), Percutant (Attack6, 14, cochée), Double Impact (Attack5 + Slash2, 17, décochée). L’état affiche « Prêt », sans erreur.
+Les trois pages sont en HTTPS. Déposées le 15 octobre 2026 entre 04:25 et 04:28 UTC, elles restent en ligne environ 72 heures, jusqu’au 18 octobre 2026 vers 04:28 UTC. Les sprites de l’arène sont servis par jsDelivr au commit `f2e5a50`. Le jeu reste une page unique. Le créateur est une page à part : dé, couches, directions, animations. L’éditeur direct garde Coup brut, Coup de pied et Roulade, et ajoute les sorts du rig sans les écrire dans `data/user-spells.json`.
 
-Les liens `bbd7yv.html`, `32x6tn.html`, `s7ah3p.html`, `wi99au.html`, `r4jcgz.html` et `r00zh6.html` sont d’anciens builds.
+Un contrôle Playwright en 932×430 ouvre l’accueil (Lame-08), lance un duel contre Cendre-60, dont les sorts affichés sont Coup brut, Roulade et Coup de pied. La croix a 5 touches, le bouton de fin de tour est là, sans erreur de page. Sur l’éditeur public, Coup brut garde Brise-Os, Boxeur, Rapide, Percutant, Double Impact et Uppercut. Poing ajoute Direct, Feinte, Crochet, Repousse, Poings de feu, Onde, Zone, Brûlure et Foudre. Le créateur public lance le jab gauche à 17 images/s.
+
+Les liens `dtdr8x.html`, `a20zvc.html`, `br5br3.html`, `bbd7yv.html`, `32x6tn.html`, `s7ah3p.html`, `wi99au.html`, `r4jcgz.html` et `r00zh6.html` sont d’anciens builds.
+
+## Rig de personnage
+
+Un squelette commun (tête, cou, épaules, mains gauche et droite, dos, hanches, pieds) sert au mâle, à la femelle, au sylphe, au squelette et au spectre. Les pieds se posent au centre du cadre de 192 px. Le personnage debout mesure 96 px. Quatre directions isométriques et une vue de face. Les pièces déclarent une couche (corps, sous-couche, milieu, armure, extérieur, accessoires, arme) et se teintent par zone. La cape, le manteau, les cheveux longs, l’écharpe et la sacoche suivent le vent sur trois niveaux. L’ombre est une couche au sol.
+
+Les clips tournent entre 12 et 17 images/s, délai 0 : repos (10 images, 4 postures), marche 8, course 8, glisse 6, coup reçu 4, mort 12, familles d’armes, monture, invocation. Pas, volte et bond retombent au centre de la case dans les quatre directions. Le sort Poing (`poing_rig`) part d’un jab gauche ; chaque évolution choisie ajoute un pas (direct droit, repousse, puis foudre par exemple). Un seul élément reste actif. Ces sorts sont marqués `lab` et ne remplacent pas le kit de l’arène.
+
+Le contrôle `node scripts/sprite-check.js` passe sur chaque espèce, direction, clip et image : ancre, cadre, trous, prise de l’arme, boucles. Taille mesurée : 96 px. Les planches sont dans `docs/previews/sprites/`. Le créateur public, en 640×360, 667×375, 915×412 et 932×430, ne défile pas. Le dé change le personnage, le poing joue `jabL` à 17 images/s.
 
 ## Sorts
 

@@ -724,9 +724,20 @@
   }
   function editorCastSteps(sp){
     reloadCustomSpells();
+    const custom = customSpellById(sp.id);
+    if(custom && custom.chain === "append"){
+      const steps = [];
+      (custom.steps || []).forEach((s)=> steps.push(normalizeCastStep(s)));
+      const st = evoState(sp.id);
+      const picked = st && st.picks && st.picks.length ? st.picks : null;
+      const entries = picked
+        ? picked.map((p)=> editorEvoEntry(sp.id, p.tier, p.name)).filter(Boolean)
+        : Object.keys(custom.evoConfig || {}).sort().map((k)=> custom.evoConfig[k]).filter((e)=> e && e.enabled);
+      entries.forEach((ed)=> steps.push(stepFromEvoEntry(ed)));
+      if(steps.length) return steps;
+    }
     const chosen = chosenEvoStep(sp);
     if(chosen) return [chosen];
-    const custom = customSpellById(sp.id);
     /* Séquence de base de l'éditeur, tant qu'aucune évolution n'est choisie. */
     if(custom && Array.isArray(custom.steps) && custom.steps.length)
       return custom.steps.map(normalizeCastStep);

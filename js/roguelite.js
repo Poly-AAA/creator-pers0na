@@ -146,7 +146,7 @@ function specialSpells() {
 
 export function isHandmadeSpell(spell) {
   if (!spell || !spell.id) return false;
-  if (spell.generated) return false;
+  if (spell.generated || spell.lab) return false;
   const id = String(spell.id);
   if (id.startsWith("gen_") || id.startsWith("ov_")) return false;
   return true;
