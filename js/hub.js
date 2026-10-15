@@ -93,6 +93,25 @@ function nextRng() {
   return rng();
 }
 
+function waveBox() {
+  const plus = [[24, 16], [70, 28], [120, 12], [168, 26]];
+  const marks = plus.map(([x, y]) => "<path d='M" + (x - 3) + " " + y + "h6M" + x + " " + (y - 3) + "v6' fill='none' stroke='currentColor' stroke-width='1'/>").join("");
+  return "<svg class='wave' viewBox='0 0 200 40' aria-hidden='true'>"
+    + "<path d='M0 26C18 26 18 10 36 10s18 18 36 18 18-16 36-16 18 20 36 20 18-14 36-14 20 8 20 8' fill='none' stroke='currentColor' stroke-width='1.2'/>"
+    + "<path d='M0 32C22 32 22 18 44 18s22 16 44 16 22-18 44-18 22 14 44 14 24-6 24-6' fill='none' stroke='currentColor' stroke-width='1' opacity='.55'/>"
+    + marks + "</svg>";
+}
+function ruler() {
+  return "<div class='ruler' aria-hidden='true'><span>-50</span><span>0</span><span>+50</span></div>";
+}
+function framePanel(kicker, readout, body, wave) {
+  return "<section class=\"panel frame\">"
+    + "<div class=\"frame-head\"><span class=\"kicker ar\">" + kicker + "</span><span class=\"readout\">" + esc(readout) + "</span></div>"
+    + body
+    + (wave ? waveBox() : "")
+    + ruler()
+    + "</section>";
+}
 function bars(cur, max, n) {
   const cells = n || 12;
   const on = Math.round((cur / Math.max(1, max)) * cells);
@@ -109,7 +128,14 @@ function showLoad(_text, then) {
   title.textContent = "SYNC";
   badge.textContent = "·";
   setMode("load-screen");
-  screen.innerHTML = "<div class=\"load\"><div class=\"kicker ar\">التزامن</div><h1>MAGI</h1><div class=\"track\"><i></i></div></div>";
+  screen.innerHTML = "<div class=\"load frame\">"
+    + "<div class=\"boot ar\">فحص</div>"
+    + "<div class=\"boot ar\">سليم</div>"
+    + "<div class=\"boot ar\">التزامن</div>"
+    + "<div class=\"track\"><i></i></div>"
+    + ruler()
+    + waveBox()
+    + "</div>";
   setTimeout(then, 420);
 }
 
@@ -148,7 +174,8 @@ function renderHome(note) {
   setMode("cols home");
   screen.innerHTML = ""
     + banner(note)
-    + "<section class=\"panel\">"
+    + "<section class=\"panel frame\">"
+    + "<div class=\"frame-head\"><span class=\"kicker ar\">فحص</span><span class=\"readout\">" + String(h.level).padStart(2, "0") + "</span></div>"
     + "<div class=\"meters\">"
     + "<span class='pill tone-acc' aria-label='PV'>" + I.heart + "<b>" + h.pv + "/" + h.pvMax + "</b></span>"
     + "<span class='pill tone-acc' aria-label='PA'>" + I.bolt + "<b>" + eff.pa + "</b></span>"
@@ -159,10 +186,12 @@ function renderHome(note) {
     + "<span class='pill tone-acc'>" + I.trophy + "<b>" + gradeOf(h.styleBest) + "</b></span>"
     + "</div>"
     + bars(h.pv, h.pvMax, 16)
+    + ruler()
     + "<div class=\"statgrid\">"
-    + stat("heart", eff.vit) + stat("sword", eff.force) + stat("spark", eff.intel) + stat("dice", eff.chance)
+    + stat("heart", eff.vit, h.pv * 3 < h.pvMax) + stat("sword", eff.force) + stat("spark", eff.intel) + stat("dice", eff.chance)
     + stat("wind", eff.agi) + stat("eye", eff.sage) + stat("bolt", eff.ini)
     + "</div>"
+    + waveBox()
     + "<div class='pips'>" + spells + (next ? "<b>+" + next.amount + "</b>" + ico(STAT_ICO[next.stat] || "star") : "") + "</div>"
     + "</section>"
     + "<div class=\"actions icon-actions\">"
@@ -178,8 +207,8 @@ function renderHome(note) {
   document.getElementById("goFight").addEventListener("click", () => open("pre"));
 }
 
-function stat(icon, value) {
-  return "<div class=\"row\"><span class=\"ico\">" + I[icon] + "</span><b>" + value + "</b></div>";
+function stat(icon, value, bad) {
+  return "<div class=\"row mark" + (bad ? " bad" : " ok") + "\"><i></i><span class=\"ico\">" + I[icon] + "</span><b>" + value + "</b></div>";
 }
 
 function back() {
@@ -199,14 +228,17 @@ function renderInv() {
   const slots = SLOTS.map((slot) => {
     const it = h.equipped[slot];
     const n = it ? ((it.lines && it.lines[0] && it.lines[0].value) || it.level || 1) : "·";
-    return "<button class=\"slot" + (it ? "" : " tone-soft") + "\" data-unequip=\"" + slot + "\" type=\"button\" aria-label=\"" + esc(SLOT_LABEL[slot]) + "\">" + ico(SLOT_ICO[slot] || "bag") + "<b>" + n + "</b></button>";
+    return "<button class=\"slot mark " + (it ? "ok" : "bad") + (it ? "" : " tone-soft") + "\" data-unequip=\"" + slot + "\" type=\"button\" aria-label=\"" + esc(SLOT_LABEL[slot]) + "\">" + ico(SLOT_ICO[slot] || "bag") + "<b>" + n + "</b></button>";
   }).join("");
-  const bag = (h.inventory || []).map((it) => {
+  const bagItems = h.inventory || [];
+  const bag = bagItems.map((it) => {
     const line = (it.lines && it.lines[0]) || null;
     const n = line ? line.value : (it.level || 1);
-    return "<button class=\"slot\" data-equip=\"" + esc(it.id) + "\" type=\"button\" aria-label=\"" + esc(it.name) + "\">" + ico(SLOT_ICO[it.slot] || "bag") + "<b>" + n + "</b></button>";
+    return "<button class=\"slot mark ok\" data-equip=\"" + esc(it.id) + "\" type=\"button\" aria-label=\"" + esc(it.name) + "\">" + ico(SLOT_ICO[it.slot] || "bag") + "<b>" + n + "</b></button>";
   }).join("") || "<p class=\"muted\">" + ico("bag") + " 0</p>";
-  screen.innerHTML = "<div class=\"grid2 slots\">" + slots + "</div><div><div class=\"grid2 slots\">" + bag + "</div><div class=\"actions icon-actions\">" + back() + "</div></div>";
+  screen.innerHTML = framePanel("عتاد", String(SLOTS.length), "<div class=\"grid2 slots\">" + slots + "</div>")
+    + "<div>" + framePanel("كيس", String(bagItems.length), "<div class=\"grid2 slots\">" + bag + "</div>")
+    + "<div class=\"actions icon-actions\">" + back() + "</div></div>";
   document.getElementById("back").onclick = () => renderHome();
   screen.querySelectorAll("[data-unequip]").forEach((b) => b.addEventListener("click", () => {
     unequip(h, b.getAttribute("data-unequip")); save(); renderInv();
@@ -228,7 +260,7 @@ function renderHeal() {
     return "<button class='tier " + cls + "' type=\"button\" data-heal=\"" + id + "\" aria-label=\"" + n + "\"><b>" + drops + "</b><b>" + price + "</b></button>";
   }).join("");
   setMode("cols heal");
-  screen.innerHTML = "<section class=\"panel\"><h2>" + ico("heart") + " " + h.pv + "/" + h.pvMax + "</h2>" + bars(h.pv, h.pvMax, 16) + "<p class='pill tone-acc'>" + I.coin + "<b>" + h.gold + "</b></p></section><div class=\"actions\">" + cards + back() + "</div>";
+  screen.innerHTML = framePanel("شفاء", h.pv + "/" + h.pvMax, "<div class=\"row mark" + (h.pv * 3 < h.pvMax ? " bad" : " ok") + "\"><i></i>" + ico("heart") + "<b>" + h.pv + "/" + h.pvMax + "</b></div>" + bars(h.pv, h.pvMax, 16) + "<p class='pill tone-acc'>" + I.coin + "<b>" + h.gold + "</b></p>", true) + "<div class=\"actions\">" + cards + back() + "</div>";
   document.getElementById("back").onclick = () => renderHome();
   screen.querySelectorAll("[data-heal]").forEach((b) => b.addEventListener("click", () => {
     const res = applyHeal(h, b.getAttribute("data-heal"), nextRng());
@@ -261,7 +293,7 @@ function renderShop() {
     return "<button type=\"button\" data-buy=\"" + esc(o.id) + "\" aria-label=\"" + esc(o.name) + "\">" + ico(offerIcon(o)) + "<b>" + o.price + "</b></button>";
   }).join("");
   setMode("shop");
-  screen.innerHTML = "<p class='pill tone-acc'>" + I.coin + "<b>" + h.gold + "</b></p><div class=\"offer-grid\">" + offers + "</div><div class=\"actions icon-actions\"><button type=\"button\" id=\"buyFlee\" aria-label=\"Fiole de fuite\">" + ico("flask") + "<b>" + (flee == null ? "·" : flee) + "</b></button><button type=\"button\" id=\"reroll\" aria-label=\"Rafraîchir\">" + ico("refresh") + "</button>" + back() + "</div>";
+  screen.innerHTML = framePanel("سوق", String(h.gold), "<p class='pill tone-acc'>" + I.coin + "<b>" + h.gold + "</b></p><div class=\"offer-grid\">" + offers + "</div>") + "<div class=\"actions icon-actions\"><button type=\"button\" id=\"buyFlee\" aria-label=\"Fiole de fuite\">" + ico("flask") + "<b>" + (flee == null ? "·" : flee) + "</b></button><button type=\"button\" id=\"reroll\" aria-label=\"Rafraîchir\">" + ico("refresh") + "</button>" + back() + "</div>";
   document.getElementById("back").onclick = () => renderHome();
   document.getElementById("reroll").onclick = () => { refreshShop(state, nextRng()); save(); renderShop(); };
   document.getElementById("buyFlee").onclick = () => {
@@ -292,8 +324,8 @@ function renderCraft() {
   }).join("") || "<p class=\"muted\">" + ico("ingot") + " 0</p>";
   const slots = ["coiffe", "cape", "arme", "bottes", "ceinture", "bouclier", "amulette"].map((s) => "<button type=\"button\" data-slot=\"" + s + "\" aria-label=\"" + esc(SLOT_LABEL[s]) + "\">" + ico(SLOT_ICO[s]) + "</button>").join("");
   setMode("cols craft");
-  screen.innerHTML = "<div><p class='pill'>" + I.hammer + "<b>" + state.meta.craftLevel + "/50</b></p><div class=\"chips\" id=\"mats\">" + known + "</div></div>"
-    + "<div><div class=\"chips\" id=\"slots\">" + slots + "</div><div class=\"actions icon-actions\"><button class=\"primary\" type=\"button\" id=\"doCraft\" aria-label=\"Assembler\">" + ico("hammer") + "</button>" + back() + "</div></div>";
+  screen.innerHTML = framePanel("صنع", state.meta.craftLevel + "/50", "<p class='pill'>" + I.hammer + "<b>" + state.meta.craftLevel + "/50</b></p>" + bars(state.meta.craftLevel, 50, 12) + "<div class=\"chips\" id=\"mats\">" + known + "</div>")
+    + "<div>" + framePanel("قالب", "01", "<div class=\"icon-actions\" id=\"slots\">" + slots + "</div>") + "<div class=\"actions icon-actions\"><button class=\"primary\" type=\"button\" id=\"doCraft\" aria-label=\"Assembler\">" + ico("hammer") + "</button>" + back() + "</div></div>";
   const picked = new Set();
   let slot = "coiffe";
   document.getElementById("back").onclick = () => renderHome();
@@ -326,8 +358,7 @@ function renderForge() {
   const runeBtns = runes.map((s) => "<button type=\"button\" data-rune=\"" + s + "\" aria-label=\"" + esc(STAT_LABEL[s] || s) + "\">" + ico(STAT_ICO[s] || "spark") + "<b>" + h.runes[s] + "</b></button>").join("") || "<p class=\"muted\">" + ico("spark") + " 0</p>";
   const crushers = (h.inventory || []).map((it) => "<button type=\"button\" data-crush=\"" + esc(it.id) + "\" aria-label=\"" + esc(it.name) + "\">" + ico("ingot") + "</button>").join("");
   setMode("forge");
-  screen.innerHTML = "<p class='pill'>" + I.anvil + "<b>" + state.meta.forgeLevel + "/50</b></p>"
-    + "<div class=\"chips\" id=\"items\">" + itemBtns + "</div><div class=\"chips\" id=\"runes\">" + runeBtns + "</div>"
+  screen.innerHTML = framePanel("صهر", state.meta.forgeLevel + "/50", "<p class='pill'>" + I.anvil + "<b>" + state.meta.forgeLevel + "/50</b></p>" + bars(state.meta.forgeLevel, 50, 12) + "<div class=\"chips\" id=\"items\">" + itemBtns + "</div><div class=\"chips\" id=\"runes\">" + runeBtns + "</div>")
     + "<div class=\"actions icon-actions\"><button class=\"primary\" type=\"button\" id=\"doForge\" aria-label=\"Rune\">" + ico("spark") + "</button>" + crushers + back() + "</div>";
   let itemId = items[0] && items[0].id;
   let rune = runes[0] || null;
@@ -354,9 +385,9 @@ function renderForge() {
 function renderBoard() {
   title.textContent = "TOP";
   badge.textContent = String((state.meta.board || []).length);
-  const rows = (state.meta.board || []).map((e, i) => "<div class=\"row\"><span>" + (i + 1) + " " + esc(e.name) + "</span><b>" + e.level + " " + esc(e.grade || "") + "</b></div>").join("") || "<p class=\"muted\">" + ico("trophy") + " 0</p>";
+  const rows = (state.meta.board || []).map((e, i) => "<div class=\"row mark ok\"><i></i><span>" + (i + 1) + " " + esc(e.name) + "</span><b>" + e.level + " " + esc(e.grade || "") + "</b></div>").join("") || "<p class=\"muted\">" + ico("trophy") + " 0</p>";
   setMode("board");
-  screen.innerHTML = "<section class=\"panel\"><div class=\"kicker ar\">الحكمة</div>" + rows + "<p class='meters'><span class='pill'>" + I.hammer + "<b>" + state.meta.craftLevel + "</b></span><span class='pill'>" + I.anvil + "<b>" + state.meta.forgeLevel + "</b></span></p></section><div class=\"actions icon-actions\">" + back() + "</div>";
+  screen.innerHTML = framePanel("الحكمة", String((state.meta.board || []).length), rows + "<p class='meters'><span class='pill'>" + I.hammer + "<b>" + state.meta.craftLevel + "</b></span><span class='pill'>" + I.anvil + "<b>" + state.meta.forgeLevel + "</b></span></p>", true) + "<div class=\"actions icon-actions\">" + back() + "</div>";
   document.getElementById("back").onclick = () => renderHome();
 }
 
@@ -370,7 +401,7 @@ function renderPre() {
   }).join("");
   const comps = (state.hero.companions || []).length;
   setMode("cols pre");
-  screen.innerHTML = "<section class=\"panel\"><p class='pill'>" + I.people + "<b>" + comps + "</b></p></section>"
+  screen.innerHTML = framePanel("نزال", String(comps), "<p class='pill'>" + I.people + "<b>" + comps + "</b></p>", true)
     + "<div><div class=\"actions icon-actions\"><button class=\"primary\" type=\"button\" id=\"duel\" aria-label=\"Duel 1v1\">" + ico("person") + "<b>1</b></button><button type=\"button\" id=\"team\" aria-label=\"Équipe\">" + ico("people") + "</button>" + boxes + back() + "</div></div>";
   const picked = new Set();
   document.getElementById("back").onclick = () => renderHome();
@@ -425,7 +456,7 @@ function renderResult(settled) {
     badge.textContent = "0";
     const e = settled.entry || {};
     setMode("result");
-    screen.innerHTML = "<section class=\"panel\"><div class=\"kicker ar\">النور</div><h2>" + ico("skull") + " " + esc(e.name || "") + "</h2><p class='meters'><span class='pill'><b>" + (e.level || 1) + "</b></span><span class='pill tone-acc'><b>" + esc(e.grade || "") + "</b></span><span class='pill'><b>" + (e.fights || 0) + "</b></span></p></section><div class=\"actions icon-actions\"><button class=\"primary\" type=\"button\" id=\"cont\" aria-label=\"Continuer\">" + ico("go") + "</button></div>";
+    screen.innerHTML = framePanel("النور", String(e.level || 1), "<div class=\"row mark bad\"><i></i>" + ico("skull") + "<b>" + esc(e.name || "") + "</b></div><p class='meters'><span class='pill'><b>" + (e.level || 1) + "</b></span><span class='pill tone-acc'><b>" + esc(e.grade || "") + "</b></span><span class='pill'><b>" + (e.fights || 0) + "</b></span></p>", true) + "<div class=\"actions icon-actions\"><button class=\"primary\" type=\"button\" id=\"cont\" aria-label=\"Continuer\">" + ico("go") + "</button></div>";
     document.getElementById("cont").onclick = () => renderHome("Nouveau personnage : " + state.hero.name + ".");
     return;
   }
@@ -436,13 +467,13 @@ function renderResult(settled) {
   const comp = settled.companion;
   let extra = "";
   if (comp) {
-    extra = "<section class=\"panel\"><h2>" + esc(comp.companion.name) + "</h2><p class='pill'>" + I.person + "<b>" + comp.companion.level + " " + (comp.accepted ? "✓" : "×") + " " + comp.chance + "</b></p></section>";
+    extra = framePanel("رفيق", String(comp.companion.level), "<div class=\"row mark " + (comp.accepted ? "ok" : "bad") + "\"><i></i>" + ico("person") + "<b>" + comp.companion.level + " " + (comp.accepted ? "✓" : "×") + " " + comp.chance + "</b></div>");
     if (comp.accepted) recruit(state.hero, comp.companion);
   }
   title.textContent = settled.victory ? "✓" : "=";
   badge.textContent = settled.grade || gradeOf(settled.style || 0);
   setMode("result");
-  screen.innerHTML = "<section class=\"panel\"><h2>" + (settled.victory ? I.trophy : "=") + "</h2><p class='meters'><span class='pill'>" + I.star + "<b>+" + (settled.xp || 0) + "</b></span><span class='pill tone-acc'>" + I.coin + "<b>+" + (settled.gold || 0) + "</b></span>" + (settled.levels && settled.levels.length ? "<span class='pill'><b>" + state.hero.level + "</b></span>" : "") + "<span class='pill tone-acc'><b>" + esc(settled.grade || "") + "</b></span>" + (settled.drops && settled.drops.length ? "<span class='pill'>" + I.bag + "<b>" + settled.drops.length + "</b></span>" : "") + "</p></section>" + extra + "<div class=\"actions icon-actions\"><button class=\"primary\" type=\"button\" id=\"cont\" aria-label=\"Continuer\">" + ico("go") + "</button></div>";
+  screen.innerHTML = framePanel(settled.victory ? "نصر" : "تعادل", settled.grade || gradeOf(settled.style || 0), "<div class=\"row mark " + (settled.victory ? "ok" : "bad") + "\"><i></i>" + (settled.victory ? I.trophy : "=") + "</div><p class='meters'><span class='pill'>" + I.star + "<b>+" + (settled.xp || 0) + "</b></span><span class='pill tone-acc'>" + I.coin + "<b>+" + (settled.gold || 0) + "</b></span>" + (settled.levels && settled.levels.length ? "<span class='pill'><b>" + state.hero.level + "</b></span>" : "") + "<span class='pill tone-acc'><b>" + esc(settled.grade || "") + "</b></span>" + (settled.drops && settled.drops.length ? "<span class='pill'>" + I.bag + "<b>" + settled.drops.length + "</b></span>" : "") + "</p>", true) + extra + "<div class=\"actions icon-actions\"><button class=\"primary\" type=\"button\" id=\"cont\" aria-label=\"Continuer\">" + ico("go") + "</button></div>";
   save();
   document.getElementById("cont").onclick = () => renderHome();
 }

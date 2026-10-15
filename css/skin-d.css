@@ -185,3 +185,79 @@ body.skin-d button,body.skin-d a.tap{
 }
 body.skin-d .app{max-width:none}
 body.skin-d .link-cc{border:0;border-radius:0;font-size:12px}
+
+/* Écran : cadres, pastilles, échelle, lueur. Pas de flou. */
+:root{
+  --phosphor:rgba(234,112,32,.22);
+  --frame:#2F3133;
+}
+html.dark{
+  --phosphor:rgba(234,112,32,.8);
+  --frame:#EA7020;
+}
+.crt{
+  pointer-events:none;position:fixed;inset:0;z-index:70;
+  background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(47,49,51,.05) 3px 4px);
+  animation:crt-on .42s steps(2,end) 1;
+}
+html.dark .crt{
+  background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(0,0,0,.12) 3px 4px);
+  box-shadow:inset 0 0 40px rgba(234,112,32,.16);
+}
+@keyframes crt-on{0%{opacity:.15}45%{opacity:.7}100%{opacity:1}}
+.panel,.glass,.evo-card,.slot,.offer,.offer-grid button,.chips button,.tier,.icon-actions button{
+  position:relative;
+  border:1px solid var(--frame);
+  border-radius:3px;
+  box-shadow:0 0 0 1px rgba(234,112,32,.16);
+}
+html.dark .panel,html.dark .glass,html.dark .evo-card,html.dark .slot,html.dark .offer,
+html.dark .offer-grid button,html.dark .chips button,html.dark .tier,html.dark .icon-actions button{
+  box-shadow:0 0 6px var(--phosphor);
+}
+.panel::before,.evo-card::before{
+  content:"";position:absolute;inset:3px;border:1px solid var(--frame);border-radius:2px;opacity:.35;pointer-events:none;
+}
+.badge,.pill,.turn-pip,.clock,.readout,.link-cc{
+  border:1px solid var(--frame);border-radius:3px;
+  box-shadow:0 0 0 1px rgba(234,112,32,.12);
+}
+html.dark .badge,html.dark .pill,html.dark .turn-pip,html.dark .clock,html.dark .readout,html.dark .link-cc{
+  box-shadow:0 0 6px var(--phosphor);
+}
+html.dark body.skin-d h1,html.dark .kicker,html.dark .grade,html.dark .clock,html.dark .readout,html.dark .boot{
+  text-shadow:0 0 6px var(--phosphor);
+}
+body.skin-d h1,body.skin-d .kicker,body.skin-d .boot{text-shadow:0 0 1px rgba(234,112,32,.25)}
+.icon-actions button,.actions button.tier{border-radius:3px}
+.row.mark{gap:6px}
+.row.mark>i{
+  width:7px;height:7px;flex:none;background:var(--ok);
+  box-shadow:0 0 3px rgba(47,111,78,.45);
+}
+html.dark .row.mark>i{box-shadow:0 0 5px rgba(244,176,122,.8)}
+.row.mark.bad>i{background:var(--bad);box-shadow:0 0 4px rgba(138,48,48,.55)}
+.slot.mark::after,.chips button.on::after{
+  content:"";position:absolute;top:3px;left:3px;width:6px;height:6px;background:var(--ok);
+  box-shadow:0 0 3px rgba(47,111,78,.45);pointer-events:none;
+}
+.slot.mark.bad::after{background:var(--bad);box-shadow:0 0 4px rgba(138,48,48,.55)}
+html.dark .slot.mark::after,html.dark .chips button.on::after{box-shadow:0 0 4px rgba(244,176,122,.85)}
+.bar{height:8px;gap:3px;background:transparent}
+.bar i{border:1px solid var(--line)}
+.bar i.on{background:var(--acc);border-color:var(--acc);box-shadow:0 0 3px var(--phosphor)}
+.seg i.on{box-shadow:0 0 3px var(--phosphor)}
+.ruler{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  height:12px;font-size:9px;letter-spacing:0;color:var(--ink2);
+  background:repeating-linear-gradient(90deg,var(--ink2) 0 1px,transparent 1px 10px);
+  background-size:100% 4px;background-repeat:no-repeat;background-position:bottom;
+}
+.wave{display:block;width:100%;height:28px;color:var(--acc)}
+html.dark .wave{filter:none;color:#F4B07A}
+.boot{opacity:0;font-size:12px;letter-spacing:.08em;animation:bootline .16s linear forwards}
+.boot:nth-child(2){animation-delay:.1s}
+.boot:nth-child(3){animation-delay:.2s}
+@keyframes bootline{to{opacity:1}}
+.readout{font-family:"DotGothic16","Pixelify Sans",sans-serif;font-size:12px;padding:0 4px}
+.frame-head{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:2px}

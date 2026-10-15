@@ -17,6 +17,24 @@ describe("arène", () => {
     assert.match(css, /#FAF7F0|#faf7f0/i);
     assert.match(css, /#EA7020|#ea7020/i);
     assert.equal(/sephiroth|kether|malkuth|lilith/i.test(index + hub + css), false);
+    assert.equal(/\bNERV\b|EVA-01|SHINJI|\bMAGI\b|ENTRY PLUG/i.test(index + hub + css), false);
+    assert.match(index, /class="crt"/);
+    assert.match(hub, /فحص/);
+    assert.match(hub, /-50/);
+    assert.match(hub, /عتاد/);
+    assert.match(css, /crt-on/);
+    assert.match(css, /phosphor/);
+    const editor = readFileSync("spell-editor.html", "utf8");
+    const creator = readFileSync("character-creator-fantasy.html", "utf8");
+    const combat = readFileSync("fantasy-combat.html", "utf8");
+    const blob = index + hub + css + editor + creator + combat;
+    assert.equal(/\bNERV\b|EVA-01|SHINJI|\bMAGI\b|ENTRY PLUG|LIFE SUPPORT|PSYCHOGRAPHIC/i.test(blob), false);
+    assert.equal(/sephiroth|kether|malkuth|lilith/i.test(blob), false);
+    assert.match(editor, /class="crt"/);
+    assert.match(creator, /class="crt"/);
+    assert.match(combat, /class="crt"/);
+    assert.match(editor, /#EA7020/);
+    assert.match(creator, /#EA7020/);
   });
 
   it("le combat paysage garde la croix, la fuite et le pincement", () => {

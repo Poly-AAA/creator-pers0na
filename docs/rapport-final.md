@@ -1,5 +1,19 @@
 # Rapport final
 
+## Menus
+
+Jeu : [https://litter.catbox.moe/kmn101.html](https://litter.catbox.moe/kmn101.html)
+
+Éditeur : [https://litter.catbox.moe/b0vkm8.html](https://litter.catbox.moe/b0vkm8.html)
+
+Lecteur : [https://litter.catbox.moe/yhh1yu.html](https://litter.catbox.moe/yhh1yu.html)
+
+Déposés le 15 octobre 2026 à 06:00 UTC. Ils restent en ligne environ 72 heures, jusqu’au 18 octobre 2026 vers 06:00 UTC.
+
+Tous les menus (accueil, sac, soins, boutique, artisanat, forgemagie, classement, briefing, combat, éditeur, créateur, lecteur) reprennent les mêmes cadres : pastilles arrondies, liste avec une pastille saine ou abîmée, échelle de −50 à +50, barres en segments, graphique avec des croix, et un compteur. À l’ouverture, un court allumage et trois lignes arabes (فحص، سليم، التزامن). La lueur orange est forte sur l’anthracite, discrète sur le beige. Les lignes de balayage sont une seule trame, sans flou, pour rester légères sur téléphone.
+
+La palette reste orange, beige, blanc cassé et gris anthracite. Pas de logo, pas de texte copié, pas de symbole religieux. Les boutons du jeu restent des icônes. Vérifié en paysage sur 640×360, 667×375, 915×412 et 932×430, en clair et en sombre : un seul bloc, rien ne défile. Pas de simulation.
+
 ## Réactions
 
 Jeu : [https://litter.catbox.moe/5u9ipz.html](https://litter.catbox.moe/5u9ipz.html)
