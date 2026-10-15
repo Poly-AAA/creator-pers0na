@@ -22,7 +22,7 @@ function jsEmbed(value) {
   return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
-const back = `<button type="button" id="phoneBack" style="position:fixed;top:8px;left:8px;z-index:80;border:0;background:#EA7020;color:#fff;font:700 14px sans-serif;padding:8px 12px">Arène</button>
+const back = `<button type="button" id="phoneBack" aria-label="Arène" style="position:fixed;top:6px;left:6px;z-index:80;width:40px;height:40px;border:0;background:#EA7020;color:#fff;padding:0;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M2 7.2L8 2l6 5.2V14H10v-4H6v4H2V7.2z"/></svg></button>
 <script>document.getElementById("phoneBack").onclick=function(){parent.postMessage({type:"roguelite-home"},"*");};</script>`;
 
 combat = combat.replace(

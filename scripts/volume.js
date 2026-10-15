@@ -151,6 +151,17 @@ function mutate(p, rng) {
 log("self-play, génération " + GEN_SIZE);
 const tAi = Date.now();
 let champion = { healAt: 0.62, kite: true, focus: "nearest" };
+try {
+  const prev = JSON.parse(readFileSync("data/ai-policy.json", "utf8"));
+  if (prev.play && prev.play.healAt != null) {
+    champion = {
+      healAt: +prev.play.healAt,
+      kite: prev.play.kite !== false,
+      focus: prev.play.focus || "nearest",
+    };
+  }
+} catch (_e) {}
+log("départ soin " + champion.healAt + " kite " + champion.kite + " cible " + champion.focus);
 const history = [];
 let aiFights = 0;
 let stall = 0;
@@ -159,6 +170,7 @@ const rng = mulberry32(20261014);
 const mirror = generation(champion, champion, 11);
 aiFights += mirror.fights;
 let bestRate = mirror.rate;
+let retainedRate = null;
 history.push({ gen, kind: "miroir", policy: Object.assign({}, champion), rate: mirror.rate, by: mirror.by, fights: mirror.fights, accepted: false });
 log("miroir " + (100 * mirror.rate).toFixed(2) + "% en " + mirror.fights + " combats");
 gen = 1;
@@ -170,6 +182,7 @@ while (aiFights < MAX_FIGHTS && !(stall >= STALL_LIMIT && aiFights >= MIN_FIGHTS
   if (improved) {
     champion = challenger;
     bestRate = g.rate;
+    retainedRate = g.rate;
     stall = 0;
   } else stall++;
   history.push({ gen, kind: "mutant", policy: challenger, rate: g.rate, by: g.by, fights: g.fights, accepted: improved, stall });
@@ -249,7 +262,7 @@ for (const r of runs) {
 }
 let xp40 = 0;
 for (let l = 40; l < 50; l++) xp40 += xpNeed(l);
-const reward40 = Math.round((BALANCE.xpFlat + 40 * BALANCE.xpPerLevel) * 1.8);
+const reward40 = Math.round((BALANCE.xpFlat + 40 * BALANCE.xpPerLevel) * 5);
 
 const lines = [];
 lines.push("# Rapport de parties");
@@ -279,7 +292,7 @@ Object.keys(bins).forEach((k) => lines.push("- " + k + " : " + bins[k] + " (" + 
 lines.push("");
 lines.push("## Bande 40-50");
 lines.push("");
-lines.push("Sonde de " + lateProbe.n + " duels par case, lancée dans le même passage. Le personnage est mis au niveau indiqué. Nu : aucun objet. Milieu : quelques achats en boutique. Complet : quarante passages boutique puis le meilleur objet par emplacement. L’adversaire est celui d’une rencontre 1v1 à ce niveau (six pièces à partir de 40, qualité 1,74 puis 1,96 et 2,02). L’avantage du meneur retombe à 0,24 à partir du niveau 40.");
+lines.push("Sonde de " + lateProbe.n + " duels par case, lancée dans le même passage. Le personnage est mis au niveau indiqué. Nu : aucun objet. Milieu : deux passages boutique. Complet : quarante passages boutique puis le meilleur objet par emplacement. L’adversaire est une rencontre 1v1 du niveau (qualité 1,84 dès 40, 1,90 dès 45, 2,05 dès 48). L’avantage du meneur vaut 0,32 au niveau 40, 0,24 au niveau 44 et 0,18 au niveau 48.");
 lines.push("");
 lines.push("| Niveau | Nu | Milieu | Complet |");
 lines.push("| --- | --- | --- | --- |");
@@ -287,7 +300,7 @@ lateProbe.rows.forEach((row) => {
   lines.push("| " + row.level + " | " + row.nude + " | " + row.mid + " | " + row.full + " |");
 });
 lines.push("");
-lines.push("XP des niveaux 40 à 49 : " + xp40 + ". Récompense d’un duel au niveau 40 (×1,8) : environ " + reward40 + ". Combats théoriques si chaque combat est gagné : " + Math.ceil(xp40 / reward40) + ".");
+lines.push("XP des niveaux 40 à 49 : " + xp40 + ". Récompense d’un duel au niveau 40 (×5 dès le niveau 36) : environ " + reward40 + ". Combats théoriques si chaque combat est gagné : " + Math.ceil(xp40 / reward40) + ".");
 lines.push("");
 lines.push("Constantes : érosion " + BALANCE.erosion + ", fuite " + BALANCE.fleeShare + ", drop " + BALANCE.dropRate + ", dégâts ×" + BALANCE.dmgFactor + ", avantage joueur ×" + BALANCE.playerSkill + ", garde ×" + BALANCE.playerGuard + ".");
 lines.push("");
@@ -335,7 +348,17 @@ history.forEach((h) => {
   vol.push("- Génération " + h.gen + " (" + h.kind + ") — " + (100 * h.rate).toFixed(2) + " % sur " + h.fights + " combats" + (h.accepted ? " · retenue" : "") + ". " + bits);
 });
 vol.push("");
-vol.push("Le fichier `data/ai-policy.json` du combat libre n’est pas remplacé : il sert encore à pondérer les sorts. Cette politique de self-play est celle du simulateur (`_policy` sur l’unité).");
+const policy = JSON.parse(readFileSync("data/ai-policy.json", "utf8"));
+const keptRate = policy.trainedWinRate;
+policy.play = {
+  healAt: champion.healAt,
+  kite: champion.kite,
+  focus: champion.focus,
+  source: "self-play " + aiFights + (retainedRate == null ? ", politique de départ conservée" : ", génération retenue à " + (100 * retainedRate).toFixed(2) + " %"),
+};
+if (policy.trainedWinRate !== keptRate) throw new Error("trainedWinRate a bougé");
+writeFileSync("data/ai-policy.json", JSON.stringify(policy, null, 2) + "\n");
+vol.push("Le bloc `play` de `data/ai-policy.json` reprend cette politique (soin, kiting, cible). Les poids de sorts et `trainedWinRate` (" + keptRate + ") restent ceux du fichier. Le combat à l’écran lit `play` pour le repli, le kiting et la cible.");
 vol.push("");
 vol.push("## Parties");
 vol.push("");

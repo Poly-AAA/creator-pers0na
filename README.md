@@ -8,7 +8,7 @@ Ouvre l’accueil, ou lance :
 npm start
 ```
 
-Puis va sur http://localhost:8765/ . Le combat est prévu en paysage, du petit téléphone (640×360) au grand (932×430). En portrait, l’écran demande de tourner le téléphone.
+Puis va sur http://localhost:8765/ . Le combat est prévu en paysage, du petit téléphone (640×360) au grand (932×430). La carte occupe tout l’écran, les modules flottent par-dessus. En portrait, une icône demande de tourner le téléphone.
 
 La page unique pour un téléphone, sans serveur, se construit avec `npm run phone` (`/tmp/arene-phone.html`). Le lien public du moment est dans `docs/previews/live-links.json`.
 
@@ -39,4 +39,4 @@ Les rapports chiffrés sont dans `docs/`.
 
 ## Habillage
 
-Variante D, fond sable `#FAF7F0`, encre `#2F3133`, orange `#EA7020`. Pas de symbole religieux. Les mots arabes affichés sont des indications de synchro, de lumière et de sagesse.
+Variante D, fond sable `#FAF7F0`, encre `#2F3133`, orange `#EA7020`. Le mode sombre reprend la même famille : anthracite `#141618` `#23272C` `#2C3036` `#3E444C`, beige `#C9BBA8` `#F6F1E8`, blanc et orange. La bascule est une icône. Les menus tiennent en un écran, sans défilement, et se lisent par icônes, nombres et couleurs. Pas de symbole religieux. Les mots arabes affichés sont des indications de synchro, de lumière et de sagesse.

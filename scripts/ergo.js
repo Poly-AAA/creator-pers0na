@@ -54,7 +54,15 @@ function encounterOf(size) {
 async function controlReport(page) {
   return page.evaluate(() => {
     const view = { w: window.innerWidth, h: window.innerHeight };
-    const overflow = document.documentElement.scrollWidth > view.w + 1;
+    const overflow = document.documentElement.scrollWidth > view.w + 2 || document.body.scrollWidth > view.w + 2;
+    const vscroll = document.documentElement.scrollHeight > view.h + 2 || document.body.scrollHeight > view.h + 2;
+    const hosts = [...document.querySelectorAll(".app-hub, .screen, .app, .float-hud, .dock")];
+    const clipped = [];
+    for (const el of hosts) {
+      if (el.scrollHeight > el.clientHeight + 2 || el.scrollWidth > el.clientWidth + 2) {
+        clipped.push(String(el.id || el.className || "bloc").slice(0, 48));
+      }
+    }
     const nodes = [...document.querySelectorAll("button, a.link-cc, #dpad button")];
     const boxes = [];
     const outside = [];
@@ -88,7 +96,7 @@ async function controlReport(page) {
         hits.push(boxes[i].t + " ∩ " + boxes[j].t);
       }
     }
-    return { overflow, outside, tiny, hits, n: boxes.length };
+    return { overflow, vscroll, clipped, outside, tiny, hits, n: boxes.length };
   });
 }
 
@@ -101,6 +109,8 @@ const issues = [];
 function note(phone, where, report) {
   const bits = [];
   if (report.overflow) bits.push("défilement horizontal");
+  if (report.vscroll) bits.push("défilement vertical");
+  if (report.clipped && report.clipped.length) bits.push("contenu coupé : " + report.clipped.join(", "));
   if (report.outside.length) bits.push("hors écran : " + report.outside.join(", "));
   if (report.tiny.length) bits.push("texte < 11px : " + report.tiny.join(", "));
   if (report.hits.length) bits.push("chevauchement : " + report.hits.slice(0, 6).join(" ; "));
@@ -124,6 +134,24 @@ try {
     await page.waitForSelector("#goFight");
     await shot(page, "docs/previews/phones/" + phone.id + "/accueil.png");
     note(phone.id, "accueil", await controlReport(page));
+    const words = await page.evaluate(() => {
+      const bad = [];
+      document.querySelectorAll("button, a").forEach((el) => {
+        const s = getComputedStyle(el);
+        if (s.display === "none" || s.visibility === "hidden") return;
+        const t = (el.innerText || "").replace(/\s+/g, " ").trim();
+        if (/[A-Za-zÀ-ÿ]{4,}/.test(t)) bad.push(t.slice(0, 32));
+      });
+      return bad;
+    });
+    if (words.length) issues.push(phone.id + " · accueil — texte : " + words.join(", "));
+    if (phone.id === "android-small") {
+      await page.click("#themeBtn");
+      const dark = await page.evaluate(() => document.documentElement.classList.contains("dark"));
+      if (!dark) issues.push(phone.id + " · thème sombre inactif");
+      await shot(page, "docs/previews/phones/" + phone.id + "/accueil-dark.png");
+      await page.click("#themeBtn");
+    }
 
     for (const go of ["inv", "heal", "shop", "craft", "forge", "board"]) {
       await page.click('[data-go="' + go + '"]');
@@ -169,8 +197,33 @@ try {
     });
     if (sample.ink < 80) issues.push(phone.id + " · 10v10 — sprites trop peu visibles (" + sample.ink + ")");
     if (sample.sig === sample2) issues.push(phone.id + " · 10v10 — image figée, pas d’animation");
+    const map = await page.evaluate(() => {
+      const c = document.getElementById("arena").getBoundingClientRect();
+      const box = (sel) => {
+        const r = document.querySelector(sel).getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      };
+      const glass = getComputedStyle(document.querySelector(".vitals")).backgroundColor;
+      return {
+        w: c.width, h: c.height, vw: innerWidth, vh: innerHeight, glass,
+        u: box("#dpad .u"), r: box("#dpad .r"), d: box("#dpad .d"), l: box("#dpad .l"), c: box("#dpad .c"),
+      };
+    });
+    if (map.w < map.vw - 2 || map.h < map.vh - 2) issues.push(phone.id + " · carte pas plein écran " + Math.round(map.w) + "×" + Math.round(map.h));
+    if (!(map.u.x > map.c.x && map.u.y < map.c.y)) issues.push(phone.id + " · croix : nord-est mal placé");
+    if (!(map.r.x > map.c.x && map.r.y > map.c.y)) issues.push(phone.id + " · croix : sud-est mal placé");
+    if (!(map.d.x < map.c.x && map.d.y > map.c.y)) issues.push(phone.id + " · croix : sud-ouest mal placé");
+    if (!(map.l.x < map.c.x && map.l.y < map.c.y)) issues.push(phone.id + " · croix : nord-ouest mal placé");
+    if (!/rgba\([^)]+,\s*0\.[0-9]/.test(map.glass) && !/rgba\([^)]+,\s*\.0*[1-9]/.test(map.glass)) {
+      issues.push(phone.id + " · fond HUD opaque " + map.glass);
+    }
     await shot(page, "docs/previews/phones/" + phone.id + "/combat-10v10.png");
     note(phone.id, "combat-10v10", await controlReport(page));
+    if (phone.id === "android-small") {
+      await page.click("#themeBtn");
+      await shot(page, "docs/previews/phones/" + phone.id + "/combat-dark.png");
+      await page.click("#themeBtn");
+    }
 
     const beforePinch = sample2;
     await page.evaluate(() => {
@@ -235,7 +288,7 @@ try {
   lines.push("");
   lines.push("Écrans du hub sur chaque téléphone : accueil, inventaire, soins, boutique, artisanat, forgemagie, classement, avant-combat. Combat 10v10 sur les quatre. Combats 2v2 et 5v5 en plus sur l’Android grand. Un cliché par sort du grimoire (" + spellsShot + " fichiers dans `docs/previews/sorts/`).");
   lines.push("");
-  lines.push("Contrôles : pas de défilement horizontal, boutons dans l’écran, texte d’au moins 11 px, pas de chevauchement. En 10v10, chaque combattant hors joueur a au moins quatre calques (ombre, corps, pièce, tête), les deux camps sont au complet, l’image bouge entre deux images, et un pincement change le cadre.");
+  lines.push("Contrôles : pas de défilement horizontal ni vertical, blocs qui tiennent dans l’écran, boutons dans l’écran, texte d’au moins 11 px, pas de chevauchement. La carte de combat couvre l’écran, les modules flottent, la croix est en losange isométrique. En 10v10, chaque combattant hors joueur a au moins quatre calques (ombre, corps, pièce, tête), les deux camps sont au complet, l’image bouge entre deux images, et un pincement change le cadre.");
   lines.push("");
   if (!issues.length) {
     lines.push("Aucun écart relevé.");

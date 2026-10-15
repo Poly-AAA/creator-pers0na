@@ -3657,7 +3657,7 @@
     "range": 4,
     "dmg": [
       8,
-      10
+      12
     ],
     "anim": "Attack1",
     "type": "damage",
@@ -4997,7 +4997,7 @@
     "range": 2,
     "dmg": [
       6,
-      8
+      7
     ],
     "anim": "Attack1",
     "type": "damage",

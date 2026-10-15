@@ -130,10 +130,10 @@
     }
   ],
   "play": {
-    "healAt": 0.684,
+    "healAt": 0.748,
     "kite": true,
     "focus": "nearest",
-    "source": "self-play 1500000, génération 2 retenue à 88,06 %"
+    "source": "self-play 1500000, génération retenue à 67.68 %"
   },
   "trainedWinRate": 0.644,
   "baselineWinRate": 0.5,
