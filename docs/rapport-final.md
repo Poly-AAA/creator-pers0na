@@ -2,7 +2,9 @@
 
 ## Sur le téléphone
 
-Le lien public est dans `docs/previews/live-links.json`. La page unique (accueil, combat, créateur, éditeur) est en paysage, HTTPS, avec les sprites jsDelivr au commit `f2e5a50`. Litterbox garde le fichier environ 72 heures.
+[https://litter.catbox.moe/s7ah3p.html](https://litter.catbox.moe/s7ah3p.html)
+
+Page unique (accueil, combat, créateur, éditeur), en paysage, HTTPS. Déposée le 15 octobre 2026 à 03:24 UTC, elle reste en ligne environ 72 heures, jusqu’au 18 octobre 2026 à 03:24 UTC. Les sprites sont servis par jsDelivr au commit `f2e5a50`. Un contrôle Playwright en 932×430 ouvre l’accueil (Lin-69), lance un duel, affiche la croix (5 touches) et le bouton de fin de tour, sans erreur de page.
 
 ## Combat
 
