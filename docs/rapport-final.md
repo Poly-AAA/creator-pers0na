@@ -2,11 +2,15 @@
 
 ## Sur le téléphone
 
-[https://litter.catbox.moe/bbd7yv.html](https://litter.catbox.moe/bbd7yv.html)
+Jeu : [https://litter.catbox.moe/a20zvc.html](https://litter.catbox.moe/a20zvc.html)
 
-Page unique (accueil, combat, créateur, éditeur), en paysage, HTTPS. Déposée le 15 octobre 2026 à 03:57 UTC, elle reste en ligne environ 72 heures, jusqu’au 18 octobre 2026 à 03:57 UTC. Les sprites sont servis par jsDelivr au commit `f2e5a50`. Un contrôle Playwright en 932×430 ouvre l’accueil (Ocre-53), lance un duel contre Sable-21, dont les sorts affichés sont Coup brut, Roulade et Coup de pied. La croix a 5 touches, le bouton de fin de tour est là, sans erreur de page.
+Éditeur de sorts : [https://litter.catbox.moe/br5br3.html](https://litter.catbox.moe/br5br3.html)
 
-Les liens `32x6tn.html`, `s7ah3p.html`, `wi99au.html`, `r4jcgz.html` et `r00zh6.html` sont d’anciens builds.
+Les deux pages sont en HTTPS, en paysage. Déposées le 15 octobre 2026 à 04:03 UTC, elles restent en ligne environ 72 heures, jusqu’au 18 octobre 2026 à 04:03 UTC. Les sprites sont servis par jsDelivr au commit `f2e5a50`. Le jeu est une page unique (accueil, combat, créateur, et l’éditeur intégré). L’éditeur a aussi son lien direct, avec les trois sorts et leurs évolutions.
+
+Un contrôle Playwright en 932×430 ouvre l’accueil (Quartz-23), lance un duel contre Nacre-62, dont les sorts affichés sont Coup brut, Roulade et Coup de pied. La croix a 5 touches, le bouton de fin de tour est là, sans erreur de page. Sur l’éditeur public, les six évolutions de Coup brut sont là : Brise-Os (Attack2, 12 images/s, cochée), Boxeur (Attack6, 17, cochée), Rapide (Kick, 14, décochée), Uppercut (Special1 + Effect1, 17, cochée), Percutant (Attack6, 14, cochée), Double Impact (Attack5 + Slash2, 17, décochée). L’état affiche « Prêt », sans erreur.
+
+Les liens `bbd7yv.html`, `32x6tn.html`, `s7ah3p.html`, `wi99au.html`, `r4jcgz.html` et `r00zh6.html` sont d’anciens builds.
 
 ## Sorts
 
