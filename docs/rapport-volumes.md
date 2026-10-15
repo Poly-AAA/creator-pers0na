@@ -1,6 +1,6 @@
 # Rapport des volumes
 
-Chiffres mesurés par `scripts/volume.js`. Les dégâts ajustés pendant l’équilibrage ne sont pas réécrits dans `data/generated-spells.json`.
+Les cinq passes et le self-play ci-dessous sont la mesure du cahier, avant réécriture du fichier. Le grimoire versionné a ensuite été recalculé : voir `docs/rapport-grimoire.md`. La courbe de parties actuelle est dans `docs/rapport-parties.md`.
 
 ## Équilibrage
 
@@ -69,8 +69,8 @@ Formats par génération : 1v1 100000, 2v2 50000, 3v3 40000, 5v5 35000, 10v10 25
 - Génération 4 (mutant) — 54.76 % sur 250000 combats. 1v1 53.9%, 2v2 56.8%, 3v3 53.8%, 5v5 52.2%, 10v10 59.4%
 - Génération 5 (mutant) — 27.02 % sur 250000 combats. 1v1 59.7%, 2v2 15.7%, 3v3 0.0%, 5v5 0.0%, 10v10 0.0%
 
-Le fichier `data/ai-policy.json` du combat libre n’est pas remplacé : il sert encore à pondérer les sorts. Cette politique de self-play est celle du simulateur (`_policy` sur l’unité).
+Les poids de sorts de `data/ai-policy.json` sont inchangés (`trainedWinRate` 0,644). Le bloc `play` reprend la génération retenue : soin sous 68,4 % de PV, kiting, cible la plus proche. Le combat à l’écran l’utilise pour le repli, le kiting et la cible.
 
 ## Parties
 
-10000 parties en 103478 ms. Arrivées au niveau 50 : 60 (0.6 %). Détail dans `docs/rapport-parties.md`.
+Mesure précédente, avant réécriture du grimoire : 10000 parties en 103478 ms, 60 arrivées au niveau 50 (0,6 %). La mesure actuelle, 2500 parties, est dans `docs/rapport-parties.md`.

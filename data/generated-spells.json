@@ -5,8 +5,8 @@
     "cost": 2,
     "range": 1,
     "dmg": [
-      11,
-      14
+      5,
+      6
     ],
     "anim": "Attack1",
     "type": "damage",
@@ -107,8 +107,8 @@
     "cost": 3,
     "range": 2,
     "dmg": [
-      10,
-      13
+      8,
+      10
     ],
     "anim": "Attack3",
     "type": "damage",
@@ -209,8 +209,8 @@
     "cost": 3,
     "range": 1,
     "dmg": [
-      18,
-      24
+      8,
+      11
     ],
     "anim": "Kick",
     "type": "damage",
@@ -321,8 +321,8 @@
     "cost": 3,
     "range": 4,
     "dmg": [
-      6,
-      9
+      8,
+      11
     ],
     "anim": "Attack1",
     "type": "damage",
@@ -411,10 +411,10 @@
     "id": "gen_005",
     "name": "Dard rapide",
     "cost": 4,
-    "range": 5,
+    "range": 1,
     "dmg": [
-      15,
-      20
+      11,
+      15
     ],
     "anim": "Attack5",
     "type": "damage",
@@ -512,10 +512,10 @@
     "id": "gen_006",
     "name": "Salve funeste",
     "cost": 3,
-    "range": 3,
+    "range": 2,
     "dmg": [
-      10,
-      13
+      8,
+      10
     ],
     "anim": "AttackRun",
     "type": "damage",
@@ -613,10 +613,10 @@
     "id": "gen_007",
     "name": "Brasier lunaire",
     "cost": 4,
-    "range": 3,
+    "range": 1,
     "dmg": [
-      13,
-      17
+      10,
+      13
     ],
     "anim": "Attack5",
     "type": "damage",
@@ -726,8 +726,8 @@
     "cost": 4,
     "range": 4,
     "dmg": [
-      13,
-      19
+      16,
+      24
     ],
     "anim": "Special1",
     "type": "damage",
@@ -825,10 +825,10 @@
     "id": "gen_009",
     "name": "Maléfice sombre",
     "cost": 4,
-    "range": 4,
+    "range": 1,
     "dmg": [
-      15,
-      21
+      9,
+      13
     ],
     "anim": "Attack3",
     "type": "damage",
@@ -937,10 +937,10 @@
     "id": "gen_010",
     "name": "Emprise magique",
     "cost": 5,
-    "range": 2,
+    "range": 1,
     "dmg": [
-      20,
-      31
+      12,
+      19
     ],
     "anim": "AttackRun2",
     "type": "damage",
@@ -1140,8 +1140,8 @@
     "cost": 3,
     "range": 5,
     "dmg": [
-      9,
-      13
+      8,
+      12
     ],
     "anim": "Slide",
     "type": "damage",
@@ -1657,8 +1657,8 @@
     "cost": 2,
     "range": 1,
     "dmg": [
-      11,
-      14
+      5,
+      6
     ],
     "anim": "Attack1",
     "type": "damage",
@@ -1768,8 +1768,8 @@
     "cost": 3,
     "range": 2,
     "dmg": [
-      13,
-      20
+      8,
+      12
     ],
     "anim": "Attack3",
     "type": "damage",
@@ -1880,8 +1880,8 @@
     "cost": 3,
     "range": 2,
     "dmg": [
-      12,
-      19
+      7,
+      11
     ],
     "anim": "Kick",
     "type": "damage",
@@ -1993,7 +1993,7 @@
     "range": 4,
     "dmg": [
       8,
-      11
+      12
     ],
     "anim": "Attack1",
     "type": "damage",
@@ -2085,7 +2085,7 @@
     "range": 5,
     "dmg": [
       8,
-      11
+      12
     ],
     "anim": "Attack5",
     "type": "damage",
@@ -2193,10 +2193,10 @@
     "id": "gen_022",
     "name": "Rayon solaire",
     "cost": 4,
-    "range": 3,
+    "range": 1,
     "dmg": [
-      16,
-      21
+      10,
+      13
     ],
     "anim": "AttackRun",
     "type": "damage",
@@ -2295,10 +2295,10 @@
     "id": "gen_023",
     "name": "Tempête funeste",
     "cost": 4,
-    "range": 3,
+    "range": 1,
     "dmg": [
-      16,
-      20
+      10,
+      12
     ],
     "anim": "Attack5",
     "type": "damage",
@@ -2406,10 +2406,10 @@
     "id": "gen_024",
     "name": "Fournaise funeste",
     "cost": 4,
-    "range": 4,
+    "range": 1,
     "dmg": [
-      17,
-      24
+      10,
+      14
     ],
     "anim": "Special1",
     "type": "damage",
@@ -2500,8 +2500,8 @@
     "cost": 3,
     "range": 4,
     "dmg": [
-      8,
-      13
+      7,
+      12
     ],
     "anim": "Attack3",
     "type": "damage",
@@ -2600,10 +2600,10 @@
     "id": "gen_026",
     "name": "Poussée fragile",
     "cost": 4,
-    "range": 2,
+    "range": 1,
     "dmg": [
-      12,
-      17
+      11,
+      15
     ],
     "anim": "AttackRun2",
     "type": "damage",
@@ -2797,7 +2797,7 @@
     "range": 5,
     "dmg": [
       8,
-      11
+      12
     ],
     "anim": "Slide",
     "type": "damage",
@@ -3433,8 +3433,8 @@
     "cost": 4,
     "range": 1,
     "dmg": [
-      21,
-      28
+      9,
+      13
     ],
     "anim": "Attack3",
     "type": "damage",
@@ -3545,8 +3545,8 @@
     "cost": 3,
     "range": 1,
     "dmg": [
-      18,
-      24
+      8,
+      11
     ],
     "anim": "Kick",
     "type": "damage",
@@ -3656,8 +3656,8 @@
     "cost": 3,
     "range": 4,
     "dmg": [
-      9,
-      11
+      8,
+      10
     ],
     "anim": "Attack1",
     "type": "damage",
@@ -3756,10 +3756,10 @@
     "id": "gen_037",
     "name": "Trait fragile",
     "cost": 4,
-    "range": 5,
+    "range": 1,
     "dmg": [
-      15,
-      20
+      11,
+      15
     ],
     "anim": "Attack5",
     "type": "damage",
@@ -3860,8 +3860,8 @@
     "cost": 3,
     "range": 3,
     "dmg": [
-      8,
-      12
+      7,
+      11
     ],
     "anim": "AttackRun",
     "type": "damage",
@@ -3972,8 +3972,8 @@
     "cost": 3,
     "range": 3,
     "dmg": [
-      11,
-      14
+      8,
+      11
     ],
     "anim": "Attack5",
     "type": "damage",
@@ -4074,8 +4074,8 @@
     "cost": 4,
     "range": 4,
     "dmg": [
-      17,
-      21
+      18,
+      22
     ],
     "anim": "Special1",
     "type": "damage",
@@ -4174,10 +4174,10 @@
     "id": "gen_041",
     "name": "Répulsion rouge",
     "cost": 4,
-    "range": 4,
+    "range": 1,
     "dmg": [
-      17,
-      24
+      10,
+      14
     ],
     "anim": "Attack3",
     "type": "damage",
@@ -4278,8 +4278,8 @@
     "cost": 4,
     "range": 4,
     "dmg": [
-      13,
-      19
+      16,
+      24
     ],
     "anim": "AttackRun2",
     "type": "damage",
@@ -4472,8 +4472,8 @@
     "cost": 2,
     "range": 3,
     "dmg": [
-      7,
-      10
+      5,
+      8
     ],
     "anim": "Slide",
     "type": "damage",
@@ -4996,8 +4996,8 @@
     "cost": 2,
     "range": 2,
     "dmg": [
-      8,
-      10
+      6,
+      8
     ],
     "anim": "Attack1",
     "type": "damage",
@@ -5099,7 +5099,7 @@
     "range": 2,
     "dmg": [
       8,
-      11
+      12
     ],
     "anim": "Attack3",
     "type": "damage",
@@ -5199,8 +5199,8 @@
     "cost": 3,
     "range": 1,
     "dmg": [
-      18,
-      24
+      8,
+      11
     ],
     "anim": "Kick",
     "type": "damage",
@@ -5311,8 +5311,8 @@
     "cost": 3,
     "range": 4,
     "dmg": [
-      9,
-      11
+      8,
+      10
     ],
     "anim": "Attack1",
     "type": "damage",
@@ -5403,8 +5403,8 @@
     "cost": 5,
     "range": 5,
     "dmg": [
-      15,
-      21
+      14,
+      19
     ],
     "anim": "Attack5",
     "type": "damage",
@@ -5502,10 +5502,10 @@
     "id": "gen_054",
     "name": "Salve rouge",
     "cost": 3,
-    "range": 3,
+    "range": 1,
     "dmg": [
-      10,
-      13
+      8,
+      10
     ],
     "anim": "AttackRun",
     "type": "damage",
@@ -5603,10 +5603,10 @@
     "id": "gen_055",
     "name": "Brasier runique",
     "cost": 4,
-    "range": 3,
+    "range": 1,
     "dmg": [
-      17,
-      22
+      10,
+      13
     ],
     "anim": "Attack5",
     "type": "damage",
@@ -5706,8 +5706,8 @@
     "cost": 6,
     "range": 4,
     "dmg": [
-      18,
-      25
+      16,
+      23
     ],
     "anim": "Special1",
     "type": "damage",
@@ -5798,8 +5798,8 @@
     "cost": 3,
     "range": 4,
     "dmg": [
-      8,
-      12
+      7,
+      11
     ],
     "anim": "Attack3",
     "type": "damage",
@@ -5908,10 +5908,10 @@
     "id": "gen_058",
     "name": "Emprise rapide",
     "cost": 4,
-    "range": 4,
+    "range": 1,
     "dmg": [
-      17,
-      24
+      10,
+      14
     ],
     "anim": "AttackRun2",
     "type": "damage",
@@ -6125,7 +6125,7 @@
     "range": 3,
     "dmg": [
       8,
-      11
+      12
     ],
     "anim": "Slide",
     "type": "damage",
@@ -6732,8 +6732,8 @@
     "cost": 3,
     "range": 1,
     "dmg": [
-      17,
-      22
+      8,
+      10
     ],
     "anim": "Attack3",
     "type": "damage",
@@ -6831,10 +6831,10 @@
     "id": "gen_067",
     "name": "Frappe funeste",
     "cost": 3,
-    "range": 2,
+    "range": 1,
     "dmg": [
-      13,
-      21
+      6,
+      9
     ],
     "anim": "Kick",
     "type": "damage",
@@ -6943,10 +6943,10 @@
     "id": "gen_068",
     "name": "Éclair calme",
     "cost": 4,
-    "range": 5,
+    "range": 1,
     "dmg": [
-      17,
-      24
+      10,
+      14
     ],
     "anim": "Attack1",
     "type": "damage",
@@ -7034,10 +7034,10 @@
     "id": "gen_069",
     "name": "Flèche funeste",
     "cost": 4,
-    "range": 5,
+    "range": 1,
     "dmg": [
-      17,
-      24
+      10,
+      14
     ],
     "anim": "Attack5",
     "type": "damage",
@@ -7138,8 +7138,8 @@
     "cost": 3,
     "range": 3,
     "dmg": [
-      10,
-      13
+      8,
+      10
     ],
     "anim": "AttackRun",
     "type": "damage",
@@ -7237,10 +7237,10 @@
     "id": "gen_071",
     "name": "Tempête solaire",
     "cost": 4,
-    "range": 3,
+    "range": 1,
     "dmg": [
-      15,
-      20
+      11,
+      15
     ],
     "anim": "Attack5",
     "type": "damage",
@@ -7339,10 +7339,10 @@
     "id": "gen_072",
     "name": "Fournaise funeste 72",
     "cost": 5,
-    "range": 4,
+    "range": 1,
     "dmg": [
-      16,
-      20
+      14,
+      18
     ],
     "anim": "Special1",
     "type": "damage",

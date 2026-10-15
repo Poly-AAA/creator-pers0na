@@ -1,5 +1,5 @@
 /**
- * Suite mobile portrait : 4 téléphones, écrans du hub, combat d’équipe, un cliché par sort.
+ * Suite mobile paysage : 4 téléphones, écrans du hub, combat d’équipe, un cliché par sort.
  *   node scripts/ergo.js
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -10,10 +10,10 @@ import {
 
 const BASE = process.env.ROGUELITE_BASE || "http://127.0.0.1:8765";
 const phones = [
-  { id: "android-small", width: 360, height: 640 },
-  { id: "android-large", width: 412, height: 915 },
-  { id: "iphone-se", width: 375, height: 667 },
-  { id: "iphone-large", width: 430, height: 932 },
+  { id: "android-small", width: 640, height: 360 },
+  { id: "android-large", width: 915, height: 412 },
+  { id: "iphone-se", width: 667, height: 375 },
+  { id: "iphone-large", width: 932, height: 430 },
 ];
 
 const raw = JSON.parse(readFileSync("data/generated-spells.json", "utf8"));
@@ -200,7 +200,7 @@ try {
     await context.close();
   }
 
-  const check = await browser.newContext({ viewport: { width: 412, height: 915 }, isMobile: true, hasTouch: true });
+  const check = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
   const page = await check.newPage();
   for (const size of [2, 5]) {
     await page.addInitScript((payload) => localStorage.setItem("roguelite.fight", JSON.stringify(payload)), fights[size]);
@@ -231,7 +231,7 @@ try {
   const lines = [];
   lines.push("# Rapport d’ergonomie mobile");
   lines.push("");
-  lines.push("Playwright, Chromium headless, portrait. Téléphones : Android petit 360×640, Android grand 412×915, iPhone SE 375×667, iPhone grand 430×932.");
+  lines.push("Playwright, Chromium headless, paysage. Téléphones : Android petit 640×360, Android grand 915×412, iPhone SE 667×375, iPhone grand 932×430.");
   lines.push("");
   lines.push("Écrans du hub sur chaque téléphone : accueil, inventaire, soins, boutique, artisanat, forgemagie, classement, avant-combat. Combat 10v10 sur les quatre. Combats 2v2 et 5v5 en plus sur l’Android grand. Un cliché par sort du grimoire (" + spellsShot + " fichiers dans `docs/previews/sorts/`).");
   lines.push("");

@@ -21,8 +21,8 @@ export const BALANCE = {
   resistCap: 0.5,
   statScale: 85,
   dmgFactor: 0.155,
-  playerSkill: 1.58,
-  playerGuard: 0.72,
+  playerSkill: 1.85,
+  playerGuard: 0.64,
 };
 
 export const SLOTS = ["coiffe", "amulette", "cape", "arme", "anneauG", "anneauD", "ceinture", "bouclier", "bottes"];
@@ -484,9 +484,11 @@ export function layersForHero(hero) {
 
 function leaderFade(level) {
   const lv = level | 0 || 1;
-  if (lv >= 40) return 0.24;
-  if (lv >= 35) return 0.42;
-  if (lv >= 28) return 0.72;
+  if (lv >= 48) return 0.18;
+  if (lv >= 44) return 0.24;
+  if (lv >= 40) return 0.32;
+  if (lv >= 36) return 0.55;
+  if (lv >= 30) return 0.82;
   return 1;
 }
 
@@ -785,7 +787,7 @@ export function refreshShop(state, rng) {
   }
   for (let i = 0; i < 2; i++) {
     const item = makeItem(rng, { level: clamp(hero.level + roll(rng, -1, 2), 1, 50), quality: 0.7 + rng() * 0.35, element: pick(rng, hero.elements.concat(["neutre"])) });
-    const price = 10 + item.level * 7 * item.lines.length;
+    const price = 8 + Math.round(item.level * 2.4 * Math.max(1, item.lines.length));
     offers.push({ id: item.id, kind: "item", name: item.name, price, item });
   }
   if (hero.level >= 48 && rng() < 0.02) {
@@ -847,7 +849,7 @@ function fighterFrom(source, side, spot, leader) {
 function npcHero(rng, level, catalog, gearQuality) {
   const h = createHero((rng() * 1e9) >>> 0, catalog);
   while (h.level < level) gainXp(h, xpNeed(h.level));
-  const n = level < 14 ? 1 : level < 24 ? 2 : level < 35 ? 3 : level < 40 ? 4 : 6;
+  const n = level < 16 ? 1 : level < 28 ? 2 : level < 40 ? 3 : 6;
   for (let i = 0; i < n; i++) {
     const it = makeItem(rng, { level: clamp(level + roll(rng, -2, 1), 1, 50), quality: gearQuality, element: pick(rng, h.elements) });
     h.inventory.push(it);
@@ -898,7 +900,7 @@ export function buildEncounter(state, mode, rng, catalog) {
   }
   const sum = hero.level + allyHeroes.reduce((a, h) => a + (h.level | 0), 0);
   const foeLevels = splitLevels(sum, size, rng);
-  const late = hero.level >= 48 ? 2.02 : hero.level >= 45 ? 1.96 : hero.level >= 40 ? 1.74 : hero.level >= 35 ? 1.48 : hero.level >= 18 ? 0.92 : hero.level >= 8 ? 0.62 : 0.35;
+  const late = hero.level >= 48 ? 2.05 : hero.level >= 45 ? 1.9 : hero.level >= 40 ? 1.84 : hero.level >= 36 ? 0.88 : hero.level >= 18 ? 0.42 : hero.level >= 8 ? 0.3 : 0.18;
   const foes = foeLevels.map((lv) => npcHero(rng, lv, catalog, late * (0.9 + rng() * 0.25)));
   if (hero.level >= 45 && rng() < BALANCE.rareDrop * 8) {
     const rare = makeItem(rng, { level: 50, rare: true, quality: 1.5, element: pick(rng, ["terre", "feu", "eau", "air"]) });
@@ -1254,7 +1256,7 @@ export function settleFight(state, report, rng) {
   let xp = Math.round((BALANCE.xpFlat + avg * BALANCE.xpPerLevel) * (1 + (foeLevels.length - 1) * 0.08) * (1 + sage / 220));
   let gold = Math.round((BALANCE.goldFlat + avg * BALANCE.goldPerLevel) * (0.85 + rng() * 0.4) * (1 + (foeLevels.length - 1) * 0.05));
   if (done.length) { xp = Math.round(xp * (1 + 0.18 * done.length)); gold = Math.round(gold * (1 + 0.12 * done.length)); }
-  if (hero.level >= 38) xp = Math.round(xp * 1.8);
+  if (hero.level >= 36) xp = Math.round(xp * 5);
   const levels = gainXp(hero, xp);
   hero.gold += gold;
   const drops = [];
@@ -1353,10 +1355,18 @@ function aiPolicy(state, rng) {
   }
   const reserve = healPrice(hero, "mediocre") * 2;
   (state.shop || []).forEach((offer) => {
-    if (offer.sold || offer.kind !== "item") return;
-    const empty = offer.item && !hero.equipped[offer.item.slot === "anneau" ? "anneauG" : offer.item.slot];
-    if (empty && hero.gold - offer.price >= reserve && offer.price < hero.gold * 0.45) buy(state, offer.id);
+    if (offer.sold || offer.kind !== "item" || !offer.item) return;
+    const slot = offer.item.slot === "anneau"
+      ? (itemScore(hero.equipped.anneauG) <= itemScore(hero.equipped.anneauD) ? "anneauG" : "anneauD")
+      : offer.item.slot;
+    if (SLOTS.indexOf(slot) < 0) return;
+    const cur = hero.equipped[slot];
+    if (cur && itemScore(offer.item) <= itemScore(cur) + 2) return;
+    if (hero.gold - offer.price < reserve) return;
+    if (offer.price > hero.gold * 0.7) return;
+    buy(state, offer.id);
   });
+  equipBest(hero);
   if (hero.level >= 4 && rng() < 0.55) {
     const bag = Object.keys(hero.materials).filter((id) => hero.materials[id] > 0);
     if (bag.length) {
@@ -1395,7 +1405,7 @@ export function simulateRun(seed, catalog, options) {
     equipBest(state.hero);
     const est = powerScore(state.hero) / Math.max(1, powerScore(encounter.foes[0]));
     const low = state.hero.pv / Math.max(1, state.hero.pvMax) < 0.5;
-    if ((est < 0.84 || (low && est < 1.02)) && fleePrice(state.hero)) {
+    if ((est < 0.62 || (low && est < 0.78)) && fleePrice(state.hero)) {
       const fled = useFlee(state.hero);
       if (fled.ok) {
         if (opt.diary) opt.diary.push({ step: "flee", est: +est.toFixed(2), gold: state.hero.gold });

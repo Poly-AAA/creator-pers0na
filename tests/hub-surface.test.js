@@ -19,12 +19,12 @@ describe("arène", () => {
     assert.equal(/sephiroth|kether|malkuth|lilith/i.test(index + hub + css), false);
   });
 
-  it("le combat portrait garde la croix, la fuite et le pincement", () => {
+  it("le combat paysage garde la croix, la fuite et le pincement", () => {
     const combat = readFileSync("fantasy-combat.html", "utf8");
     assert.match(combat, /id="dpad"/);
     assert.match(combat, /id="btnEnd"/);
     assert.match(combat, /id="btnFlee"/);
-    assert.match(combat, /Fin de tour/);
+    assert.match(combat, /Fin du tour/);
     assert.match(combat, /rlFinish/);
     assert.match(combat, /pinch/);
     assert.match(combat, /skin-d\.css/);

@@ -1,6 +1,6 @@
 # Rapport d’ergonomie mobile
 
-Playwright, Chromium headless, portrait. Téléphones : Android petit 360×640, Android grand 412×915, iPhone SE 375×667, iPhone grand 430×932.
+Playwright, Chromium headless, paysage. Téléphones : Android petit 640×360, Android grand 915×412, iPhone SE 667×375, iPhone grand 932×430.
 
 Écrans du hub sur chaque téléphone : accueil, inventaire, soins, boutique, artisanat, forgemagie, classement, avant-combat. Combat 10v10 sur les quatre. Combats 2v2 et 5v5 en plus sur l’Android grand. Un cliché par sort du grimoire (72 fichiers dans `docs/previews/sorts/`).
 

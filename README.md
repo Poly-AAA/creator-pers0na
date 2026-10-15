@@ -8,7 +8,7 @@ Ouvre l’accueil, ou lance :
 npm start
 ```
 
-Puis va sur http://localhost:8765/ . L’écran est prévu en portrait, du petit téléphone (360×640) au grand (430×932).
+Puis va sur http://localhost:8765/ . Le combat est prévu en paysage, du petit téléphone (640×360) au grand (932×430). En portrait, l’écran demande de tourner le téléphone.
 
 La page unique pour un téléphone, sans serveur, se construit avec `npm run phone` (`/tmp/arene-phone.html`). Le lien public du moment est dans `docs/previews/live-links.json`.
 
@@ -33,7 +33,7 @@ npm run train
 npm run campaign
 ```
 
-`npm run campaign` écrit un échantillon dans `docs/rapport-parties.md`. Le volume du cahier (cinq passes d’environ 100 000 combats, self-play, 10 000 parties) est `npm run volume`. La suite portrait sur quatre téléphones et les captures de sorts est `npm run ergo`.
+`npm run campaign` écrit un échantillon dans `docs/rapport-parties.md`. Le volume du cahier (cinq passes d’environ 100 000 combats, self-play, 10 000 parties) est `npm run volume`. La suite paysage sur quatre téléphones et les captures de sorts est `npm run ergo`.
 
 Les rapports chiffrés sont dans `docs/`.
 

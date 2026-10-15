@@ -8,187 +8,250 @@
 <script src="js/fantasy-combat-bridge.js"></script>
 <style>
   :root{
-    --bg:#ecece8; --bg2:#f5f5f2; --ink:#555552; --ink2:#8e8e8a;
-    --line:#c6c6c2; --line2:#dcdcd8; --card:#fafaf8; --tap:48px;
-    --sel:#3d3d3a; --soft:#f0f0ec;
-    --ok:#2f6f4e; --warn:#8a5a2b; --bad:#8a3030;
-    --atk:#8a4040; --def:#3d5a7a; --sup:#f5f0e6;
-    --tile-a:#e4e4de; --tile-b:#d6d6d0; --arena:#d8ddd4;
-    --combo:#5b7c99;
+    --bg:#FAF7F0; --panel:#FFFFFF; --ink:#2F3133; --ink2:#8A8278;
+    --acc:#EA7020; --acc2:#F4B07A; --soft:#EFE6D6; --onacc:#FFFFFF;
+    --line:#E7DFD2; --bad:#8A3030; --tap:48px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
-    font:15px/1.35 Helvetica,Arial,sans-serif;overflow:hidden;overscroll-behavior:none}
+    font:15px/1.25 "Pixelify Sans","DotGothic16",sans-serif;overflow:hidden;overscroll-behavior:none}
+  .orient{
+    display:none;position:fixed;inset:0;z-index:80;background:var(--bg);color:var(--ink);
+    align-items:center;justify-content:center;text-align:center;padding:28px;font-size:22px;font-weight:700;
+  }
+  @media (orientation:portrait) and (max-width:900px){
+    .orient{display:flex}
+  }
   .app{
-    height:100%;height:100dvh;max-width:390px;margin:0 auto;
-    display:flex;flex-direction:column;
-    background:linear-gradient(180deg,var(--bg2),var(--bg) 55%,#e2e2de);
+    height:100%;height:100dvh;width:100%;max-width:none;margin:0;
+    display:flex;flex-direction:column;background:var(--bg);min-height:0;
+    padding:
+      max(4px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(4px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+    gap:6px;
   }
-
-  /* —— Zone jeu (haut, ~58%) —— */
-  .game{
-    flex:1.25;min-height:0;position:relative;overflow:hidden;
-    background:linear-gradient(180deg,#e8ebe3 0%,var(--arena) 55%,#cfd4c8 100%);
-  }
-  canvas#arena{position:absolute;inset:0;width:100%;height:100%;touch-action:none;image-rendering:pixelated}
-  .top-chips{
-    position:absolute;left:10px;right:10px;top:10px;z-index:4;
-    display:flex;gap:6px;justify-content:space-between;align-items:center;
-    pointer-events:none;
-  }
-  .chips{display:flex;gap:6px;pointer-events:none}
-  .chip{
-    pointer-events:none;min-width:52px;padding:6px 10px;border-radius:10px;
-    background:rgba(250,250,248,.92);border:1px solid var(--line);font-size:11px;font-weight:600;
-    color:var(--sel);display:flex;gap:6px;align-items:baseline;
-  }
-  .chip span{color:var(--ink2);font-weight:500;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
-  .chip b{font-size:13px}
-  .chip.low b{color:var(--warn)}
-  .chip.zero b{color:var(--bad)}
+  .hazard{height:8px;flex:none;background:repeating-linear-gradient(-45deg,var(--acc) 0 8px,var(--bg) 8px 16px)}
+  .combat-head{display:flex;align-items:center;gap:8px;min-height:28px;flex:none}
+  .combat-head h1{margin:0;font-size:clamp(16px, 2.4vw, 28px);font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+  .lbl{display:inline-flex;align-items:center;background:var(--acc);color:#fff;padding:2px 8px;font-size:12px;font-weight:700;text-transform:uppercase}
+  .jp{font-family:"DotGothic16","Pixelify Sans",sans-serif;color:var(--ink2);font-size:12px}
+  .head-links{margin-left:auto;display:flex;gap:6px}
   .link-cc{
-    pointer-events:auto;text-decoration:none;color:var(--ink2);font-size:10px;letter-spacing:.08em;
-    text-transform:uppercase;padding:6px 8px;border-radius:8px;border:1px solid var(--line);
-    background:rgba(250,250,248,.9);
+    text-decoration:none;color:var(--ink);background:var(--soft);font-size:12px;font-weight:700;
+    padding:6px 8px;min-height:32px;display:inline-flex;align-items:center;
   }
-
-  /* —— Bandeau status —— */
-  .midbar{
-    flex-shrink:0;padding:8px 14px 4px;display:flex;justify-content:space-between;align-items:center;gap:8px;
+  .stage{
+    flex:1;min-height:0;display:grid;
+    grid-template-columns:minmax(148px, 24vw) minmax(0, 1fr) minmax(148px, 22vw);
+    gap:6px;
   }
-  .hint{margin:0;font-size:11px;color:var(--ink2);line-height:1.3;flex:1;min-width:0}
-  .btn-end{
-    flex-shrink:0;min-height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--ok);
-    background:var(--ok);color:#fff;font-size:11px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
-  }
-  .btn-end:disabled{opacity:.4}
-
-  /* —— Panel bas (ergonomie maquette) —— */
-  .panel{
-    flex:0 0 auto;padding:10px 14px calc(12px + env(safe-area-inset-bottom));
-    background:rgba(250,250,248,.97);border-top:1px solid var(--line2);
-    border-radius:18px 18px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.05);
-    display:flex;flex-direction:column;gap:10px;
-  }
-  .combo{
-    height:10px;border-radius:999px;background:var(--soft);border:1px solid var(--line2);overflow:hidden;
-  }
-  .combo > i{
-    display:block;height:100%;width:0%;background:var(--combo);border-radius:inherit;
-    transition:width .25s ease;
-  }
-  .controls{
-    display:grid;grid-template-columns:118px 1fr;gap:10px;align-items:start;
-  }
-  /* Croix iso 45° (comme Neuro) */
-  .dpad-wrap{width:118px;height:118px;margin:0;position:relative}
+  .col-l,.col-r,.col-c{min-width:0;min-height:0;display:flex;flex-direction:column;gap:6px}
+  .box{background:var(--panel);box-shadow:0 0 0 1px var(--soft);padding:8px;min-height:0}
+  .order{flex:0 0 auto}
+  .order h2,.vitals h2,.timer h2,.style h2{margin:0 0 6px}
+  #turnOrder{display:flex;flex-direction:column;gap:4px}
+  .ord{display:flex;justify-content:space-between;gap:6px;border:2px solid var(--ink);padding:3px 6px;font-size:12px;font-weight:700}
+  .ord.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .ord b{font-weight:700}
+  .mono{font-family:"DotGothic16","Pixelify Sans",sans-serif;font-size:12px}
+  .dpad-slot{flex:1 1 148px;min-height:148px;display:flex;align-items:center;justify-content:center}
+  .dpad-wrap{width:min(100%, 210px);height:min(100%, 210px);aspect-ratio:1}
   .dpad{
-    width:100%;height:100%;position:relative;
-    transform:rotate(45deg);
+    width:100%;height:100%;
+    display:grid;
+    grid-template-columns:1fr 1.08fr 1fr;
+    grid-template-rows:1fr 1.08fr 1fr;
+    grid-template-areas:". u ." "l c r" ". d .";
+    gap:5px;
   }
   .dpad button{
-    position:absolute;width:42px;height:42px;border-radius:12px;
-    border:1px solid var(--line);background:var(--card);color:var(--sel);
-    font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-    box-shadow:0 2px 6px rgba(0,0,0,.06);padding:0;
+    position:static;width:100%;height:100%;min-width:44px;min-height:44px;
+    border:2px solid var(--ink);border-radius:0;background:#fff;color:var(--ink);
+    font:700 22px/1 "Pixelify Sans",sans-serif;padding:0;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:none;transform:none;
   }
-  .dpad button:active,.dpad button.on{background:var(--sel);color:#fff}
-  .dpad .u{top:8px;left:50%;transform:translateX(-50%)}
-  .dpad .d{bottom:8px;left:50%;transform:translateX(-50%)}
-  .dpad .l{left:8px;top:50%;transform:translateY(-50%)}
-  .dpad .r{right:8px;top:50%;transform:translateY(-50%)}
-  .dpad .c{
-    left:50%;top:50%;transform:translate(-50%,-50%);
-    width:36px;height:36px;border-radius:50%;font-size:11px;background:var(--soft);
-  }
-  .dpad .glyph{transform:rotate(-45deg);display:block;line-height:1}
-
-  .spell-pane{display:flex;flex-direction:column;gap:6px;min-width:0}
-  .spells{
-    display:grid;grid-template-columns:1fr 1fr;gap:6px;min-height:36px;
-  }
+  .dpad .u{grid-area:u}
+  .dpad .l{grid-area:l}
+  .dpad .c{grid-area:c;background:var(--acc);color:#fff;border-color:var(--acc);font-size:18px}
+  .dpad .r{grid-area:r}
+  .dpad .d{grid-area:d}
+  .dpad button:active,.dpad button.on{background:var(--acc);color:#fff}
+  .dpad .u .glyph{transform:rotate(45deg)}
+  .dpad .r .glyph{transform:rotate(135deg)}
+  .dpad .d .glyph{transform:rotate(-135deg)}
+  .dpad .l .glyph{transform:rotate(-45deg)}
+  .dpad .glyph{display:block;line-height:1}
+  .vitals{flex:0 0 auto}
+  .vitals .who{display:flex;justify-content:space-between;gap:6px;font-size:13px;font-weight:700;margin-bottom:4px}
+  .meter{margin-bottom:4px}
+  .meter .row{display:flex;justify-content:space-between;font-size:12px;font-weight:700;text-transform:uppercase}
+  .meter .row b{color:var(--acc)}
+  .seg{display:flex;gap:2px;height:10px}
+  .seg i{flex:1;background:transparent;border:1px solid var(--soft)}
+  .seg i.on{background:var(--acc);border-color:var(--acc)}
+  .game{flex:1 1 auto;min-height:0;position:relative;background:#F3EFE6;overflow:hidden}
+  canvas#arena{position:absolute;inset:0;width:100%;height:100%;touch-action:none;image-rendering:pixelated}
+  .hint{position:absolute;left:8px;right:8px;bottom:6px;margin:0;font-size:11px;color:var(--ink2);pointer-events:none;text-align:center}
+  .spells-box{flex:0 0 auto}
+  .spells-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+  .spells{display:flex;gap:6px;min-width:0}
   .spells button{
-    min-height:52px;border-radius:12px;border:1px solid var(--line);
-    background:var(--soft);color:var(--ink);font-size:11px;cursor:pointer;
-    padding:6px 7px;text-align:left;line-height:1.15;display:flex;flex-direction:column;gap:2px;
+    flex:1 1 0;min-width:0;min-height:64px;border:2px solid var(--ink);border-radius:0;
+    background:#fff;color:var(--ink);font:inherit;padding:4px 6px;text-align:left;cursor:pointer;
+    display:grid;grid-template-columns:1fr auto;grid-template-rows:auto 1fr;gap:0 4px;position:relative;
   }
-  .spells button small{
-    font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:700;
+  .spells button small{font-size:11px;color:var(--ink2);font-weight:700}
+  .spells button em{font-style:normal;font-size:11px;font-weight:700}
+  .spells button b{grid-column:1 / -1;font-size:clamp(12px, 1.6vw, 18px);font-weight:700;line-height:1.1}
+  .spells button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .spells button.on small,.spells button.on em{color:#fff}
+  .spells button:disabled{opacity:.4}
+  .status{font-size:11px;color:var(--ink2);min-height:1.2em;margin-top:4px}
+  .timer .clock{font-size:clamp(22px, 3vw, 34px);color:var(--acc);font-weight:700;line-height:1}
+  .style .grade{font-size:clamp(28px, 4vw, 48px);color:var(--acc);font-weight:700;line-height:.9}
+  .style .row{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
+  .sync-hex{flex:0 1 72px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:48px}
+  .sync-hex .hex{
+    width:54px;height:54px;border:2px solid var(--acc);
+    clip-path:polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    background:var(--panel);display:flex;align-items:center;justify-content:center;
   }
-  .spells button.on{background:var(--sel);color:#fff;border-color:var(--sel)}
-  .spells button.on small{color:#cfcfc8}
-  .spells button:disabled{opacity:.38}
-  .spells button.lock{opacity:.45;font-style:normal}
-  .status{font-size:10px;color:var(--ink2);text-align:center;min-height:1.2em}
-
-  /* Évo overlay */
+  .sync-hex .hex i{width:16px;height:16px;background:var(--acc);display:block}
+  .sync-hex .ar{font-size:12px;color:var(--ink2);margin-top:2px}
+  .endbox{flex:0 0 auto;display:flex;flex-direction:column;gap:6px}
+  .btn-end{
+    min-height:44px;border:0;border-radius:0;background:var(--acc);color:#fff;
+    font:700 16px/1 "Pixelify Sans",sans-serif;text-transform:uppercase;cursor:pointer;width:100%;
+  }
+  .btn-end:disabled{opacity:.4}
+  .end-row{display:flex;gap:6px}
+  #btnFlee,#btnChat{
+    flex:1;min-height:36px;border:2px solid var(--ink);background:#fff;color:var(--ink);
+    font:700 13px/1 "Pixelify Sans",sans-serif;text-transform:uppercase;
+  }
+  #btnFlee{display:none}
+  #btnChat{border-style:dashed;color:var(--ink2);border-color:var(--ink2)}
+  #combatLog{font-size:11px;color:var(--ink2);line-height:1.3;min-height:2.4em}
+  .chip.low b{color:#8a5a2b}
+  .chip.zero b{color:var(--bad)}
+  .combo{height:8px;background:var(--soft);margin-top:6px}
+  .combo > i{display:block;height:100%;width:0%;background:var(--acc)}
   .evo-ov{
-    position:fixed;inset:0;z-index:40;background:rgba(40,42,38,.55);
+    position:fixed;inset:0;z-index:40;background:rgba(250,247,240,.92);
     display:none;align-items:flex-end;justify-content:center;padding:12px;
   }
   .evo-ov.on{display:flex}
-  .evo-card{
-    width:100%;max-width:390px;background:var(--card);border:1px solid var(--line);
-    border-radius:18px 18px 12px 12px;padding:14px;box-shadow:0 -8px 28px rgba(0,0,0,.12);
-  }
-  .evo-card h2{margin:0 0 4px;font-size:15px;color:var(--sel)}
+  .evo-card{width:min(520px, 100%);background:var(--panel);padding:14px;box-shadow:0 0 0 1px var(--soft)}
+  .evo-card h2{margin:0 0 4px;font-size:16px}
   .evo-card .sub{margin:0 0 10px;font-size:12px;color:var(--ink2)}
   .evo-opts{display:flex;flex-direction:column;gap:8px}
-  .evo-opts button{
-    text-align:left;border:1px solid var(--line);background:var(--soft);border-radius:12px;
-    padding:10px 12px;cursor:pointer;color:var(--ink);
+  .evo-opts button{text-align:left;border:2px solid var(--ink);background:#fff;padding:10px 12px;cursor:pointer;color:var(--ink);font:inherit}
+  .evo-opts button b{display:block;font-size:14px;margin-bottom:2px}
+  .evo-opts button span{font-size:12px;color:var(--ink2)}
+  @media (max-height:460px){
+    .sync-hex{flex:0 0 auto;min-height:0}
+    .sync-hex .hex{width:28px;height:28px}
+    .sync-hex .hex i{width:8px;height:8px}
+    .sync-hex .ar{font-size:11px;margin-top:0}
   }
-  .evo-opts button b{display:block;font-size:13px;color:var(--sel);margin-bottom:2px}
-  .evo-opts button span{font-size:11px;color:var(--ink2)}
-  .evo-opts button:active{background:var(--sel);color:#fff}
-  .evo-opts button:active span{color:#cfcfc8}
+  @media (max-height:400px){
+    .combat-head h1{font-size:16px}
+    .box{padding:4px}
+    .dpad-slot{min-height:132px}
+    .spells button{min-height:48px}
+    .ord{padding:2px 5px}
+    .vitals .meter{margin-bottom:2px}
+  }
+  @media (max-width:700px){
+    .jp{display:none}
+    .stage{grid-template-columns:minmax(132px, 30vw) minmax(0,1fr) minmax(128px, 28vw)}
+  }
 </style>
 </head>
 <body class="skin-d">
+<div class="orient">Tourne le téléphone à l’horizontale.</div>
 <div class="app">
-  <section class="game" aria-label="Zone de jeu">
-    <div class="top-chips">
-      <div class="chips">
-        <div class="chip"><span>PV</span><b id="hudPv">—</b></div>
-        <div class="chip" id="chipPa"><span>PA</span><b id="hudPa">—</b></div>
-        <div class="chip" id="chipPm"><span>PM</span><b id="hudPm">—</b></div>
-        <div class="chip grade-chip" id="chipTime"><span>Tour</span><b id="hudTime">30</b></div>
-        <div class="chip grade-chip" id="chipGrade"><span>Style</span><b id="hudGrade">—</b></div>
-      </div>
-      <div style="display:flex;gap:6px;pointer-events:auto">
-        <a class="link-cc" href="#" id="btnEvo">Évo</a>
-        <a class="link-cc" href="#" id="btnRestart" title="Relancer un combat">Relancer</a>
-        <a class="link-cc" data-fcc="spell" href="spell-editor.html">Sorts</a>
-        <a class="link-cc" data-fcc="creator" href="character-creator-fantasy.html">Créateur</a>
-      </div>
+  <div class="hazard" aria-hidden="true"></div>
+  <header class="combat-head">
+    <h1>Combat · tour <b id="hudTurn">01</b></h1>
+    <span class="lbl">PvP Classé</span>
+    <span class="jp">戦闘開始</span>
+    <div class="head-links">
+      <a class="link-cc" href="#" id="btnEvo">Évo</a>
+      <a class="link-cc" href="#" id="btnRestart" title="Relancer un combat">Relancer</a>
+      <a class="link-cc" data-fcc="spell" href="spell-editor.html">Sorts</a>
+      <a class="link-cc" data-fcc="creator" href="character-creator-fantasy.html">Créateur</a>
     </div>
-    <canvas id="arena" width="390" height="480" aria-label="Arène isométrique"></canvas>
-  </section>
-
-  <div class="midbar">
-    <p class="hint" id="spellHint">Croix = déplacement iso · centre = lancer</p>
-    <button type="button" id="btnFlee">Fuir</button>
-    <button type="button" class="btn-end" id="btnEnd">Fin de tour</button>
-  </div>
-
-  <section class="panel" aria-label="Commandes">
-    <div class="combo" title="Fenêtre combo"><i id="comboFill"></i></div>
-    <div class="controls">
-      <div class="dpad-wrap">
-        <div class="dpad" id="dpad">
-          <button type="button" class="u" data-dir="u" aria-label="Iso NE"><span class="glyph">▲</span></button>
-          <button type="button" class="l" data-dir="l" aria-label="Iso NW"><span class="glyph">◀</span></button>
-          <button type="button" class="c" data-dir="c" aria-label="Lancer"><span class="glyph">●</span></button>
-          <button type="button" class="r" data-dir="r" aria-label="Iso SE"><span class="glyph">▶</span></button>
-          <button type="button" class="d" data-dir="d" aria-label="Iso SW"><span class="glyph">▼</span></button>
+  </header>
+  <div class="stage">
+    <aside class="col-l">
+      <section class="box order" aria-label="Ordre du tour">
+        <h2><span class="lbl">Ordre du tour</span></h2>
+        <div id="turnOrder"></div>
+      </section>
+      <div class="dpad-slot">
+        <div class="dpad-wrap">
+          <div class="dpad" id="dpad">
+            <button type="button" class="u" data-dir="u" aria-label="Nord-est"><span class="glyph">▲</span></button>
+            <button type="button" class="l" data-dir="l" aria-label="Nord-ouest"><span class="glyph">▲</span></button>
+            <button type="button" class="c" data-dir="c" aria-label="Lancer"><span class="glyph">●</span></button>
+            <button type="button" class="r" data-dir="r" aria-label="Sud-est"><span class="glyph">▲</span></button>
+            <button type="button" class="d" data-dir="d" aria-label="Sud-ouest"><span class="glyph">▲</span></button>
+          </div>
         </div>
       </div>
-      <div class="spell-pane">
-        <div class="spells" id="spellList" aria-label="Sorts équipés"></div>
-      </div>
+      <section class="box vitals" aria-label="Points de vie">
+        <div class="who"><b id="hudWho">VOUS</b><span class="mono" id="hudSync">NIV.1</span></div>
+        <div class="meter" id="chipPv">
+          <div class="row"><span>PV <span class="jp">体力</span></span><b id="hudPv">—</b></div>
+          <div class="seg" id="barPv"></div>
+        </div>
+        <div class="meter" id="chipPa">
+          <div class="row"><span>PA <span class="jp">行動</span></span><b id="hudPa">—</b></div>
+          <div class="seg" id="barPa"></div>
+        </div>
+        <div class="meter" id="chipPm">
+          <div class="row"><span>PM <span class="jp">移動</span></span><b id="hudPm">—</b></div>
+          <div class="seg" id="barPm"></div>
+        </div>
+      </section>
+    </aside>
+    <div class="col-c">
+      <section class="game" aria-label="Zone de jeu">
+        <canvas id="arena" width="640" height="360" aria-label="Arène isométrique"></canvas>
+        <p class="hint" id="spellHint">Croix = déplacement iso · centre = lancer</p>
+      </section>
+      <section class="box spells-box" aria-label="Sorts">
+        <div class="spells-head"><span class="lbl">Sorts</span><span class="mono" id="spellMeta">Portée · ligne de vue</span></div>
+        <div class="spells" id="spellList"></div>
+        <div class="status" id="status">…</div>
+      </section>
     </div>
-    <div class="status" id="status">…</div>
-  </section>
+    <aside class="col-r">
+      <section class="box timer">
+        <div class="row" style="display:flex;justify-content:space-between"><span class="mono">TEMPS DU TOUR</span><span class="mono" id="hudRound">T-01</span></div>
+        <div class="clock" id="hudTime">00:30</div>
+        <div class="seg" id="barTime"></div>
+      </section>
+      <section class="box style" id="chipGrade">
+        <div class="mono">SCORE DE STYLE</div>
+        <div class="row"><div class="grade" id="hudGrade">D</div><div class="mono" id="hudStylePts">0<br>COMBO ×0</div></div>
+        <div class="combo" title="Fenêtre combo"><i id="comboFill"></i></div>
+      </section>
+      <div class="sync-hex" aria-hidden="true"><div class="hex"><i></i></div><div class="ar">التزامن</div></div>
+      <section class="box endbox">
+        <button type="button" class="btn-end" id="btnEnd">Fin du tour</button>
+        <div class="end-row">
+          <button type="button" id="btnFlee">Fuir</button>
+          <button type="button" id="btnChat" disabled>Chat</button>
+        </div>
+        <div id="combatLog"></div>
+      </section>
+    </aside>
+  </div>
 </div>
 
 <div class="evo-ov" id="evoOv" aria-hidden="true">
@@ -1261,31 +1324,107 @@
     }, 650);
   }
 
-  function setStatus(t){ el("status").textContent = t; }
+  function setStatus(t){
+    el("status").textContent = t;
+    const log = el("combatLog");
+    if(log && t){
+      const line = document.createElement("div");
+      line.textContent = t;
+      log.prepend(line);
+      while(log.childNodes.length > 3) log.removeChild(log.lastChild);
+    }
+  }
+  function paintSeg(id, cur, max, cells){
+    const host = el(id);
+    if(!host) return;
+    const n = cells || 12;
+    const on = Math.max(0, Math.min(n, Math.round(n * (cur||0) / Math.max(1, max||1))));
+    if(host.childElementCount !== n){
+      host.innerHTML = "";
+      for(let i=0;i<n;i++) host.appendChild(document.createElement("i"));
+    }
+    [...host.children].forEach((node, i)=>{ node.className = i < on ? "on" : ""; });
+  }
+  function paintOrder(){
+    const host = el("turnOrder");
+    if(!host) return;
+    const rows = [];
+    const youIni = (G.player.stats && G.player.stats.ini) | 0;
+    rows.push({ name:"VOUS", ini:youIni, on: G.turn==="player" });
+    (G.roster||[]).forEach((u)=>{
+      if(!u) return;
+      rows.push({
+        name: u.name || (u.side==="b" ? "ADV." : "ALLIÉ"),
+        ini: (u.stats && u.stats.ini) | 0,
+        on: u===G.enemy && G.turn!=="player" && u.alive,
+      });
+    });
+    rows.sort((a,b)=> b.ini - a.ini || (a.name==="VOUS" ? -1 : 1));
+    host.innerHTML = "";
+    rows.slice(0, 4).forEach((r)=>{
+      const d = document.createElement("div");
+      d.className = "ord" + (r.on ? " on" : "");
+      const n = document.createElement("b");
+      n.textContent = r.name;
+      const v = document.createElement("span");
+      v.className = "mono";
+      v.textContent = String(r.ini);
+      d.appendChild(n); d.appendChild(v);
+      host.appendChild(d);
+    });
+  }
   function hud(){
-    el("hudPv").textContent = G.player.pv+"/"+G.player.pvMax;
-    el("hudPa").textContent = G.player.pa+"/"+G.player.paMax;
-    el("hudPm").textContent = G.player.pm+"/"+G.player.pmMax;
-    el("chipPa").classList.toggle("low", G.player.pa<=2);
-    el("chipPa").classList.toggle("zero", G.player.pa<=0);
-    el("chipPm").classList.toggle("low", G.player.pm<=1);
-    el("chipPm").classList.toggle("zero", G.player.pm<=0);
+    const pv = G.player.pv|0, pvMax = G.player.pvMax|0 || 1;
+    const pa = G.player.pa|0, paMax = G.player.paMax|0 || 1;
+    const pm = G.player.pm|0, pmMax = G.player.pmMax|0 || 1;
+    el("hudPv").textContent = pv+" / "+pvMax;
+    el("hudPa").textContent = pa+" / "+paMax;
+    el("hudPm").textContent = pm+" / "+pmMax;
+    paintSeg("barPv", pv, pvMax, 16);
+    paintSeg("barPa", pa, paMax, 11);
+    paintSeg("barPm", pm, pmMax, 6);
+    el("chipPa").classList.toggle("low", pa<=2);
+    el("chipPa").classList.toggle("zero", pa<=0);
+    el("chipPm").classList.toggle("low", pm<=1);
+    el("chipPm").classList.toggle("zero", pm<=0);
     el("comboFill").style.width = Math.min(100, G.combo)+"%";
     el("btnEnd").disabled = G.turn!=="player" || G.busy;
+    const who = el("hudWho");
+    if(who){
+      const nm = (G.roguelite && G.roguelite.player && G.roguelite.player.name) || "VOUS";
+      const lv = (G.roguelite && G.roguelite.player && G.roguelite.player.level) || 1;
+      who.textContent = nm;
+      const sync = el("hudSync");
+      if(sync) sync.textContent = "NIV." + lv;
+    }
+    const turnN = (G.rl && G.rl.turns) || G.fightN || 1;
+    const turnEl = el("hudTurn");
+    if(turnEl) turnEl.textContent = String(turnN).padStart(2, "0");
+    const roundEl = el("hudRound");
+    if(roundEl) roundEl.textContent = "T-" + String(turnN).padStart(2, "0");
     const grade = el("hudGrade");
-    if(grade && G.rl) grade.textContent = rlGrade(rlStyle());
+    const score = G.rl ? rlStyle() : (G.combo|0);
+    if(grade) grade.textContent = G.rl ? rlGrade(score) : "—";
+    const pts = el("hudStylePts");
+    if(pts) pts.innerHTML = score + "<br>COMBO ×" + (G.rl ? (G.rl.combos|0) : (G.combo|0));
     const tim = el("hudTime");
     if(tim){
       if(G.roguelite && G.turn==="player" && G.turnDeadline){
-        const left = Math.max(0, Math.ceil((G.turnDeadline - performance.now())/1000));
-        tim.textContent = left+"s";
-        if(left<=0 && !G.busy && !G._timingOut && G.turn==="player"){
+        const left = Math.max(0, (G.turnDeadline - performance.now())/1000);
+        const sec = Math.ceil(left);
+        tim.textContent = "00:" + String(Math.max(0, sec)).padStart(2, "0");
+        paintSeg("barTime", sec, 30, 18);
+        if(sec<=0 && !G.busy && !G._timingOut && G.turn==="player"){
           G._timingOut = true;
           endTurn();
           G._timingOut = false;
         }
-      } else tim.textContent = "—";
+      } else {
+        tim.textContent = "—";
+        paintSeg("barTime", 0, 30, 18);
+      }
     }
+    paintOrder();
     const flee = el("btnFlee");
     if(flee) flee.disabled = !G.roguelite || G.turn!=="player" || G.busy;
   }
@@ -1470,15 +1609,15 @@
   }
   function fit(){
     const host = canvas.parentElement;
-    const w = Math.max(200, host.clientWidth|0);
-    const h = Math.max(200, host.clientHeight|0);
+    const w = Math.max(80, host.clientWidth|0);
+    const h = Math.max(80, host.clientHeight|0);
     if(cam._w!==w || cam._h!==h){
       cam._w=w; cam._h=h;
       if(canvas.width!==w || canvas.height!==h){ canvas.width=w; canvas.height=h; }
       const viewW = VIEW_TILES * TILE_W;
       const viewH = VIEW_TILES * TILE_H * 0.72;
       const sc = Math.min(w / (viewW + 24), h / (viewH + 48), 1.55);
-      if(cam.userSc == null) cam.sc = Math.max(0.72, sc);
+      if(cam.userSc == null) cam.sc = Math.max(0.42, sc);
     }
     if(cam.userSc != null) cam.sc = cam.userSc;
     updateCamera();
@@ -2179,12 +2318,34 @@
     return enemySpellDmgAvg(sp) || 6;
   }
 
+  function aiPlay(){
+    const p = aiPolicy && aiPolicy.play;
+    if(!p) return null;
+    return {
+      healAt: p.healAt != null ? +p.healAt : 0.684,
+      kite: p.kite !== false,
+      focus: p.focus || "nearest",
+    };
+  }
+  function enemyFocus(){
+    const e = G.enemy;
+    const cands = [];
+    if(G.player && G.player.alive) cands.push(G.player);
+    (G.roster||[]).forEach((u)=>{ if(u && u.alive && u.side==="a") cands.push(u); });
+    if(!cands.length) return G.player;
+    const play = aiPlay();
+    if(play && play.focus==="weakest") return cands.reduce((b,u)=> !b || u.pv < b.pv ? u : b, null);
+    if(play && play.focus==="leader") return G.player.alive ? G.player : cands[0];
+    let best = cands[0], bd = 99;
+    cands.forEach((u)=>{ const d = dist(e, u); if(d < bd){ bd = d; best = u; } });
+    return best;
+  }
   function enemyCanAfford(sp){
     return sp && (G.enemy.pa|0) >= Math.max(1, sp.cost|0);
   }
 
   function enemyPickSpell(mode){
-    const e = G.enemy, p = G.player;
+    const e = G.enemy, p = enemyFocus();
     const ids = (e.spells && e.spells.length) ? e.spells : ["punch"];
     const all = ids.map(spellById).filter(s=>s && enemyCanAfford(s));
     if(!all.length) return null;
@@ -2251,7 +2412,7 @@
   }
 
   function enemyCast(sp){
-    const e=G.enemy, p=G.player;
+    const e=G.enemy, p=enemyFocus();
     if(!e.alive || !sp || !enemyCanAfford(sp)) return false;
     const cost = Math.max(1, sp.cost|0);
     e.pa -= cost;
@@ -2304,17 +2465,33 @@
     }
     setStatus(e.name+" · "+sp.name+(dmg?" → "+dmg:"")+(e.pa>0?" · …":""));
     hud();
-    if(p.pv<=0){ p.alive=false; playAnim(p,"Die"); onCombatEnd("defeat"); return true; }
+    if(p.pv<=0){
+      p.alive=false; playAnim(p,"Die");
+      if(p===G.player){ onCombatEnd("defeat"); return true; }
+      return false;
+    }
     return false;
   }
 
   function enemyTurn(){
     if(!G.enemy.alive){ G.turn="player"; beginPlayerTurn(); return; }
-    const e=G.enemy, p=G.player;
+    const e=G.enemy;
     e.pa = e.paMax; e.pm = e.pmMax;
     const prof = e.profile || strategyProfile(e.strategy||"bruiser", e.spells);
+    const play = aiPlay();
+    if(play){
+      const defs = (e.spells||[]).map(spellById).filter(Boolean);
+      const ranged = defs.some((s)=> (s.type==="damage" || s.dmg) && (s.range|0) >= 3);
+      prof.retreatHp = play.healAt;
+      prof.kiteBelow = play.kite && ranged ? 2 : 0;
+      prof.hitAndRun = false;
+      prof.preferMin = 1;
+      prof.preferMax = 8;
+      prof.label = "proche";
+    }
     if(e._stunned){ e._stunned=false; setStatus(e.name+" étourdi"); setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 380); return; }
 
+    let p = enemyFocus();
     if(!(p.invis>0)) e.lastSeen = { c:p.c, r:p.r };
 
     if((p.invis|0) > 0){
@@ -2337,10 +2514,11 @@
     let didHit = false;
     const finish = ()=>{
       stopMoveAnim(e);
-      if(G.turn!=="over" && p.alive){ G.turn="player"; beginPlayerTurn(); }
+      if(G.turn!=="over" && G.player.alive){ G.turn="player"; beginPlayerTurn(); }
     };
     const stepOnce = ()=>{
-      if(!e.alive || !p.alive || G.turn==="over" || actions++ >= maxActions){
+      p = enemyFocus();
+      if(!e.alive || !G.player.alive || G.turn==="over" || actions++ >= maxActions){
         finish(); return;
       }
       const d = dist(e,p);
@@ -2521,17 +2699,18 @@
       const skin = (sp && typeof FantasyBridge!=="undefined" && FantasyBridge.SPELL_SKIN[sp.id]) || null;
       const name = sp ? (skin ? skin.name : sp.name) : "Vide";
       const lab = document.createElement("small");
-      lab.textContent = slot.label;
+      lab.textContent = "F" + slot.slot;
       b.appendChild(lab);
-      const line = document.createElement("span");
+      const cost = document.createElement("em");
+      cost.textContent = sp ? ((sp.cost|0) + " PA") : "";
+      b.appendChild(cost);
+      const line = document.createElement("b");
       if(slot.locked || !sp){
         line.textContent = "—";
         b.className = "lock";
         b.disabled = true;
       } else {
-        const st = evoState(sp.id);
-        const evoAnim = st.evo && st.evo.anim;
-        line.textContent = name+" ·"+sp.cost+(evoAnim?" ·"+evoAnim.replace("Attack","A"):"");
+        line.textContent = name;
         b.className = (G.armed===sp.id && G.armedSlot && G.armedSlot.slot===slot.slot) ? "on" : "";
         b.disabled = G.turn!=="player" || G.busy || G.player.pa<sp.cost;
         b.onclick=()=>{
@@ -2922,7 +3101,22 @@
         if(d<best){ best=d; target=f; }
       });
       let visual = delay;
-      if(target && best>1){
+      const play = aiPlay();
+      const ranged = (p.spells||[]).some((id)=>{
+        const s = spellById(typeof id === "string" ? id : (id && id.id));
+        return s && (s.range|0) >= 3 && (s.dmg || s.type==="damage");
+      });
+      const hurt = play && p.pv / Math.max(1, p.pvMax) < play.healAt;
+      const shouldKite = play && play.kite && ranged && target && best <= 1;
+      if(target && (shouldKite || hurt) && best <= 2){
+        const nc = Math.max(0, Math.min(GRID-1, p.c + Math.sign(p.c-target.c)));
+        const nr = Math.max(0, Math.min(GRID-1, p.r + Math.sign(p.r-target.r)));
+        if((nc!==p.c || nr!==p.r) && !occupied(nc, nr)){
+          faceToward(p, target.c, target.r);
+          p.c = nc; p.r = nr;
+          try{ playAnim(p, "Walk"); }catch(_e){}
+        }
+      } else if(target && best>1){
         const nc = Math.max(0, Math.min(GRID-1, p.c + Math.sign(target.c-p.c)));
         const nr = Math.max(0, Math.min(GRID-1, p.r + Math.sign(target.r-p.r)));
         if((nc!==p.c || nr!==p.r) && !occupied(nc, nr)){

@@ -2,46 +2,44 @@
 
 ## Sur le téléphone
 
-[https://litter.catbox.moe/r00zh6.html](https://litter.catbox.moe/r00zh6.html)
+[https://litter.catbox.moe/wi99au.html](https://litter.catbox.moe/wi99au.html)
 
-Page unique (accueil, combat, créateur, éditeur), portrait, HTTPS. Déposée le 14 octobre 2026 à 23:32 UTC, elle reste en ligne environ 72 heures, jusqu’au 17 octobre 2026 à 23:32 UTC. Les sprites sont servis par jsDelivr au commit `f2e5a50`.
+Page unique (accueil, combat, créateur, éditeur), en paysage, HTTPS. Déposée le 15 octobre 2026 à 00:45 UTC, elle reste en ligne environ 72 heures, jusqu’au 18 octobre 2026 à 00:45 UTC. Les sprites sont servis par jsDelivr au commit `f2e5a50`. Un contrôle Playwright en 932×430 ouvre l’accueil, lance un duel, affiche la croix directionnelle (5 touches) et le bouton Fin du tour, sans erreur de page.
 
 ## Ce qui est en place
 
-Le roguelite se joue dans le navigateur, en portrait.
+Le combat se joue téléphone à l’horizontale, sur la grille de la maquette D : ordre du tour en haut à gauche, plateau isométrique au centre, chrono et score de style en haut à droite, PV / PA / PM en bas à gauche, barre de sorts au centre bas, Fin du tour et Fuir en bas à droite. Le cadran hexagonal de gauche (Champ A.T.) est remplacé par une grande croix directionnelle, dans le même trait. Le cadran de droite, avec التزامن, reste visible, plus petit sous 460 px de haut pour laisser les boutons à l’écran. Les zones sûres (encoche, bords) sont prises en compte. Le pincement zoome, le glisser déplace la carte. En portrait, l’écran demande de tourner le téléphone.
 
 - Génération immédiate du personnage, ADN sur 50 niveaux, dé 8.
-- Combat visuel : croix isométrique, carte en haut, sorts en bas, Fin de tour. Fuite, chrono de 30 s, érosion, nombres flottants, zoom au pincement, glisser pour déplacer la carte.
-- Équipes de 2v2 à 10v10 : chaque allié et chaque adversaire est un sprite (repos, marche, attaque, dégâts, mort) avec ombre, corps, jambes, torse, arme et tête. Les teintes sont en cache. La caméra cadre toute l’équipe et dézoome au-delà de trois combattants.
+- Équipes de 2v2 à 10v10 : chaque allié et chaque adversaire est un sprite avec équipement visible.
 - Sorts superposés squelette et spectre, glyphes et pièges, invocation d’ossement.
 - Inventaire, trois soins, boutique, fiole de fuite, artisanat, forgemagie, classement, compagnons, mort et nouveau personnage.
 - Métiers et connaissance des matières conservés après la mort.
+- Les 52 sorts de dégâts du grimoire tiennent la bande 35–70 % sur deux échantillons de 280 duels (`docs/rapport-grimoire.md`). Le fichier `data/generated-spells.json` est réécrit.
+- L’IA à l’écran suit la politique de self-play retenue : soin sous 68,4 % des PV, kiting, cible la plus proche.
 
-## Volumes mesurés
+## Volumes
 
-Source : `docs/rapport-volumes.md`, `docs/rapport-parties.md`, `docs/rapport-ergo.md`.
+Les cinq passes d’équilibrage (5 × 100 008) et le self-play (1 500 000 combats, politique à 88,06 %) restent ceux de `docs/rapport-volumes.md`. Ils datent d’avant la réécriture du fichier de sorts.
 
-- Équilibrage : 5 passes × 100 008 combats (72 sorts × 1 389). Durée 34 257 ms. Victoires du sort testé : 63,4 %, 63,9 %, 65,8 %, 62,5 %, 66,1 %. Les dégâts ajustés (±8 % hors de la bande 42–58 %) ne sont pas écrits dans `data/generated-spells.json`.
-- Self-play : 1 500 000 combats en 727 799 ms. Chaque génération fait 250 000 combats (1v1 100 000, 2v2 50 000, 3v3 40 000, 5v5 35 000, 10v10 25 000). Arrêt après 3 générations sans gagner 0,5 point de plus que la meilleure. Miroir 49,89 %. Politique retenue : soin sous 68,4 % de PV, kiting, cible la plus proche, 88,06 % contre la politique de départ.
-- Parties : 10 000, en 103 478 ms. Niveau moyen 11,14. Arrivées au niveau 50 : 60 (0,6 %), en 15,30 heures modélisées. Morts : 1–7 : 5 403 (54,0 %), 8–20 : 3 012 (30,1 %), 21–34 : 874 (8,7 %), 35–49 : 651 (6,5 %).
-- Playwright, portrait, aucun écart : Android 360×640, Android 412×915, iPhone SE 375×667, iPhone 430×932. Hub, 2v2, 5v5, 10v10. 72 captures dans `docs/previews/sorts/`.
+Parties actuelles, 2 500, en 37 458 ms. Niveau moyen 16,03. Arrivées au niveau 50 : 25 (1,00 %), en 11,61 heures modélisées. Répartition : 1–7 : 626 (25,0 %), 8–20 : 1 180 (47,2 %), 21–34 : 480 (19,2 %), 35–49 : 189 (7,6 %).
+
+Playwright, paysage, aucun écart : Android 640×360, Android 915×412, iPhone SE 667×375, iPhone 932×430. Hub, 2v2, 5v5, 10v10, pincement. 72 captures dans `docs/previews/sorts/`.
 
 ## Bande 40-50
 
-Sonde de 60 duels par case, dans le même passage que les 10 000 parties.
+Sonde de 80 duels par case.
 
-| Niveau | Nu | Milieu (quelques achats) | Neuf emplacements |
+| Niveau | Nu | Milieu | Complet |
 | --- | --- | --- | --- |
-| 35 | 4/60 (6,7 %) | 41/60 (68,3 %) | 59/60 (98,3 %) |
-| 40 | 0/60 | 15/60 (25,0 %) | 49/60 (81,7 %) |
-| 45 | 0/60 | 7/60 (11,7 %) | 54/60 (90,0 %) |
-| 49 | 2/60 (3,3 %) | 10/60 (16,7 %) | 43/60 (71,7 %) |
+| 40 | 2/80 (2,5 %) | 18/80 (22,5 %) | 67/80 (83,8 %) |
+| 45 | 0/80 | 12/80 (15,0 %) | 66/80 (82,5 %) |
+| 49 | 1/80 (1,3 %) | 8/80 (10,0 %) | 56/80 (70,0 %) |
 
-Sans équipement ou avec un stuff partiel, la bande est très dure. Un stuff de boutique complet la rend jouable. L’XP de 40 à 49 vaut 118 018, soit 38 victoires si chaque duel au niveau 40 rapporte le bonus ×1,8 (environ 3 123). Ce n’est pas le temps d’une partie moyenne : la plupart s’arrêtent avant.
+Au niveau 45, le stuff complet passe de 54/60 (90 %) à 66/80 (82,5 %). Au niveau 49 il reste autour de 70 % (56/80, auparavant 43/60). Au niveau 40 il reste autour de 84 % (67/80, auparavant 49/60). Sans stuff, le duel est presque perdu.
 
 ## Ce qui reste
 
-- Le grimoire versionné n’a pas été réécrit. Après cinq passes, 33 sorts de dégâts restent sous 35 % ou au-dessus de 70 % contre un coup fixe 8–12 (liste dans `docs/rapport-volumes.md`). Plusieurs restent à 100 % : baisser les dégâts de 8 % par passe ne suffit pas quand la portée ou les coups multiples décident le duel.
-- Au niveau 45, le stuff complet gagne encore 54 duels sur 60. Le mur est net sans bon équipement ; il est encore souple pour un inventaire déjà plein à ce niveau-là.
-- La politique de self-play (soin 0,684, kiting, proche) n’est pas celle du combat à l’écran. `data/ai-policy.json` continue de pondérer les sorts de l’adversaire visuel.
-- Une arrivée au niveau 50 reste rare (60 parties sur 10 000) et longue (15,3 heures modélisées). Le filtre principal est avant le niveau 20, pas seulement la bande 40–50.
+- Les 10 000 parties du cahier n’ont pas été relancées avec le grimoire réécrit. Le chiffre actuel est l’échantillon de 2 500.
+- Le self-play n’a pas été relancé. La politique déjà retenue (1 500 000 combats) est celle du combat à l’écran.
+- Le niveau 50 reste une longue partie (11,61 heures modélisées pour celles qui y arrivent) et concerne 1 partie simulée sur 100.
