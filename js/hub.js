@@ -7,7 +7,7 @@ import {
   healPrice, applyHeal, fleePrice, useFlee, equip, unequip, equipBest,
   craft, crush, forge, buy, refreshShop, knownMaterial, MATERIALS, SLOTS, SLOT_LABEL, STAT_LABEL,
   buildEncounter, unitsFromEncounter, settleFight, recruit, mulberry32, CHALLENGES,
-  unlockedSpells, effectiveStats,
+  unlockedSpells, effectiveStats, isHandmadeSpell, syncHeroSpells,
 } from "./roguelite.js";
 
 const SAVE = "roguelite.save";
@@ -477,12 +477,29 @@ function consumeResult() {
   return settled;
 }
 
-async function boot() {
+function mergeEditorSpells(fileSpells) {
+  const list = Array.isArray(fileSpells) ? fileSpells.slice() : [];
   try {
-    const res = await fetch("data/generated-spells.json", { cache: "no-store" });
-    if (res.ok) catalog = prepareCatalog(await res.json());
+    const custom = JSON.parse(localStorage.getItem("neuro.customSpells") || "[]");
+    if (Array.isArray(custom)) {
+      custom.forEach((s) => {
+        if (!isHandmadeSpell(s)) return;
+        const i = list.findIndex((x) => x && x.id === s.id);
+        if (i >= 0) list[i] = Object.assign({}, list[i], s);
+        else list.push(s);
+      });
+    }
   } catch (_e) {}
-  if (!catalog.length) catalog = prepareCatalog([]);
+  return list;
+}
+
+async function boot() {
+  let fileSpells = [];
+  try {
+    const res = await fetch("data/user-spells.json", { cache: "no-store" });
+    if (res.ok) fileSpells = await res.json();
+  } catch (_e) {}
+  catalog = prepareCatalog(mergeEditorSpells(fileSpells));
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(SAVE) || "null"); } catch (_e) {}
   if (saved && saved.hero && saved.meta) {
@@ -494,6 +511,9 @@ async function boot() {
     state._catalog = catalog;
     save();
   }
+  let kitChanged = syncHeroSpells(state.hero, catalog);
+  (state.hero.companions || []).forEach((c) => { if (syncHeroSpells(c, catalog)) kitChanged = true; });
+  if (kitChanged) save();
   showLoad("Initialisation du personnage", () => {
     const settled = consumeResult();
     if (settled && settled.unpaid) renderHome("Fuite impossible : pas assez de kamas.");

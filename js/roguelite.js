@@ -144,9 +144,22 @@ function specialSpells() {
   return _specialCache;
 }
 
+export function isHandmadeSpell(spell) {
+  if (!spell || !spell.id) return false;
+  if (spell.generated) return false;
+  const id = String(spell.id);
+  if (id.startsWith("gen_") || id.startsWith("ov_")) return false;
+  return true;
+}
+
 export function prepareCatalog(list) {
   if (list && list._prepared) return list;
   const base = (list && list.length) ? list.map((s, i) => tagSpell(Object.assign({}, s), i)) : [];
+  const handmade = base.filter(isHandmadeSpell);
+  if (handmade.length || !(list && list.length)) {
+    handmade._prepared = true;
+    return handmade;
+  }
   const have = new Set(base.map((s) => s.id));
   const extra = specialSpells().filter((s) => !have.has(s.id));
   const all = base.concat(extra);
@@ -189,8 +202,53 @@ function planStats(rng, gene, primary, secondary) {
   return gains;
 }
 
+function handmadeKit(spells) {
+  const rank = { punch: 0, roulade: 1, coup_de_pied: 2 };
+  const list = spells.filter(isHandmadeSpell).slice().sort((a, b) => {
+    const ra = Object.prototype.hasOwnProperty.call(rank, a.id) ? rank[a.id] : 10;
+    const rb = Object.prototype.hasOwnProperty.call(rank, b.id) ? rank[b.id] : 10;
+    if (ra !== rb) return ra - rb;
+    return String(a.id).localeCompare(String(b.id));
+  });
+  const seen = new Set();
+  const kit = [];
+  let extra = 0;
+  list.forEach((spell) => {
+    if (seen.has(spell.id)) return;
+    seen.add(spell.id);
+    let unlock = 1;
+    if (spell.id !== "punch" && spell.id !== "roulade" && spell.id !== "coup_de_pied") {
+      const later = [5, 15, 30, 40, 45];
+      unlock = later[Math.min(extra, later.length - 1)];
+      extra += 1;
+    }
+    kit.push(cloneSpell(spell, unlock));
+  });
+  return kit;
+}
+
+export function syncHeroSpells(hero, catalog) {
+  if (!hero) return false;
+  const next = pickKit(prepareCatalog(catalog), mulberry32((hero.seed || 1) >>> 0), hero.gene || 1, hero.elements || ["terre"]);
+  const prev = hero.spells || [];
+  const kept = prev.filter(isHandmadeSpell);
+  const have = new Set(kept.map((s) => s.id));
+  next.forEach((s) => { if (!have.has(s.id)) kept.push(s); });
+  const order = next.map((s) => s.id);
+  kept.sort((a, b) => {
+    const ia = order.indexOf(a.id);
+    const ib = order.indexOf(b.id);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+  const same = prev.length === kept.length && prev.every((s, i) => kept[i] && s.id === kept[i].id && (s.unlock | 0) === (kept[i].unlock | 0));
+  hero.spells = kept;
+  return !same;
+}
+
 function pickKit(catalog, rng, gene, elements) {
   const pool = catalog.filter((s) => s && s.id);
+  const handmade = pool.filter(isHandmadeSpell);
+  if (handmade.length) return handmadeKit(handmade);
   const moves = pool.filter((s) => s.role === "mobility" || s.effect === "roulade");
   const heals = pool.filter((s) => s.type === "heal" || s.type === "shield");
   const attacks = pool.filter((s) => s.type === "damage" || s.type === "summon");

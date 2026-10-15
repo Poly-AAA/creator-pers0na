@@ -406,6 +406,7 @@ function loadCustom(){
   /* Hash (#fccSpells=…) = transport explicite — doit écraser le localStorage stale */
   importSpellsFromHash();
   pruneLegacySpells();
+  dropGeneratedCustom();
   ensurePunchAnims();
   ensureCoupDePied();
   ensureRoulade();
@@ -1304,20 +1305,31 @@ function fieldTextAreaEvo(label, val, key, evoIdx){
 /* ────────────────────────────────────────────────────────────
    Init
 ──────────────────────────────────────────────────────────── */
+function dropGeneratedCustom(){
+  const before = customSpells.length;
+  customSpells = (customSpells||[]).filter(s => s && s.id && !s.generated && !/^gen_/.test(s.id) && !/^ov_/.test(s.id));
+  if(customSpells.length !== before) saveCustom();
+}
 async function mergeGrimoire(replace){
   let arr = null;
   try{
-    const r = await fetch("data/generated-spells.json", { cache:"no-store" });
-    if(r.ok) arr = await r.json();
+    if(parent && parent.__PHONE_SPELLS) arr = parent.__PHONE_SPELLS;
   }catch(_e){}
   if(!Array.isArray(arr)){
+    try{
+      const r = await fetch("data/user-spells.json", { cache:"no-store" });
+      if(r.ok) arr = await r.json();
+    }catch(_e){}
+  }
+  if(!Array.isArray(arr)){
     const st = document.getElementById("pvStatus");
-    if(st) st.textContent = "Grimoire introuvable (data/generated-spells.json)";
+    if(st) st.textContent = "Grimoire introuvable (data/user-spells.json)";
     return 0;
   }
+  dropGeneratedCustom();
   let n = 0;
   arr.forEach(s=>{
-    if(!s || !s.id) return;
+    if(!s || !s.id || s.generated || /^gen_/.test(s.id) || /^ov_/.test(s.id)) return;
     const i = customSpells.findIndex(x=>x && x.id===s.id);
     if(i >= 0){
       if(replace){ customSpells[i] = s; n++; }
@@ -1333,7 +1345,7 @@ async function mergeGrimoire(replace){
   renderNav();
   renderEditor();
   const st = document.getElementById("pvStatus");
-  if(st) st.textContent = "Grimoire · " + customSpells.filter(s=>s && s.generated).length + " sorts générés";
+  if(st) st.textContent = "Grimoire · " + customSpells.length + " sorts";
   return n;
 }
 function boot(){
@@ -1405,7 +1417,7 @@ function boot(){
     }
   };
   document.getElementById("btnRestoreCoup").onclick=()=> restorePresetCoupBrut();
-  document.getElementById("btnGrimoire").onclick=()=> mergeGrimoire(true);
+  document.getElementById("btnGrimoire").onclick=()=> mergeGrimoire(false);
   mergeGrimoire(false);
   if(/(?:^|[?&])restore=(coup-brut|spells)/i.test(location.search||"")) restorePresetCoupBrut();
   showSavedStatus();

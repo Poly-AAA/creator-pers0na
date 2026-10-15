@@ -15,7 +15,7 @@ La page unique pour un téléphone, sans serveur, se construit avec `npm run pho
 ## Boucle
 
 - **ADN** tiré sur un dé 8, écrit pour les 50 niveaux. Niveau 1 : nu, toutes les stats à 5, 6 PA, 3 PM, 50 PV.
-- **Combat** au choix : duel, ou équipe dont la taille est tirée (2v2, 3v3, 5v5, 10v10). Pas de réglage de difficulté. Érosion d’environ 10 %. Tour limité à 30 secondes. La carte se pince pour zoomer et se fait glisser.
+- **Combat** au choix : duel, ou équipe dont la taille est tirée (2v2, 3v3, 5v5, 10v10). Pas de réglage de difficulté. Érosion d’environ 10 %. Tour limité à 30 secondes. La carte se pince pour zoomer et se fait glisser. Un sort peut partir pendant que l’animation du précédent joue encore.
 - **Style**, défis optionnels, butin rare sur les ennemis tombés, compagnons qui acceptent ou refusent.
 - **Soins** en trois gammes. La fiole de fuite coûte environ 60 % des kamas du moment.
 - **Boutique, artisanat, forgemagie.** Les stats d’un objet fabriqué sont bornées par le niveau du personnage. Le broyage donne très peu de runes.
@@ -27,11 +27,13 @@ Les trois ateliers restent accessibles en bas de l’accueil : [créateur](chara
 
 ```bash
 npm test
-npm run generate
+SPELL_GENERATE=1 npm run generate
 npm run balance
 npm run train
 npm run campaign
 ```
+
+Le grimoire en jeu est `data/user-spells.json` : Coup brut, Coup de pied et Roulade, plus les sorts créés ensuite dans l’éditeur. `npm run generate` sans `SPELL_GENERATE=1` ne réécrit rien. Le code du générateur reste dans `js/spell-lab.js`.
 
 `npm run campaign` écrit un échantillon dans `docs/rapport-parties.md`. Le volume du cahier (cinq passes d’environ 100 000 combats, self-play, 10 000 parties) est `npm run volume`. La suite paysage sur quatre téléphones et les captures de sorts est `npm run ergo`.
 

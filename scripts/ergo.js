@@ -16,7 +16,7 @@ const phones = [
   { id: "iphone-large", width: 932, height: 430 },
 ];
 
-const raw = JSON.parse(readFileSync("data/generated-spells.json", "utf8"));
+const raw = JSON.parse(readFileSync("data/user-spells.json", "utf8"));
 const catalog = prepareCatalog(raw);
 
 function pack(u) {

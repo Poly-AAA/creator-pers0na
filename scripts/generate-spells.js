@@ -5,6 +5,11 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { generateCatalog, validateSpell } from "../js/spell-lab.js";
 
+if (process.env.SPELL_GENERATE !== "1") {
+  console.log("Générateur au repos. Le jeu charge data/user-spells.json. Relancer avec SPELL_GENERATE=1 pour réécrire data/generated-spells.json.");
+  process.exit(0);
+}
+
 const count = Number(process.env.SPELL_COUNT || 72);
 const seed = Number(process.env.SPELL_SEED || 20261014);
 const raw = generateCatalog({ seed, count });

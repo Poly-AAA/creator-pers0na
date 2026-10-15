@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f2e5a50/assets/packs/fantasy-cc/";
-const spells = readFileSync("data/generated-spells.json", "utf8");
+const spells = readFileSync("data/user-spells.json", "utf8");
 const policy = readFileSync("data/ai-policy.json", "utf8");
 const skin = readFileSync("css/skin-d.css", "utf8");
 const bridge = readFileSync("js/fantasy-combat-bridge.js", "utf8");
@@ -39,11 +39,13 @@ combat = combat.replace(
 );
 combat = combat.replace(
   `async function loadGeneratedGrimoire(){
+    dropGeneratedSpells();
     try{
-      const r = await fetch("data/generated-spells.json", { cache:"no-store" });
+      const r = await fetch("data/user-spells.json", { cache:"no-store" });
       if(!r.ok) return 0;
       const arr = await r.json();`,
   `async function loadGeneratedGrimoire(){
+    dropGeneratedSpells();
     try{
       const arr = (parent && parent.__PHONE_SPELLS) || [];`,
 );
@@ -87,10 +89,10 @@ editor = editor.replace("</body>", back + "\n</body>");
 
 hub = hub.replace(
   `  try {
-    const res = await fetch("data/generated-spells.json", { cache: "no-store" });
-    if (res.ok) catalog = prepareCatalog(await res.json());
+    const res = await fetch("data/user-spells.json", { cache: "no-store" });
+    if (res.ok) fileSpells = await res.json();
   } catch (_e) {}`,
-  "  catalog = prepareCatalog(window.__PHONE_SPELLS || []);",
+  "  fileSpells = window.__PHONE_SPELLS || [];",
 );
 hub = hub.replace(
   'showLoad(enc.mode + " · niveaux " + enc.levelSum, () => { location.href = "fantasy-combat.html"; });',

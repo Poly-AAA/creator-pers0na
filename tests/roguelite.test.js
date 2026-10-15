@@ -5,6 +5,7 @@ import { generateCatalog } from "../js/spell-lab.js";
 import {
   createHero, createState, xpNeed, geneLabel, effectiveStats, recomputeVitals,
   prepareCatalog, unlockedSpells, healPrice, applyHeal, fleePrice, useFlee,
+  syncHeroSpells, isHandmadeSpell,
   craft, crush, forge, equip, gainXp, buildEncounter, unitsFromEncounter,
   simulateBattle, settleFight, simulateRun, gradeOf, BALANCE, mulberry32,
 } from "../js/roguelite.js";
@@ -32,6 +33,24 @@ describe("ADN", () => {
     assert.ok(h.spells.length >= 6);
     const on = unlockedSpells(h);
     assert.equal(on.length, 3);
+  });
+
+  it("le kit joué ne garde que les sorts faits main", () => {
+    const user = prepareCatalog(JSON.parse(readFileSync("data/user-spells.json", "utf8")));
+    assert.deepEqual(user.map((s) => s.id), ["punch", "coup_de_pied", "roulade"]);
+    const h = createHero(11, user);
+    assert.deepEqual(h.spells.map((s) => s.id), ["punch", "roulade", "coup_de_pied"]);
+    assert.equal(unlockedSpells(h).length, 3);
+    assert.ok(h.spells.every((s) => isHandmadeSpell(s)));
+    const dirty = createHero(11, catalog);
+    dirty.spells.push({ id: "gen_999", name: "Laid", generated: true, type: "damage", cost: 2, range: 1, dmg: [1, 2], unlock: 1 });
+    assert.equal(syncHeroSpells(dirty, user), true);
+    assert.deepEqual(dirty.spells.map((s) => s.id), ["punch", "roulade", "coup_de_pied"]);
+    const extra = user.concat([{ id: "eclat", name: "Éclat", type: "damage", cost: 3, range: 2, dmg: [4, 6], element: "feu" }]);
+    const grown = createHero(4, prepareCatalog(extra));
+    assert.deepEqual(grown.spells.map((s) => s.id), ["punch", "roulade", "coup_de_pied", "eclat"]);
+    assert.equal(grown.spells.find((s) => s.id === "eclat").unlock, 5);
+    assert.equal(unlockedSpells(grown).length, 3);
   });
 
   it("le dé 8 change le palier et un 8 a de meilleurs gains", () => {

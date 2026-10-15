@@ -593,6 +593,7 @@
     }catch(_e){ return false; }
   }
   importCustomSpellsFromHash();
+  dropGeneratedSpells();
   ensurePunchCustom();
   ensureCoupDePiedCustom();
   ensureRouladeCustom();
@@ -624,6 +625,20 @@
     return spellEvo[id];
   }
   function customSpellById(id){ return customSpells.find(s=>s.id===id) || null; }
+  function isGeneratedSpellRecord(s){
+    if(!s || !s.id) return true;
+    if(s.generated) return true;
+    if(/^gen_/.test(s.id) || /^ov_/.test(s.id)) return true;
+    return false;
+  }
+  function dropGeneratedSpells(){
+    const before = (customSpells||[]).length;
+    customSpells = (customSpells||[]).filter(s => s && !isGeneratedSpellRecord(s));
+    if(customSpells.length !== before){
+      try{ localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+      try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+    }
+  }
   function reloadCustomSpells(){
     try{
       const raw = localStorage.getItem(KEY_CUSTOM_SPELLS);
@@ -638,6 +653,7 @@
         if(raw) customSpells = JSON.parse(raw) || [];
       }catch(_e){}
     }
+    dropGeneratedSpells();
     ensurePunchCustom();
     ensureCoupDePiedCustom();
     ensureRouladeCustom();
@@ -717,6 +733,8 @@
   }
   function playCastAnimChain(sp, onDone, opts){
     opts = opts || {};
+    const seq = opts.seq || ++G.castSeq;
+    const mine = () => seq === G.castSeq;
     const repeat = Math.max(1, opts.repeat|0 || 1);
     let baseSteps = editorCastSteps(sp);
     if(!baseSteps.length){
@@ -734,31 +752,38 @@
     const stepsPerHit = Math.max(1, baseSteps.length);
     function next(){
       if(i >= steps.length){
-        playAnim(G.player, "Idle");
-        G.castFx = null;
+        if(mine()){
+          if(G.player.anim!=="Die") playAnim(G.player, "Idle");
+          G.castFx = null;
+        }
         if(onDone) onDone();
         return;
       }
       const step = steps[i++];
-      warmAnimForPlayer(step.anim);
-      playAnim(G.player, step.anim);
+      if(mine()){
+        warmAnimForPlayer(step.anim);
+        playAnim(G.player, step.anim);
+        let fps = Number(step.fps);
+        if(!isFinite(fps) || fps < 1) fps = 14;
+        G.player.stepFps = fps;
+        G.castFx = {
+          slash: step.slash && step.slash !== "None" ? step.slash : null,
+          effect: step.effect && step.effect !== "None" ? step.effect : null,
+          until: performance.now() + 520,
+        };
+        if(G.castFx.slash) loadImg(G.castFx.slash, step.anim || "Attack1");
+        if(G.castFx.effect) loadImg(G.castFx.effect, step.anim || "Special1");
+      }
       let fps = Number(step.fps);
       if(!isFinite(fps) || fps < 1) fps = 14;
-      G.player.stepFps = fps;
-      G.castFx = {
-        slash: step.slash && step.slash !== "None" ? step.slash : null,
-        effect: step.effect && step.effect !== "None" ? step.effect : null,
-        until: performance.now() + 520,
-      };
-      if(G.castFx.slash) loadImg(G.castFx.slash, step.anim || "Attack1");
-      if(G.castFx.effect) loadImg(G.castFx.effect, step.anim || "Special1");
       let delay=Math.max(0, step.delay|0);
       let dur;
       if(typeof FantasyBridge!=="undefined" && FantasyBridge.animStepTiming){
         const t=FantasyBridge.animStepTiming(Object.assign({}, step, { fps }), COLS);
-        delay=t.delay; dur=t.dur||step.dur; G.player.stepFps=t.fps;
+        delay=t.delay; dur=t.dur||step.dur;
+        if(mine()) G.player.stepFps=t.fps;
       } else {
-        G.player.stepFps=fps;
+        if(mine()) G.player.stepFps=fps;
         dur=Math.max(120, Math.round((COLS/fps)*1000));
       }
       const hitNow = onHit && (i % stepsPerHit === 0);
@@ -768,6 +793,7 @@
       }, delay+dur);
     }
     next();
+    return seq;
   }
 
   const el = (id)=> document.getElementById(id);
@@ -789,6 +815,7 @@
   const G = {
     turn:"player",
     busy: false,
+    castSeq: 0,
     player:{ c:2, r:7, dir:3, pv:100, pvMax:100, pa:6, paMax:6, pm:3, pmMax:3, anim:"Idle", frame:0, t0:0, flash:0, alive:true, shield:0, invis:0 },
     enemy:{ c:11, r:6, dir:7, pv:40, pvMax:40, pa:5, paMax:5, pm:4, pmMax:4, anim:"Idle", frame:0, t0:0, flash:0, alive:true, name:"Bandit", layers:null, spells:[], weaponAnim:"Attack1" },
     clone: null,
@@ -999,14 +1026,15 @@
     return out;
   }
   async function loadGeneratedGrimoire(){
+    dropGeneratedSpells();
     try{
-      const r = await fetch("data/generated-spells.json", { cache:"no-store" });
+      const r = await fetch("data/user-spells.json", { cache:"no-store" });
       if(!r.ok) return 0;
       const arr = await r.json();
       if(!Array.isArray(arr)) return 0;
       let n = 0;
       arr.forEach(s=>{
-        if(!s || !s.id) return;
+        if(!s || !s.id || isGeneratedSpellRecord(s)) return;
         if((customSpells||[]).some(x=>x && x.id===s.id)) return;
         customSpells.push(s);
         n++;
@@ -1036,6 +1064,16 @@
       controller:["control","aoe"],
       assassin:["melee","mobility"],
     };
+    const userIds = (customSpells||[]).filter(s => s && !isGeneratedSpellRecord(s)).map(s => s.id);
+    if(userIds.length){
+      const out = [];
+      const bag = userIds.slice();
+      const n = Math.min(3, bag.length);
+      while(out.length < n && bag.length){
+        out.push(bag.splice(Math.floor(Math.random()*bag.length), 1)[0]);
+      }
+      if(out.length) return out;
+    }
     const gen = generatedIdsFor(roleMap[strategy] || ["melee"]);
     if(gen.length >= 2){
       const out = [];
@@ -1399,7 +1437,7 @@
     el("chipPm").classList.toggle("low", pm<=1);
     el("chipPm").classList.toggle("zero", pm<=0);
     el("comboFill").style.width = Math.min(100, G.combo)+"%";
-    el("btnEnd").disabled = G.turn!=="player" || G.busy;
+    el("btnEnd").disabled = G.turn!=="player";
     const who = el("hudWho");
     if(who){
       const nm = (G.roguelite && G.roguelite.player && G.roguelite.player.name) || "VOUS";
@@ -1425,7 +1463,7 @@
         const sec = Math.ceil(left);
         tim.textContent = "00:" + String(Math.max(0, sec)).padStart(2, "0");
         paintSeg("barTime", sec, 30, 18);
-        if(sec<=0 && !G.busy && !G._timingOut && G.turn==="player"){
+        if(sec<=0 && !G._timingOut && G.turn==="player"){
           G._timingOut = true;
           endTurn();
           G._timingOut = false;
@@ -1437,7 +1475,7 @@
     }
     paintOrder();
     const flee = el("btnFlee");
-    if(flee) flee.disabled = !G.roguelite || G.turn!=="player" || G.busy;
+    if(flee) flee.disabled = !G.roguelite || G.turn!=="player";
   }
 
   function lookSig(){
@@ -1736,18 +1774,21 @@
   }
 
   function tryStep(dc, dr){
-    if(G.busy || G.turn!=="player" || !G.player.alive) return;
+    if(G.turn!=="player" || !G.player.alive) return;
     if(G.armed) return;
     if(G.player.pm<=0){ setStatus("Plus de PM"); return; }
     const c = G.player.c+dc, r = G.player.r+dr;
     if(!inBounds(c,r) || occupied(c,r,"player")){ setStatus("Case bloquée"); return; }
     faceToward(G.player, c, r);
+    G.player.slide = null;
     G.player.c=c; G.player.r=r; G.player.pm-=1;
     if(G.rl) G.rl.moved = true;
+    const seq = ++G.castSeq;
     playAnim(G.player, randomMoveAnim());
     recomputeMoves(); recomputeTargets(); hud();
     setStatus("Dir "+DIR_LABEL[G.player.dir]+" · −1 PM");
     setTimeout(()=>{
+      if(seq !== G.castSeq) return;
       if(MOVE_ANIMS.includes(G.player.anim) || G.player.anim==="RideRun") playAnim(G.player,"Idle");
     }, 380);
   }
@@ -1804,22 +1845,15 @@
   function approachThen(sp, onReady){
     const path = pathIntoSpellRange(sp);
     if(!path || path.length<2){ onReady(); return; }
-    G.busy=true; hud();
-    let i=1;
-    const step=()=>{
-      if(i>=path.length || G.player.pm<=0){
-        G.busy=false; playAnim(G.player,"Idle");
-        recomputeMoves(); recomputeTargets(); hud();
-        onReady(); return;
-      }
-      const n=path[i++];
+    G.player.slide = null;
+    for(let i=1; i<path.length && G.player.pm>0; i++){
+      const n = path[i];
       faceToward(G.player, n.c, n.r);
       G.player.c=n.c; G.player.r=n.r; G.player.pm-=1;
-      playAnim(G.player, randomMoveAnim());
-      recomputeMoves(); recomputeTargets(); hud();
-      setTimeout(step, 240);
-    };
-    step();
+    }
+    if(G.rl) G.rl.moved = true;
+    recomputeMoves(); recomputeTargets(); hud();
+    onReady();
   }
 
   function finishCastSelf(sp){
@@ -1834,9 +1868,7 @@
       return;
     }
 
-    playCastAnimChain(sp, ()=>{
-      if(G.player.anim!=="Die") playAnim(G.player,"Idle");
-    });
+    playCastAnimChain(sp);
 
     if(sp.id==="double"){
       spawnClone(sp, evo);
@@ -1957,7 +1989,7 @@
     const planned = planRouladePath(G.player, sp, evo);
     const path = planned.path || [];
     if(!path.length){
-      if(typeof onDone === "function") onDone(null);
+      if(typeof onDone === "function") onDone(null, true);
       return;
     }
     const from = { c:G.player.c, r:G.player.r };
@@ -1976,9 +2008,14 @@
     const delay = Math.max(0, Number(step.delay)|0);
     const dur = delay + Math.max(120, Math.round((COLS / fps) * 1000));
 
+    const seq = ++G.castSeq;
+    const slideId = seq;
     playAnim(G.player, step.anim || "Rolling");
     G.player.stepFps = fps;
+    G.player.c = to.c;
+    G.player.r = to.r;
     G.player.slide = {
+      id: slideId,
       fromC: from.c, fromR: from.r,
       toC: to.c, toR: to.r,
       t0: performance.now(),
@@ -1986,11 +2023,13 @@
     };
 
     setTimeout(()=>{
-      G.player.c = to.c;
-      G.player.r = to.r;
-      G.player.slide = null;
-      G.player.stepFps = null;
-      if(typeof onDone === "function") onDone(planned);
+      const current = seq === G.castSeq;
+      if(G.player.slide && G.player.slide.id === slideId){
+        G.player.slide = null;
+        G.player.stepFps = null;
+      }
+      if(current && G.player.anim!=="Die") playAnim(G.player, "Idle");
+      if(typeof onDone === "function") onDone(current ? planned : null, current);
     }, dur);
   }
 
@@ -2004,7 +2043,6 @@
     const initialDist = G.enemy && G.enemy.alive ? dist(G.player, G.enemy) : 99;
     const mode0 = initialDist <= 1 ? "recul" : "approche";
 
-    G.busy = true;
     G.armed = null; G.armedSlot = null;
     G.combo = Math.min(100, G.combo + 18);
     renderSpells(); hud();
@@ -2014,8 +2052,6 @@
     let lastMode = mode0;
 
     const finish = ()=>{
-      if(G.player.anim!=="Die") playAnim(G.player, "Idle");
-      G.busy = false;
       setStatus(
         "Roulade · "+lastMode+
         (rollsDone > 1 ? " ×"+rollsDone : "")+
@@ -2025,7 +2061,8 @@
     };
 
     const runRoll = (index)=>{
-      playOneRoulade(sp, evo, (planned)=>{
+      playOneRoulade(sp, evo, (planned, current)=>{
+        if(!current) return;
         if(!planned || !planned.path || !planned.path.length){
           if(rollsDone === 0) setStatus("Roulade · bloqué");
           finish();
@@ -2152,7 +2189,6 @@
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
     faceToward(G.player, G.enemy.c, G.enemy.r);
     G.player.pa -= cost;
-    G.busy = true;
     const label = (G.armedSlot?G.armedSlot.label+" · ":"")+sp.name;
     G.armed=null; G.armedSlot=null;
     renderSpells(); hud();
@@ -2189,27 +2225,28 @@
       hud();
     };
 
+    const seq = ++G.castSeq;
     playCastAnimChain(sp, ()=>{
-      if(G.player.anim!=="Die") playAnim(G.player,"Idle");
-      G.combo = Math.min(100, G.combo + 22);
-      if(G.player.invis>0) G.player.invis = 0;
-      if(G.enemy.pv<=0){
+      const mine = seq === G.castSeq;
+      if(mine){
+        G.combo = Math.min(100, G.combo + 22);
+        if(G.player.invis>0) G.player.invis = 0;
+      }
+      if(G.enemy.pv<=0 && G.enemy.alive){
         G.enemy.alive=false;
         if(G.rl) G.rl.kills = (G.rl.kills|0)+1;
         if(rlPromote()){
           setStatus(G.enemy.name+" entre en lice");
-          G.busy = false;
         } else {
           setStatus("Victoire · "+label+" → "+total+(hits>1?" ×"+hits:""));
-          G.busy = false;
           onCombatEnd("win");
         }
-      } else {
+      } else if(mine && G.enemy.alive) {
         setStatus(label+" → "+total+(hits>1?" ×"+hits:"")+(pushed?" · poussé "+pushed:""));
-        G.busy = false;
       }
       recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     }, {
+      seq,
       repeat: hits,
       onHit: applyOneHit
     });
@@ -2246,7 +2283,7 @@
   }
 
   function tryCastAt(c, r){
-    if(G.busy || G.turn!=="player" || !G.armed) return;
+    if(G.turn!=="player" || !G.armed) return;
     const sp = spellById(G.armed); if(!sp) return;
     if(G.player.pa < sp.cost){ setStatus("Pas assez de PA"); return; }
 
@@ -2287,7 +2324,7 @@
 
   /** Centre dpad : sort armé, sinon sort d’arme */
   function autoAttack(){
-    if(G.busy || G.turn!=="player" || !G.player.alive) return;
+    if(G.turn!=="player" || !G.player.alive) return;
     if(G.armed){ castArmed(); return; }
     const bar = G.spellBar.length ? G.spellBar : refreshSpellBar();
     const slot = bar.find(s=>!s.locked && s.spellId && spellById(s.spellId) && G.player.pa>=spellById(s.spellId).cost)
@@ -2297,7 +2334,7 @@
   }
 
   function castArmed(){
-    if(G.busy) return;
+    if(G.turn!=="player" || !G.player.alive) return;
     if(!G.armed){ autoAttack(); return; }
     const sp = spellById(G.armed);
     if(!sp) return;
@@ -2309,7 +2346,7 @@
   }
 
   function endTurn(){
-    if(G.turn!=="player" || G.busy) return;
+    if(G.turn!=="player") return;
     G.armed=null; G.armedSlot=null; G.turn="enemy";
     G.combo = Math.max(0, G.combo - 12);
     tickClone();
@@ -2732,9 +2769,9 @@
         line.textContent = mark.ch;
         b.className = ((G.armed===sp.id && G.armedSlot && G.armedSlot.slot===slot.slot) ? "on " : "") + mark.cls;
         b.setAttribute("aria-label", name);
-        b.disabled = G.turn!=="player" || G.busy || G.player.pa<sp.cost;
+        b.disabled = G.turn!=="player" || G.player.pa<sp.cost;
         b.onclick=()=>{
-          if(G.busy || G.turn!=="player") return;
+          if(G.turn!=="player") return;
           if(G.armed===sp.id && G.armedSlot && G.armedSlot.slot===slot.slot){
             castArmed();
             return;
@@ -2961,7 +2998,7 @@
   }
 
   function onTap(e){
-    if(G.busy || G.turn!=="player" || !G.player.alive) return;
+    if(G.turn!=="player" || !G.player.alive) return;
     const {x,y}=pointer(e);
     const cell=toTile(x,y);
     if(!inBounds(cell.c,cell.r)) return;
@@ -2983,7 +3020,7 @@
   function bindPad(){
     el("dpad").querySelectorAll("button").forEach(btn=>{
       const fire=()=>{
-        if(G.busy) return;
+        if(G.turn!=="player" || !G.player.alive) return;
         const d=btn.dataset.dir;
         if(d==="c"){ castArmed(); return; }
         const v=PAD_VEC[d]; if(!v) return;
@@ -3376,7 +3413,7 @@
     const btnFlee = el("btnFlee");
     if(btnFlee){
       btnFlee.addEventListener("click", ()=>{
-        if(!G.roguelite || G.turn!=="player" || G.busy) return;
+        if(!G.roguelite || G.turn!=="player") return;
         const pay = G.roguelite;
         if(!(pay.gold>0) && !(pay.fleeCharges>0)){ setStatus("Pas de quoi fuir"); return; }
         rlFinish("flee");

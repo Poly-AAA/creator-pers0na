@@ -39,7 +39,7 @@
         im.src = src;
       });
     }
-    fetch("data/generated-spells.json").then((r) => r.json()).then(async (list) => {
+    fetch("data/user-spells.json").then((r) => r.json()).then(async (list) => {
       const sp = list.find((s) => s.id === id) || list[0];
       if (!sp) { document.body.dataset.ready = "missing"; return; }
       document.getElementById("name").textContent = sp.name;
