@@ -7,6 +7,7 @@ import { decodePNG, encodePNG } from "../js/sprite-png.js";
 import {
   ANIMS, COLS, ROWS, FRAME, applyVariant, sliceFrame, blitFrame, frameDrift,
 } from "../js/sheet-variant.js";
+import { IDLE_VARIANTS, IDLE_FRAMES, idleFrame, idleIssues } from "../js/idle-variants.js";
 
 const root = "assets/packs/fantasy-cc/spritesheets";
 const outDir = "docs/previews/sprites/variante";
@@ -58,6 +59,20 @@ for (let row = 0; row < ROWS; row++) {
   stamp(applyVariant(b, sliceFrame(idleH.rgba, idleH.w, 0, row)), row, 1);
 }
 writeFileSync(outDir + "/apercu-idle.png", encodePNG(apercu, COLS * FRAME * z, 2 * FRAME * z));
+
+for (const kind of IDLE_VARIANTS) {
+  const w = IDLE_FRAMES * FRAME;
+  const h = ROWS * FRAME;
+  const sheet = new Uint8Array(w * h * 4);
+  for (let row = 0; row < ROWS; row++) {
+    const b = sliceFrame(idleB.rgba, idleB.w, 0, row);
+    const hd = sliceFrame(idleH.rgba, idleH.w, 0, row);
+    const bad = idleIssues(kind, b, hd);
+    if (bad.length) issues.push(kind + " " + row + " " + bad[0]);
+    for (let col = 0; col < IDLE_FRAMES; col++) blitFrame(sheet, w, idleFrame(kind, b, hd, col), col, row);
+  }
+  writeFileSync(outDir + "/idle-" + kind + ".png", encodePNG(sheet, w, h));
+}
 
 console.log(issues.length ? issues.slice(0, 12).join("\n") : "variante ok, " + ANIMS.length + " planches");
 if (issues.length) process.exit(1);

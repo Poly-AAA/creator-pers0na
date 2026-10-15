@@ -1,12 +1,13 @@
 import {
   ANIMS, DIR_LABELS, COLS, ROWS, FRAME, applyVariant, sliceFrame,
 } from "./sheet-variant.js";
+import { IDLE_VARIANTS, IDLE_FRAMES, IDLE_FPS, idleFrame } from "./idle-variants.js";
 
 const CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f2e5a50/assets/packs/fantasy-cc/spritesheets/";
 const view = document.getElementById("view");
 const ctx = view.getContext("2d");
 const status = document.getElementById("status");
-const state = { anim: "Idle", row: 2, frame: 0, variant: true, playing: true, body: null, head: null };
+const state = { anim: "Lecture", row: 2, frame: 0, variant: true, playing: true, body: null, head: null };
 
 function remote() {
   const host = location.hostname || "";
@@ -38,9 +39,10 @@ function imageData(img) {
 }
 
 async function loadAnim(name) {
+  const sheet = flavored(name) ? "Idle" : name;
   const [body, head] = await Promise.all([
-    loadImage(sheetUrl("NakedBody", name)),
-    loadImage(sheetUrl("Head1", name)),
+    loadImage(sheetUrl("NakedBody", sheet)),
+    loadImage(sheetUrl("Head1", sheet)),
   ]);
   state.body = imageData(body);
   state.head = imageData(head);
@@ -48,13 +50,19 @@ async function loadAnim(name) {
   state.frame = 0;
 }
 
+function flavored(name) {
+  return IDLE_VARIANTS.indexOf(name) >= 0;
+}
+
 function paint() {
   if (!state.body) return;
-  const col = state.frame % COLS;
+  const posed = flavored(state.anim);
+  const col = posed ? 0 : state.frame % COLS;
   const body = sliceFrame(state.body.data, state.body.width, col, state.row);
-  const frame = state.variant
-    ? applyVariant(body, sliceFrame(state.head.data, state.head.width, col, state.row))
-    : body;
+  const head = sliceFrame(state.head.data, state.head.width, col, state.row);
+  const frame = posed
+    ? (state.variant ? idleFrame(state.anim, body, head, state.frame) : body)
+    : (state.variant ? applyVariant(body, head) : body);
   const img = new ImageData(new Uint8ClampedArray(frame), FRAME, FRAME);
   ctx.putImageData(img, 0, 0);
   status.textContent = state.anim + " · " + DIR_LABELS[state.row] + " · " + (state.variant ? "variante" : "original");
@@ -63,7 +71,7 @@ function paint() {
 function chips() {
   const anims = document.getElementById("anims");
   anims.innerHTML = "";
-  for (const name of ANIMS) {
+  for (const name of IDLE_VARIANTS.concat(ANIMS)) {
     const o = document.createElement("option");
     o.value = name;
     o.textContent = name;
@@ -102,9 +110,11 @@ function tick(t) {
   last = t;
   if (state.playing && state.body) {
     acc += dt;
-    while (acc >= 1000 / 14) {
-      acc -= 1000 / 14;
-      state.frame = (state.frame + 1) % COLS;
+    const step = 1000 / (flavored(state.anim) ? IDLE_FPS : 14);
+    const span = flavored(state.anim) ? IDLE_FRAMES : COLS;
+    while (acc >= step) {
+      acc -= step;
+      state.frame = (state.frame + 1) % span;
       paint();
     }
   }
@@ -112,5 +122,5 @@ function tick(t) {
 }
 
 chips();
-loadAnim("Idle").then(paint);
+loadAnim("Lecture").then(paint);
 requestAnimationFrame(tick);

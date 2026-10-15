@@ -14,8 +14,11 @@ for (const folder of ["NakedBody", "Head1"]) {
 }
 
 const lib = readFileSync("js/sheet-variant.js", "utf8").replace(/^export /gm, "");
+const idle = readFileSync("js/idle-variants.js", "utf8")
+  .replace(/^import [\s\S]*?;\n/, "")
+  .replace(/^export /gm, "");
 let view = readFileSync("js/variant-view.js", "utf8").replace(
-  /import \{[\s\S]*?\} from "\.\/sheet-variant\.js";\n/,
+  /^import \{[\s\S]*?\} from "\.\/[^"]+";\n/g,
   "",
 );
 view = view.replace(
@@ -39,7 +42,7 @@ function sheetUrl(folder, anim) {
 
 const html = readFileSync("variante.html", "utf8").replace(
   '<script type="module" src="js/variant-view.js"></script>',
-  "<script type=\"module\">\nconst PACK = " + JSON.stringify(pack) + ";\n" + lib + "\n" + view + "\n</script>",
+  "<script type=\"module\">\nconst PACK = " + JSON.stringify(pack) + ";\n" + lib + "\n" + idle + "\n" + view + "\n</script>",
 );
 writeFileSync("/tmp/variante-phone.html", html);
 console.log("octets", html.length);
