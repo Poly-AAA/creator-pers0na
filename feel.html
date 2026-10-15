@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rythme</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #141618; color: #F6F1E8; font: 13px/1.2 system-ui, sans-serif; overflow: hidden; }
+  .lab { box-sizing: border-box; height: 100%; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) 148px; gap: 4px; padding: 4px; }
+  .side { overflow: hidden; }
+  canvas { width: 100%; height: 100%; image-rendering: pixelated; background: #d8ddd4; }
+  .side { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  button { background: #23272C; color: #F6F1E8; border: 1px solid #3E444C; height: 28px; }
+  button.on { background: #EA7020; border-color: #EA7020; color: #fff; }
+  #status { color: #C9BBA8; }
+</style>
+</head>
+<body>
+<div class="lab">
+  <canvas id="view" width="640" height="360"></canvas>
+  <div class="side">
+    <button type="button" data-kind="strike" class="on">Frappe</button>
+    <button type="button" data-kind="dash">Dash</button>
+    <button type="button" data-kind="leap">Bond</button>
+    <button type="button" data-kind="summon">Invocation</button>
+    <button type="button" data-kind="knock">Recul</button>
+    <span id="status"></span>
+  </div>
+</div>
+<script src="js/cast-feel.js"></script>
+<script>
+const canvas = document.getElementById("view");
+const ctx = canvas.getContext("2d");
+const TILE_W = 56, TILE_H = 28;
+const scale = CastFeel.tileScale(TILE_H, 40);
+let kind = "strike";
+let t0 = performance.now();
+const img = new Image();
+img.src = "assets/packs/fantasy-cc/spritesheets/NakedBody/Attack1.png";
+
+function toScreen(c, r) {
+  return { x: 250 + (c - r) * (TILE_W / 2), y: 150 + (c + r) * (TILE_H / 2) };
+}
+function diamond(c, r, fill, stroke) {
+  const s = toScreen(c, r);
+  ctx.beginPath();
+  ctx.moveTo(s.x, s.y - TILE_H / 2);
+  ctx.lineTo(s.x + TILE_W / 2, s.y);
+  ctx.lineTo(s.x, s.y + TILE_H / 2);
+  ctx.lineTo(s.x - TILE_W / 2, s.y);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
+}
+
+document.querySelectorAll("button").forEach((b) => {
+  b.onclick = () => {
+    kind = b.dataset.kind;
+    t0 = performance.now();
+    document.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+  };
+});
+
+function frame() {
+  const age = ((performance.now() - t0) / 1000) % (CastFeel.BODY + CastFeel.LINGER);
+  const beat = CastFeel.castColumn(age, 15);
+  const u = Math.min(1, age / CastFeel.BODY);
+  const travel = CastFeel.travel(kind === "knock" ? "knock" : kind === "dash" ? "dash" : "leap", u);
+  const from = { c: 2, r: 2 };
+  const to = kind === "dash" || kind === "knock" ? { c: 4, r: 2 } : from;
+  const c = from.c + (to.c - from.c) * (kind === "strike" || kind === "summon" ? 0 : travel);
+  const r = from.r;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#d8ddd4";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++) {
+    diamond(i, j, ((i + j) & 1) ? "#e8e8e2" : "#dcdcd6", "rgba(80,80,70,0.2)");
+  }
+  const s = toScreen(c, r);
+  const lift = kind === "leap" ? CastFeel.leapLift(u) * TILE_H : 0;
+  const sq = kind === "leap" ? CastFeel.landSquash(u) : { x: 1, y: 1 };
+  const dw = 128 * scale * sq.x;
+  const dh = 128 * scale * sq.y;
+  const dx = s.x - dw / 2;
+  const dy = s.y - 88 * scale * sq.y - lift;
+  if (age >= CastFeel.ANTICIPATE) {
+    ctx.globalAlpha = 0.7;
+    ctx.strokeStyle = "rgb(" + CastFeel.elementColor(kind === "summon" ? "air" : "feu").join(",") + ")";
+    diamond(kind === "summon" ? 3 : Math.round(c), r, "rgba(0,0,0,0)", ctx.strokeStyle);
+    ctx.globalAlpha = 1;
+  }
+  if (!(img.complete && img.naturalWidth)) {
+    ctx.fillStyle = "#c4a484";
+    ctx.fillRect(s.x - 10 * sq.x, s.y - 49 * sq.y - lift, 20 * sq.x, 40 * sq.y);
+    ctx.fillStyle = "#2a211c";
+    ctx.fillRect(s.x - 12 * sq.x, s.y - 52 * sq.y - lift, 24 * sq.x, 8);
+  }
+  if (img.complete && img.naturalWidth) {
+    const col = beat.idle ? 0 : beat.col;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, col * 128, 2 * 128, 128, 128, dx, dy, dw, dh);
+    if (beat.smear) ctx.drawImage(img, col * 128, 2 * 128, 128, 128, dx + 10, dy - 4, dw, dh);
+  }
+  if (age >= CastFeel.ANTICIPATE && age < CastFeel.ANTICIPATE + 0.45) {
+    const pop = CastFeel.numberMotion(age - CastFeel.ANTICIPATE, kind === "strike" ? 0 : 2);
+    if (pop.alive) {
+      const rgb = kind === "summon" ? CastFeel.NUM.heal : CastFeel.NUM.damage;
+      ctx.save();
+      ctx.translate(s.x + pop.x, s.y - 50 - pop.y);
+      ctx.scale(pop.scale, pop.scale);
+      ctx.globalAlpha = pop.alpha;
+      ctx.fillStyle = "rgb(" + rgb.join(",") + ")";
+      ctx.font = "700 16px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(kind === "summon" ? "+12" : "-18", 0, 0);
+      ctx.restore();
+    }
+  }
+  document.getElementById("status").textContent = kind + " · " + beat.phase + " · " + (40 * scale / TILE_H).toFixed(2) + " tuiles";
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

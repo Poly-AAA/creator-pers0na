@@ -1,5 +1,23 @@
 # Rapport final
 
+## Rythme des animations
+
+Jeu : [https://litter.catbox.moe/mv50p7.html](https://litter.catbox.moe/mv50p7.html)
+
+Lecteur du rythme : [https://litter.catbox.moe/zirm0w.html](https://litter.catbox.moe/zirm0w.html)
+
+Déposés le 15 octobre 2026 à 05:23 UTC. Ils restent en ligne environ 72 heures, jusqu’au 18 octobre 2026 vers 05:23 UTC.
+
+La caméra reste isométrique 2:1, fixe. Le corps fait 1,75 tuile de haut (entre 1,5 et 2), debout sur une case. Chaque sort suit le même rythme : anticipation 0,26 s, pieds plantés, aura de l’élément ; impact 0,08 s, sans images intermédiaires, avec un filé ; retour 0,40 s avec un léger dépassement ; puis l’attente qui respire. Les effets restent encore 0,50 s. Un nouveau sort peut partir pendant ce temps : l’ancien coup ne s’applique plus.
+
+- Frappe : hanches, épaules et pieds dans la feuille d’origine, éclat radial et étincelles.
+- Dash : le corps se penche, traverse les cases, une traînée cache le glissement.
+- Bond : accroupi, arc, écrasement à l’arrivée, poussière.
+- Recul : la cible glisse tout droit, avec une traînée de poussière.
+- Invocation : une arme apparaît au-dessus de la cible et frappe, avec une onde au sol.
+
+Les couleurs suivent l’élément. Les chiffres arrivent sur l’image d’impact : rouge pour les dégâts, bleu pour le bouclier, vert pour le soin. Ils grossissent, restent, montent et disparaissent. Plusieurs coups se dispersent. Coup brut, Coup de pied et Roulade gardent leurs animations et leurs évolutions. Pas de simulation.
+
 ## Poses d'attente
 
 Lecteur : [https://litter.catbox.moe/0lvlyt.html](https://litter.catbox.moe/0lvlyt.html)

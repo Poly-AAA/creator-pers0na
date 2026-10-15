@@ -6,6 +6,7 @@
 <script>try{if(localStorage.getItem("roguelite.theme")==="dark")document.documentElement.classList.add("dark");}catch(e){}</script>
 <title>Combat Fantasy</title>
 <link rel="stylesheet" href="css/skin-d.css">
+<script src="js/cast-feel.js"></script>
 <script src="js/fantasy-combat-bridge.js"></script>
 <style>
   :root{ --tap:48px; }
@@ -805,11 +806,33 @@
         let fps = Number(step.fps);
         if(!isFinite(fps) || fps < 1) fps = 14;
         G.player.stepFps = fps;
+        const nowFx = performance.now();
         G.castFx = {
           slash: step.slash && step.slash !== "None" ? step.slash : null,
           effect: step.effect && step.effect !== "None" ? step.effect : null,
-          until: performance.now() + 520,
+          until: nowFx + ((typeof CastFeel !== "undefined") ? CastFeel.BODY_MS + CastFeel.LINGER * 1000 : 520),
         };
+        if(typeof CastFeel !== "undefined"){
+          const tgt = opts.target || G.enemy || G.player;
+          G.player.feel = { t0: nowFx, kind: CastFeel.motionKind(sp), element: sp.element || "neutre" };
+          G.fx = G.fx || [];
+          G.fx.push({
+            kind: G.player.feel.kind,
+            element: G.player.feel.element,
+            t0: nowFx,
+            c: G.player.c, r: G.player.r,
+            tc: tgt.c, tr: tgt.r,
+          });
+          if(G.player.feel.kind === "leap"){
+            G.player.slide = {
+              kind: "leap",
+              fromC: G.player.c, fromR: G.player.r,
+              toC: G.player.c, toR: G.player.r,
+              t0: nowFx,
+              dur: CastFeel.BODY_MS,
+            };
+          }
+        }
         if(G.castFx.slash) loadImg(G.castFx.slash, step.anim || "Attack1");
         if(G.castFx.effect) loadImg(G.castFx.effect, step.anim || "Special1");
       }
@@ -826,10 +849,13 @@
         dur=Math.max(120, Math.round((COLS/fps)*1000));
       }
       const hitNow = onHit && (i % stepsPerHit === 0);
+      const hitIndex = Math.floor((i - 1) / stepsPerHit);
+      const bodyMs = (typeof CastFeel !== "undefined") ? CastFeel.BODY_MS : dur;
+      const impactMs = (typeof CastFeel !== "undefined") ? CastFeel.IMPACT_AT_MS : dur;
       setTimeout(()=>{
-        if(hitNow) try{ onHit(Math.floor((i-1)/stepsPerHit)); }catch(_e){}
-        next();
-      }, delay+dur);
+        if(hitNow && mine()) try{ onHit(hitIndex); }catch(_e){}
+      }, delay + impactMs);
+      setTimeout(()=>{ next(); }, delay + bodyMs);
     }
     next();
     return seq;
@@ -869,6 +895,7 @@
     hover: null,
     pendingEvo: null,
     castFx: null, /* { slash, effect, until } */
+    fx: [],
     fightN: 1,
     awaitingNext: false,
   };
@@ -1813,7 +1840,7 @@
       }
     }
     ent.anim = a; ent.frame = 0; ent.t0 = performance.now();
-    if(/^Idle$/i.test(a) || /^RideIdle$/i.test(a)) ent.stepFps = null;
+    if(/^Idle$/i.test(a) || /^RideIdle$/i.test(a)){ ent.stepFps = null; ent.feel = null; }
   }
   function faceToward(ent, tc, tr){
     const d = dirFromIsoDelta(tc-ent.c, tr-ent.r);
@@ -1936,7 +1963,7 @@
       let h = roll(sp.heal) + (evo.heal|0);
       G.player.pv = Math.min(G.player.pvMax, G.player.pv + h);
       if(G.rl) G.rl.healed = (G.rl.healed|0) + h;
-      rlFloat(G.player, "+"+h, "#2f6f4e");
+      rlFloat(G.player, "+"+h, null, "heal", 0);
       if(sp.id==="bouclier" || sp.id==="armure_nanites" || sp.type==="shield"){
         G.player.shield = (G.player.shield||0) + Math.floor(h/2) + (evo.shield|0);
       }
@@ -1954,13 +1981,17 @@
     if(ent && ent.slide){
       const s = ent.slide;
       const u = Math.max(0, Math.min(1, (performance.now() - s.t0) / Math.max(1, s.dur)));
-      const e = u*u*(3-2*u);
+      const e = (typeof CastFeel !== "undefined")
+        ? CastFeel.travel(s.kind || "strike", u)
+        : u*u*(3-2*u);
+      if(u >= 1){ ent.slide = null; ent.knock = false; }
       return {
         c: s.fromC + (s.toC - s.fromC) * e,
         r: s.fromR + (s.toR - s.fromR) * e,
+        u: u,
       };
     }
-    return { c: ent.c, r: ent.r };
+    return { c: ent.c, r: ent.r, u: 1 };
   }
 
   /** Planifie le chemin roulade sans muter la position (sauf ghost). */
@@ -2054,19 +2085,27 @@
 
     warmAnimForPlayer(step.anim || "Rolling");
     const delay = Math.max(0, Number(step.delay)|0);
-    const dur = delay + Math.max(120, Math.round((COLS / fps) * 1000));
+    const bodyMs = (typeof CastFeel !== "undefined") ? CastFeel.BODY_MS : Math.max(120, Math.round((COLS / fps) * 1000));
+    const dur = delay + bodyMs;
 
     const seq = ++G.castSeq;
     const slideId = seq;
+    const tRoll = performance.now();
     playAnim(G.player, step.anim || "Rolling");
     G.player.stepFps = fps;
+    if(typeof CastFeel !== "undefined"){
+      G.player.feel = { t0: tRoll, kind: "dash", element: (sp && sp.element) || "air" };
+      G.fx = G.fx || [];
+      G.fx.push({ kind: "dash", element: G.player.feel.element, t0: tRoll, c: from.c, r: from.r, tc: to.c, tr: to.r });
+    }
     G.player.c = to.c;
     G.player.r = to.r;
     G.player.slide = {
       id: slideId,
+      kind: "dash",
       fromC: from.c, fromR: from.r,
       toC: to.c, toR: to.r,
-      t0: performance.now(),
+      t0: tRoll,
       dur,
     };
 
@@ -2257,10 +2296,12 @@
     const applyOneHit = (hitIndex)=>{
       if(!G.enemy.alive || G.enemy.pv <= 0) return;
       let dmg = dmgEach;
-      if(G.enemy.shield>0){ const a=Math.min(G.enemy.shield,dmg); G.enemy.shield-=a; dmg-=a; }
+      let absorbed = 0;
+      if(G.enemy.shield>0){ absorbed=Math.min(G.enemy.shield,dmg); G.enemy.shield-=absorbed; dmg-=absorbed; }
       if(G.roguelite) dmg = rlErode(G.enemy, dmg);
       G.enemy.pv = Math.max(0, Math.min(G.enemy.pvMax, G.enemy.pv - dmg));
-      if(dmg) rlFloat(G.enemy, "-"+dmg, "#EA7020");
+      if(absorbed) rlFloat(G.enemy, String(absorbed), null, "shield", hitIndex);
+      if(dmg) rlFloat(G.enemy, "-"+dmg, null, "damage", hitIndex);
       total += dmg;
       G.enemy.flash = performance.now()+180;
       faceToward(G.enemy, G.player.c, G.player.r);
@@ -2302,6 +2343,7 @@
 
   /** Repousse `ent` loin de `from` sur N cases (si libre). */
   function pushEntityAway(ent, from, cells, skipKey){
+    const fromC = ent.c, fromR = ent.r;
     let dc = Math.sign(ent.c - from.c);
     let dr = Math.sign(ent.r - from.r);
     if(dc===0 && dr===0){
@@ -2326,6 +2368,23 @@
         if(inBounds(b.c,b.r) && !occupied(b.c,b.r, skipKey)){ ent.c=b.c; ent.r=b.r; moved++; continue; }
       }
       break;
+    }
+    if(moved > 0){
+      const now = performance.now();
+      ent.slide = {
+        kind: "knock",
+        fromC: fromC, fromR: fromR,
+        toC: ent.c, toR: ent.r,
+        t0: now,
+        dur: Math.max(160, 140 * moved),
+      };
+      ent.knock = true;
+      ent.anim = "TakeDamage";
+      ent.t0 = now;
+      ent.stepFps = null;
+      ent.feel = null;
+      G.fx = G.fx || [];
+      G.fx.push({ kind: "knock", element: "terre", t0: now, c: fromC, r: fromR, tc: ent.c, tr: ent.r });
     }
     return moved;
   }
@@ -2513,13 +2572,25 @@
     const cost = Math.max(1, sp.cost|0);
     e.pa -= cost;
     const anim = sp.anim || e.weaponAnim || "Attack1";
+    const castNow = performance.now();
     playAnim(e, anim);
+    if(typeof CastFeel !== "undefined"){
+      e.feel = { t0: castNow, kind: CastFeel.motionKind(sp), element: sp.element || "neutre" };
+      G.fx = G.fx || [];
+      const aim = (p && p.c != null) ? p : e;
+      G.fx.push({ kind: e.feel.kind, element: e.feel.element, t0: castNow, c: e.c, r: e.r, tc: aim.c, tr: aim.r });
+      if(e.feel.kind === "leap"){
+        e.slide = { kind: "leap", fromC: e.c, fromR: e.r, toC: e.c, toR: e.r, t0: castNow, dur: CastFeel.BODY_MS };
+      }
+      setTimeout(()=>{ if(e.feel && e.feel.t0 === castNow && e.anim !== "Die") playAnim(e, "Idle"); }, CastFeel.BODY_MS);
+    }
 
     /* self / soutien */
     if(sp.heal || sp.type==="heal" || sp.type==="shield" || sp.id==="bouclier" || sp.id==="nanites"){
       if(sp.heal){
         const h = sp.heal[0] + Math.floor(Math.random()*Math.max(1,(sp.heal[1]-sp.heal[0]+1)));
         e.pv = Math.min(e.pvMax, e.pv + h);
+        rlFloat(e, "+"+h, null, "heal", 0);
         setStatus(e.name+" · "+sp.name+" +"+h+" PV");
       } else {
         e.shield = (e.shield|0) + 10 + Math.floor(Math.random()*8);
@@ -2544,21 +2615,20 @@
       }
     }
     if(sp.effect==="drainPA"){ /* flavor : petit bonus */ dmg += 2; }
-    if(sp.effect==="push"){
-      /* recule le joueur d’1 case si libre */
-      const nc = p.c + Math.sign(p.c - e.c);
-      const nr = p.r + Math.sign(p.r - e.r);
-      if(inBounds(nc,nr) && !occupied(nc,nr,"player") && !(e.c===nc&&e.r===nr)){
-        p.c=nc; p.r=nr;
-      }
-    }
-    if(p.shield>0 && dmg){ const absorb=Math.min(p.shield,dmg); p.shield-=absorb; dmg-=absorb; }
+    if(sp.effect==="push") pushEntityAway(p, e, 1, "player");
+    let absorbed = 0;
+    if(p.shield>0 && dmg){ absorbed=Math.min(p.shield,dmg); p.shield-=absorbed; dmg-=absorbed; }
     if(dmg){
       if(G.roguelite) dmg = rlErode(p, dmg);
       p.pv = Math.max(0, Math.min(p.pvMax, p.pv-dmg));
-      p.flash = performance.now()+180;
-      rlFloat(p, "-"+dmg, "#8A3030");
     }
+    const popHit = ()=>{
+      if(absorbed) rlFloat(p, String(absorbed), null, "shield", 0);
+      if(dmg) rlFloat(p, "-"+dmg, null, "damage", 0);
+      p.flash = performance.now()+180;
+    };
+    if(typeof CastFeel !== "undefined") setTimeout(popHit, CastFeel.IMPACT_AT_MS);
+    else popHit();
     setStatus(e.name+" · "+sp.name+(dmg?" → "+dmg:"")+(e.pa>0?" · …":""));
     hud();
     if(p.pv<=0){
@@ -2875,12 +2945,25 @@
     const loopAnims = /^(Idle|Walk|Run|RunBackwards|StrafeLeft|StrafeRight|CrouchRun|RideIdle|RideRun|RideIdleAttack1|RideRunAttack1)$/i;
     const pos = entityDrawPos(ent);
     const s = toScreen(pos.c, pos.r);
-    const scale = (G.roster && G.roster.length > 12) ? 0.7 : (G.roster && G.roster.length > 6) ? 0.82 : 1.15;
-    const dw=FW*scale, dh=FH*scale;
+    const BODY_PX = 40;
+    let scale = (typeof CastFeel !== "undefined") ? CastFeel.tileScale(TILE_H, BODY_PX) : 1.22;
+    let squashX = 1, squashY = 1, lift = 0;
+    if(ent.slide && ent.slide.kind === "leap" && typeof CastFeel !== "undefined"){
+      const sq = CastFeel.landSquash(pos.u || 0);
+      squashX = sq.x; squashY = sq.y;
+      lift = CastFeel.leapLift(pos.u || 0) * TILE_H;
+    }
+    const dw=FW*scale*squashX, dh=FH*scale*squashY;
     const FOOT_Y = 88;
     const GROUND = 0;
-    const dx=s.x-dw/2, dy=s.y + GROUND - FOOT_Y*scale;
     const groundY = s.y + GROUND;
+    let dx=s.x-dw/2, dy=groundY - FOOT_Y*scale*squashY - lift;
+    if(ent.feel && typeof CastFeel !== "undefined" && (ent.feel.kind === "dash" || ent.slide && ent.slide.kind === "dash")){
+      const lean = CastFeel.lean(ent.dir|0, "impact");
+      const along = ent.slide ? Math.min(1, pos.u || 0) : 0.4;
+      dx += lean.x * along;
+      dy += lean.y * along;
+    }
     let baseAlpha = opts.alpha != null ? opts.alpha : 1;
     if(!isEnemy && !opts.clone && (G.player.invis|0)>0) baseAlpha *= 0.38;
 
@@ -2906,28 +2989,50 @@
     ctx.imageSmoothingEnabled=false;
     let drawn=0;
     const animFps = ent.stepFps || FPS;
+    let beat = null;
+    if(ent.feel && typeof CastFeel !== "undefined" && !loopAnims.test(anim) && !ent.knock){
+      beat = CastFeel.castColumn((performance.now() - ent.feel.t0) / 1000, COLS);
+    }
+    function sheetCol(sheetAnim){
+      if(ent.knock) return 0;
+      if(beat && !beat.idle && !loopAnims.test(sheetAnim)) return beat.col;
+      let col = Math.floor(elapsed * animFps);
+      if(loopAnims.test(sheetAnim) || (beat && beat.idle)) col = col % COLS;
+      else col = Math.min(col, COLS-1);
+      return col;
+    }
+    const drawAnim = (beat && beat.idle) ? "Idle" : anim;
     for(const L of layers){
-      const resolved = resolveSheet(L.folder, anim, mounted);
+      const resolved = resolveSheet(L.folder, drawAnim, mounted);
       if(!resolved) continue;
       const { im, sheetAnim } = resolved;
       const row = sheetRowForDir(ent.dir|0, sheetAnim);
-      let col = Math.floor(elapsed*animFps);
-      if(loopAnims.test(sheetAnim)) col = col % COLS;
-      else col = Math.min(col, COLS-1);
+      const col = sheetCol(sheetAnim);
       try{ tintDraw(im, col*FW, row*FH, FW, FH, dx, dy, dw, dh, L.tint, (L.alpha||1)*baseAlpha); drawn++; }catch(_e){}
+    }
+    if(beat && beat.smear){
+      const ghost = CastFeel.lean(ent.dir|0, "impact");
+      ctx.save();
+      ctx.globalAlpha = 0.35 * baseAlpha;
+      for(const L of layers){
+        const resolved = resolveSheet(L.folder, drawAnim, mounted);
+        if(!resolved) continue;
+        const { im, sheetAnim } = resolved;
+        const row = sheetRowForDir(ent.dir|0, sheetAnim);
+        try{ tintDraw(im, beat.col*FW, row*FH, FW, FH, dx+ghost.x, dy+ghost.y, dw, dh, L.tint, 0.45); }catch(_e){}
+      }
+      ctx.restore();
     }
     if(ent.overlay==="squelette" || ent.overlay==="spectre"){
       const bone = ent.overlay==="squelette";
       const tintHex = bone ? "#efe8dc" : "#d9cbb8";
       const ovA = bone ? 0.8 : 0.45;
       for(const L of layers){
-        const resolved = resolveSheet(L.folder, anim, mounted);
+        const resolved = resolveSheet(L.folder, drawAnim, mounted);
         if(!resolved) continue;
         const { im, sheetAnim } = resolved;
         const row = sheetRowForDir(ent.dir|0, sheetAnim);
-        let col = Math.floor(elapsed*animFps);
-        if(loopAnims.test(sheetAnim)) col = col % COLS;
-        else col = Math.min(col, COLS-1);
+        const col = sheetCol(sheetAnim);
         try{ tintDraw(im, col*FW, row*FH, FW, FH, dx+3, dy-4, dw, dh, tintHex, ovA*baseAlpha); }catch(_e){}
       }
     }
@@ -2942,13 +3047,11 @@
     if(ent.flash && performance.now()<ent.flash){
       ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.globalAlpha=0.45*baseAlpha;
       for(const L of layers){
-        const resolved = resolveSheet(L.folder, anim, mounted);
+        const resolved = resolveSheet(L.folder, drawAnim, mounted);
         if(!resolved) continue;
         const { im, sheetAnim } = resolved;
         const row = sheetRowForDir(ent.dir|0, sheetAnim);
-        let col = Math.floor(elapsed*animFps);
-        if(loopAnims.test(sheetAnim)) col = col % COLS;
-        else col = Math.min(col, COLS-1);
+        const col = sheetCol(sheetAnim);
         try{ ctx.drawImage(im,col*FW,row*FH,FW,FH,dx,dy,dw,dh); }catch(_e){}
       }
       ctx.restore();
@@ -2959,6 +3062,91 @@
       ctx.fillStyle="rgba(0,0,0,.22)"; ctx.fillRect(bx-1,by-1,bw+2,bh+2);
       ctx.fillStyle = isEnemy ? "#8a3030" : "#2f6f4e";
       ctx.fillRect(bx, by, bw*Math.max(0,pct), bh);
+    }
+  }
+
+  function fxRgb(element){
+    const rgb = (typeof CastFeel !== "undefined") ? CastFeel.elementColor(element) : [234, 112, 32];
+    return "rgb("+rgb[0]+","+rgb[1]+","+rgb[2]+")";
+  }
+  function drawWorldFx(pass){
+    if(typeof CastFeel === "undefined") return;
+    const now = performance.now();
+    const list = G.fx || [];
+    const limit = CastFeel.BODY + CastFeel.LINGER;
+    for(const fx of list){
+      const age = (now - fx.t0) / 1000;
+      if(age < 0 || age > limit) continue;
+      const color = fxRgb(fx.element);
+      const from = toScreen(fx.c, fx.r);
+      const to = toScreen(fx.tc, fx.tr);
+      ctx.save();
+      if(pass === "ground"){
+        if(age >= CastFeel.ANTICIPATE){
+          const life = 1 - Math.min(1, (age - CastFeel.ANTICIPATE) / (CastFeel.IMPACT + CastFeel.RECOVER + CastFeel.LINGER));
+          ctx.globalAlpha = 0.55 * life;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.5;
+          tileDiamond(fx.tc, fx.tr, "rgba(0,0,0,0)", color);
+        }
+        if(fx.kind === "knock" || fx.kind === "dash"){
+          ctx.fillStyle = "rgba(90,80,60,0.35)";
+          const steps = 4;
+          for(let i = 0; i < steps; i++){
+            const u = (i + 1) / (steps + 1);
+            if(u > Math.min(1, age / 0.4)) continue;
+            const x = from.x + (to.x - from.x) * u;
+            const y = from.y + (to.y - from.y) * u;
+            ctx.beginPath();
+            ctx.ellipse(x, y + 2, 7 - i, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      } else {
+        if(age < CastFeel.ANTICIPATE){
+          const u = age / CastFeel.ANTICIPATE;
+          ctx.globalAlpha = 0.35 + u * 0.4;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(from.x, from.y, 8 + u * 10, 4 + u * 3, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if(fx.kind === "summon"){
+          const drop = age < CastFeel.ANTICIPATE ? 1 - age / CastFeel.ANTICIPATE : 0;
+          const hx = to.x, hy = to.y - 18 - drop * 34;
+          ctx.globalAlpha = drop > 0 ? 0.9 : 0.4;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(hx, hy - 10);
+          ctx.lineTo(hx + 4, hy);
+          ctx.lineTo(hx, hy + 8);
+          ctx.lineTo(hx - 4, hy);
+          ctx.closePath();
+          ctx.fill();
+        }
+        if(age >= CastFeel.ANTICIPATE && age < CastFeel.ANTICIPATE + 0.28){
+          const u = (age - CastFeel.ANTICIPATE) / 0.28;
+          ctx.globalAlpha = 1 - u;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          const rad = 6 + u * (fx.kind === "summon" ? 26 : 16);
+          ctx.beginPath();
+          ctx.ellipse(to.x, to.y, rad, rad * 0.45, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.fillStyle = color;
+          for(let i = 0; i < 6; i++){
+            const a = (i / 6) * Math.PI * 2;
+            const x = to.x + Math.cos(a) * (10 + u * 14);
+            const y = to.y + Math.sin(a) * (5 + u * 7);
+            ctx.fillRect(x, y, 2, 2);
+          }
+        }
+      }
+      ctx.restore();
+    }
+    if(pass === "air"){
+      G.fx = list.filter(fx => (now - fx.t0) / 1000 <= limit);
     }
   }
 
@@ -3009,21 +3197,34 @@
       const pa = entityDrawPos(a.e), pb = entityDrawPos(b.e);
       return (pa.c+pa.r)-(pb.c+pb.r) || pa.c-pb.c;
     });
+    drawWorldFx("ground");
     for(const o of ents){
       drawEntity(o.e, o.enemy, o.clone ? {clone:true, alpha:o.e.alpha||0.42} : null);
     }
+    drawWorldFx("air");
+    const nowDraw = performance.now();
     (G.floats||[]).forEach(f=>{
-      const age = performance.now() - f.t0;
-      if(age>700) return;
+      const age = (nowDraw - f.t0) / 1000;
+      const motion = (typeof CastFeel !== "undefined")
+        ? CastFeel.numberMotion(age, f.hit || 0)
+        : { scale: 1, alpha: age < 0.7 ? 1 - age / 0.7 : 0, x: 0, y: age * 28, alive: age < 0.7 };
+      if(!motion.alive) return;
       const s = toScreen(f.c, f.r);
+      const rgb = (typeof CastFeel !== "undefined" && CastFeel.NUM[f.kind]) ? CastFeel.NUM[f.kind] : null;
       ctx.save();
-      ctx.globalAlpha = 1 - age/700;
-      ctx.fillStyle = f.color;
-      ctx.font = "700 14px Pixelify Sans, sans-serif";
-      ctx.fillText(f.text, s.x-8, s.y - 36 - age/18);
+      ctx.translate(s.x + motion.x, s.y - 46 - motion.y);
+      ctx.scale(motion.scale, motion.scale);
+      ctx.globalAlpha = motion.alpha;
+      ctx.fillStyle = f.color || (rgb ? "rgb("+rgb[0]+","+rgb[1]+","+rgb[2]+")" : "#D2302A");
+      ctx.font = "700 13px Pixelify Sans, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(f.text, 0, 0);
       ctx.restore();
     });
-    G.floats = (G.floats||[]).filter(f=> performance.now()-f.t0 < 700);
+    G.floats = (G.floats||[]).filter(f=>{
+      const age = (nowDraw - f.t0) / 1000;
+      return (typeof CastFeel !== "undefined") ? CastFeel.numberMotion(age, f.hit || 0).alive : age < 0.7;
+    });
 
     ctx.restore();
   }
@@ -3085,10 +3286,15 @@
     const t = (G.rl && G.rl.turns) || 1;
     return (G.rl.kills|0)*26 + (G.rl.combos|0)*12 + ((G.rl.healed|0)>0 ? 16 : 0) + (G.rl.shielded|0)*10 + (t<=6 ? 14 : 0);
   }
-  function rlFloat(ent, text, color){
+  function rlFloat(ent, text, color, kind, hitIndex){
     if(!ent) return;
     G.floats = G.floats || [];
-    G.floats.push({ c:ent.c, r:ent.r, text:String(text), color:color||"#EA7020", t0:performance.now() });
+    const k = kind || (String(text).indexOf("+") === 0 ? "heal" : "damage");
+    G.floats.push({
+      c: ent.c, r: ent.r, text: String(text),
+      color: color || null, kind: k, hit: hitIndex || 0,
+      t0: performance.now(),
+    });
   }
   function rlScale(caster, target, spell, dmg){
     const map = { terre:"force", neutre:"force", feu:"intel", eau:"chance", air:"agi" };

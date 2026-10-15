@@ -13,6 +13,7 @@ const rigSpells = readFileSync("data/rig-spells.json", "utf8");
 const policy = readFileSync("data/ai-policy.json", "utf8");
 const skin = readFileSync("css/skin-d.css", "utf8");
 const bridge = readFileSync("js/fantasy-combat-bridge.js", "utf8");
+const feel = readFileSync("js/cast-feel.js", "utf8");
 let hub = readFileSync("js/hub.js", "utf8");
 let combat = readFileSync("fantasy-combat.html", "utf8");
 let creator = readFileSync("character-creator-fantasy.html", "utf8");
@@ -31,8 +32,8 @@ combat = combat.replace(
   "<style>\n" + skin + "\n</style>",
 );
 combat = combat.replace(
-  '<script src="js/fantasy-combat-bridge.js"></script>',
-  "<script>\n" + bridge + "\n</script>",
+  '<script src="js/cast-feel.js"></script>\n<script src="js/fantasy-combat-bridge.js"></script>',
+  "<script>\n" + feel + "\n" + bridge + "\n</script>",
 );
 combat = combat.replace(
   'const BASE_LOCAL = "assets/packs/fantasy-cc/";\n  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@main/assets/packs/fantasy-cc/";',
