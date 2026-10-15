@@ -1,5 +1,26 @@
 # Rapport final
 
+## Réactions
+
+Jeu : [https://litter.catbox.moe/5u9ipz.html](https://litter.catbox.moe/5u9ipz.html)
+
+Éditeur : [https://litter.catbox.moe/8526ac.html](https://litter.catbox.moe/8526ac.html)
+
+Lecteur : [https://litter.catbox.moe/uz8e8j.html](https://litter.catbox.moe/uz8e8j.html)
+
+Déposés le 15 octobre 2026 à 05:46 UTC. Ils restent en ligne environ 72 heures, jusqu’au 18 octobre 2026 vers 05:46 UTC.
+
+Chaque coup et chaque soin déclenche une réaction sur la cible, à l’image d’impact (0,26 s). Le corps, la tête, le torse, les jambes, les chaussures, l’arme et le bouclier jouent la même feuille. Sauf le K.O., la pose revient à l’attente.
+
+- Direct : sursaut léger. Crochet : grand choc. Uppercut : décollage. Coup de pied ou poussée : glissade et poussière.
+- Quatre directions iso, de face ou de dos.
+- Feu : flammes et recul. Glace : teinte bleue, ralenti. Foudre : tremblement et étincelles. Explosion : souffle.
+- Les tics de brûlure et les surcoups rejouent un sursaut.
+- Soin, égide et gain : lueur, légère levée, chiffre vert, bleu ou neutre.
+- Parade, esquive, et K.O. qui reste au sol.
+
+Le contrôle couvre les 16 réactions, les 8 approches, les couches d’équipement et toutes les chaînes du poing. Pas de simulation.
+
 ## Combos du poing
 
 Jeu : [https://litter.catbox.moe/9c6uem.html](https://litter.catbox.moe/9c6uem.html)

@@ -109,6 +109,7 @@
   </div>
 </div>
 
+<script src="js/reactions.js"></script>
 <script src="js/combo-blocks.js"></script>
 <script src="js/fantasy-combat-bridge.js"></script>
 <script>
@@ -1278,6 +1279,23 @@ function renderComboFields(spell, key, entry){
   sel.onchange=function(){ entry.mode=sel.value; scheduleAutoSave(); };
   mode.appendChild(sel);
   box.appendChild(mode);
+  if(typeof Reactions!=="undefined"){
+    const react=document.createElement("label"); react.className="field";
+    const rc=document.createElement("span"); rc.textContent="Réaction";
+    react.appendChild(rc);
+    const rs=document.createElement("select");
+    const none=document.createElement("option"); none.value=""; none.textContent="—";
+    rs.appendChild(none);
+    Object.keys(Reactions.REACTIONS).forEach(function(id){
+      const op=document.createElement("option");
+      op.value=id; op.textContent=Reactions.REACTIONS[id].label;
+      if((entry.reaction||"")===id) op.selected=true;
+      rs.appendChild(op);
+    });
+    rs.onchange=function(){ entry.reaction=rs.value; scheduleAutoSave(); };
+    react.appendChild(rs);
+    box.appendChild(react);
+  }
   const chips=document.createElement("div");
   chips.style.cssText="display:flex;flex-wrap:wrap;gap:3px";
   function chip(label, on, toggle){

@@ -31,6 +31,7 @@
     <span id="status"></span>
   </div>
 </div>
+<script src="js/reactions.js"></script>
 <script src="js/combo-blocks.js"></script>
 <script src="js/cast-feel.js"></script>
 <script>
@@ -146,6 +147,29 @@ function frame() {
       ctx.fillRect(dx + dw * 0.30, dy + dh * 0.42, 5, 5);
     }
   }
+  if (chain && step && step.reaction && age >= CastFeel.ANTICIPATE) {
+    const spec = Reactions.compose(step.reaction, { elementFx: step.elementFx || "" });
+    const pose = Reactions.sample(spec, age - CastFeel.ANTICIPATE, 0);
+    const ts = toScreen(4, 2);
+    const tImg = sheetOf(spec.sheet);
+    const tdx = ts.x - dw / 2 + pose.x;
+    const tdy = ts.y - 88 * scale + pose.y;
+    const frames = spec.frames;
+    const idx = Math.min(frames.length - 1, Math.floor((age - CastFeel.ANTICIPATE) * spec.fps));
+    if (tImg.complete && tImg.naturalWidth) {
+      ctx.drawImage(tImg, frames[idx] * 128, 2 * 128, 128, 128, tdx, tdy, dw, dh);
+    }
+    if (pose.flames) {
+      ctx.fillStyle = "#e24a2a";
+      ctx.fillRect(tdx + dw * 0.46, tdy + dh * 0.2, 4, 7);
+    }
+    if (pose.dust) {
+      ctx.fillStyle = "rgba(196,180,154,0.7)";
+      ctx.beginPath();
+      ctx.ellipse(ts.x, ts.y + 2, 8, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
   if (age >= CastFeel.ANTICIPATE && age < CastFeel.ANTICIPATE + 0.45) {
     const pop = CastFeel.numberMotion(age - CastFeel.ANTICIPATE, kind === "strike" ? 0 : 2);
     if (pop.alive) {
@@ -162,7 +186,7 @@ function frame() {
     }
   }
   const label = chain
-    ? chainName + " · " + chain.steps.map((s) => s.id).join(" → ") + " · " + (Combo.chainIssues(chain.steps).length ? "saut" : "fluide")
+    ? chainName + " · " + chain.steps.map((s) => (s.reaction ? s.id + "→" + s.reaction : s.id)).join(" · ") + " · " + (Combo.chainIssues(chain.steps).length ? "saut" : "fluide")
     : kind + " · " + beat.phase;
   document.getElementById("status").textContent = label + " · " + (40 * scale / TILE_H).toFixed(2) + " tuiles";
   requestAnimationFrame(frame);

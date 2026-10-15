@@ -6,6 +6,7 @@
 <script>try{if(localStorage.getItem("roguelite.theme")==="dark")document.documentElement.classList.add("dark");}catch(e){}</script>
 <title>Combat Fantasy</title>
 <link rel="stylesheet" href="css/skin-d.css">
+<script src="js/reactions.js"></script>
 <script src="js/combo-blocks.js"></script>
 <script src="js/cast-feel.js"></script>
 <script src="js/fantasy-combat-bridge.js"></script>
@@ -756,6 +757,8 @@
             hitTarget: !!b.hit,
           });
           step.motion = b.move || "";
+          step.reaction = b.reaction || "";
+          step.elementFx = b.elementFx || "";
           return step;
         });
       }
@@ -891,9 +894,17 @@
       const hitNow = onHit && (i % stepsPerHit === 0);
       const hitIndex = Math.floor((i - 1) / stepsPerHit);
       const bodyMs = (typeof CastFeel !== "undefined") ? CastFeel.BODY_MS : dur;
-      const impactMs = (typeof CastFeel !== "undefined") ? CastFeel.IMPACT_AT_MS : dur;
+      const impactMs = (typeof Reactions !== "undefined") ? Reactions.IMPACT_MS : ((typeof CastFeel !== "undefined") ? CastFeel.IMPACT_AT_MS : dur);
       setTimeout(()=>{
-        if(hitNow && mine()) try{ onHit(hitIndex); }catch(_e){}
+        if(!mine()) return;
+        if(hitNow) try{ onHit(hitIndex, step); }catch(_e){}
+        const foe = opts.target || G.enemy;
+        if(step.reaction && foe && foe.alive && foe.pv>0 && !(foe.react && (foe.react.id==="ko" || foe.react.id==="block"))){
+          startReaction(foe, step.reaction, {
+            elementFx: step.elementFx || "",
+            faceDir: reactionFace(foe, G.player),
+          });
+        }
       }, delay + impactMs);
       setTimeout(()=>{ next(); }, delay + bodyMs);
     }
@@ -1865,6 +1876,55 @@
     }
   }
 
+  function startReaction(ent, id, opts){
+    if(!ent) return;
+    opts = opts || {};
+    const token = (ent._reactToken || 0) + 1;
+    ent._reactToken = token;
+    if(typeof Reactions==="undefined"){
+      playAnim(ent, (ent.pv|0)<=0 ? "Die" : "TakeDamage");
+      return;
+    }
+    const spec = Reactions.compose(id || "flinch", opts);
+    ent.react = { id: spec.id, t0: performance.now(), spec: spec, token: token };
+    if(opts.faceDir!=null) ent.dir = opts.faceDir & 7;
+    ent.feel = null;
+    playAnim(ent, spec.sheet);
+    ent.stepFps = spec.fps;
+    if(spec.poseOut==="garde"){
+      setTimeout(function(){
+        if(!ent.react || ent.react.token!==token) return;
+        if(ent.anim==="Die") return;
+        ent.react = null;
+        playAnim(ent, "Idle");
+      }, spec.returnMs);
+    }
+  }
+  function reactionFace(target, attacker){
+    if(typeof Reactions==="undefined" || !target || !attacker) return null;
+    const incoming = dirFromIsoDelta(target.c-attacker.c, target.r-attacker.r);
+    if(incoming==null) return null;
+    const facing = Reactions.facingOf(target.dir|0, incoming);
+    return Reactions.sheetDir(facing, incoming);
+  }
+  function tickDots(ent){
+    if(!ent || !ent.alive || !ent.dot || (ent.dot.turns|0)<=0) return;
+    ent.dot.turns = (ent.dot.turns|0) - 1;
+    const n = ent.dot.dmg|0;
+    if(n) ent.pv = Math.max(0, ent.pv - n);
+    if(n) rlFloat(ent, "-"+n, null, "damage", 1);
+    const dead = ent.pv<=0;
+    startReaction(ent, "dot", { elementFx: ent.dot.fx || "", ko: dead });
+    if(dead){
+      ent.alive = false;
+      if(ent===G.player) onCombatEnd("defeat");
+      else if(ent===G.enemy){
+        if(G.rl) G.rl.kills = (G.rl.kills|0)+1;
+        if(!rlPromote()) onCombatEnd("win");
+      }
+    }
+    if((ent.dot.turns|0)<=0) ent.dot = null;
+  }
   function playAnim(ent, anim){
     let a = anim;
     if(ent === G.player && isPlayerMounted()) a = toRideAnim(anim);
@@ -1991,9 +2051,11 @@
       const turns = 2 + (evo.invisTurns|0);
       G.player.invis = Math.max(G.player.invis||0, turns);
       if(evo.invisPm) G.player.pm = Math.min(G.player.pmMax+2, G.player.pm + (evo.invisPm|0));
+      setTimeout(function(){ startReaction(G.player, "buff"); }, (typeof Reactions!=="undefined") ? Reactions.IMPACT_MS : 260);
       setStatus("Voile d’ombre · "+G.player.invis+" tours");
     } else if(sp.id==="overclock"){
       G.player.pm = Math.min(G.player.pmMax+1, G.player.pm+1);
+      setTimeout(function(){ startReaction(G.player, "buff"); }, (typeof Reactions!=="undefined") ? Reactions.IMPACT_MS : 260);
       setStatus("Ivresse · +1 PM");
     } else if(sp.type==="summon" || sp.effect==="summon"){
       rlSpawnBones();
@@ -2004,12 +2066,15 @@
       G.player.pv = Math.min(G.player.pvMax, G.player.pv + h);
       if(G.rl) G.rl.healed = (G.rl.healed|0) + h;
       rlFloat(G.player, "+"+h, null, "heal", 0);
+      setTimeout(function(){ startReaction(G.player, "heal"); }, (typeof Reactions!=="undefined") ? Reactions.IMPACT_MS : 260);
       if(sp.id==="bouclier" || sp.id==="armure_nanites" || sp.type==="shield"){
         G.player.shield = (G.player.shield||0) + Math.floor(h/2) + (evo.shield|0);
       }
       setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name+" +"+h+" PV");
     } else {
       G.player.shield = (G.player.shield||0) + 8 + (evo.shield|0);
+      rlFloat(G.player, "+"+G.player.shield, null, "shield", 0);
+      setTimeout(function(){ startReaction(G.player, "shield"); }, (typeof Reactions!=="undefined") ? Reactions.IMPACT_MS : 260);
       setStatus((G.armedSlot?G.armedSlot.label+" · ":"")+sp.name);
     }
     G.combo = Math.min(100, G.combo + 18);
@@ -2278,7 +2343,7 @@
         if(G.enemy.shield>0){ const a=Math.min(G.enemy.shield,dmg); G.enemy.shield-=a; dmg-=a; }
         G.enemy.pv = Math.max(0, G.enemy.pv - dmg);
         G.enemy.flash = performance.now()+180;
-        playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
+        startReaction(G.enemy, G.enemy.pv<=0 ? "ko" : "flinch", { ko: G.enemy.pv<=0, faceDir: reactionFace(G.enemy, cl) });
         setStatus("Sosie tacle → "+dmg);
         if(cl.stun){ /* retire 1 PA conceptuel au prochain tour ennemi via flag */ G.enemy._stunned = true; }
         if(G.enemy.pv<=0){
@@ -2333,7 +2398,7 @@
     }
     pushCells += (evo.push|0);
 
-    const applyOneHit = (hitIndex)=>{
+    const applyOneHit = (hitIndex, hitStep)=>{
       if(!G.enemy.alive || G.enemy.pv <= 0) return;
       let dmg = dmgEach;
       let absorbed = 0;
@@ -2344,11 +2409,23 @@
       if(dmg) rlFloat(G.enemy, "-"+dmg, null, "damage", hitIndex);
       total += dmg;
       G.enemy.flash = performance.now()+180;
-      faceToward(G.enemy, G.player.c, G.player.r);
-      playAnim(G.enemy, G.enemy.pv<=0 ? "Die" : "TakeDamage");
+      if(G.enemy.pv<=0){
+        startReaction(G.enemy, "ko", { ko:true, faceDir: reactionFace(G.enemy, G.player) });
+      } else if(!dmg && absorbed){
+        startReaction(G.enemy, "block", { faceDir: reactionFace(G.enemy, G.player) });
+      } else if(!hitStep || !hitStep.reaction){
+        const named = (typeof Reactions!=="undefined") ? Reactions.forSpell(sp) : "flinch";
+        if(named) startReaction(G.enemy, named, { faceDir: reactionFace(G.enemy, G.player) });
+      }
       /* Push une seule fois, sur le dernier coup qui touche encore vivant / fin de chaîne */
       if(pushCells > 0 && hitIndex === hits - 1 && G.enemy.pv > 0){
         pushed = pushEntityAway(G.enemy, G.player, Math.max(1, pushCells), "enemy");
+      }
+      if(hitIndex===0 && sp.id==="punch" && G.enemy.pv>0){
+        const chain = punchCombo(sp);
+        if(chain && chain.turns){
+          G.enemy.dot = { turns: chain.turns, element: chain.element || "", fx: (chain.steps[0] && chain.steps[0].elementFx) || "", dmg: 2 };
+        }
       }
       setStatus(label+" → "+dmg+(hits>1?" ("+(hitIndex+1)+"/"+hits+")":"")+(pushed?" · poussé "+pushed:""));
       hud();
@@ -2419,9 +2496,11 @@
         dur: Math.max(160, 140 * moved),
       };
       ent.knock = true;
-      ent.anim = "TakeDamage";
-      ent.t0 = now;
-      ent.stepFps = null;
+      if(!ent.react){
+        ent.anim = "TakeDamage";
+        ent.t0 = now;
+        ent.stepFps = null;
+      }
       ent.feel = null;
       G.fx = G.fx || [];
       G.fx.push({ kind: "knock", element: "terre", t0: now, c: fromC, r: fromR, tc: ent.c, tr: ent.r });
@@ -2643,7 +2722,11 @@
 
     if(!p.alive) return false;
     faceToward(e, p.c, p.r);
-    if(dist(e,p) > (sp.range|0)){ setStatus(e.name+" rate"); return false; }
+    if(dist(e,p) > (sp.range|0)){
+      startReaction(p, "dodge", { faceDir: reactionFace(p, e) });
+      setStatus(e.name+" rate");
+      return false;
+    }
 
     let dmg = 0;
     if(sp.dmg){
@@ -2666,6 +2749,13 @@
       if(absorbed) rlFloat(p, String(absorbed), null, "shield", 0);
       if(dmg) rlFloat(p, "-"+dmg, null, "damage", 0);
       p.flash = performance.now()+180;
+      const face = reactionFace(p, e);
+      if(p.pv<=0) startReaction(p, "ko", { ko:true, faceDir: face });
+      else if(!dmg && absorbed) startReaction(p, "block", { faceDir: face });
+      else {
+        const named = (typeof Reactions!=="undefined") ? (Reactions.forSpell(sp) || "flinch") : "flinch";
+        startReaction(p, named, { faceDir: face });
+      }
     };
     if(typeof CastFeel !== "undefined") setTimeout(popHit, CastFeel.IMPACT_AT_MS);
     else popHit();
@@ -2681,6 +2771,8 @@
 
   function enemyTurn(){
     if(!G.enemy.alive){ G.turn="player"; beginPlayerTurn(); return; }
+    tickDots(G.enemy);
+    if(!G.enemy.alive) return;
     const e=G.enemy;
     e.pa = e.paMax; e.pm = e.pmMax;
     const prof = e.profile || strategyProfile(e.strategy||"bruiser", e.spells);
@@ -2808,6 +2900,8 @@
 
   function beginPlayerTurn(){
     G.busy = false;
+    tickDots(G.player);
+    if(!G.player.alive) return;
     if(!G.roguelite) G.player.pmMax = playerBasePm();
     G.player.pa = G.player.paMax;
     G.player.pm = G.player.pmMax;
@@ -2999,6 +3093,12 @@
     const GROUND = 0;
     const groundY = s.y + GROUND;
     let dx=s.x-dw/2, dy=groundY - FOOT_Y*scale*squashY - lift;
+    let reactDraw = null;
+    if(ent.react && typeof Reactions!=="undefined"){
+      reactDraw = Reactions.sample(ent.react.spec, (performance.now()-ent.react.t0)/1000, ent.dir|0);
+      dx += reactDraw.x;
+      dy += reactDraw.y;
+    }
     if(ent.feel && typeof CastFeel !== "undefined" && (ent.feel.kind === "dash" || ent.slide && ent.slide.kind === "dash")){
       const lean = CastFeel.lean(ent.dir|0, "impact");
       const along = ent.slide ? Math.min(1, pos.u || 0) : 0.4;
@@ -3015,7 +3115,7 @@
     ctx.restore();
 
     let layers;
-    if(dying){
+    if(dying && !ent.react){
       layers = layersForDeathPose(ent, isEnemy);
     } else if(ent.layers && ent.layers.length){
       layers = ent.layers;
@@ -3035,6 +3135,13 @@
       beat = CastFeel.castColumn((performance.now() - ent.feel.t0) / 1000, COLS);
     }
     function sheetCol(sheetAnim){
+      if(ent.react && ent.react.spec && ent.react.spec.frames){
+        const frames = ent.react.spec.frames;
+        const ageMs = performance.now() - ent.react.t0;
+        let idx = Math.min(frames.length-1, Math.floor(ageMs / (1000/Math.max(1, ent.react.spec.fps))));
+        if(ent.react.spec.hold && ageMs >= ent.react.spec.returnMs) idx = frames.length-1;
+        return frames[idx] % COLS;
+      }
       if(ent.knock) return 0;
       if(beat && !beat.idle && !loopAnims.test(sheetAnim)) return beat.col;
       let col = Math.floor(elapsed * animFps);
@@ -3072,6 +3179,42 @@
       ctx.fillRect(dx+dw*0.62, dy+dh*0.42, 5, 5);
       ctx.fillRect(dx+dw*0.30, dy+dh*0.42, 5, 5);
       if(drawAnim==="Kick") ctx.fillRect(dx+dw*0.68, dy+dh*0.72, 6, 4);
+      ctx.restore();
+    }
+    if(reactDraw){
+      ctx.save();
+      if(reactDraw.tint && typeof CastFeel!=="undefined"){
+        const rgb = CastFeel.elementColor(reactDraw.tint);
+        ctx.fillStyle = "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+",0.28)";
+        ctx.fillRect(dx+dw*0.28, dy+dh*0.2, dw*0.44, dh*0.55);
+      }
+      if(reactDraw.glow && typeof CastFeel!=="undefined"){
+        const key = reactDraw.glow==="heal" ? "heal" : reactDraw.glow==="shield" ? "shield" : "neutre";
+        const rgb = key==="neutre" ? CastFeel.elementColor("neutre") : CastFeel.NUM[key];
+        ctx.globalAlpha = 0.35 * baseAlpha;
+        ctx.fillStyle = "rgb("+rgb[0]+","+rgb[1]+","+rgb[2]+")";
+        ctx.beginPath();
+        ctx.ellipse(s.x, dy+dh*0.45, 16, 22, 0, 0, Math.PI*2);
+        ctx.fill();
+      }
+      if(reactDraw.flames){
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = "#e24a2a";
+        ctx.fillRect(dx+dw*0.42, dy+dh*0.18, 4, 7);
+        ctx.fillRect(dx+dw*0.52, dy+dh*0.12, 3, 6);
+      }
+      if(reactDraw.sparks){
+        ctx.fillStyle = "#c8d0ff";
+        ctx.fillRect(dx+dw*0.3, dy+dh*0.3, 2, 2);
+        ctx.fillRect(dx+dw*0.62, dy+dh*0.36, 2, 2);
+      }
+      if(reactDraw.dust){
+        ctx.globalAlpha = 0.45;
+        ctx.fillStyle = "#c4b49a";
+        ctx.beginPath();
+        ctx.ellipse(s.x-reactDraw.x, groundY+2, 8, 3, 0, 0, Math.PI*2);
+        ctx.fill();
+      }
       ctx.restore();
     }
     if(ent.overlay==="squelette" || ent.overlay==="spectre"){
@@ -3489,7 +3632,7 @@
         target.pv = Math.max(0, target.pv - dmg);
         target.flash = performance.now()+160;
         rlFloat(target, "-"+dmg, p.side==="a" ? "#EA7020" : "#8A3030");
-        try{ playAnim(target, target.pv<=0 ? "Die" : "TakeDamage"); }catch(_e){}
+        try{ startReaction(target, target.pv<=0 ? "ko" : "flinch", { ko: target.pv<=0, faceDir: reactionFace(target, p) }); }catch(_e){}
         if(target.pv<=0){
           target.alive = false;
           if(target===G.player){ onCombatEnd("defeat"); return; }

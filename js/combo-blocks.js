@@ -5,17 +5,17 @@
  */
 (function (root) {
   var BLOCKS = {
-    jabL: { id: "jabL", label: "Direct G", anim: "Attack1", fps: 17, poseIn: "garde", poseOut: "garde", hand: "L", hit: true },
-    jabR: { id: "jabR", label: "Direct D", anim: "Attack2", fps: 16, poseIn: "garde", poseOut: "garde", hand: "R", hit: true },
-    hook: { id: "hook", label: "Crochet", anim: "Attack6", fps: 15, poseIn: "garde", poseOut: "garde", hand: "R", hit: true },
-    uppercut: { id: "uppercut", label: "Uppercut", anim: "Special1", fps: 17, poseIn: "garde", poseOut: "garde", hand: "R", hit: true, effect: "Effect1", finisher: true },
-    bigKick: { id: "bigKick", label: "Grand coup de pied", anim: "Kick", fps: 14, poseIn: "garde", poseOut: "garde", hand: "R", hit: true },
-    knee: { id: "knee", label: "Genou", anim: "Attack3", fps: 16, poseIn: "garde", poseOut: "garde", hand: "R", hit: true },
-    dashIn: { id: "dashIn", label: "Dash", anim: "Slide", fps: 16, poseIn: "garde", poseOut: "garde", move: "dash" },
-    leapIn: { id: "leapIn", label: "Bond", anim: "AttackRun", fps: 16, poseIn: "garde", poseOut: "garde", move: "leap" },
-    explosion: { id: "explosion", label: "Explosion", anim: "Special1", fps: 14, poseIn: "garde", poseOut: "garde", finisher: true, fx: "explosion", effect: "Effect1" },
-    shockwave: { id: "shockwave", label: "Onde", anim: "Attack5", fps: 16, poseIn: "garde", poseOut: "garde", finisher: true, fx: "shockwave", slash: "Slash1" },
-    projectile: { id: "projectile", label: "Projectile", anim: "Attack4", fps: 15, poseIn: "garde", poseOut: "garde", finisher: true, fx: "projectile", slash: "Slash2" },
+    jabL: { id: "jabL", label: "Direct G", anim: "Attack1", fps: 17, poseIn: "garde", poseOut: "garde", hand: "L", hit: true, reaction: "flinch" },
+    jabR: { id: "jabR", label: "Direct D", anim: "Attack2", fps: 16, poseIn: "garde", poseOut: "garde", hand: "R", hit: true, reaction: "flinch" },
+    hook: { id: "hook", label: "Crochet", anim: "Attack6", fps: 15, poseIn: "garde", poseOut: "garde", hand: "R", hit: true, reaction: "stagger" },
+    uppercut: { id: "uppercut", label: "Uppercut", anim: "Special1", fps: 17, poseIn: "garde", poseOut: "garde", hand: "R", hit: true, effect: "Effect1", finisher: true, reaction: "launch" },
+    bigKick: { id: "bigKick", label: "Grand coup de pied", anim: "Kick", fps: 14, poseIn: "garde", poseOut: "garde", hand: "R", hit: true, reaction: "knockback" },
+    knee: { id: "knee", label: "Genou", anim: "Attack3", fps: 16, poseIn: "garde", poseOut: "garde", hand: "R", hit: true, reaction: "flinch" },
+    dashIn: { id: "dashIn", label: "Dash", anim: "Slide", fps: 16, poseIn: "garde", poseOut: "garde", move: "dash", reaction: "" },
+    leapIn: { id: "leapIn", label: "Bond", anim: "AttackRun", fps: 16, poseIn: "garde", poseOut: "garde", move: "leap", reaction: "" },
+    explosion: { id: "explosion", label: "Explosion", anim: "Special1", fps: 14, poseIn: "garde", poseOut: "garde", finisher: true, fx: "explosion", effect: "Effect1", reaction: "blast" },
+    shockwave: { id: "shockwave", label: "Onde", anim: "Attack5", fps: 16, poseIn: "garde", poseOut: "garde", finisher: true, fx: "shockwave", slash: "Slash1", reaction: "knockback" },
+    projectile: { id: "projectile", label: "Projectile", anim: "Attack4", fps: 15, poseIn: "garde", poseOut: "garde", finisher: true, fx: "projectile", slash: "Slash2", reaction: "flinch" },
   };
 
   var OVERLAYS = {
@@ -32,23 +32,23 @@
 
   /** Listes par évolution de Coup brut. N'écrase pas l'animation déjà écrite. */
   var PUNCH_EVO = {
-    "1:Brise-Os": { mode: "modify", blocks: ["jabR"], overlays: [], effects: [] },
-    "1:Boxeur": { mode: "append", blocks: ["jabR"], overlays: [], effects: [] },
-    "1:Rapide": { mode: "modify", blocks: ["bigKick"], overlays: [], effects: [] },
-    "2:Uppercut": { mode: "finish", blocks: ["uppercut"], overlays: [], effects: [] },
-    "2:Percutant": { mode: "append", blocks: ["bigKick"], overlays: [], effects: ["knockback"] },
-    "2:Double Impact": { mode: "append", blocks: ["shockwave"], overlays: [], effects: ["multi"] },
+    "1:Brise-Os": { mode: "modify", blocks: ["jabR"], overlays: [], effects: [], reaction: "stagger" },
+    "1:Boxeur": { mode: "append", blocks: ["jabR"], overlays: [], effects: [], reaction: "flinch" },
+    "1:Rapide": { mode: "modify", blocks: ["bigKick"], overlays: [], effects: [], reaction: "knockback" },
+    "2:Uppercut": { mode: "finish", blocks: ["uppercut"], overlays: [], effects: [], reaction: "launch" },
+    "2:Percutant": { mode: "append", blocks: ["bigKick"], overlays: [], effects: ["knockback"], reaction: "knockback" },
+    "2:Double Impact": { mode: "append", blocks: ["shockwave"], overlays: [], effects: ["multi"], reaction: "multi" },
     "3:Brasier": {
       enabled: false, anim: "Special1", slash: "None", effect: "Effect1", fps: 14, delay: 0,
-      mode: "finish", blocks: ["explosion"], overlays: ["fire"], effects: [],
+      mode: "finish", blocks: ["explosion"], overlays: ["fire"], effects: [], reaction: "blast",
     },
     "3:Montante": {
       enabled: false, anim: "Special1", slash: "None", effect: "Effect1", fps: 17, delay: 0,
-      mode: "finish", blocks: ["uppercut"], overlays: ["fire"], effects: [],
+      mode: "finish", blocks: ["uppercut"], overlays: ["fire"], effects: [], reaction: "launch",
     },
     "3:Éclairs": {
       enabled: false, anim: "Special1", slash: "None", effect: "Effect3", fps: 15, delay: 0,
-      mode: "append", blocks: [], overlays: ["lightning"], effects: ["dot"],
+      mode: "append", blocks: [], overlays: ["lightning"], effects: ["dot"], reaction: "shock",
     },
   };
 
@@ -78,7 +78,7 @@
     }
     return {
       id: "base", anim: anim || "Attack1", fps: fps || 17,
-      poseIn: "garde", poseOut: "garde", hit: true,
+      poseIn: "garde", poseOut: "garde", hit: true, reaction: "flinch",
     };
   }
 
@@ -90,6 +90,7 @@
       if (entry.slash && entry.slash !== "None") b.slash = entry.slash;
       if (entry.effect && entry.effect !== "None") b.effect = entry.effect;
     }
+    if (entry && entry.reaction) b.reaction = entry.reaction;
     return b;
   }
 
@@ -116,6 +117,10 @@
         entry.effects = entry.effects || (spec.effects || []).slice();
         changed = true;
       }
+      if (entry.reaction == null && spec.reaction) {
+        entry.reaction = spec.reaction;
+        changed = true;
+      }
     });
     return changed;
   }
@@ -136,6 +141,7 @@
     var steps = [blockFromAnim(baseAnim, baseFps)];
     var overlays = [];
     var effects = [];
+    var looseReaction = "";
     (picks || []).forEach(function (pick) {
       var entry = entryFor(spell, pick);
       if (!entry) return;
@@ -152,6 +158,7 @@
         });
       } else {
         blocks.forEach(function (b) { steps.push(b); });
+        if (!blocks.length && entry.reaction) looseReaction = entry.reaction;
       }
       (entry.overlays || []).forEach(function (id) {
         overlays = overlays.filter(function (x) { return x !== id; });
@@ -163,6 +170,15 @@
     });
     var overlayId = overlays.length ? overlays[overlays.length - 1] : "";
     var overlay = overlayId ? OVERLAYS[overlayId] : null;
+    var elementFx = "";
+    if (overlay && overlay.element === "feu") elementFx = "burn";
+    else if (overlay && overlay.element === "eau") elementFx = "frozen";
+    else if (overlay && overlay.element === "air") elementFx = "shock";
+    else if (looseReaction === "burn" || looseReaction === "frozen" || looseReaction === "shock") elementFx = looseReaction;
+    steps.forEach(function (s) {
+      if (!s.reaction && s.hit) s.reaction = "flinch";
+      if (s.reaction) s.elementFx = elementFx;
+    });
     var hits = 1;
     var push = 0;
     var turns = 0;

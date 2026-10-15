@@ -14,6 +14,7 @@ const policy = readFileSync("data/ai-policy.json", "utf8");
 const skin = readFileSync("css/skin-d.css", "utf8");
 const bridge = readFileSync("js/fantasy-combat-bridge.js", "utf8");
 const feel = readFileSync("js/cast-feel.js", "utf8");
+const reactions = readFileSync("js/reactions.js", "utf8");
 const combo = readFileSync("js/combo-blocks.js", "utf8");
 let hub = readFileSync("js/hub.js", "utf8");
 let combat = readFileSync("fantasy-combat.html", "utf8");
@@ -33,8 +34,8 @@ combat = combat.replace(
   "<style>\n" + skin + "\n</style>",
 );
 combat = combat.replace(
-  '<script src="js/combo-blocks.js"></script>\n<script src="js/cast-feel.js"></script>\n<script src="js/fantasy-combat-bridge.js"></script>',
-  "<script>\n" + combo + "\n" + feel + "\n" + bridge + "\n</script>",
+  '<script src="js/reactions.js"></script>\n<script src="js/combo-blocks.js"></script>\n<script src="js/cast-feel.js"></script>\n<script src="js/fantasy-combat-bridge.js"></script>',
+  "<script>\n" + reactions + "\n" + combo + "\n" + feel + "\n" + bridge + "\n</script>",
 );
 if (!combat.includes("resolveCombo")) throw new Error("combat sans combos");
 combat = combat.replace(
@@ -201,8 +202,8 @@ console.log("wrote", out, page.length);
 
 let editorPage = readFileSync("spell-editor.html", "utf8");
 editorPage = editorPage.replace(
-  '<script src="js/combo-blocks.js"></script>\n<script src="js/fantasy-combat-bridge.js"></script>',
-  "<script>\n" + combo + "\n" + bridge + "\n</script>",
+  '<script src="js/reactions.js"></script>\n<script src="js/combo-blocks.js"></script>\n<script src="js/fantasy-combat-bridge.js"></script>',
+  "<script>\n" + reactions + "\n" + combo + "\n" + bridge + "\n</script>",
 );
 editorPage = editorPage.replace(
   'const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@main/assets/packs/fantasy-cc/";',
