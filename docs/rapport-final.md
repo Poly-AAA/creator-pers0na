@@ -1,5 +1,25 @@
 # Rapport final
 
+## Combos du poing
+
+Jeu : [https://litter.catbox.moe/9c6uem.html](https://litter.catbox.moe/9c6uem.html)
+
+Éditeur : [https://litter.catbox.moe/mm58hb.html](https://litter.catbox.moe/mm58hb.html)
+
+Lecteur des chaînes : [https://litter.catbox.moe/fq4nt6.html](https://litter.catbox.moe/fq4nt6.html)
+
+Déposés le 15 octobre 2026 à 05:37 UTC. Ils restent en ligne environ 72 heures, jusqu’au 18 octobre 2026 vers 05:37 UTC.
+
+Les évolutions de Coup brut sont des listes de blocs. Chaque bloc part et finit sur la garde, donc l’enchaînement ne saute pas. Le joueur choisit une évolution par palier, et les choix s’ajoutent.
+
+Blocs : direct gauche, direct droit, crochet, uppercut, grand coup de pied, genou, dash, bond. Finitions : explosion, onde, projectile. Voiles : feu, glace, foudre, sur les poings (et le pied si le coup est un coup de pied). Effets : recul d’une case, coups multiples, brûlure.
+
+- Double coup : direct gauche, puis direct droit.
+- Repousse : ces deux directs, puis un grand coup de pied qui recule d’une case.
+- Feu : les poings s’allument. La finition devient une explosion, ou un uppercut, selon le choix.
+
+Les animations, vitesses et effets déjà écrits (Brise-Os, Boxeur, Rapide, Uppercut, Percutant, Double Impact) restent en place. Le palier 3 ajoute Brasier, Montante et Éclairs. Coup de pied et Roulade gardent deux paliers. L’éditeur montre les blocs de chaque évolution. Le contrôle parcourt les 40 chaînes atteignables. Pas de simulation.
+
 ## Rythme des animations
 
 Jeu : [https://litter.catbox.moe/mv50p7.html](https://litter.catbox.moe/mv50p7.html)

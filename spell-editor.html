@@ -109,6 +109,7 @@
   </div>
 </div>
 
+<script src="js/combo-blocks.js"></script>
 <script src="js/fantasy-combat-bridge.js"></script>
 <script>
 /* Liens Créateur / Combat / Sorts — persistés dans localStorage (neuro.fccNav) */
@@ -275,6 +276,8 @@ function ensurePunchAnims(){
     || !Object.values(punch.evoConfig).some(e=>e && e.enabled);
   if(!punch){
     customSpells = [preset, ...(customSpells||[]).filter(s=>s && s.id!=="punch")];
+    punch = customSpells.find(s=>s && s.id==="punch");
+    if(typeof Combo!=="undefined" && punch) Combo.stamp(punch);
     saveCustom();
     return;
   }
@@ -289,6 +292,7 @@ function ensurePunchAnims(){
     punch.range = punch.range != null ? punch.range : preset.range;
     punch.dmg = punch.dmg || preset.dmg;
     punch.type = punch.type || preset.type;
+    if(typeof Combo!=="undefined") Combo.stamp(punch);
     saveCustom();
     return;
   }
@@ -297,6 +301,7 @@ function ensurePunchAnims(){
     if(!punch.evoConfig[k]){ punch.evoConfig[k]=preset.evoConfig[k]; changed=true; }
   });
   if(changed) saveCustom();
+  if(typeof Combo!=="undefined" && punch && Combo.stamp(punch)) saveCustom();
 }
 /** Migre / seed Coup de pied avec les mêmes évos que Coup brut (anim Kick). */
 function ensureCoupDePied(){
@@ -598,7 +603,7 @@ function initEvoConfig(spell){
   } else {
     const tree = getEvoTree(spell.id);
     if(tree){
-      [1,2].forEach(tier=>{
+      Object.keys(tree).map(Number).filter(n=>n>0).sort((a,b)=>a-b).forEach(tier=>{
         (tree[tier]||[]).forEach(ch=>{
           const k=evoKey(tier, ch.name);
           if(!spell.evoConfig[k]){
@@ -650,7 +655,7 @@ function previewEnabledEvos(spellId){
   } else {
     const tree = getEvoTree(spellId);
     if(tree){
-      [1,2].forEach(tier=>{
+      Object.keys(tree).map(Number).filter(n=>n>0).sort((a,b)=>a-b).forEach(tier=>{
         (tree[tier]||[]).forEach(ch=>{
           const e = evoEntry(s, tier, ch);
           if(e && e.enabled){
@@ -1101,6 +1106,7 @@ function renderEditor(){
 
   const sEvo = ensureEditable(activeId);
   initEvoConfig(sEvo);
+  if(sEvo.id==="punch" && typeof Combo!=="undefined") Combo.stamp(sEvo);
   const tree = getEvoTree(activeId);
 
   if(!tree && sEvo.evoConfig && Object.keys(sEvo.evoConfig).length){
@@ -1111,7 +1117,7 @@ function renderEditor(){
     noEvo.textContent="Ce sort n'a pas de catalogue d'évolutions dans le jeu.";
     evoCard.appendChild(noEvo);
   } else {
-    [1,2].forEach(tier=>{
+    Object.keys(tree).map(Number).filter(n=>n>0).sort((a,b)=>a-b).forEach(tier=>{
       const choices = tree[tier];
       if(!choices || !choices.length) return;
       const tierWrap=document.createElement("div"); tierWrap.className="evo-tier";
@@ -1250,7 +1256,66 @@ function renderStoredEvoRow(spell, key){
   div.appendChild(mkSelectRow("FX Effect", fxEffectList(), entry.effect||"None", v=>{ entry.effect=v; scheduleAutoSave(); }));
   div.appendChild(mkNumRow("Vitesse (FPS)", entry.fps!=null?entry.fps:16, 1, 30, 1, v=>{ entry.fps=v; scheduleAutoSave(); }));
   div.appendChild(mkNumRow("Délai avant (ms)", entry.delay!=null?entry.delay:0, 0, 3000, 50, v=>{ entry.delay=v; scheduleAutoSave(); }));
+  div.appendChild(renderComboFields(spell, key, entry));
   return div;
+}
+function renderComboFields(spell, key, entry){
+  if(typeof Combo==="undefined" || (spell.id!=="punch" && !entry.blocks)) return document.createElement("span");
+  if(!entry.blocks) entry.blocks=[];
+  if(!entry.overlays) entry.overlays=[];
+  if(!entry.effects) entry.effects=[];
+  const box=document.createElement("div");
+  box.style.cssText="display:flex;flex-direction:column;gap:4px;margin-top:4px";
+  const mode=document.createElement("label"); mode.className="field";
+  const cap=document.createElement("span"); cap.textContent="Blocs";
+  mode.appendChild(cap);
+  const sel=document.createElement("select");
+  [["append","Ajoute"],["modify","Remplace"],["finish","Finition"]].forEach(function(pair){
+    const op=document.createElement("option"); op.value=pair[0]; op.textContent=pair[1];
+    if((entry.mode||"append")===pair[0]) op.selected=true;
+    sel.appendChild(op);
+  });
+  sel.onchange=function(){ entry.mode=sel.value; scheduleAutoSave(); };
+  mode.appendChild(sel);
+  box.appendChild(mode);
+  const chips=document.createElement("div");
+  chips.style.cssText="display:flex;flex-wrap:wrap;gap:3px";
+  function chip(label, on, toggle){
+    const b=document.createElement("button"); b.type="button"; b.textContent=label;
+    b.style.cssText="height:22px;padding:0 6px;font-size:10px;border:1px solid var(--line);background:"+(on?"var(--acc)":"transparent")+";color:"+(on?"#fff":"inherit");
+    b.onclick=function(){ toggle(); scheduleAutoSave(); renderEditor(); };
+    return b;
+  }
+  Object.keys(Combo.BLOCKS).forEach(function(id){
+    const on=entry.blocks.indexOf(id)>=0;
+    chips.appendChild(chip(Combo.BLOCKS[id].label, on, function(){
+      const i=entry.blocks.indexOf(id);
+      if(i>=0) entry.blocks.splice(i,1); else entry.blocks.push(id);
+    }));
+  });
+  Object.keys(Combo.OVERLAYS).forEach(function(id){
+    const on=entry.overlays.indexOf(id)>=0;
+    chips.appendChild(chip(Combo.OVERLAYS[id].label, on, function(){
+      entry.overlays = on ? [] : [id];
+    }));
+  });
+  Object.keys(Combo.EFFECTS).forEach(function(id){
+    const on=entry.effects.indexOf(id)>=0;
+    chips.appendChild(chip(Combo.EFFECTS[id].label, on, function(){
+      const i=entry.effects.indexOf(id);
+      if(i>=0) entry.effects.splice(i,1); else entry.effects.push(id);
+    }));
+  });
+  box.appendChild(chips);
+  const test=document.createElement("button"); test.type="button"; test.className="test-btn"; test.textContent="▶ Chaîne";
+  test.onclick=function(){
+    const chain=Combo.resolveCombo(spell, [{ key:key, tier:Number(String(key).split(":")[0]), name:String(key).split(":").slice(1).join(":") }]);
+    previewAction(chain.steps.map(function(b){
+      return normalizeStep({ anim:b.anim, fps:b.fps, slash:b.slash||"None", effect:b.effect||"None", delay:0, hitTarget:!!b.hit });
+    }));
+  };
+  box.appendChild(test);
+  return box;
 }
 function renderEvoChoice(spellId, tier, choice, spell){
   const div=document.createElement("div"); div.className="evo-choice";
@@ -1293,6 +1358,7 @@ function renderEvoChoice(spellId, tier, choice, spell){
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
     if(e){ e.delay=v; scheduleAutoSave(); }
   }));
+  div.appendChild(renderComboFields(spell, evoKey(tier, choice.name), entry));
 
   const testB=document.createElement("button"); testB.type="button"; testB.className="test-btn";
   testB.textContent="▶ Tester";

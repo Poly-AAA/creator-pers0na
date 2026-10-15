@@ -10,7 +10,7 @@
   .side { overflow: hidden; }
   canvas { width: 100%; height: 100%; image-rendering: pixelated; background: #d8ddd4; }
   .side { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-  button { background: #23272C; color: #F6F1E8; border: 1px solid #3E444C; height: 28px; }
+  button { background: #23272C; color: #F6F1E8; border: 1px solid #3E444C; height: 24px; font-size: 11px; }
   button.on { background: #EA7020; border-color: #EA7020; color: #fff; }
   #status { color: #C9BBA8; }
 </style>
@@ -24,9 +24,14 @@
     <button type="button" data-kind="leap">Bond</button>
     <button type="button" data-kind="summon">Invocation</button>
     <button type="button" data-kind="knock">Recul</button>
+    <button type="button" data-chain="0">Double coup</button>
+    <button type="button" data-chain="1">Repousse</button>
+    <button type="button" data-chain="2">Feu · explosion</button>
+    <button type="button" data-chain="3">Feu · uppercut</button>
     <span id="status"></span>
   </div>
 </div>
+<script src="js/combo-blocks.js"></script>
 <script src="js/cast-feel.js"></script>
 <script>
 const canvas = document.getElementById("view");
@@ -34,9 +39,25 @@ const ctx = canvas.getContext("2d");
 const TILE_W = 56, TILE_H = 28;
 const scale = CastFeel.tileScale(TILE_H, 40);
 let kind = "strike";
+let chain = null;
+let chainName = "";
 let t0 = performance.now();
-const img = new Image();
-img.src = "assets/packs/fantasy-cc/spritesheets/NakedBody/Attack1.png";
+const sheets = {};
+function sheetOf(anim) {
+  if (!sheets[anim]) {
+    const im = new Image();
+    im.src = "assets/packs/fantasy-cc/spritesheets/NakedBody/" + anim + ".png";
+    im.onerror = function () {
+      im.onerror = null;
+      im.src = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f2e5a50/assets/packs/fantasy-cc/spritesheets/NakedBody/" + anim + ".png";
+    };
+    sheets[anim] = im;
+  }
+  return sheets[anim];
+}
+const img = sheetOf("Attack1");
+const punch = { id: "punch", steps: [{ anim: "Attack1", fps: 17 }], evoConfig: {} };
+Combo.stamp(punch);
 
 function toScreen(c, r) {
   return { x: 250 + (c - r) * (TILE_W / 2), y: 150 + (c + r) * (TILE_H / 2) };
@@ -56,20 +77,34 @@ function diamond(c, r, fill, stroke) {
 
 document.querySelectorAll("button").forEach((b) => {
   b.onclick = () => {
-    kind = b.dataset.kind;
     t0 = performance.now();
+    if (b.dataset.chain != null) {
+      const ex = Combo.EXAMPLES[Number(b.dataset.chain)];
+      chain = Combo.resolveCombo(punch, ex.picks);
+      chainName = ex.name;
+      kind = "strike";
+    } else {
+      kind = b.dataset.kind;
+      chain = null;
+      chainName = "";
+    }
     document.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
   };
 });
 
 function frame() {
-  const age = ((performance.now() - t0) / 1000) % (CastFeel.BODY + CastFeel.LINGER);
+  const elapsed = (performance.now() - t0) / 1000;
+  const span = CastFeel.BODY;
+  const slot = chain ? Math.min(chain.steps.length - 1, Math.floor(elapsed / span)) : 0;
+  const step = chain ? chain.steps[slot] : null;
+  const age = chain ? (elapsed - slot * span) : (elapsed % (CastFeel.BODY + CastFeel.LINGER));
+  const useKind = step && step.move ? step.move : kind;
   const beat = CastFeel.castColumn(age, 15);
   const u = Math.min(1, age / CastFeel.BODY);
-  const travel = CastFeel.travel(kind === "knock" ? "knock" : kind === "dash" ? "dash" : "leap", u);
+  const travel = CastFeel.travel(useKind === "knock" ? "knock" : useKind === "dash" ? "dash" : "leap", u);
   const from = { c: 2, r: 2 };
-  const to = kind === "dash" || kind === "knock" ? { c: 4, r: 2 } : from;
-  const c = from.c + (to.c - from.c) * (kind === "strike" || kind === "summon" ? 0 : travel);
+  const to = useKind === "dash" || useKind === "knock" ? { c: 4, r: 2 } : from;
+  const c = from.c + (to.c - from.c) * (useKind === "strike" || useKind === "summon" || (chain && !step.move) ? 0 : travel);
   const r = from.r;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -79,15 +114,16 @@ function frame() {
     diamond(i, j, ((i + j) & 1) ? "#e8e8e2" : "#dcdcd6", "rgba(80,80,70,0.2)");
   }
   const s = toScreen(c, r);
-  const lift = kind === "leap" ? CastFeel.leapLift(u) * TILE_H : 0;
-  const sq = kind === "leap" ? CastFeel.landSquash(u) : { x: 1, y: 1 };
+  const lift = useKind === "leap" ? CastFeel.leapLift(u) * TILE_H : 0;
+  const sq = useKind === "leap" ? CastFeel.landSquash(u) : { x: 1, y: 1 };
   const dw = 128 * scale * sq.x;
   const dh = 128 * scale * sq.y;
   const dx = s.x - dw / 2;
   const dy = s.y - 88 * scale * sq.y - lift;
   if (age >= CastFeel.ANTICIPATE) {
     ctx.globalAlpha = 0.7;
-    ctx.strokeStyle = "rgb(" + CastFeel.elementColor(kind === "summon" ? "air" : "feu").join(",") + ")";
+    const tint = chain && chain.element ? chain.element : (useKind === "summon" ? "air" : "feu");
+    ctx.strokeStyle = "rgb(" + CastFeel.elementColor(tint).join(",") + ")";
     diamond(kind === "summon" ? 3 : Math.round(c), r, "rgba(0,0,0,0)", ctx.strokeStyle);
     ctx.globalAlpha = 1;
   }
@@ -97,11 +133,18 @@ function frame() {
     ctx.fillStyle = "#2a211c";
     ctx.fillRect(s.x - 12 * sq.x, s.y - 52 * sq.y - lift, 24 * sq.x, 8);
   }
-  if (img.complete && img.naturalWidth) {
+  const frameImg = step ? sheetOf(step.anim) : img;
+  if (frameImg.complete && frameImg.naturalWidth) {
     const col = beat.idle ? 0 : beat.col;
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(img, col * 128, 2 * 128, 128, 128, dx, dy, dw, dh);
-    if (beat.smear) ctx.drawImage(img, col * 128, 2 * 128, 128, 128, dx + 10, dy - 4, dw, dh);
+    ctx.drawImage(frameImg, col * 128, 2 * 128, 128, 128, dx, dy, dw, dh);
+    if (beat.smear) ctx.drawImage(frameImg, col * 128, 2 * 128, 128, 128, dx + 10, dy - 4, dw, dh);
+    if (chain && chain.element) {
+      const rgb = CastFeel.elementColor(chain.element);
+      ctx.fillStyle = "rgba(" + rgb.join(",") + ",0.9)";
+      ctx.fillRect(dx + dw * 0.62, dy + dh * 0.42, 5, 5);
+      ctx.fillRect(dx + dw * 0.30, dy + dh * 0.42, 5, 5);
+    }
   }
   if (age >= CastFeel.ANTICIPATE && age < CastFeel.ANTICIPATE + 0.45) {
     const pop = CastFeel.numberMotion(age - CastFeel.ANTICIPATE, kind === "strike" ? 0 : 2);
@@ -118,7 +161,10 @@ function frame() {
       ctx.restore();
     }
   }
-  document.getElementById("status").textContent = kind + " · " + beat.phase + " · " + (40 * scale / TILE_H).toFixed(2) + " tuiles";
+  const label = chain
+    ? chainName + " · " + chain.steps.map((s) => s.id).join(" → ") + " · " + (Combo.chainIssues(chain.steps).length ? "saut" : "fluide")
+    : kind + " · " + beat.phase;
+  document.getElementById("status").textContent = label + " · " + (40 * scale / TILE_H).toFixed(2) + " tuiles";
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

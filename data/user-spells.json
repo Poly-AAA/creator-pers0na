@@ -30,7 +30,13 @@
         "slash": "None",
         "effect": "None",
         "fps": 12,
-        "delay": 0
+        "delay": 0,
+        "blocks": [
+          "jabR"
+        ],
+        "mode": "modify",
+        "overlays": [],
+        "effects": []
       },
       "1:Boxeur": {
         "enabled": true,
@@ -38,7 +44,13 @@
         "slash": "None",
         "effect": "None",
         "fps": 17,
-        "delay": 0
+        "delay": 0,
+        "blocks": [
+          "jabR"
+        ],
+        "mode": "append",
+        "overlays": [],
+        "effects": []
       },
       "1:Rapide": {
         "enabled": false,
@@ -46,7 +58,13 @@
         "slash": "None",
         "effect": "None",
         "fps": 14,
-        "delay": 0
+        "delay": 0,
+        "blocks": [
+          "bigKick"
+        ],
+        "mode": "modify",
+        "overlays": [],
+        "effects": []
       },
       "2:Uppercut": {
         "enabled": true,
@@ -54,7 +72,13 @@
         "slash": "None",
         "effect": "Effect1",
         "fps": 17,
-        "delay": 0
+        "delay": 0,
+        "blocks": [
+          "uppercut"
+        ],
+        "mode": "finish",
+        "overlays": [],
+        "effects": []
       },
       "2:Percutant": {
         "enabled": true,
@@ -62,7 +86,15 @@
         "slash": "None",
         "effect": "None",
         "fps": 14,
-        "delay": 0
+        "delay": 0,
+        "blocks": [
+          "bigKick"
+        ],
+        "mode": "append",
+        "overlays": [],
+        "effects": [
+          "knockback"
+        ]
       },
       "2:Double Impact": {
         "enabled": false,
@@ -70,7 +102,63 @@
         "slash": "Slash2",
         "effect": "None",
         "fps": 17,
-        "delay": 0
+        "delay": 0,
+        "blocks": [
+          "shockwave"
+        ],
+        "mode": "append",
+        "overlays": [],
+        "effects": [
+          "multi"
+        ]
+      },
+      "3:Brasier": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0,
+        "mode": "finish",
+        "blocks": [
+          "explosion"
+        ],
+        "overlays": [
+          "fire"
+        ],
+        "effects": []
+      },
+      "3:Montante": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 17,
+        "delay": 0,
+        "mode": "finish",
+        "blocks": [
+          "uppercut"
+        ],
+        "overlays": [
+          "fire"
+        ],
+        "effects": []
+      },
+      "3:Éclairs": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0,
+        "mode": "append",
+        "blocks": [],
+        "overlays": [
+          "lightning"
+        ],
+        "effects": [
+          "dot"
+        ]
       }
     }
   },

@@ -6,6 +6,7 @@
 <script>try{if(localStorage.getItem("roguelite.theme")==="dark")document.documentElement.classList.add("dark");}catch(e){}</script>
 <title>Combat Fantasy</title>
 <link rel="stylesheet" href="css/skin-d.css">
+<script src="js/combo-blocks.js"></script>
 <script src="js/cast-feel.js"></script>
 <script src="js/fantasy-combat-bridge.js"></script>
 <style>
@@ -503,6 +504,14 @@
       try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
     }
   }
+  function stampPunchBlocks(){
+    if(typeof Combo==="undefined") return;
+    const punch = (customSpells||[]).find(s=>s && s.id==="punch");
+    if(punch && Combo.stamp(punch)){
+      try{ localStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+      try{ sessionStorage.setItem(KEY_CUSTOM_SPELLS, JSON.stringify(customSpells)); }catch(_e){}
+    }
+  }
   function ensurePunchCustom(){
     const preset = JSON.parse(JSON.stringify(DEFAULT_COUP_BRUT));
     let punch = (customSpells||[]).find(s=>s && s.id==="punch");
@@ -596,6 +605,7 @@
   importCustomSpellsFromHash();
   dropGeneratedSpells();
   ensurePunchCustom();
+  stampPunchBlocks();
   ensureCoupDePiedCustom();
   ensureRouladeCustom();
   ensureSpellEffects();
@@ -723,8 +733,33 @@
     }
     return null;
   }
+  function punchCombo(sp){
+    if(!sp || sp.id!=="punch" || typeof Combo==="undefined") return null;
+    reloadCustomSpells();
+    const custom = customSpellById("punch") || sp;
+    if(Combo.stamp) Combo.stamp(custom);
+    const st = evoState("punch");
+    return Combo.resolveCombo(custom, (st && st.picks) || []);
+  }
   function editorCastSteps(sp){
     reloadCustomSpells();
+    if(sp && sp.id==="punch"){
+      const chain = punchCombo(sp);
+      if(chain && chain.steps.length){
+        return chain.steps.map(function(b){
+          const step = normalizeCastStep({
+            anim: b.anim,
+            fps: b.fps,
+            slash: b.slash || "None",
+            effect: b.effect || "None",
+            delay: 0,
+            hitTarget: !!b.hit,
+          });
+          step.motion = b.move || "";
+          return step;
+        });
+      }
+    }
     const custom = customSpellById(sp.id);
     if(custom && custom.chain === "append"){
       const steps = [];
@@ -782,6 +817,8 @@
       baseSteps.forEach(s=> steps.push(Object.assign({}, s)));
     }
     let i = 0;
+    const combo = punchCombo(sp);
+    if(mine()) G.player.comboHands = combo && combo.element ? combo.element : "";
     const onHit = typeof opts.onHit === "function" ? opts.onHit : null;
     const stepsPerHit = Math.max(1, baseSteps.length);
     function next(){
@@ -789,6 +826,7 @@
         if(mine()){
           if(G.player.anim!=="Die") playAnim(G.player, "Idle");
           G.castFx = null;
+          G.player.comboHands = "";
         }
         if(onDone) onDone();
         return;
@@ -814,7 +852,9 @@
         };
         if(typeof CastFeel !== "undefined"){
           const tgt = opts.target || G.enemy || G.player;
-          G.player.feel = { t0: nowFx, kind: CastFeel.motionKind(sp), element: sp.element || "neutre" };
+          const hands = G.player.comboHands || "";
+          const kind = step.motion || CastFeel.motionKind(sp);
+          G.player.feel = { t0: nowFx, kind: kind, element: hands || sp.element || "neutre" };
           G.fx = G.fx || [];
           G.fx.push({
             kind: G.player.feel.kind,
@@ -2795,7 +2835,7 @@
     if(!pickId){
       pickId = candidates.find(id=>{
         if(!FantasyBridge.EVO_TREE || !FantasyBridge.EVO_TREE[id]) return false;
-        return FantasyBridge.nextEvoTier(evoState(id)) != null;
+        return FantasyBridge.nextEvoTier(evoState(id), id) != null;
       });
     }
     if(!pickId) pickId = candidates.find(id=>FantasyBridge.EVO_TREE && FantasyBridge.EVO_TREE[id]);
@@ -2805,9 +2845,9 @@
       return false;
     }
     const st = evoState(pickId);
-    const tier = FantasyBridge.nextEvoTier(st);
+    const tier = FantasyBridge.nextEvoTier(st, pickId);
     if(tier==null){
-      if(!fromVictory) setStatus((spellById(pickId)||{}).name+" déjà max (2 paliers)");
+      if(!fromVictory) setStatus((spellById(pickId)||{}).name+" déjà au dernier palier");
       return false;
     }
     const choices = FantasyBridge.evoChoicesFor(pickId, tier);
@@ -2815,13 +2855,14 @@
     G.pendingEvo = { spellId: pickId, tier, choices, fromVictory: !!fromVictory };
     const sp = spellById(pickId);
     el("evoTitle").textContent = "Évolution · "+(sp?sp.name:pickId);
-    el("evoSub").textContent = "Palier "+tier+"/"+FantasyBridge.EVO_MAX_TIERS+" · effet + anim + FX (cumul)";
+    const tierMax = FantasyBridge.evoTierCount ? FantasyBridge.evoTierCount(pickId) : FantasyBridge.EVO_MAX_TIERS;
+    el("evoSub").textContent = "Palier "+tier+"/"+tierMax+" · un choix, les blocs s’ajoutent";
     const host = el("evoOpts"); host.innerHTML="";
     choices.forEach((ch)=>{
       const b = document.createElement("button");
       b.type="button";
       const ed = editorEvoEntry(pickId, tier, ch.name);
-      const animShow = (ed && ed.anim) ? ed.anim : (ch.anim||"?");
+      const animShow = (ed && ed.blocks && ed.blocks.length) ? ed.blocks.join("+") : ((ed && ed.anim) ? ed.anim : (ch.anim||"?"));
       const fxLab = ed
         ? ((ed.effect && ed.effect!=="None") ? ed.effect : (ed.slash && ed.slash!=="None") ? ed.slash : "aucun")
         : (ch.fx || "aucun");
@@ -3021,6 +3062,16 @@
         const row = sheetRowForDir(ent.dir|0, sheetAnim);
         try{ tintDraw(im, beat.col*FW, row*FH, FW, FH, dx+ghost.x, dy+ghost.y, dw, dh, L.tint, 0.45); }catch(_e){}
       }
+      ctx.restore();
+    }
+    if(ent.comboHands && typeof CastFeel!=="undefined"){
+      const rgb = CastFeel.elementColor(ent.comboHands);
+      ctx.save();
+      ctx.globalAlpha = 0.9 * baseAlpha;
+      ctx.fillStyle = "rgb("+rgb[0]+","+rgb[1]+","+rgb[2]+")";
+      ctx.fillRect(dx+dw*0.62, dy+dh*0.42, 5, 5);
+      ctx.fillRect(dx+dw*0.30, dy+dh*0.42, 5, 5);
+      if(drawAnim==="Kick") ctx.fillRect(dx+dw*0.68, dy+dh*0.72, 6, 4);
       ctx.restore();
     }
     if(ent.overlay==="squelette" || ent.overlay==="spectre"){
