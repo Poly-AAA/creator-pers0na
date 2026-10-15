@@ -691,25 +691,47 @@
     const evo = evoBonusesFor(sp);
     return Math.max(0, (sp.range|0) + (evo.range|0));
   }
+  function stepFromEvoEntry(ed){
+    return normalizeCastStep({
+      anim: (ed && ed.anim) || "Attack1",
+      delay: ed && ed.delay != null ? ed.delay : 0,
+      fps: ed && ed.fps != null ? ed.fps : 14,
+      slash: (ed && ed.slash) || "None",
+      effect: (ed && ed.effect) || "None",
+      hitTarget: true,
+    });
+  }
+  /** Dernière évolution choisie en partie : anim, fps, slash et effet exacts de evoConfig. */
+  function chosenEvoStep(sp){
+    const st = evoState(sp && sp.id);
+    if(!st || !(st.tiersTaken|0)) return null;
+    const picks = st.picks || [];
+    const last = picks[picks.length - 1];
+    if(last){
+      const ed = editorEvoEntry(sp.id, last.tier, last.name);
+      if(ed) return stepFromEvoEntry(ed);
+    }
+    if(st.evo && st.evo.anim){
+      return stepFromEvoEntry({
+        anim: st.evo.anim,
+        delay: st.evo.delay,
+        fps: st.evo.fps,
+        slash: st.evo.slash || (st.evo.fx && /^Slash/i.test(st.evo.fx) ? st.evo.fx : "None"),
+        effect: st.evo.effect || (st.evo.fx && /^Effect/i.test(st.evo.fx) ? st.evo.fx : "None"),
+      });
+    }
+    return null;
+  }
   function editorCastSteps(sp){
     reloadCustomSpells();
+    const chosen = chosenEvoStep(sp);
+    if(chosen) return [chosen];
     const custom = customSpellById(sp.id);
-    /* 1) Séquence d'actions de l'éditeur (prioritaire) */
+    /* Séquence de base de l'éditeur, tant qu'aucune évolution n'est choisie. */
     if(custom && Array.isArray(custom.steps) && custom.steps.length)
       return custom.steps.map(normalizeCastStep);
-    /* 2) Anim de l'évo déjà choisie en combat */
     const st = evoState(sp.id);
-    if(st.evo && st.evo.anim){
-      const fx = st.evo.fx || null;
-      return [normalizeCastStep({
-        anim: st.evo.anim,
-        delay: 0,
-        fps: 14,
-        slash: fx && /^Slash/i.test(fx) ? fx : "None",
-        effect: fx && /^Effect/i.test(fx) ? fx : "None",
-      })];
-    }
-    /* 3) Une seule évo cochée (la dernière) — PAS toute la chaîne (latence) */
+    if(st.evo && st.evo.anim) return [stepFromEvoEntry(st.evo)];
     if(custom && custom.evoConfig && typeof FantasyBridge!=="undefined" && FantasyBridge.buildEvoAnimSteps){
       const evoSteps = FantasyBridge.buildEvoAnimSteps(sp.id, custom.evoConfig) || [];
       if(evoSteps.length) return [evoSteps[evoSteps.length - 1]];
@@ -761,6 +783,12 @@
       }
       const step = steps[i++];
       if(mine()){
+        try{
+          canvas.dataset.castAnim = step.anim || "";
+          canvas.dataset.castFps = String(step.fps != null ? step.fps : "");
+          canvas.dataset.castSlash = step.slash || "None";
+          canvas.dataset.castEffect = step.effect || "None";
+        }catch(_e){}
         warmAnimForPlayer(step.anim);
         playAnim(G.player, step.anim);
         let fps = Number(step.fps);
@@ -1331,12 +1359,20 @@
   }
   function applyEditorAnimOnPick(spellId, tier, choiceName, st){
     const ed = editorEvoEntry(spellId, tier, choiceName);
-    if(!ed || !st) return;
+    if(!st) return ed;
     if(!st.evo) st.evo = {};
-    if(ed.anim) st.evo.anim = ed.anim;
-    const slash = ed.slash && ed.slash!=="None" ? ed.slash : null;
-    const effect = ed.effect && ed.effect!=="None" ? ed.effect : null;
-    if(slash || effect) st.evo.fx = slash || effect;
+    if(!st.picks) st.picks = [];
+    st.picks.push({ tier: tier, name: choiceName });
+    if(!ed) return null;
+    st.evo.anim = ed.anim || st.evo.anim || "Attack1";
+    st.evo.slash = ed.slash || "None";
+    st.evo.effect = ed.effect || "None";
+    st.evo.fps = ed.fps != null ? ed.fps : 14;
+    st.evo.delay = ed.delay != null ? ed.delay : 0;
+    const slash = st.evo.slash !== "None" ? st.evo.slash : null;
+    const effect = st.evo.effect !== "None" ? st.evo.effect : null;
+    st.evo.fx = slash || effect || null;
+    return ed;
   }
   function hasEditorEvos(spellId){
     reloadCustomSpells();
@@ -1998,7 +2034,8 @@
 
     reloadCustomSpells();
     const custom = customSpellById(sp.id) || sp;
-    const rawStep = (custom.steps && custom.steps[0]) || (sp.steps && sp.steps[0]) || null;
+    const chosen = chosenEvoStep(sp);
+    const rawStep = chosen || (custom.steps && custom.steps[0]) || (sp.steps && sp.steps[0]) || null;
     const step = normalizeCastStep(rawStep || { anim: (sp.anim||"Rolling"), fps:16 });
     let fps = Number(step.fps);
     if(!isFinite(fps) || fps < 1) fps = 14;
@@ -2704,29 +2741,22 @@
       b.type="button";
       const ed = editorEvoEntry(pickId, tier, ch.name);
       const animShow = (ed && ed.anim) ? ed.anim : (ch.anim||"?");
-      const fxLab = (ed && ed.effect && ed.effect!=="None") ? ed.effect : (ed && ed.slash && ed.slash!=="None") ? ed.slash : (ch.fx ? ch.fx : "aucun");
-      b.innerHTML = "<b>"+ch.name+"</b><span>"+ch.d+"</span><span style=\"display:block;margin-top:4px;color:#5b7c99\">Anim "+animShow+(ed&&ed.anim?" · éditeur":"")+" · FX "+fxLab+"</span>";
+      const fxLab = ed
+        ? ((ed.effect && ed.effect!=="None") ? ed.effect : (ed.slash && ed.slash!=="None") ? ed.slash : "aucun")
+        : (ch.fx || "aucun");
+      const fpsShow = ed && ed.fps != null ? ed.fps : 14;
+      const brief = String(ch.d||"").split(" · ")[0];
+      b.innerHTML = "<b>"+ch.name+"</b><span>"+brief+"</span><span style=\"display:block;margin-top:4px;color:#5b7c99\">Anim "+animShow+" · "+fpsShow+" fps · FX "+fxLab+"</span>";
       b.onclick=()=>{
         try{ ch.apply(st); }catch(_e){}
         st.tiersTaken = (st.tiersTaken|0) + 1;
-        if(!st.evo) st.evo = {};
-        if(ch.anim) st.evo.anim = ch.anim;
-        st.evo.fx = ch.fx || null;
-        applyEditorAnimOnPick(pickId, tier, ch.name, st);
-        /* Coup de pied : une seule anim dispo */
-        if(pickId==="coup_de_pied" || pickId==="kick"){
-          if(!st.evo) st.evo = {};
-          st.evo.anim = "Kick";
-        }
-        if(pickId==="roulade"){
-          if(!st.evo) st.evo = {};
-          const edR = editorEvoEntry(pickId, tier, ch.name);
-          st.evo.anim = (edR && edR.anim) || st.evo.anim || "Attack1";
-        }
+        const ed = applyEditorAnimOnPick(pickId, tier, ch.name, st);
+        const animShow = (ed && ed.anim) || (st.evo && st.evo.anim) || ch.anim || "";
+        const fxShow = (ed && ed.effect && ed.effect!=="None") ? ed.effect : (ed && ed.slash && ed.slash!=="None") ? ed.slash : "";
         saveEvo();
         const wasVictory = G.pendingEvo && G.pendingEvo.fromVictory;
         closeEvo();
-        setStatus((sp?sp.name:pickId)+" → "+ch.name+" · "+ch.anim+(ch.fx?" +"+ch.fx:""));
+        setStatus((sp?sp.name:pickId)+" → "+ch.name+" · "+animShow+(fxShow?" +"+fxShow:""));
         renderSpells();
         if(wasVictory) setTimeout(()=> startNextFight({ force:true }), 450);
       };

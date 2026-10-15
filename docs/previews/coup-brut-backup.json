@@ -40,6 +40,14 @@
         "fps": 17,
         "delay": 0
       },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0
+      },
       "2:Uppercut": {
         "enabled": true,
         "anim": "Special1",

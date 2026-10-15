@@ -233,14 +233,30 @@ export function syncHeroSpells(hero, catalog) {
   const prev = hero.spells || [];
   const kept = prev.filter(isHandmadeSpell);
   const have = new Set(kept.map((s) => s.id));
-  next.forEach((s) => { if (!have.has(s.id)) kept.push(s); });
+  let filled = false;
+  next.forEach((s) => {
+    if (!have.has(s.id)) {
+      kept.push(s);
+      return;
+    }
+    const prevSpell = kept.find((x) => x.id === s.id);
+    if (!prevSpell) return;
+    if (!prevSpell.steps && s.steps) { prevSpell.steps = s.steps; filled = true; }
+    if (!prevSpell.evoConfig && s.evoConfig) { prevSpell.evoConfig = s.evoConfig; filled = true; }
+    else if (s.evoConfig) {
+      prevSpell.evoConfig = prevSpell.evoConfig || {};
+      Object.keys(s.evoConfig).forEach((k) => {
+        if (!prevSpell.evoConfig[k]) { prevSpell.evoConfig[k] = s.evoConfig[k]; filled = true; }
+      });
+    }
+  });
   const order = next.map((s) => s.id);
   kept.sort((a, b) => {
     const ia = order.indexOf(a.id);
     const ib = order.indexOf(b.id);
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
   });
-  const same = prev.length === kept.length && prev.every((s, i) => kept[i] && s.id === kept[i].id && (s.unlock | 0) === (kept[i].unlock | 0));
+  const same = !filled && prev.length === kept.length && prev.every((s, i) => kept[i] && s.id === kept[i].id && (s.unlock | 0) === (kept[i].unlock | 0));
   hero.spells = kept;
   return !same;
 }
@@ -307,9 +323,9 @@ function cloneSpell(spell, unlock) {
     overlay: spell.overlay || null,
     rare: !!spell.rare,
     anim: spell.anim || "Attack1",
-    steps: spell.steps || null,
+    steps: spell.steps ? JSON.parse(JSON.stringify(spell.steps)) : null,
     evoArchetype: spell.evoArchetype || "punch",
-    evoConfig: spell.evoConfig || null,
+    evoConfig: spell.evoConfig ? JSON.parse(JSON.stringify(spell.evoConfig)) : null,
     unlock,
     rank: 0,
   };

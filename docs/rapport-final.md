@@ -2,11 +2,11 @@
 
 ## Sur le téléphone
 
-[https://litter.catbox.moe/32x6tn.html](https://litter.catbox.moe/32x6tn.html)
+[https://litter.catbox.moe/bbd7yv.html](https://litter.catbox.moe/bbd7yv.html)
 
-Page unique (accueil, combat, créateur, éditeur), en paysage, HTTPS. Déposée le 15 octobre 2026 à 03:42 UTC, elle reste en ligne environ 72 heures, jusqu’au 18 octobre 2026 à 03:42 UTC. Les sprites sont servis par jsDelivr au commit `f2e5a50`. Un contrôle Playwright en 932×430 ouvre l’accueil (Nuée-74), lance un duel contre Brume-62, dont les sorts affichés sont Coup brut, Roulade et Coup de pied. La croix a 5 touches, le bouton de fin de tour est là, sans erreur de page.
+Page unique (accueil, combat, créateur, éditeur), en paysage, HTTPS. Déposée le 15 octobre 2026 à 03:57 UTC, elle reste en ligne environ 72 heures, jusqu’au 18 octobre 2026 à 03:57 UTC. Les sprites sont servis par jsDelivr au commit `f2e5a50`. Un contrôle Playwright en 932×430 ouvre l’accueil (Ocre-53), lance un duel contre Sable-21, dont les sorts affichés sont Coup brut, Roulade et Coup de pied. La croix a 5 touches, le bouton de fin de tour est là, sans erreur de page.
 
-Les liens `s7ah3p.html`, `wi99au.html`, `r4jcgz.html` et `r00zh6.html` sont d’anciens builds.
+Les liens `32x6tn.html`, `s7ah3p.html`, `wi99au.html`, `r4jcgz.html` et `r00zh6.html` sont d’anciens builds.
 
 ## Sorts
 
@@ -15,6 +15,8 @@ Un sort peut partir pendant que l’animation du précédent joue encore. Les po
 Le grimoire généré n’est plus chargé. Le jeu ne connaît que les sorts de l’éditeur : Coup brut (`punch`), Coup de pied (`coup_de_pied`), Roulade (`roulade`), avec les pas et les évolutions de `docs/previews/spells-backup.json` sur la branche `cursor/strict-regen-idle-66c0`, plus ceux créés ensuite dans l’éditeur. Ces trois-là sont débloqués au niveau 1. Un sort d’éditeur supplémentaire se débloque à 5, puis 15, 30, 40 et 45. Les anciens sorts `gen_*` et `ov_*` sont retirés de la sauvegarde locale au chargement. Le générateur reste dans `js/spell-lab.js`. `npm run generate` ne réécrit `data/generated-spells.json` que si `SPELL_GENERATE=1`.
 
 Playwright, combat libre : deux clics sur Coup brut pendant que la première animation Attack1 joue encore. Les PA passent de 6 à 4, puis à 2, avant que les dégâts tombent. Après l’animation, les PV de l’ennemi passent de 46 à 26. La barre ne montre que punch, coup de pied et roulade. Suite paysage : aucun écart, 3 captures de sorts.
+
+Chaque sort garde toutes ses évolutions, y compris celles dont la case est décochée. Pour Coup brut : Brise-Os joue Attack2 à 12 images/s, Boxeur Attack6 à 17, Uppercut Special1 avec Effect1 à 17, Percutant Attack6 à 14. Rapide (Kick, 14) et Double Impact (Attack5 + Slash2, 17) restent proposés au choix, au palier 1 puis au palier 2. Le coup de base, sans évolution choisie, reste la séquence écrite (Attack1 à 17 pour Coup brut). Le calibrage des armes de `docs/previews/weapon-anim.json` est celui déjà en jeu (Melee10 = Kick, Ranged2 = AttackRun2, Offhand1 = Taunt, sacs en Special1 ou Attack3/Attack4).
 
 ## Combat
 
