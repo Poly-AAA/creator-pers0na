@@ -1,5 +1,13 @@
 # Rapport final
 
+## Jeu jouable
+
+La page unique (accueil, combat, créateur, éditeur) est dans le dépôt : [https://raw.githack.com/Poly-AAA/creator-pers0na/cursor/roguelite-arene-38fe/docs/previews/arene-phone.html](https://raw.githack.com/Poly-AAA/creator-pers0na/cursor/roguelite-arene-38fe/docs/previews/arene-phone.html)
+
+Le même fichier, déjà en ligne et identique octet pour octet, reste jouable ici jusqu’au 18 octobre 2026 vers 06:00 UTC : [https://litter.catbox.moe/kmn101.html](https://litter.catbox.moe/kmn101.html)
+
+L’envoi d’une copie neuve sur Litterbox échoue (erreur 500 du serveur). Le lien ci-dessus est donc la dernière version, pas une ancienne.
+
 ## Menus
 
 Jeu : [https://litter.catbox.moe/kmn101.html](https://litter.catbox.moe/kmn101.html)
