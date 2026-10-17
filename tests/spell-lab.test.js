@@ -115,6 +115,25 @@ describe("fichiers du jeu", () => {
     });
   });
 
+  it("le grimoire joué ne contient que les trois sorts faits main", () => {
+    const spells = JSON.parse(readFileSync("data/user-spells.json", "utf8"));
+    assert.deepEqual(spells.map((s) => s.id), ["punch", "coup_de_pied", "roulade"]);
+    spells.forEach((s) => {
+      const res = validateSpell(s);
+      assert.equal(res.ok, true, (s && s.id) + " " + res.errors.join(", "));
+      assert.equal(s.generated, undefined);
+    });
+    const punch = spells[0];
+    assert.equal(punch.steps[0].anim, "Attack1");
+    assert.equal(punch.steps[0].fps, 17);
+    assert.equal(punch.evoConfig["2:Double Impact"].enabled, false);
+    assert.equal(spells[1].effect, "push");
+    assert.equal(spells[1].steps[0].anim, "Kick");
+    assert.equal(spells[2].effect, "roulade");
+    assert.equal(spells[2].steps[0].anim, "Rolling");
+    assert.equal(spells[2].steps[0].fps, 17);
+  });
+
   it("la politique d’IA est présente", () => {
     const policy = JSON.parse(readFileSync("data/ai-policy.json", "utf8"));
     assert.ok(policy.weights && typeof policy.weights === "object");

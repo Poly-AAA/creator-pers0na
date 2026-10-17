@@ -1,57 +1,44 @@
-# Combat fantasy
+# Arène — roguelite PvP
 
-Trois écrans, et rien d’autre :
+Le jeu s’ouvre sur un personnage déjà généré. Il n’y a pas de menu de titre. Une défaite efface le personnage, l’or et l’inventaire. Les niveaux d’artisanat, de forgemagie, et ce que tu as appris des matières restent.
 
-1. [Créateur de personnage](character-creator-fantasy.html)
-2. [Combat](fantasy-combat.html)
-3. [Éditeur de sorts](spell-editor.html)
-
-Ouvre `index.html` dans le navigateur, ou lance un serveur local :
+Ouvre l’accueil, ou lance :
 
 ```bash
 npm start
 ```
 
-Puis va sur http://localhost:8765/
+Puis va sur http://localhost:8765/ . Le combat est prévu en paysage, du petit téléphone (640×360) au grand (932×430). La carte occupe tout l’écran, les modules flottent par-dessus. En portrait, une icône demande de tourner le téléphone.
 
-Le grimoire généré se charge tout seul dans l’éditeur et dans le combat (`data/generated-spells.json`). Le bouton **Grimoire** de l’éditeur remplace les sorts `gen_*` par le fichier. Coche **Équipé dans la barre de combat** pour les mettre dans les cinq emplacements à côté de Coup brut. Coup de pied et Roulade restent dans la barre.
+La page unique pour un téléphone, sans serveur, se construit avec `npm run phone` (`/tmp/arene-phone.html`). Le lien public du moment est dans `docs/previews/live-links.json`.
 
-L’adversaire pioche un kit selon son rôle (brute, tireur, contrôle…) et pondère ses sorts avec `data/ai-policy.json`.
+## Boucle
 
-## Générer des sorts
+- **ADN** tiré sur un dé 8, écrit pour les 50 niveaux. Niveau 1 : nu, toutes les stats à 5, 6 PA, 3 PM, 50 PV.
+- **Combat** au choix : duel, ou équipe dont la taille est tirée (2v2, 3v3, 5v5, 10v10). Pas de réglage de difficulté. Érosion d’environ 10 %. Tour limité à 30 secondes. La carte se pince pour zoomer et se fait glisser. Un sort peut partir pendant que l’animation du précédent joue encore.
+- **Style**, défis optionnels, butin rare sur les ennemis tombés, compagnons qui acceptent ou refusent.
+- **Soins** en trois gammes. La fiole de fuite coûte environ 60 % des kamas du moment.
+- **Boutique, artisanat, forgemagie.** Les stats d’un objet fabriqué sont bornées par le niveau du personnage. Le broyage donne très peu de runes.
+- **Classement** des meilleurs personnages (niveau, style, combats).
 
-Les sorts réutilisent le format du jeu : `steps` (animations chaînées, slash, effet, fps) et `evoConfig` (évolutions du catalogue : Brise-Os, Double Impact, Économe, etc.). Les bonus de ces évolutions sont écrits dans le coût, les dégâts, la portée, la poussée ou le soin.
+Les trois ateliers restent accessibles en bas de l’accueil : [créateur](character-creator-fantasy.html), [combat libre](fantasy-combat.html), [éditeur de sorts](spell-editor.html). Le combat libre n’efface pas le personnage.
 
-```bash
-npm run generate
-```
-
-Écrit `data/generated-spells.json`. Variables facultatives : `SPELL_COUNT` (défaut 72) et `SPELL_SEED`.
-
-## Équilibrer
-
-```bash
-npm run balance
-```
-
-Simule des duels (même distance de Chebyshev que l’arène). Un sort qui ne produit aucun effet est réparé une fois ou écarté. Les dégâts sont ramenés vers 3,6–7,2 points par PA, puis ajustés selon le taux de victoire du sort joué avec Coup brut contre deux Coup brut. Le rapport est dans `docs/rapport-equilibrage.md`.
-
-## Entraîner l’IA
-
-```bash
-npm run train
-```
-
-Fait s’affronter plusieurs kits (brute, tireur, clerc…). La politique part d’un choix souvent aléatoire. Chaque génération ne garde une variante que si elle gagne plus souvent contre cette politique de départ. Le résultat est `data/ai-policy.json` et `docs/rapport-ia.md`.
-
-## Tests
+## Générer, équilibrer, entraîner
 
 ```bash
 npm test
+SPELL_GENERATE=1 npm run generate
+npm run balance
+npm run train
+npm run campaign
 ```
 
-## Ce qui reste
+Le grimoire en jeu est `data/user-spells.json` : Coup brut, Coup de pied et Roulade, plus les sorts créés ensuite dans l’éditeur. `npm run generate` sans `SPELL_GENERATE=1` ne réécrit rien. Le code du générateur reste dans `js/spell-lab.js`.
 
-- L’IA du combat **utilise** la politique entraînée. Elle ne réapprend pas pendant la partie : relance `npm run train` pour mettre à jour les poids.
-- Le choix d’évolution après une victoire, dans le combat, est toujours manuel. Le générateur a déjà appliqué une ou deux évolutions dans les chiffres et dans les cases d’animation.
-- Les écrans de calibrage (directions, anims d’arme, placement de chapeau ou de hache) et la version neuro-core ne sont plus dans le jeu. Le combat garde le calibrage de directions par défaut.
+`npm run campaign` écrit un échantillon dans `docs/rapport-parties.md`. Le volume du cahier (cinq passes d’environ 100 000 combats, self-play, 10 000 parties) est `npm run volume`. La suite paysage sur quatre téléphones et les captures de sorts est `npm run ergo`.
+
+Les rapports chiffrés sont dans `docs/`.
+
+## Habillage
+
+Variante D, fond sable `#FAF7F0`, encre `#2F3133`, orange `#EA7020`. Le mode sombre reprend la même famille : anthracite `#141618` `#23272C` `#2C3036` `#3E444C`, beige `#C9BBA8` `#F6F1E8`, blanc et orange. La bascule est une icône. Les menus tiennent en un écran, sans défilement, et se lisent par icônes, nombres et couleurs. Pas de symbole religieux. Les mots arabes affichés sont des indications de synchro, de lumière et de sagesse.

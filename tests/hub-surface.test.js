@@ -1,0 +1,55 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+describe("arène", () => {
+  it("l’accueil charge le hub et garde les ateliers", () => {
+    const index = readFileSync("index.html", "utf8");
+    const hub = readFileSync("js/hub.js", "utf8");
+    const css = readFileSync("css/skin-d.css", "utf8");
+    assert.match(index, /character-creator-fantasy\.html/);
+    assert.match(index, /fantasy-combat\.html/);
+    assert.match(index, /spell-editor\.html/);
+    assert.match(index, /js\/hub\.js/);
+    assert.match(hub, /Combattre/);
+    assert.match(hub, /Forgemagie/);
+    assert.match(hub, /roguelite\.fight/);
+    assert.match(css, /#FAF7F0|#faf7f0/i);
+    assert.match(css, /#EA7020|#ea7020/i);
+    assert.equal(/sephiroth|kether|malkuth|lilith/i.test(index + hub + css), false);
+    assert.equal(/\bNERV\b|EVA-01|SHINJI|\bMAGI\b|ENTRY PLUG/i.test(index + hub + css), false);
+    assert.match(index, /class="crt"/);
+    assert.match(hub, /فحص/);
+    assert.match(hub, /-50/);
+    assert.match(hub, /عتاد/);
+    assert.match(css, /crt-on/);
+    assert.match(css, /phosphor/);
+    const editor = readFileSync("spell-editor.html", "utf8");
+    const creator = readFileSync("character-creator-fantasy.html", "utf8");
+    const combat = readFileSync("fantasy-combat.html", "utf8");
+    const blob = index + hub + css + editor + creator + combat;
+    assert.equal(/\bNERV\b|EVA-01|SHINJI|\bMAGI\b|ENTRY PLUG|LIFE SUPPORT|PSYCHOGRAPHIC/i.test(blob), false);
+    assert.equal(/sephiroth|kether|malkuth|lilith/i.test(blob), false);
+    assert.match(editor, /class="crt"/);
+    assert.match(creator, /class="crt"/);
+    assert.match(combat, /class="crt"/);
+    assert.match(editor, /#EA7020/);
+    assert.match(creator, /#EA7020/);
+  });
+
+  it("le combat paysage garde la croix, la fuite et le pincement", () => {
+    const combat = readFileSync("fantasy-combat.html", "utf8");
+    assert.match(combat, /id="dpad"/);
+    assert.match(combat, /id="btnEnd"/);
+    assert.match(combat, /id="btnFlee"/);
+    assert.match(combat, /Fin du tour/);
+    assert.match(combat, /rlFinish/);
+    assert.match(combat, /pinch/);
+    assert.match(combat, /skin-d\.css/);
+    assert.match(combat, /squelette/);
+    assert.match(combat, /spectre/);
+    assert.match(combat, /G\.roster/);
+    assert.match(combat, /rlRosterPhase/);
+    assert.equal(combat.includes("rlDrawPawn"), false);
+  });
+});
