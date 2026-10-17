@@ -2,11 +2,11 @@
 
 ## Jeu jouable
 
-La page unique (accueil, combat, créateur, éditeur) est dans le dépôt : [https://raw.githack.com/Poly-AAA/creator-pers0na/cursor/roguelite-arene-38fe/docs/previews/arene-phone.html](https://raw.githack.com/Poly-AAA/creator-pers0na/cursor/roguelite-arene-38fe/docs/previews/arene-phone.html)
+Jeu : [https://litter.catbox.moe/kmn101.html](https://litter.catbox.moe/kmn101.html)
 
-Le même fichier, déjà en ligne et identique octet pour octet, reste jouable ici jusqu’au 18 octobre 2026 vers 06:00 UTC : [https://litter.catbox.moe/kmn101.html](https://litter.catbox.moe/kmn101.html)
+C’est la dernière page (accueil, puis combat). Le fichier reconstruit le 17 octobre 2026 a la même empreinte. Ouvert dans un navigateur : l’accueil s’affiche, le duel 1v1 ouvre le combat, le pad et la toile sont là. Le lien reste en ligne jusqu’au 18 octobre 2026 vers 06:00 UTC. Un nouvel envoi sur Litterbox échoue (erreur 500), donc pas de lien plus long.
 
-L’envoi d’une copie neuve sur Litterbox échoue (erreur 500 du serveur). Le lien ci-dessus est donc la dernière version, pas une ancienne.
+La même page est aussi dans le dépôt : `docs/previews/arene-phone.html`.
 
 ## Menus
 
