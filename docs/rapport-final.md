@@ -4,7 +4,7 @@
 
 Combat seul, en vertical, avec la carrière et les tenues du pack : [https://litter.catbox.moe/8xsus9.html](https://litter.catbox.moe/8xsus9.html)
 
-La page ouvre le duel. Le téléphone se tient à la verticale. Tourné sur le côté, une icône demande de le redresser. Entre deux combats, le sac montre les pièces du pack (coiffe, torse, jambes, bottes, gants, ceinture, cape, bouclier, arme). Chaque pièce a ses stats. Sa couleur dans le sac est la même que sur le personnage équipé. À la mort, un autre personnage est tiré. Déposée le 18 octobre 2026 vers 05:20 UTC. Elle reste en ligne environ 72 heures, jusqu’au 21 octobre 2026 vers 05:20 UTC.
+La page ouvre le duel. Le téléphone se tient à la verticale. Tourné sur le côté, une icône demande de le redresser. Entre deux combats, le sac montre les pièces du pack (coiffe, torse, jambes, bottes, gants, ceinture, cape, bouclier, arme). Chaque pièce a ses stats. Sa couleur dans le sac est la même que sur le personnage équipé. À la mort, un autre personnage est tiré. Déposée le 18 octobre 2026 vers 05:15 UTC. Elle reste en ligne environ 72 heures, jusqu’au 21 octobre 2026 vers 05:15 UTC.
 
 La page précédente, encore bloquée en paysage : [https://litter.catbox.moe/tkwixb.html](https://litter.catbox.moe/tkwixb.html). L’arène complète : [https://litter.catbox.moe/e5rhdo.html](https://litter.catbox.moe/e5rhdo.html).
 
