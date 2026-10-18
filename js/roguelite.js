@@ -25,10 +25,11 @@ export const BALANCE = {
   playerGuard: 0.64,
 };
 
-export const SLOTS = ["coiffe", "amulette", "cape", "arme", "anneauG", "anneauD", "ceinture", "bouclier", "bottes"];
+export const SLOTS = ["coiffe", "amulette", "cape", "torse", "arme", "anneauG", "anneauD", "ceinture", "gants", "bouclier", "jambes", "bottes"];
 export const SLOT_LABEL = {
-  coiffe: "Coiffe", amulette: "Amulette", cape: "Cape", arme: "Arme",
-  anneauG: "Anneau G", anneauD: "Anneau D", ceinture: "Ceinture", bouclier: "Bouclier", bottes: "Bottes",
+  coiffe: "Coiffe", amulette: "Amulette", cape: "Cape", torse: "Torse", arme: "Arme",
+  anneauG: "Anneau G", anneauD: "Anneau D", ceinture: "Ceinture", gants: "Gants",
+  bouclier: "Bouclier", jambes: "Jambes", bottes: "Bottes",
 };
 export const STAT_LABEL = {
   vit: "Vitalité", force: "Force", intel: "Intelligence", chance: "Chance",
@@ -398,6 +399,10 @@ export function createHero(seed, catalog) {
     styleSum: 0,
     alive: true,
   };
+  const gearRng = mulberry32(((seed >>> 0) ^ 0x51ed) >>> 0);
+  ["coiffe", "torse", "jambes", "bottes", "gants", "ceinture", "cape", "bouclier", "arme"].forEach((slot) => {
+    hero.inventory.push(makeItem(gearRng, { slot, level: 1, quality: 0.85, element: elements[0] }));
+  });
   recomputeVitals(hero);
   hero.pv = hero.pvMax;
   return hero;
@@ -521,38 +526,149 @@ export function gainXp(hero, amount) {
   return gained;
 }
 
-function weaponFolder(item) {
-  const el = (item && item.element) || "terre";
-  const table = { terre: "Melee8", feu: "Magic3", eau: "Magic2", air: "Ranged1", neutre: "Melee2" };
-  return table[el] || "Melee2";
+function numFolders(prefix, nums) {
+  return nums.map((n) => prefix + n);
 }
 
-const GEAR_HEADS = ["Head1", "Head3", "Head5", "Head8", "Head12", "Head16", "Head18", "Head22"];
-const GEAR_CHESTS = ["Chest2", "Chest4", "Chest6", "Chest8", "Chest10", "Chest14"];
-const GEAR_LEGS = ["Legs1", "Legs3", "Legs5", "Legs7", "Legs9"];
-const GEAR_OFF = ["Offhand1", "Offhand2", "Shield1", "Shield2"];
+const GEAR_DEF = [
+  ["coiffe", "head", numFolders("Head", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25])],
+  ["cape", "backpack", numFolders("Bag", [1, 2, 3, 4, 5, 6, 8])],
+  ["torse", "chest", numFolders("Chest", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19])],
+  ["jambes", "legs", numFolders("Legs", [1, 2, 3, 4, 5, 6, 7, 8, 9])],
+  ["bottes", "shoes", numFolders("Shoes", [1, 2, 3, 4, 5])],
+  ["ceinture", "belt", numFolders("Belt", [1, 2])],
+  ["gants", "gloves", numFolders("Hands", [1, 2, 3, 4])],
+  ["bouclier", "offhand", numFolders("Shield", [1, 2, 3, 4, 5, 6, 7]).concat(numFolders("Offhand", [1, 2]))],
+  ["arme", "weapon", numFolders("Magic", [1, 2, 3]).concat(numFolders("Melee", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25])).concat(numFolders("Ranged", [1, 2, 3, 4, 5, 6, 7]))],
+];
 
-function mixHero(hero) {
-  const s = String((hero && (hero.id || hero.name)) || "x");
+const SLOT_STATS = {
+  arme: ["force", "intel", "chance", "agi"],
+  coiffe: ["vit", "ini", "sage"],
+  cape: ["vit", "agi", "resAir"],
+  bottes: ["agi", "ini"],
+  anneauG: ["chance", "force"],
+  anneauD: ["intel", "agi"],
+  amulette: ["sage", "vit", "chance"],
+  ceinture: ["vit", "force", "sage"],
+  bouclier: ["vit", "resTerre", "resNeutre"],
+  torse: ["vit", "force", "resTerre"],
+  jambes: ["agi", "vit", "ini"],
+  gants: ["force", "agi", "sage"],
+};
+
+const PIECES = [];
+const PIECES_BY_SLOT = {};
+const PIECE_BY_FOLDER = {};
+GEAR_DEF.forEach((row) => {
+  const slot = row[0];
+  const layer = row[1];
+  PIECES_BY_SLOT[slot] = [];
+  row[2].forEach((folder) => {
+    const num = folder.replace(/\D/g, "") || folder;
+    let name = (SLOT_LABEL[slot] || slot) + " " + num;
+    if (slot === "arme" && folder.indexOf("Magic") === 0) name = "Bâton " + num;
+    else if (slot === "arme" && folder.indexOf("Ranged") === 0) name = "Arc " + num;
+    else if (slot === "arme") name = "Lame " + num;
+    else if (slot === "bouclier" && folder.indexOf("Off") === 0) name = "Main " + num;
+    else if (slot === "bouclier") name = "Écu " + num;
+    const TINTS = ["#EA7020", "#F4B07A", "#8A3030", "#2F6F4E", "#5b7c99", "#8b6914", "#3e4f63", "#6b8f71", "#7a5c3a", "#d4a574", "#6a5a4e", "#3a3230", "#e0b878", "#9aa8b8", "#2F3133", "#8A8278"];
+    const piece = { slot, layer, folder, name, tint: TINTS[hashFolder(folder) % TINTS.length] };
+    PIECES.push(piece);
+    PIECES_BY_SLOT[slot].push(piece);
+    PIECE_BY_FOLDER[folder] = piece;
+  });
+});
+
+const LAYER_FALLBACK = {
+  shoes: "Shoes1",
+  legs: "Legs1",
+  chest: "Chest1",
+  head: "Head1",
+};
+const LAYER_SLOT = {
+  shoes: "bottes",
+  legs: "jambes",
+  chest: "torse",
+  belt: "ceinture",
+  gloves: "gants",
+  offhand: "bouclier",
+  weapon: "arme",
+  backpack: "cape",
+  head: "coiffe",
+};
+
+function hashFolder(folder) {
   let h = 2166136261;
+  const s = String(folder || "");
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return h >>> 0;
 }
 
+export function gearCatalog() { return PIECES; }
+
+export function lookOf(item) {
+  if (!item) return null;
+  if (item.folder && PIECE_BY_FOLDER[item.folder]) return PIECE_BY_FOLDER[item.folder];
+  const list = PIECES_BY_SLOT[item.slot];
+  if (!list || !list.length) return null;
+  return list[hashFolder(item.id || item.name || item.slot) % list.length];
+}
+
+function pieceStats(folder, slot, rare) {
+  const bag = SLOT_STATS[slot] || ["vit"];
+  const h = hashFolder(folder);
+  const stats = [];
+  const take = (shift) => bag[(h >>> shift) % bag.length];
+  stats.push(take(0));
+  const second = take(4);
+  if (second !== stats[0]) stats.push(second);
+  if (rare) {
+    const third = take(8);
+    if (stats.indexOf(third) < 0) stats.push(third);
+  }
+  return stats;
+}
+
+function gearValue(stat, level, quality) {
+  const q = quality == null ? 1 : quality;
+  const lv = Math.max(1, level | 0);
+  if (String(stat).indexOf("res") === 0) return clamp(Math.round((2 + lv * 0.12) * q), 1, 12);
+  const mid = (stat === "vit" ? 4 : 2) + lv * (stat === "vit" ? 0.55 : 0.42) * q;
+  return Math.max(1, Math.round(mid));
+}
+
+function linesForPiece(piece, level, quality, rare) {
+  return pieceStats(piece.folder, piece.slot, rare).map((stat) => {
+    const value = gearValue(stat, level, quality);
+    return { stat, value, min: Math.max(1, Math.round(value * 0.7)), max: Math.max(value + 1, Math.round(value * 1.25)) };
+  });
+}
+
+function bindLook(item, rng) {
+  const list = PIECES_BY_SLOT[item.slot];
+  if (!list || !list.length) return item;
+  let piece = item.folder && PIECE_BY_FOLDER[item.folder];
+  if (!piece || piece.slot !== item.slot) piece = list[Math.floor(rng() * list.length)];
+  item.folder = piece.folder;
+  item.layer = piece.layer;
+  item.name = piece.name + " " + item.level;
+  return item;
+}
+
 export function layersForHero(hero) {
-  const h = mixHero(hero);
-  const eq = hero.equipped || {};
-  const weapons = ["Melee2", "Melee8", "Magic2", "Magic3", "Ranged1"];
+  const eq = (hero && hero.equipped) || {};
   const layers = [
-    { folder: "Shadow", tint: null, alpha: 1 },
-    { folder: "NakedBody", tint: null, alpha: 1 },
-    { folder: GEAR_LEGS[(eq.bottes ? h : (h >>> 2)) % GEAR_LEGS.length], tint: null, alpha: 1 },
+    { folder: "Shadow", layer: "shadow", tint: null, alpha: 1 },
+    { folder: "NakedBody", layer: "body", tint: "#d4a574", alpha: 1 },
   ];
-  if (eq.ceinture && !eq.cape) layers.push({ folder: (h & 1) ? "Belt1" : "Belt2", tint: null, alpha: 1 });
-  else layers.push({ folder: GEAR_CHESTS[(h >>> 3) % GEAR_CHESTS.length], tint: null, alpha: 1 });
-  if (eq.bouclier) layers.push({ folder: GEAR_OFF[(h >>> 5) % GEAR_OFF.length], tint: null, alpha: 1 });
-  layers.push({ folder: eq.arme ? weaponFolder(eq.arme) : weapons[(h >>> 6) % weapons.length], tint: null, alpha: 1 });
-  layers.push({ folder: GEAR_HEADS[(h >>> 8) % GEAR_HEADS.length], tint: null, alpha: 1 });
+  ["shoes", "legs", "chest", "belt", "gloves", "offhand", "weapon", "backpack", "head"].forEach((layer) => {
+    const worn = lookOf(eq[LAYER_SLOT[layer]]);
+    const folder = worn ? worn.folder : LAYER_FALLBACK[layer];
+    if (!folder) return;
+    const known = worn || PIECE_BY_FOLDER[folder];
+    layers.push({ folder, layer, tint: known ? known.tint : null, alpha: 1 });
+  });
   return layers;
 }
 
@@ -625,15 +741,25 @@ function makeItem(rng, opts) {
     if (candidates.length) set = (opts.set && candidates.find((s) => s.id === opts.set)) ? opts.set : pick(rng, candidates).id;
   }
   const setName = set ? (SETS.find((s) => s.id === set) || {}).name : "";
-  const nouns = { arme: "Lame", coiffe: "Coiffe", cape: "Cape", bottes: "Bottes", anneauG: "Anneau", anneauD: "Anneau", amulette: "Amulette", ceinture: "Ceinture", bouclier: "Bouclier" };
-  return {
+  const nouns = { arme: "Lame", coiffe: "Coiffe", cape: "Cape", torse: "Torse", bottes: "Bottes", jambes: "Jambes", gants: "Gants", anneauG: "Anneau", anneauD: "Anneau", amulette: "Amulette", ceinture: "Ceinture", bouclier: "Bouclier" };
+  const item = {
     id: "it" + Math.floor(rng() * 1e9).toString(16),
     name: (rare ? "Relique " : "") + (nouns[slot] || "Pièce") + (setName ? " · " + setName : "") + " " + level,
     slot, level, element, set, rare,
     lines,
     maxLines: rare ? 8 : 6,
   };
+  if (opts.folder) item.folder = opts.folder;
+  bindLook(item, rng);
+  const piece = item.folder && PIECE_BY_FOLDER[item.folder];
+  if (piece && piece.slot === item.slot) {
+    item.lines = linesForPiece(piece, level, quality, rare);
+    item.name = piece.name + (setName ? " · " + setName : "") + " " + level;
+  }
+  return item;
 }
+
+export function createItem(rng, opts) { return makeItem(rng, opts || {}); }
 
 function scaleCrafted(item, heroLevel) {
   const f = clamp(heroLevel / 50, 0.04, 1);
@@ -694,6 +820,7 @@ export function craft(state, slot, materialIds, rng) {
     maxLines: 7,
   }, hero.level);
   if (!item.lines.length) return { ok: false, reason: "échec" };
+  bindLook(item, rng);
   hero.inventory.push(item);
   addJobXp(state.meta, "craft", 16 + ids.length * 6);
   return { ok: true, item, fail };

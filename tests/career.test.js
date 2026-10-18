@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import {
   createHero, createState, finishDeath, crush, prepareCatalog,
   gainXp, xpNeed, recomputeVitals, effectiveStats, mulberry32,
+  createItem, layersForHero, lookOf, gearCatalog, equip,
 } from "../js/roguelite.js";
 
 const spells = JSON.parse(readFileSync("data/user-spells.json", "utf8"));
@@ -78,5 +79,30 @@ describe("carrière", () => {
     assert.match(career, /crush\(/);
     assert.doesNotMatch(career, /spell-editor/);
     assert.equal(html.includes("makeItem"), false);
+    assert.match(career, /gear-ico/);
+    assert.match(career, /lookOf/);
+    assert.match(html, /spriteBase/);
+  });
+
+  it("chaque tenue du pack a des stats et la même pièce une fois équipée", () => {
+    const pieces = gearCatalog();
+    assert.ok(pieces.length > 80);
+    ["Head1", "Chest1", "Legs1", "Shoes1", "Belt1", "Hands1", "Shield1", "Bag1", "Melee1", "Magic1", "Ranged1"].forEach((folder) => {
+      assert.ok(pieces.some((p) => p.folder === folder), folder);
+    });
+    const a = createItem(mulberry32(1), { slot: "coiffe", folder: "Head12", level: 4, quality: 1 });
+    const b = createItem(mulberry32(9), { slot: "coiffe", folder: "Head12", level: 4, quality: 1 });
+    assert.equal(a.folder, "Head12");
+    assert.equal(a.layer, "head");
+    assert.deepEqual(a.lines.map((l) => l.stat + ":" + l.value), b.lines.map((l) => l.stat + ":" + l.value));
+    assert.equal(lookOf(a).folder, "Head12");
+    const hero = createHero(4, prepareCatalog(spells));
+    const worn = hero.inventory.find((it) => it.slot === "torse");
+    equip(hero, worn.id);
+    const layers = layersForHero(hero);
+    const chest = layers.find((l) => l.layer === "chest");
+    assert.equal(chest.folder, worn.folder);
+    assert.equal(chest.tint, lookOf(worn).tint);
+    assert.ok(layers.some((l) => l.folder === "NakedBody"));
   });
 });

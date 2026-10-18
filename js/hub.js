@@ -70,8 +70,9 @@ const STAT_ICO = {
   resTerre: "shield", resFeu: "shield", resEau: "shield", resAir: "shield", resNeutre: "shield",
 };
 const SLOT_ICO = {
-  coiffe: "hat", amulette: "gem", cape: "cape", arme: "sword",
-  anneauG: "ring", anneauD: "ring", ceinture: "belt", bouclier: "shield", bottes: "boot",
+  coiffe: "hat", amulette: "gem", cape: "cape", torse: "cape", arme: "sword",
+  anneauG: "ring", anneauD: "ring", ceinture: "belt", gants: "bag", bouclier: "shield",
+  jambes: "boot", bottes: "boot",
 };
 const EL_MARK = { feu: "▲", eau: "●", air: "◆", terre: "■", neutre: "○" };
 

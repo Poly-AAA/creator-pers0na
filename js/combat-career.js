@@ -168,18 +168,29 @@
       return "<b aria-label='" + esc(R.STAT_LABEL[k]) + "'>" + e[k] + "</b>";
     }).join("");
   }
+  function gearFolder(it) {
+    var look = it && R.lookOf ? R.lookOf(it) : null;
+    return look ? look.folder : "";
+  }
+  function gearIcon(it) {
+    var folder = gearFolder(it);
+    if (!folder) return "";
+    var tint = (R.lookOf(it) || {}).tint || "";
+    return "<canvas class='gear-ico' width='32' height='32' data-folder='" + esc(folder) + "' data-tint='" + esc(tint) + "'></canvas>";
+  }
   function slotButtons() {
     return R.SLOTS.map(function (slot) {
       var it = state.hero.equipped && state.hero.equipped[slot];
       var mark = it ? "on" : "";
-      return "<button type='button' class='" + mark + "' data-unequip='" + slot + "' aria-label='" + esc(R.SLOT_LABEL[slot]) + "'>" + (it ? it.level : "·") + "</button>";
+      var face = it && gearFolder(it) ? gearIcon(it) : (it ? it.level : "·");
+      return "<button type='button' class='" + mark + "' data-unequip='" + slot + "' aria-label='" + esc(R.SLOT_LABEL[slot]) + (it ? " " + it.name : "") + "'>" + face + "</button>";
     }).join("");
   }
   function itemButtons(attr) {
     var bag = state.hero.inventory || [];
     if (!bag.length) return "<p>0</p>";
     return bag.map(function (it) {
-      return "<button type='button' data-" + attr + "='" + esc(it.id) + "' aria-label='" + esc(it.name) + " " + esc(lineText(it)) + "'><b>" + it.level + "</b><span>" + esc(R.SLOT_LABEL[it.slot] || it.slot) + "</span></button>";
+      return "<button type='button' data-" + attr + "='" + esc(it.id) + "' aria-label='" + esc(it.name) + " " + esc(lineText(it)) + "'>" + gearIcon(it) + "<b>" + it.level + "</b></button>";
     }).join("");
   }
   function runeButtons() {
@@ -202,7 +213,7 @@
     var rows = (state.shop || []).filter(function (o) { return !o.sold; });
     if (!rows.length) return "<p>0</p>";
     return rows.map(function (o) {
-      return "<button type='button' data-buy='" + esc(o.id) + "' aria-label='" + esc(o.name) + "'><b>" + o.price + "</b></button>";
+      return "<button type='button' data-buy='" + esc(o.id) + "' aria-label='" + esc(o.name) + "'>" + gearIcon(o.item) + "<b>" + o.price + "</b></button>";
     }).join("");
   }
   function notice() {
@@ -258,6 +269,121 @@
       }).join("") + "<button type='button' id='campFight' aria-label='Combattre'>▶</button></div>"
       + "<div class='camp-body'>" + body() + "</div>";
     camp.onclick = onClick;
+    paintIcons(camp);
+  }
+  var iconImg = {};
+  function paintIcons(root) {
+    var base = "";
+    try { base = bridge().spriteBase || ""; } catch (_e) { base = ""; }
+    if (base && base.charAt(base.length - 1) !== "/") base += "/";
+    root.querySelectorAll("canvas.gear-ico").forEach(function (cv) {
+      var folder = cv.getAttribute("data-folder");
+      var tint = cv.getAttribute("data-tint") || "";
+      if (!folder) return;
+      var src = base + "spritesheets/" + folder + "/Idle.png";
+      var known = iconImg[src];
+      if (known && known.complete && known.naturalWidth) { blitIcon(cv, known, tint); return; }
+      if (!known) {
+        known = new Image();
+        known.crossOrigin = "anonymous";
+        iconImg[src] = known;
+        known.addEventListener("load", function () {
+          document.querySelectorAll("canvas.gear-ico[data-folder='" + folder + "']").forEach(function (el) {
+            blitIcon(el, known, el.getAttribute("data-tint") || "");
+          });
+        });
+        known.src = src;
+      }
+    });
+  }
+  var iconDone = {};
+  function blitIcon(cv, img, tint) {
+    var key = (img.src || "") + "|" + (tint || "");
+    var ctx = cv.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    if (iconDone[key]) {
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.drawImage(iconDone[key], 0, 0, cv.width, cv.height);
+      return;
+    }
+    var fw = 128;
+    var fh = 128;
+    var rows = Math.max(1, Math.floor(img.height / fh));
+    var cols = Math.max(1, Math.floor(img.width / fw));
+    var scratch = blitIcon.scratch || (blitIcon.scratch = document.createElement("canvas"));
+    scratch.width = fw;
+    scratch.height = fh;
+    var sx = scratch.getContext("2d");
+    var box = null;
+    var bestN = 0;
+    for (var row = 0; row < rows; row++) {
+      for (var col = 0; col < cols; col++) {
+        sx.clearRect(0, 0, fw, fh);
+        sx.drawImage(img, col * fw, row * fh, fw, fh, 0, 0, fw, fh);
+        var data;
+        try { data = sx.getImageData(0, 0, fw, fh).data; } catch (_e) { data = null; }
+        if (!data) {
+          paintTint(cv, img, 0, row * fh, fw, fh, tint);
+          return;
+        }
+        var minx = fw;
+        var miny = fh;
+        var maxx = -1;
+        var maxy = -1;
+        var n = 0;
+        for (var y = 0; y < fh; y++) {
+          for (var x = 0; x < fw; x++) {
+            if (data[(y * fw + x) * 4 + 3] < 24) continue;
+            n++;
+            if (x < minx) minx = x;
+            if (y < miny) miny = y;
+            if (x > maxx) maxx = x;
+            if (y > maxy) maxy = y;
+          }
+        }
+        if (n > bestN) {
+          bestN = n;
+          box = { minx: minx, miny: miny, w: maxx - minx + 1, h: maxy - miny + 1, col: col, row: row };
+        }
+      }
+    }
+    if (!box) return;
+    sx.clearRect(0, 0, fw, fh);
+    sx.drawImage(img, box.col * fw, box.row * fh, fw, fh, 0, 0, fw, fh);
+    var chip = document.createElement("canvas");
+    chip.width = box.w;
+    chip.height = box.h;
+    var cx = chip.getContext("2d");
+    cx.drawImage(scratch, box.minx, box.miny, box.w, box.h, 0, 0, box.w, box.h);
+    if (tint) {
+      cx.globalCompositeOperation = "multiply";
+      cx.fillStyle = tint;
+      cx.fillRect(0, 0, box.w, box.h);
+      cx.globalCompositeOperation = "destination-in";
+      cx.drawImage(scratch, box.minx, box.miny, box.w, box.h, 0, 0, box.w, box.h);
+    }
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    var scale = Math.min((cv.width - 2) / box.w, (cv.height - 2) / box.h);
+    var dw = Math.max(1, Math.round(box.w * scale));
+    var dh = Math.max(1, Math.round(box.h * scale));
+    ctx.drawImage(chip, 0, 0, box.w, box.h, Math.floor((cv.width - dw) / 2), Math.floor((cv.height - dh) / 2), dw, dh);
+    var saved = document.createElement("canvas");
+    saved.width = cv.width;
+    saved.height = cv.height;
+    saved.getContext("2d").drawImage(cv, 0, 0);
+    iconDone[key] = saved;
+  }
+  function paintTint(cv, img, sx0, sy0, sw, sh, tint) {
+    var ctx = cv.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.drawImage(img, sx0, sy0, sw, sh, 0, 0, cv.width, cv.height);
+    if (!tint) return;
+    ctx.globalCompositeOperation = "multiply";
+    ctx.fillStyle = tint;
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.globalCompositeOperation = "destination-in";
+    ctx.drawImage(img, sx0, sy0, sw, sh, 0, 0, cv.width, cv.height);
   }
   function onClick(ev) {
     var t = ev.target.closest("button");

@@ -209,7 +209,10 @@
   #camp button{
     width:48px;height:48px;border:1px solid var(--frame);border-radius:3px;
     background:var(--panel);color:var(--acc);font:inherit;
+    display:inline-flex;align-items:center;justify-content:center;gap:1px;padding:1px;
   }
+  #camp canvas.gear-ico{width:28px;height:28px;image-rendering:pixelated;pointer-events:none}
+  #camp button b{font-size:11px;line-height:1}
   #camp button.on{background:var(--acc);color:var(--onacc)}
   #camp .camp-body{flex:1;min-height:0;overflow:auto;align-content:flex-start}
   #camp p{margin:0;color:var(--ink2)}
@@ -3994,6 +3997,7 @@
       warmFolders: warmFolders,
       el: el,
       spells: function(){ return customSpells; },
+      spriteBase: BASE_LOCAL,
     };
     if(window.__CAREER && window.CombatCareer){
       try{ CombatCareer.boot(); }catch(err){ setStatus("Carrière"); }
