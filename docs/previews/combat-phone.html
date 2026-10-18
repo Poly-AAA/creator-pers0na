@@ -1924,9 +1924,6 @@ html.dark .wave{filter:none;color:#F4B07A}
     display:none;position:fixed;inset:0;z-index:80;background:var(--bg);color:var(--ink);
     align-items:center;justify-content:center;text-align:center;padding:28px;font-size:22px;font-weight:700;
   }
-  @media (orientation:portrait) and (max-width:900px){
-    .orient{display:flex}
-  }
   .app{
     position:relative;height:100%;height:100dvh;width:100%;max-width:none;margin:0;
     overflow:hidden;background:#C4B49A;min-height:0;
@@ -2126,6 +2123,61 @@ html.dark .wave{filter:none;color:#F4B07A}
     .dock{max-height:90px}
     .vitals{flex-basis:120px}
     .sync-hex{bottom:102px}
+  }
+  @media (orientation:landscape){
+    body.skin-d .orient{display:flex}
+  }
+  @media (orientation:portrait){
+    html,body.skin-d{height:100%;overflow:hidden}
+    body.skin-d .orient{display:none}
+    .hud-top{
+      left:max(4px, env(safe-area-inset-left));
+      right:max(4px, env(safe-area-inset-right));
+      gap:2px;padding:2px;
+    }
+    .link-cc,#themeBtn{width:32px;height:32px;min-width:32px;min-height:32px}
+    .timer .seg,.style .mono,.combo{display:none}
+    .clock{font-size:14px}
+    .grade{font-size:16px;min-width:14px;text-align:center}
+    .ord{max-width:72px}
+    .status{
+      top:46px;left:8px;right:8px;transform:none;max-width:none;width:auto;
+      text-align:center;font-size:12px;
+    }
+    .dpad-slot{
+      left:max(6px, env(safe-area-inset-left));
+      bottom:calc(112px + env(safe-area-inset-bottom));
+      width:148px;height:148px;
+    }
+    .sync-hex{right:max(8px, env(safe-area-inset-right));bottom:calc(120px + env(safe-area-inset-bottom))}
+    .dock{
+      left:max(4px, env(safe-area-inset-left));
+      right:max(4px, env(safe-area-inset-right));
+      bottom:max(4px, env(safe-area-inset-bottom));
+      max-height:104px;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 56px;
+      grid-template-areas:"vitals end" "spells end";
+      gap:4px;align-items:stretch;
+    }
+    .vitals{
+      grid-area:vitals;flex:none;flex-basis:auto;flex-direction:row;
+      align-items:center;gap:6px;padding:3px 6px;
+    }
+    .vitals .who{flex:0 1 78px}
+    .vitals .meter{flex:1;min-width:0}
+    .spells-box{grid-area:spells}
+    .endbox{grid-area:end;flex:none;flex-basis:auto;width:auto;height:100%}
+    .end-row{flex-direction:column}
+    body.skin-d .spells button{min-height:44px;height:44px}
+    body.skin-d .btn-end{min-height:44px;height:44px}
+    body.skin-d #btnChat{display:none}
+    body.skin-d #btnFlee{width:100%;min-height:40px;height:40px;flex:none}
+    #camp{padding:max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom))}
+  }
+  @media (orientation:portrait) and (max-width:420px){
+    a.link-cc[data-fcc]{display:none}
+    #camp button{width:44px;height:44px}
   }
 </style>
 <script>window.__CAREER=true;</script>
@@ -4227,7 +4279,7 @@ var Roguelite = (() => {
 <body class="skin-d">
 <div class="crt" aria-hidden="true"></div>
 <div id="camp" hidden></div>
-<div class="orient" aria-label="Paysage"><svg viewBox="0 0 64 64" width="72" height="72" aria-hidden="true"><rect x="26" y="8" width="18" height="34" fill="none" stroke="currentColor" stroke-width="3"/><path d="M10 44c10 12 34 12 44 0" fill="none" stroke="#EA7020" stroke-width="3"/><path d="M50 40l6 6-8 1z" fill="#EA7020"/></svg></div>
+<div class="orient" aria-label="Portrait"><svg viewBox="0 0 64 64" width="72" height="72" aria-hidden="true"><rect x="6" y="22" width="36" height="20" fill="none" stroke="currentColor" stroke-width="3"/><path d="M46 8c14 8 16 36 2 48" fill="none" stroke="#EA7020" stroke-width="3"/><path d="M44 52l8 4-2-8z" fill="#EA7020"/></svg></div>
 <div class="app">
   <canvas id="arena" width="640" height="360" aria-label="Arène isométrique"></canvas>
   <div class="hazard" aria-hidden="true"></div>
@@ -5824,15 +5876,17 @@ var Roguelite = (() => {
     if(cam._w!==w || cam._h!==h){
       cam._w=w; cam._h=h;
       if(canvas.width!==w || canvas.height!==h){ canvas.width=w; canvas.height=h; }
-      const viewW = VIEW_TILES * TILE_W;
-      const viewH = VIEW_TILES * TILE_H * 0.72;
-      const sc = Math.min(w / (viewW + 24), h / (viewH + 48), 1.55);
+      const tall = h > w;
+      const tiles = tall ? 5.5 : VIEW_TILES;
+      const viewW = tiles * TILE_W;
+      const viewH = tiles * TILE_H * (tall ? 1 : 0.72);
+      const sc = Math.min(w / (viewW + 16), h / (viewH + (tall ? 220 : 48)), tall ? 1.45 : 1.55);
       if(cam.userSc == null) cam.sc = Math.max(0.42, sc);
     }
     if(cam.userSc != null) cam.sc = cam.userSc;
     updateCamera();
     const cx = w / (2 * cam.sc);
-    const cy = h / (2 * cam.sc) + 10;
+    const cy = h / (2 * cam.sc) + (h > w ? -28 : 10);
     const px = (cam.fx - cam.fy) * (TILE_W/2);
     const py = (cam.fx + cam.fy) * (TILE_H/2);
     cam.ox = cx - px + (cam.panX || 0) / cam.sc;

@@ -69,6 +69,10 @@ describe("carrière", () => {
     const career = readFileSync("js/combat-career.js", "utf8");
     assert.match(html, /id="camp"/);
     assert.match(html, /CombatCareer\.finish/);
+    assert.match(html, /aria-label="Portrait"/);
+    assert.match(html, /orientation:landscape/);
+    assert.doesNotMatch(html, /aria-label="Paysage"/);
+    assert.doesNotMatch(html, /orientation:portrait\) and \(max-width:900px\)/);
     assert.match(html, /function hurtId/);
     assert.match(career, /finishDeath|settleFight/);
     assert.match(career, /crush\(/);

@@ -2,13 +2,13 @@
 
 ## Jeu jouable
 
-Combat seul, avec la carrière : [https://litter.catbox.moe/tkwixb.html](https://litter.catbox.moe/tkwixb.html)
+Combat seul, en vertical, avec la carrière : [https://litter.catbox.moe/teqs8n.html](https://litter.catbox.moe/teqs8n.html)
 
-La page ouvre le duel. Entre deux combats, un écran plat montre le niveau, les stats, le sac, le bris, la forge, l’atelier, les soins et le marché. À la mort, un autre personnage est tiré. Déposée le 18 octobre 2026 vers 04:55 UTC. Elle reste en ligne environ 72 heures, jusqu’au 21 octobre 2026 vers 04:55 UTC.
+La page ouvre le duel. Le téléphone se tient à la verticale. Tourné sur le côté, une icône demande de le redresser. Entre deux combats, un écran plat montre le niveau, les stats, le sac, le bris, la forge, l’atelier, les soins et le marché. À la mort, un autre personnage est tiré. Déposée le 18 octobre 2026 vers 05:05 UTC. Elle reste en ligne environ 72 heures, jusqu’au 21 octobre 2026 vers 05:05 UTC.
 
-L’ancienne page de combat, sans carrière : [https://litter.catbox.moe/m7cp0n.html](https://litter.catbox.moe/m7cp0n.html). L’arène complète : [https://litter.catbox.moe/e5rhdo.html](https://litter.catbox.moe/e5rhdo.html).
+La page précédente, encore bloquée en paysage : [https://litter.catbox.moe/tkwixb.html](https://litter.catbox.moe/tkwixb.html). L’arène complète : [https://litter.catbox.moe/e5rhdo.html](https://litter.catbox.moe/e5rhdo.html).
 
-La même page est aussi dans le dépôt : `docs/previews/arene-phone.html`.
+La même page est aussi dans le dépôt : `docs/previews/combat-phone.html`.
 
 ## Menus
 
