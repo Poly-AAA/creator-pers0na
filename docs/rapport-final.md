@@ -2,11 +2,11 @@
 
 ## Jeu jouable
 
-Combat seul : [https://litter.catbox.moe/m7cp0n.html](https://litter.catbox.moe/m7cp0n.html)
+Combat seul, avec la carrière : [https://litter.catbox.moe/tkwixb.html](https://litter.catbox.moe/tkwixb.html)
 
-La page ouvre directement le système de combat, sans l’accueil, le sac ni la boutique. Déposée le 18 octobre 2026 vers 04:40 UTC. Elle reste en ligne environ 72 heures, jusqu’au 21 octobre 2026 vers 04:40 UTC. Vérifié : titre Combat Fantasy, pad, toile, adversaire déjà en place (Map 10 · vs Spectre, Coup brut / Coup de pied / Roulade).
+La page ouvre le duel. Entre deux combats, un écran plat montre le niveau, les stats, le sac, le bris, la forge, l’atelier, les soins et le marché. À la mort, un autre personnage est tiré. Déposée le 18 octobre 2026 vers 04:55 UTC. Elle reste en ligne environ 72 heures, jusqu’au 21 octobre 2026 vers 04:55 UTC.
 
-L’arène complète (menus puis combat) reste sur [https://litter.catbox.moe/e5rhdo.html](https://litter.catbox.moe/e5rhdo.html), jusqu’au 21 octobre 2026 vers 04:35 UTC.
+L’ancienne page de combat, sans carrière : [https://litter.catbox.moe/m7cp0n.html](https://litter.catbox.moe/m7cp0n.html). L’arène complète : [https://litter.catbox.moe/e5rhdo.html](https://litter.catbox.moe/e5rhdo.html).
 
 La même page est aussi dans le dépôt : `docs/previews/arene-phone.html`.
 

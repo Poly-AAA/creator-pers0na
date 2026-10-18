@@ -42,6 +42,7 @@ combat = combat.replace(
   'const BASE_LOCAL = "assets/packs/fantasy-cc/";\n  const BASE_CDN = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@main/assets/packs/fantasy-cc/";',
   'const BASE_LOCAL = ' + JSON.stringify(CDN) + ';\n  const BASE_CDN = BASE_LOCAL;',
 );
+const combatBase = combat;
 combat = combat.replace(
   `async function loadGeneratedGrimoire(){
     dropGeneratedSpells();
@@ -244,3 +245,45 @@ if (!labPage.includes("renderActor") && !labPage.includes("poing_rig")) {
 const labOut = "/tmp/createur-phone.html";
 writeFileSync(labOut, labPage);
 console.log("wrote", labOut, labPage.length);
+
+const rogueliteJs = execFileSync(
+  "npx",
+  ["--yes", "esbuild", "js/roguelite.js", "--bundle", "--format=iife", "--global-name=Roguelite"],
+  { encoding: "utf8" },
+).replace(/<\/script/gi, "<\\/script");
+const careerJs = readFileSync("js/combat-career.js", "utf8").replace(/<\/script/gi, "<\\/script");
+let solo = combatBase;
+solo = solo.replace(
+  `async function loadGeneratedGrimoire(){
+    dropGeneratedSpells();
+    try{
+      const r = await fetch("data/user-spells.json", { cache:"no-store" });
+      if(!r.ok) return 0;
+      const arr = await r.json();`,
+  `async function loadGeneratedGrimoire(){
+    dropGeneratedSpells();
+    try{
+      const arr = ${jsEmbed(JSON.parse(spells))};`,
+);
+solo = solo.replace(
+  `async function loadAiPolicy(){
+    try{
+      const r = await fetch("data/ai-policy.json", { cache:"no-store" });
+      if(r.ok) aiPolicy = await r.json();
+    }catch(_e){}
+  }`,
+  `async function loadAiPolicy(){
+    try{ aiPolicy = ${jsEmbed(JSON.parse(policy))}; }catch(_e){}
+  }`,
+);
+solo = solo.replace(
+  "</head>",
+  "<script>window.__CAREER=true;</script>\n<script>\n" + rogueliteJs + "\n</script>\n<script>\n" + careerJs + "\n</script>\n</head>",
+);
+if (!solo.includes("CombatCareer.finish") || !solo.includes('id="camp"') || !solo.includes("Coup brut")) {
+  throw new Error("combat seul incomplet");
+}
+if (solo.includes("phoneBack")) throw new Error("combat seul ramène à l’arène");
+writeFileSync("/tmp/combat-phone.html", solo);
+writeFileSync("docs/previews/combat-phone.html", solo);
+console.log("wrote combat", solo.length);

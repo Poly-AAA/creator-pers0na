@@ -197,6 +197,25 @@
   .evo-opts button{text-align:left;border:1px solid var(--frame);border-radius:3px;background:var(--panel);padding:10px 12px;cursor:pointer;color:var(--ink);font:inherit;box-shadow:0 0 4px var(--phosphor)}
   .evo-opts button b{display:block;font-size:14px;margin-bottom:2px}
   .evo-opts button span{font-size:12px;color:var(--ink2)}
+  #camp{
+    position:fixed;inset:0;z-index:75;background:var(--bg);color:var(--ink);
+    display:flex;flex-direction:column;gap:6px;padding:8px;overflow:hidden;
+  }
+  #camp[hidden]{display:none !important}
+  #camp header,#camp .camp-stats,#camp .camp-modes,#camp .camp-body{
+    display:flex;flex-wrap:wrap;gap:4px;align-items:center;
+  }
+  #camp header b,#camp .camp-stats b,#camp .camp-stats span{
+    background:var(--panel);border:1px solid var(--frame);border-radius:3px;
+    padding:4px 6px;color:var(--ink);
+  }
+  #camp button{
+    width:48px;height:48px;border:1px solid var(--frame);border-radius:3px;
+    background:var(--panel);color:var(--acc);font:inherit;
+  }
+  #camp button.on{background:var(--acc);color:var(--onacc)}
+  #camp .camp-body{flex:1;min-height:0;overflow:auto;align-content:flex-start}
+  #camp p{margin:0;color:var(--ink2)}
   @media (max-height:400px){
     .dpad-slot{bottom:106px;width:168px;height:168px}
     .dock{max-height:90px}
@@ -207,6 +226,7 @@
 </head>
 <body class="skin-d">
 <div class="crt" aria-hidden="true"></div>
+<div id="camp" hidden></div>
 <div class="orient" aria-label="Paysage"><svg viewBox="0 0 64 64" width="72" height="72" aria-hidden="true"><rect x="26" y="8" width="18" height="34" fill="none" stroke="currentColor" stroke-width="3"/><path d="M10 44c10 12 34 12 44 0" fill="none" stroke="#EA7020" stroke-width="3"/><path d="M50 40l6 6-8 1z" fill="#EA7020"/></svg></div>
 <div class="app">
   <canvas id="arena" width="640" height="360" aria-label="Arène isométrique"></canvas>
@@ -1381,6 +1401,7 @@
   }
 
   function startNextFight(opts){
+    if(window.__CAREER && window.CombatCareer){ CombatCareer.rest(); return; }
     opts = opts || {};
     if(G.awaitingNext && !opts.force) return;
     G.awaitingNext = false;
@@ -1478,7 +1499,18 @@
     if(!custom || !custom.evoConfig) return false;
     return Object.values(custom.evoConfig).some(e=> e && e.enabled);
   }
+  function hurtId(spell, dmg){
+    let named = (typeof Reactions!=="undefined") ? (Reactions.forSpell(spell) || "flinch") : "flinch";
+    if(!window.__CAREER || named!=="flinch") return named;
+    const el = spell && spell.element;
+    if(el==="feu") return "burn";
+    if(el==="eau") return "frozen";
+    if(el==="air") return "shock";
+    if((dmg|0) >= 12) return "stagger";
+    return "flinch";
+  }
   function onCombatEnd(kind){
+    if(window.__CAREER && window.CombatCareer){ CombatCareer.finish(kind); return; }
     if(G.roguelite){ rlFinish(kind); return; }
     if(G.awaitingNext) return;
     G.awaitingNext = true;
@@ -2423,7 +2455,7 @@
       } else if(!dmg && absorbed){
         startReaction(G.enemy, "block", { faceDir: reactionFace(G.enemy, G.player) });
       } else if(!hitStep || !hitStep.reaction){
-        const named = (typeof Reactions!=="undefined") ? Reactions.forSpell(sp) : "flinch";
+        const named = hurtId(sp, dmg);
         if(named) startReaction(G.enemy, named, { faceDir: reactionFace(G.enemy, G.player) });
       }
       /* Push une seule fois, sur le dernier coup qui touche encore vivant / fin de chaîne */
@@ -2762,8 +2794,7 @@
       if(p.pv<=0) startReaction(p, "ko", { ko:true, faceDir: face });
       else if(!dmg && absorbed) startReaction(p, "block", { faceDir: face });
       else {
-        const named = (typeof Reactions!=="undefined") ? (Reactions.forSpell(sp) || "flinch") : "flinch";
-        startReaction(p, named, { faceDir: face });
+        startReaction(p, hurtId(sp, dmg), { faceDir: face });
       }
     };
     if(typeof CastFeel !== "undefined") setTimeout(popHit, CastFeel.IMPACT_AT_MS);
@@ -3727,6 +3758,7 @@
     }));
   }
   function rlFinish(kind){
+    if(window.__CAREER && window.CombatCareer){ CombatCareer.finish(kind); return; }
     if(G._rlDone) return;
     G._rlDone = true;
     G.turn = "over";
@@ -3895,6 +3927,22 @@
         if(wasVictory) startNextFight({ force:true });
         else setStatus("Évo annulée");
       });
+    }
+    window.__careerBridge = {
+      G: G,
+      rlApply: rlApply,
+      rlStyle: rlStyle,
+      setStatus: setStatus,
+      hud: hud,
+      renderSpells: renderSpells,
+      beginPlayerTurn: beginPlayerTurn,
+      playAnim: playAnim,
+      warmFolders: warmFolders,
+      el: el,
+      spells: function(){ return customSpells; },
+    };
+    if(window.__CAREER && window.CombatCareer){
+      try{ CombatCareer.boot(); }catch(err){ setStatus("Carrière"); }
     }
     window.addEventListener("resize", fit);
     window.addEventListener("pageshow", (e)=>{
