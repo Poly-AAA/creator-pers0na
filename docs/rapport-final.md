@@ -2,9 +2,11 @@
 
 ## Jeu jouable
 
-Jeu : [https://litter.catbox.moe/e5rhdo.html](https://litter.catbox.moe/e5rhdo.html)
+Combat seul : [https://litter.catbox.moe/m7cp0n.html](https://litter.catbox.moe/m7cp0n.html)
 
-Même page que la veille (accueil, puis combat). Déposée le 18 octobre 2026 vers 04:35 UTC. Elle reste en ligne environ 72 heures, jusqu’au 21 octobre 2026 vers 04:35 UTC. Ouvert dans un navigateur : l’accueil s’affiche, le duel 1v1 ouvre le combat, le pad et la toile sont là. L’adresse précédente (kmn101) ne répond plus.
+La page ouvre directement le système de combat, sans l’accueil, le sac ni la boutique. Déposée le 18 octobre 2026 vers 04:40 UTC. Elle reste en ligne environ 72 heures, jusqu’au 21 octobre 2026 vers 04:40 UTC. Vérifié : titre Combat Fantasy, pad, toile, adversaire déjà en place (Map 10 · vs Spectre, Coup brut / Coup de pied / Roulade).
+
+L’arène complète (menus puis combat) reste sur [https://litter.catbox.moe/e5rhdo.html](https://litter.catbox.moe/e5rhdo.html), jusqu’au 21 octobre 2026 vers 04:35 UTC.
 
 La même page est aussi dans le dépôt : `docs/previews/arene-phone.html`.
 
