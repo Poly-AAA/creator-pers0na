@@ -2,9 +2,11 @@
 
 ## Jeu jouable
 
-Combat seul, en vertical : [https://litter.catbox.moe/gh39m7.html](https://litter.catbox.moe/gh39m7.html)
+Combat seul, en vertical, avec la visée : [https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/22de6c92d1674ca8723cdf72edee30cac63d0c30/docs/previews/combat-phone.html](https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/22de6c92d1674ca8723cdf72edee30cac63d0c30/docs/previews/combat-phone.html)
 
-Cette adresse est la page d’avant la visée. Le dépôt Litterbox du 23 octobre 2026 vers 12:00 UTC a répondu « No file! » puis 500, donc le nouveau fichier n’a pas encore d’adresse publique. Il est dans le dépôt : `docs/previews/combat-phone.html`.
+Le dépôt Litterbox du 23 octobre 2026 vers 11:57 UTC a encore répondu 500, et « No file! » pour un petit fichier. L’adresse ci-dessus ouvre le même fichier que `docs/previews/combat-phone.html`, SHA-256 `3e9faa6717745bc984d11f36c981105ba9358b68d92eb794203713f0e6876ccd`. Le camp et le combat s’affichent, et la page contient la visée.
+
+La page d’avant la visée reste [https://litter.catbox.moe/gh39m7.html](https://litter.catbox.moe/gh39m7.html). Déposée le 23 octobre 2026 vers 09:52 UTC, en ligne environ 72 heures, jusqu’au 26 octobre 2026 vers 09:52 UTC.
 
 Choisir un sort ouvre la visée, sans lancer tout de suite. Le sort garde un contour orange et une petite croix semi-transparente pour annuler. Une case vide hors de portée annule aussi. Le centre du pavé n’annule pas : il lance la cible verrouillée.
 
