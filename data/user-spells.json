@@ -4,6 +4,9 @@
     "name": "Coup brut",
     "cost": 2,
     "range": 1,
+    "minRange": 1,
+    "line": false,
+    "los": true,
     "dmg": [
       8,
       12
@@ -176,6 +179,9 @@
     "name": "Coup de pied",
     "cost": 4,
     "range": 1,
+    "minRange": 1,
+    "line": false,
+    "los": true,
     "dmg": [
       4,
       14
@@ -254,6 +260,9 @@
     "name": "Roulade",
     "cost": 4,
     "range": 2,
+    "minRange": 0,
+    "line": false,
+    "los": false,
     "dmg": [
       0,
       0

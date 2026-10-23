@@ -79,6 +79,11 @@ describe("carrière", () => {
     assert.match(career, /crush\(/);
     assert.doesNotMatch(career, /spell-editor/);
     assert.equal(html.includes("makeItem"), false);
+    assert.match(career, /data-fight='1v1'/);
+    assert.match(career, /state\.challenges/);
+    assert.match(html, /35000/);
+    assert.match(html, /btnRecenter/);
+    assert.match(html, /combat-grid\.js/);
     assert.match(career, /gear-ico/);
     assert.match(career, /lookOf/);
     assert.match(html, /spriteBase/);

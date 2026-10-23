@@ -2,9 +2,15 @@
 
 ## Jeu jouable
 
-Combat seul, en vertical, avec la carrière et les tenues du pack : [https://litter.catbox.moe/8xsus9.html](https://litter.catbox.moe/8xsus9.html)
+Combat seul, en vertical : [https://litter.catbox.moe/gh39m7.html](https://litter.catbox.moe/gh39m7.html)
 
-La page ouvre le duel. Le téléphone se tient à la verticale. Tourné sur le côté, une icône demande de le redresser. Entre deux combats, le sac montre les pièces du pack (coiffe, torse, jambes, bottes, gants, ceinture, cape, bouclier, arme). Chaque pièce a ses stats. Sa couleur dans le sac est la même que sur le personnage équipé. À la mort, un autre personnage est tiré. Déposée le 18 octobre 2026 vers 05:15 UTC. Elle reste en ligne environ 72 heures, jusqu’au 21 octobre 2026 vers 05:15 UTC.
+La page ouvre le duel. Le téléphone se tient à la verticale. Tourné sur le côté, une icône demande de le redresser. Le personnage reste au centre. Pendant le tour adverse, la caméra cadre l’acteur et le joueur. Au tour du joueur (35 s), deux doigts zooment et déplacent la carte, et une icône la recentre. Les tours ennemis et alliés partent tout de suite.
+
+La carte a des rochers qui bloquent le passage et la vue. La portée des sorts est un diamant : minimum, maximum, ligne droite si le sort le demande, et cases grisées quand la vue est coupée. Quitter une case collée à un ennemi peut coûter des PM, et un PA si son agilité domine.
+
+Au camp, les pastilles sont des glyphes plus un nombre. On choisit le duel ou l’équipe (2v2 à 10v10, sommes de niveaux équilibrées) et jusqu’à trois défis. Les trois sorts et leurs évolutions n’ont pas changé d’animation. Déposée le 23 octobre 2026 vers 09:52 UTC. Elle reste en ligne environ 72 heures, jusqu’au 26 octobre 2026 vers 09:52 UTC.
+
+La page précédente, portrait et tenues : [https://litter.catbox.moe/8xsus9.html](https://litter.catbox.moe/8xsus9.html). Déposée le 18 octobre 2026 vers 05:15 UTC.
 
 La page précédente, encore bloquée en paysage : [https://litter.catbox.moe/tkwixb.html](https://litter.catbox.moe/tkwixb.html). L’arène complète : [https://litter.catbox.moe/e5rhdo.html](https://litter.catbox.moe/e5rhdo.html).
 

@@ -1914,6 +1914,144 @@ html.dark .wave{filter:none;color:#F4B07A}
   };
 })(typeof window !== "undefined" ? window : globalThis);
 
+/**
+ * Portée, ligne de vue et tacle du combat.
+ * Manhattan = diamant. La case cible ne bloque pas la vue.
+ * Le tacle est déterministe : il dépend de l’agilité, sans dé.
+ */
+(function (root) {
+  function manhattan(a, b) {
+    return Math.abs((a.c | 0) - (b.c | 0)) + Math.abs((a.r | 0) - (b.r | 0));
+  }
+
+  function lineAligned(a, b) {
+    const dc = (a.c | 0) - (b.c | 0);
+    const dr = (a.r | 0) - (b.r | 0);
+    return dc === 0 || dr === 0 || Math.abs(dc) === Math.abs(dr);
+  }
+
+  function losClear(c0, r0, c1, r1, blocked) {
+    c0 |= 0; r0 |= 0; c1 |= 0; r1 |= 0;
+    if (c0 === c1 && r0 === r1) return true;
+    const dx = c1 - c0;
+    const dy = r1 - r0;
+    const adx = Math.abs(dx);
+    const ady = Math.abs(dy);
+    if (adx + ady <= 1) return true;
+    if (adx === 1 && ady === 1) return true;
+    const sx = dx > 0 ? 1 : dx < 0 ? -1 : 0;
+    const sy = dy > 0 ? 1 : dy < 0 ? -1 : 0;
+    let x = c0;
+    let y = r0;
+    let err = adx - ady;
+    const guard = adx + ady + 4;
+    for (let n = 0; n < guard; n++) {
+      const e2 = err * 2;
+      const stepX = sx !== 0 && e2 > -ady;
+      const stepY = sy !== 0 && e2 < adx;
+      if (stepX && stepY) {
+        const nx = x + sx;
+        const ny = y + sy;
+        if (nx === c1 && ny === r1) return true;
+        const wx = x + sx;
+        const wy = y;
+        const vx = x;
+        const vy = y + sy;
+        if (((wx !== c1 || wy !== r1) && blocked(wx, wy)) || ((vx !== c1 || vy !== r1) && blocked(vx, vy))) return false;
+        if (blocked(nx, ny)) return false;
+        err = err - ady + adx;
+        x = nx;
+        y = ny;
+        continue;
+      }
+      if (stepX) { err -= ady; x += sx; }
+      else { err += adx; y += sy; }
+      if (x === c1 && y === r1) return true;
+      if (blocked(x, y)) return false;
+    }
+    return false;
+  }
+
+  function tackleCost(myAgi, foeAgis) {
+    const foes = (foeAgis || []).map((n) => n | 0).filter((n) => n > 0);
+    if (!foes.length) return { pm: 1, pa: 0, hold: 0 };
+    const foe = Math.max.apply(null, foes);
+    const mine = Math.max(1, myAgi | 0);
+    const hold = foe / (foe + mine);
+    const extra = hold < 0.34 ? 0 : hold < 0.67 ? 1 : 2;
+    return { pm: 1 + extra, pa: hold >= 0.75 ? 1 : 0, hold: hold };
+  }
+
+  function spellReach(spell, from, to, blocked) {
+    const dc = (to.c | 0) - (from.c | 0);
+    const dr = (to.r | 0) - (from.r | 0);
+    const d = Math.abs(dc) + Math.abs(dr);
+    const max = Math.max(0, spell.max | 0);
+    const min = Math.max(0, spell.min | 0);
+    if (d < min || d > max) return "out";
+    if (spell.line && !(dc === 0 || dr === 0 || Math.abs(dc) === Math.abs(dr))) return "out";
+    if (spell.los && blocked && !losClear(from.c, from.r, to.c, to.r, blocked)) return "blocked";
+    return "ok";
+  }
+
+  function fairBlocks(rng, grid, opens, count) {
+    const g = grid | 0;
+    const open = new Set((opens || []).map((p) => (p.c | 0) + "," + (p.r | 0)));
+    const want = Math.max(0, count | 0);
+    const cells = [];
+    for (let c = 0; c < g; c++) {
+      for (let r = 0; r < g; r++) {
+        const k = c + "," + r;
+        if (!open.has(k)) cells.push({ c: c, r: r });
+      }
+    }
+    for (let i = cells.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      const t = cells[i];
+      cells[i] = cells[j];
+      cells[j] = t;
+    }
+    const blocks = [];
+    const blocked = new Set();
+    const starts = (opens || []).filter((p) => p.goal);
+    const home = (opens || []).find((p) => p.home) || (opens && opens[0]) || null;
+    function reaches() {
+      if (!home || !starts.length) return true;
+      const seen = new Set([(home.c | 0) + "," + (home.r | 0)]);
+      const q = [{ c: home.c | 0, r: home.r | 0 }];
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      while (q.length) {
+        const cur = q.shift();
+        for (let i = 0; i < starts.length; i++) {
+          if (cur.c === (starts[i].c | 0) && cur.r === (starts[i].r | 0)) return true;
+        }
+        for (let d = 0; d < 4; d++) {
+          const nc = cur.c + dirs[d][0];
+          const nr = cur.r + dirs[d][1];
+          if (nc < 0 || nr < 0 || nc >= g || nr >= g) continue;
+          const k = nc + "," + nr;
+          if (seen.has(k) || blocked.has(k)) continue;
+          seen.add(k);
+          q.push({ c: nc, r: nr });
+        }
+      }
+      return false;
+    }
+    for (let i = 0; i < cells.length && blocks.length < want; i++) {
+      const cell = cells[i];
+      const k = cell.c + "," + cell.r;
+      blocked.add(k);
+      if (reaches()) blocks.push({ c: cell.c, r: cell.r });
+      else blocked.delete(k);
+    }
+    return blocks;
+  }
+
+  const api = { manhattan: manhattan, lineAligned: lineAligned, losClear: losClear, tackleCost: tackleCost, spellReach: spellReach, fairBlocks: fairBlocks };
+  root.CombatGrid = api;
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
 </script>
 <style>
   :root{ --tap:48px; }
@@ -1938,6 +2076,8 @@ html.dark .wave{filter:none;color:#F4B07A}
     background:repeating-linear-gradient(-45deg,var(--acc) 0 8px,transparent 8px 16px);
   }
   .float-hud{position:absolute;inset:0;z-index:2;pointer-events:none}
+  body.skin-d{--glass:rgba(250,247,240,.46)}
+  html.dark body.skin-d{--glass:rgba(20,22,24,.5)}
   .glass{
     background:var(--glass);color:var(--ink);
     border:1px solid var(--frame);border-radius:3px;
@@ -1957,7 +2097,7 @@ html.dark .wave{filter:none;color:#F4B07A}
     padding:3px 4px;min-height:36px;max-height:44px;overflow:hidden;
   }
   .turn-pip{
-    flex:none;background:var(--acc);color:var(--onacc);
+    flex:none;background:rgba(234,112,32,.62);color:var(--onacc);
     min-width:28px;text-align:center;font-weight:700;font-size:13px;padding:2px 4px;
   }
   #turnOrder{display:flex;gap:3px;flex:1;min-width:0;overflow:hidden}
@@ -2007,7 +2147,7 @@ html.dark .wave{filter:none;color:#F4B07A}
     top:50%;left:50%;right:auto;bottom:auto;
     width:26%;height:26%;min-width:44px;min-height:44px;
     transform:translate(-50%,-50%);
-    background:var(--acc);color:var(--onacc);border-color:var(--acc);
+    background:rgba(234,112,32,.66);color:var(--onacc);border-color:var(--acc);
   }
   .dpad button:active,.dpad button.on{background:var(--acc);color:#fff}
   .dpad .u .glyph{transform:rotate(45deg)}
@@ -2069,7 +2209,7 @@ html.dark .wave{filter:none;color:#F4B07A}
   .sync-hex .ar{font-size:11px;color:var(--ink2);margin-top:0}
   .endbox{flex:0 0 92px;display:flex;flex-direction:column;gap:3px;justify-content:center}
   body.skin-d .btn-end{
-    position:relative;min-height:36px;height:36px;border:0;border-radius:0;background:var(--acc);color:#fff;
+    position:relative;min-height:36px;height:36px;border:0;border-radius:0;background:rgba(234,112,32,.58);color:#fff;
     font:700 14px/1 "Pixelify Sans",sans-serif;cursor:pointer;width:100%;padding:0;
     display:flex;align-items:center;justify-content:center;
   }
@@ -2087,39 +2227,48 @@ html.dark .wave{filter:none;color:#F4B07A}
   .combo > i{display:block;height:100%;width:0%;background:var(--acc)}
   .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   .evo-ov{
-    position:fixed;inset:0;z-index:40;background:rgba(250,247,240,.92);
+    position:fixed;inset:0;z-index:40;background:rgba(250,247,240,.55);
     display:none;align-items:flex-end;justify-content:center;padding:12px;
   }
-  html.dark .evo-ov{background:rgba(20,22,24,.92)}
+  html.dark .evo-ov{background:rgba(20,22,24,.55)}
   .evo-ov.on{display:flex}
-  .evo-card{width:min(520px, 100%);background:var(--panel);padding:14px;border:1px solid var(--frame);border-radius:3px;color:var(--ink);box-shadow:0 0 0 1px rgba(234,112,32,.2)}
+  .evo-card{width:min(520px, 100%);background:rgba(250,247,240,.78);padding:14px;border:1px solid var(--frame);border-radius:3px;color:var(--ink);box-shadow:0 0 0 1px rgba(234,112,32,.2)}
+  html.dark .evo-card{background:rgba(20,22,24,.78)}
   .evo-card h2{margin:0 0 4px;font-size:16px}
   .evo-card .sub{margin:0 0 10px;font-size:12px;color:var(--ink2)}
   .evo-opts{display:flex;flex-direction:column;gap:8px}
-  .evo-opts button{text-align:left;border:1px solid var(--frame);border-radius:3px;background:var(--panel);padding:10px 12px;cursor:pointer;color:var(--ink);font:inherit;box-shadow:0 0 4px var(--phosphor)}
+  .evo-opts button{text-align:left;border:1px solid var(--frame);border-radius:3px;background:rgba(255,255,255,.6);padding:10px 12px;cursor:pointer;color:var(--ink);font:inherit;box-shadow:0 0 4px var(--phosphor)}
+  html.dark .evo-opts button{background:rgba(35,39,44,.6)}
   .evo-opts button b{display:block;font-size:14px;margin-bottom:2px}
   .evo-opts button span{font-size:12px;color:var(--ink2)}
   #camp{
-    position:fixed;inset:0;z-index:75;background:var(--bg);color:var(--ink);
-    display:flex;flex-direction:column;gap:6px;padding:8px;overflow:hidden;
+    position:fixed;inset:0;z-index:75;background:rgba(250,247,240,.72);color:var(--ink);
+    display:flex;flex-direction:column;gap:4px;padding:8px;overflow:hidden;
   }
+  html.dark #camp{background:rgba(20,22,24,.74)}
   #camp[hidden]{display:none !important}
-  #camp header,#camp .camp-stats,#camp .camp-modes,#camp .camp-body{
+  #camp header,#camp .camp-stats,#camp .camp-modes,#camp .camp-fight,#camp .camp-body{
     display:flex;flex-wrap:wrap;gap:4px;align-items:center;
   }
+  #camp .camp-modes,#camp .camp-fight{flex-wrap:nowrap}
   #camp header b,#camp .camp-stats b,#camp .camp-stats span{
-    background:var(--panel);border:1px solid var(--frame);border-radius:3px;
-    padding:4px 6px;color:var(--ink);
+    background:rgba(255,255,255,.55);border:1px solid var(--frame);border-radius:3px;
+    padding:3px 5px;color:var(--ink);display:inline-flex;align-items:center;gap:2px;font-size:13px;
   }
+  html.dark #camp header b,html.dark #camp .camp-stats b,html.dark #camp .camp-stats span{background:rgba(35,39,44,.55)}
   #camp button{
-    width:48px;height:48px;border:1px solid var(--frame);border-radius:3px;
-    background:var(--panel);color:var(--acc);font:inherit;
-    display:inline-flex;align-items:center;justify-content:center;gap:1px;padding:1px;
+    width:auto;min-width:40px;height:40px;min-height:40px;border:1px solid var(--frame);border-radius:3px;
+    background:rgba(255,255,255,.55);color:var(--acc);font:inherit;
+    display:inline-flex;align-items:center;justify-content:center;gap:2px;padding:2px;
   }
-  #camp canvas.gear-ico{width:28px;height:28px;image-rendering:pixelated;pointer-events:none}
+  html.dark #camp button{background:rgba(35,39,44,.55)}
+  #camp .camp-modes button,#camp .camp-fight button{flex:1 1 0;min-width:0;padding:0}
+  #camp .camp-body button{width:44px;min-width:44px;height:44px}
+  #camp canvas.gear-ico{width:26px;height:26px;image-rendering:pixelated;pointer-events:none}
+  #camp button svg,#camp header svg,#camp .camp-stats svg{width:14px;height:14px;flex:none;pointer-events:none}
   #camp button b{font-size:11px;line-height:1}
-  #camp button.on{background:var(--acc);color:var(--onacc)}
-  #camp .camp-body{flex:1;min-height:0;overflow:auto;align-content:flex-start}
+  #camp button.on{background:rgba(234,112,32,.72);color:var(--onacc)}
+  #camp .camp-body{flex:1;min-height:0;overflow:hidden;align-content:flex-start}
   #camp p{margin:0;color:var(--ink2)}
   @media (max-height:400px){
     .dpad-slot{bottom:106px;width:168px;height:168px}
@@ -2180,7 +2329,7 @@ html.dark .wave{filter:none;color:#F4B07A}
   }
   @media (orientation:portrait) and (max-width:420px){
     a.link-cc[data-fcc]{display:none}
-    #camp button{width:44px;height:44px}
+    #camp .camp-body button{width:40px;min-width:40px;height:40px}
   }
 </style>
 <script>window.__CAREER=true;</script>
@@ -4115,6 +4264,8 @@ var Roguelite = (() => {
     state._catalog = cat;
     R.syncHeroSpells(state.hero, cat);
     R.recomputeVitals(state.hero);
+    if (state.fightMode !== "equipe") state.fightMode = "1v1";
+    if (!Array.isArray(state.challenges)) state.challenges = [];
     if (!state.shop) R.refreshShop(state, nextRng());
     save();
   }
@@ -4135,7 +4286,7 @@ var Roguelite = (() => {
       combos: rl.combos | 0,
       fastTurns: (rl.turns | 0) <= 6 ? 1 : 0,
       playerMoved: !!rl.moved,
-      challenges: [],
+      challenges: (G.roguelite && G.roguelite.challenges) || [],
       foeItems: (G.roguelite && G.roguelite.foeItems) || [],
       foeLevels: (G.roguelite && G.roguelite.foeLevels) || [],
       fled: false,
@@ -4150,14 +4301,15 @@ var Roguelite = (() => {
     G.awaitingNext = false;
     G.busy = false;
     G.turn = "player";
-    var enc = R.buildEncounter(state, "1v1", nextRng(), state._catalog);
+    var fightMode = state.fightMode === "equipe" ? "equipe" : "1v1";
+    var enc = R.buildEncounter(state, fightMode, nextRng(), state._catalog);
     var units = R.unitsFromEncounter(state.hero, enc);
     var player = units.allies[0];
     var foes = units.foes;
     b.rlApply({
-      mode: "1v1",
-      size: 1,
-      challenges: [],
+      mode: enc.mode,
+      size: enc.size,
+      challenges: (state.challenges || []).slice(),
       player: player,
       allies: units.allies.slice(1),
       foes: foes,
@@ -4225,6 +4377,48 @@ var Roguelite = (() => {
     render();
   }
 
+  function svg(inner, size) {
+    var w = size || 14;
+    return "<svg viewBox='0 0 16 16' width='" + w + "' height='" + w + "' aria-hidden='true'>" + inner + "</svg>";
+  }
+  var PATH = {
+    heart: "<path fill='currentColor' d='M8 13.4S2.4 9.4 2.4 6.2A2.8 2.8 0 0 1 8 4.8 2.8 2.8 0 0 1 13.6 6.2C13.6 9.4 8 13.4 8 13.4z'/>",
+    bolt: "<path fill='currentColor' d='M9 1L4 9h3l-1 6 6-8H9l1-6z'/>",
+    boot: "<path fill='currentColor' d='M3 9l2-5h4l1 3h3v2l1 4H3V9z'/>",
+    coin: "<circle cx='8' cy='8' r='5.2' fill='none' stroke='currentColor' stroke-width='1.6'/><path fill='currentColor' d='M8 4.2h1.2v7.6H8z'/>",
+    star: "<path fill='currentColor' d='M8 1.4l1.5 3.3 3.6.5-2.6 2.5.6 3.6L8 9.7 4.9 11.3l.6-3.6L2.9 5.2l3.6-.5z'/>",
+    dice: "<rect x='3' y='3' width='10' height='10' rx='1.4' fill='none' stroke='currentColor' stroke-width='1.4'/><circle cx='6' cy='6' r='.8' fill='currentColor'/><circle cx='10' cy='10' r='.8' fill='currentColor'/>",
+    sword: "<path fill='currentColor' d='M11.2 1.2l3.6 3.6-6.2 6.2-1.2-.4-.6 1.8H5.2V11l1.8-.6-.4-1.2 6.2-6.2z'/>",
+    spark: "<path fill='currentColor' d='M8 1l1.2 4.2L13.5 6.5 9.2 7.8 8 12 6.8 7.8 2.5 6.5l4.3-1.3z'/>",
+    wind: "<path fill='none' stroke='currentColor' stroke-width='1.6' d='M2 5h8M2 8h12M4 11h7'/>",
+    eye: "<path fill='currentColor' d='M1.5 8S4 4 8 4s6.5 4 6.5 4S12 12 8 12 1.5 8 1.5 8z'/><circle cx='8' cy='8' r='1.5' fill='var(--bg)'/>",
+    shield: "<path fill='currentColor' d='M8 1.4l5 2v4c0 3.1-2 5-5 6.6-3-1.6-5-3.5-5-6.6v-4l5-2z'/>",
+    hat: "<path fill='currentColor' d='M3 10l2-5h6l2 5H3zm-1 1.2h12v1.8H2v-1.8z'/>",
+    gem: "<path fill='currentColor' d='M8 1.6l5 3.6-5 9.2L3 5.2l5-3.6z'/>",
+    cape: "<path fill='currentColor' d='M4 2h8l-1 12H5L4 2z'/>",
+    ring: "<circle cx='8' cy='8' r='3.4' fill='none' stroke='currentColor' stroke-width='1.8'/>",
+    belt: "<path fill='currentColor' d='M2 6h12v4H2V6zm5 1h2v2H7V7z'/>",
+    bag: "<path fill='currentColor' d='M5 6V4.6a3 3 0 0 1 6 0V6h2v8H3V6h2z'/>",
+    hammer: "<path fill='currentColor' d='M2 6h7l1-3h4v4h-3L9 13H7L5 7H2V6z'/>",
+    anvil: "<path fill='currentColor' d='M2 4h12v3H9v2h4v2H3v-2h4V7H2V4z'/>",
+    crack: "<path fill='none' stroke='currentColor' stroke-width='1.6' d='M3 3l10 10M13 3L3 13'/>",
+    person: "<circle cx='8' cy='4' r='2.1' fill='currentColor'/><path fill='currentColor' d='M4 14v-2.1C4 9.6 5.7 8.2 8 8.2s4 1.4 4 3.7V14H4z'/>",
+    people: "<circle cx='6' cy='4.2' r='1.8' fill='currentColor'/><circle cx='11' cy='5' r='1.4' fill='currentColor'/><path fill='currentColor' d='M2.4 14v-1.8C2.4 10.4 3.8 9.2 6 9.2s3.6 1.2 3.6 3V14H2.4zm6.2 0v-1.5c0-1.3 1.1-2.3 2.6-2.3 1.4 0 2.4 1 2.4 2.3V14H8.6z'/>",
+    pin: "<path fill='currentColor' d='M8 1.4a3.6 3.6 0 0 0-3.6 3.6c0 2.6 3.6 7.6 3.6 7.6s3.6-5 3.6-7.6A3.6 3.6 0 0 0 8 1.4z'/>",
+    noheal: "<path fill='currentColor' d='M8 13S2.6 9.2 2.6 6.2A2.6 2.6 0 0 1 8 4.8 2.6 2.6 0 0 1 13.4 6.2C13.4 9.2 8 13 8 13z'/><path stroke='currentColor' stroke-width='1.6' d='M3.2 12.4L12.8 3.2'/>",
+    go: "<path fill='currentColor' d='M6 2l6 6-6 6V10H1V6h5V2z'/>",
+    skull: "<path fill='currentColor' d='M8 2a4.2 4.2 0 0 0-3.2 7v2.2h6.4V9A4.2 4.2 0 0 0 8 2z'/>",
+  };
+  var STAT_G = { vit: "heart", force: "sword", intel: "spark", chance: "dice", agi: "wind", sage: "eye", ini: "bolt" };
+  var SLOT_G = {
+    coiffe: "hat", amulette: "gem", cape: "cape", torse: "cape", arme: "sword",
+    anneauG: "ring", anneauD: "ring", ceinture: "belt", gants: "bag", bouclier: "shield",
+    jambes: "boot", bottes: "boot",
+  };
+  function gly(name, size) { return svg(PATH[name] || PATH.spark, size); }
+  function chip(icon, text, label) {
+    return "<b aria-label='" + esc(label) + "'>" + gly(icon) + esc(text) + "</b>";
+  }
   function lineText(it) {
     return (it.lines || []).map(function (ln) {
       return (R.STAT_LABEL[ln.stat] || ln.stat) + " " + ln.value;
@@ -4234,7 +4428,7 @@ var Roguelite = (() => {
     var e = state.hero.eff || R.effectiveStats(state.hero);
     var keys = ["vit", "force", "intel", "chance", "agi", "sage", "ini"];
     return keys.map(function (k) {
-      return "<b aria-label='" + esc(R.STAT_LABEL[k]) + "'>" + e[k] + "</b>";
+      return chip(STAT_G[k] || "spark", String(e[k]), R.STAT_LABEL[k] || k);
     }).join("");
   }
   function gearFolder(it) {
@@ -4251,7 +4445,7 @@ var Roguelite = (() => {
     return R.SLOTS.map(function (slot) {
       var it = state.hero.equipped && state.hero.equipped[slot];
       var mark = it ? "on" : "";
-      var face = it && gearFolder(it) ? gearIcon(it) : (it ? it.level : "·");
+      var face = it && gearFolder(it) ? gearIcon(it) : gly(SLOT_G[slot] || "gem");
       return "<button type='button' class='" + mark + "' data-unequip='" + slot + "' aria-label='" + esc(R.SLOT_LABEL[slot]) + (it ? " " + it.name : "") + "'>" + face + "</button>";
     }).join("");
   }
@@ -4259,14 +4453,14 @@ var Roguelite = (() => {
     var bag = state.hero.inventory || [];
     if (!bag.length) return "<p>0</p>";
     return bag.map(function (it) {
-      return "<button type='button' data-" + attr + "='" + esc(it.id) + "' aria-label='" + esc(it.name) + " " + esc(lineText(it)) + "'>" + gearIcon(it) + "<b>" + it.level + "</b></button>";
+      return "<button type='button' data-" + attr + "='" + esc(it.id) + "' aria-label='" + esc(it.name) + " " + esc(lineText(it)) + "'>" + gearIcon(it) + gly("star") + "<b>" + it.level + "</b></button>";
     }).join("");
   }
   function runeButtons() {
     var keys = Object.keys(state.hero.runes || {}).filter(function (k) { return state.hero.runes[k] > 0; });
     if (!keys.length) return "<p>0</p>";
     return keys.map(function (k) {
-      return "<button type='button' data-rune='" + k + "' aria-label='" + esc(R.STAT_LABEL[k] || k) + "'><b>" + state.hero.runes[k] + "</b></button>";
+      return "<button type='button' data-rune='" + k + "' aria-label='" + esc(R.STAT_LABEL[k] || k) + "'>" + gly(STAT_G[k] || "gem") + "<b>" + state.hero.runes[k] + "</b></button>";
     }).join("");
   }
   function matButtons() {
@@ -4275,33 +4469,35 @@ var Roguelite = (() => {
     if (!list.length) return "<p>0</p>";
     return list.map(function (m) {
       var on = mats.indexOf(m.id) >= 0 ? " on" : "";
-      return "<button type='button' class='" + on + "' data-mat='" + m.id + "' aria-label='" + esc(m.name) + "'><b>" + have[m.id] + "</b></button>";
+      return "<button type='button' class='" + on + "' data-mat='" + m.id + "' aria-label='" + esc(m.name) + "'>" + gly("gem") + "<b>" + have[m.id] + "</b></button>";
     }).join("");
   }
   function shopButtons() {
     var rows = (state.shop || []).filter(function (o) { return !o.sold; });
     if (!rows.length) return "<p>0</p>";
     return rows.map(function (o) {
-      return "<button type='button' data-buy='" + esc(o.id) + "' aria-label='" + esc(o.name) + "'>" + gearIcon(o.item) + "<b>" + o.price + "</b></button>";
+      return "<button type='button' data-buy='" + esc(o.id) + "' aria-label='" + esc(o.name) + "'>" + gearIcon(o.item) + gly("coin") + "<b>" + o.price + "</b></button>";
     }).join("");
   }
   function notice() {
     var n = state._notice;
     if (!n) return "";
-    if (n.crushed) return "<p>" + n.crushed.length + "</p>";
-    if (n.fled) return "<p>Fuite " + (n.paid || 0) + "</p>";
-    if (n.dead) return "<p>× " + esc(n.entry && n.entry.name) + " " + ((n.entry && n.entry.level) || "") + " · " + esc(n.next || state.hero.name) + "</p>";
+    if (n.crushed) return "<p>" + gly("crack") + n.crushed.length + "</p>";
+    if (n.fled) return "<p>" + gly("boot") + (n.paid || 0) + "</p>";
+    if (n.dead) return "<p>" + gly("skull") + esc(n.entry && n.entry.name) + " " + ((n.entry && n.entry.level) || "") + " · " + esc(n.next || state.hero.name) + "</p>";
     var bits = [];
-    if (n.xp) bits.push("+" + n.xp);
-    if (n.gold) bits.push("+" + n.gold);
-    if (n.levels && n.levels.length) bits.push(state.hero.level);
-    if (n.drops && n.drops.length) bits.push(n.drops.length);
-    return bits.length ? "<p>" + bits.join(" · ") + "</p>" : "";
+    if (n.xp) bits.push(gly("star") + "+" + n.xp);
+    if (n.gold) bits.push(gly("coin") + "+" + n.gold);
+    if (n.levels && n.levels.length) bits.push(gly("star") + state.hero.level);
+    if (n.drops && n.drops.length) bits.push(gly("bag") + n.drops.length);
+    if (n.challenges && n.challenges.length) bits.push(gly("pin") + n.challenges.length);
+    return bits.length ? "<p>" + bits.join(" ") + "</p>" : "";
   }
   function body() {
     if (mode === "soin") {
+      var sizes = { mediocre: 10, bon: 13, parfait: 16 };
       return ["mediocre", "bon", "parfait"].map(function (tier) {
-        return "<button type='button' data-heal='" + tier + "' aria-label='" + tier + "'><b>" + R.healPrice(state.hero, tier) + "</b></button>";
+        return "<button type='button' data-heal='" + tier + "' aria-label='" + tier + "'>" + gly("heart", sizes[tier]) + gly("coin") + "<b>" + R.healPrice(state.hero, tier) + "</b></button>";
       }).join("");
     }
     if (mode === "marche") return shopButtons();
@@ -4309,8 +4505,8 @@ var Roguelite = (() => {
     if (mode === "forge") return itemButtons("item") + runeButtons();
     if (mode === "atelier") {
       return R.SLOTS.map(function (slot) {
-        return "<button type='button' data-slot='" + slot + "' aria-label='" + esc(R.SLOT_LABEL[slot]) + "'></button>";
-      }).join("") + matButtons() + "<button type='button' id='campCraft' aria-label='Assembler'></button>";
+        return "<button type='button' data-slot='" + slot + "' aria-label='" + esc(R.SLOT_LABEL[slot]) + "'>" + gly(SLOT_G[slot] || "gem") + "</button>";
+      }).join("") + matButtons() + "<button type='button' id='campCraft' aria-label='Assembler'>" + gly("hammer") + "</button>";
     }
     return slotButtons() + itemButtons("equip");
   }
@@ -4321,21 +4517,39 @@ var Roguelite = (() => {
     var h = state.hero;
     var need = R.xpNeed(h.level);
     var modes = [
-      ["sac", "Sac", "S"],
-      ["bris", "Bris", "×"],
-      ["forge", "Forge", "◆"],
-      ["atelier", "Atelier", "+"],
-      ["soin", "Soin", "♥"],
-      ["marche", "Marché", "●"],
+      ["sac", "Sac", "bag"],
+      ["bris", "Bris", "crack"],
+      ["forge", "Forge", "anvil"],
+      ["atelier", "Atelier", "hammer"],
+      ["soin", "Soin", "heart"],
+      ["marche", "Marché", "coin"],
     ];
+    var challenges = state.challenges || [];
+    var fight = state.fightMode === "equipe" ? "equipe" : "1v1";
     camp.hidden = false;
     camp.innerHTML = ""
-      + "<header><b>" + esc(h.name) + "</b><b aria-label='Niveau'>" + h.level + "</b><b aria-label='Gène " + esc(h.geneLabel) + "'>" + h.gene + "</b><b aria-label='Kamas'>" + (h.gold | 0) + "</b><b aria-label='Points de vie'>" + h.pv + "/" + h.pvMax + "</b></header>"
+      + "<header><b>" + esc(h.name) + "</b>"
+      + chip("star", String(h.level), "Niveau")
+      + chip("dice", String(h.gene), "Gène " + (h.geneLabel || ""))
+      + chip("coin", String(h.gold | 0), "Kamas")
+      + chip("heart", h.pv + "/" + h.pvMax, "Points de vie")
+      + "</header>"
       + notice()
-      + "<div class='camp-stats' aria-label='Caractéristiques'>" + statRow() + "<span aria-label='Expérience'>" + h.xp + "/" + need + "</span><span aria-label='PA'>" + h.paMax + "</span><span aria-label='PM'>" + h.pmMax + "</span></div>"
+      + "<div class='camp-stats' aria-label='Caractéristiques'>" + statRow()
+      + "<span aria-label='Expérience'>" + gly("star") + h.xp + "/" + need + "</span>"
+      + "<span aria-label='PA'>" + gly("bolt") + h.paMax + "</span>"
+      + "<span aria-label='PM'>" + gly("boot") + h.pmMax + "</span></div>"
       + "<div class='camp-modes'>" + modes.map(function (m) {
-        return "<button type='button' data-mode='" + m[0] + "' class='" + (mode === m[0] ? "on" : "") + "' aria-label='" + m[1] + "'>" + m[2] + "</button>";
-      }).join("") + "<button type='button' id='campFight' aria-label='Combattre'>▶</button></div>"
+        return "<button type='button' data-mode='" + m[0] + "' class='" + (mode === m[0] ? "on" : "") + "' aria-label='" + m[1] + "'>" + gly(m[2]) + "</button>";
+      }).join("") + "</div>"
+      + "<div class='camp-fight'>"
+      + "<button type='button' data-fight='1v1' class='" + (fight === "1v1" ? "on" : "") + "' aria-label='Duel'>" + gly("person") + "<b>1</b></button>"
+      + "<button type='button' data-fight='equipe' class='" + (fight === "equipe" ? "on" : "") + "' aria-label='Équipe'>" + gly("people") + "</button>"
+      + "<button type='button' data-ch='immobile' class='" + (challenges.indexOf("immobile") >= 0 ? "on" : "") + "' aria-label='Sans bouger'>" + gly("pin") + "</button>"
+      + "<button type='button' data-ch='cinqTours' class='" + (challenges.indexOf("cinqTours") >= 0 ? "on" : "") + "' aria-label='Cinq tours'><b>5</b></button>"
+      + "<button type='button' data-ch='sansSoin' class='" + (challenges.indexOf("sansSoin") >= 0 ? "on" : "") + "' aria-label='Sans soin'>" + gly("noheal") + "</button>"
+      + "<button type='button' id='campFight' aria-label='Combattre'>" + gly("go") + "</button>"
+      + "</div>"
       + "<div class='camp-body'>" + body() + "</div>";
     camp.onclick = onClick;
     paintIcons(camp);
@@ -4458,6 +4672,17 @@ var Roguelite = (() => {
     var t = ev.target.closest("button");
     if (!t) return;
     if (t.id === "campFight") { state._notice = null; save(); launch(); return; }
+    if (t.dataset.fight) { state.fightMode = t.dataset.fight === "equipe" ? "equipe" : "1v1"; save(); render(); return; }
+    if (t.dataset.ch) {
+      var id = t.dataset.ch;
+      state.challenges = state.challenges || [];
+      var at = state.challenges.indexOf(id);
+      if (at >= 0) state.challenges.splice(at, 1);
+      else state.challenges.push(id);
+      save();
+      render();
+      return;
+    }
     if (t.dataset.mode) { mode = t.dataset.mode; mats = []; picked = null; render(); return; }
     if (t.dataset.unequip) { R.unequip(state.hero, t.dataset.unequip); save(); render(); return; }
     if (t.dataset.equip) { R.equip(state.hero, t.dataset.equip); save(); render(); return; }
@@ -4543,7 +4768,7 @@ var Roguelite = (() => {
       <b class="turn-pip" id="hudTurn">01</b>
       <div id="turnOrder" aria-label="Ordre du tour"></div>
       <div class="timer" aria-label="Temps du tour">
-        <b class="clock" id="hudTime">00:30</b>
+        <b class="clock" id="hudTime">00:35</b>
         <div class="seg" id="barTime"></div>
         <span class="sr" id="hudRound">T-01</span>
       </div>
@@ -4553,6 +4778,7 @@ var Roguelite = (() => {
         <div class="combo"><i id="comboFill"></i></div>
       </div>
       <button type="button" id="themeBtn" aria-label="Thème"></button>
+      <a class="link-cc" href="#" id="btnRecenter" aria-label="Recentrer"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.2" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="1.4" d="M8 1.6v2.2M8 12.2v2.2M1.6 8h2.2M12.2 8h2.2"/></svg></a>
       <a class="link-cc" href="#" id="btnEvo" aria-label="Évolution"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1l1.2 4.2L13.5 6.5 9.2 7.8 8 12 6.8 7.8 2.5 6.5l4.3-1.3z"/></svg></a>
       <a class="link-cc" href="#" id="btnRestart" title="Relancer un combat" aria-label="Relancer"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" d="M13 8a5 5 0 1 1-1.4-3.4"/><path fill="currentColor" d="M12 1.5V5h-3.4z"/></svg></a>
       <a class="link-cc" data-fcc="spell" href="spell-editor.html" aria-label="Sorts"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1l1.6 4.6L14 7l-4.4 1.4L8 13l-1.6-4.6L2 7l4.4-1.4z"/></svg></a>
@@ -4775,7 +5001,7 @@ var Roguelite = (() => {
   const KEY_CUSTOM_SPELLS = "neuro.customSpells";
   /* Fallback Coup brut (même config que docs/previews/coup-brut-backup.json) */
   const DEFAULT_COUP_BRUT = {
-    id:"punch", name:"Coup brut", cost:2, range:1, dmg:[8,12], anim:"Attack2", type:"damage",
+    id:"punch", name:"Coup brut", cost:2, range:1, minRange:1, line:false, los:true, dmg:[8,12], anim:"Attack2", type:"damage",
     aoe:0, animSeq:[],
     steps:[{ anim:"Attack1", move:"Idle", slash:"None", effect:"None", delay:0, fps:17, hitTarget:true }],
     evoConfig:{
@@ -4788,7 +5014,7 @@ var Roguelite = (() => {
     },
   };
   const DEFAULT_COUP_DE_PIED = {
-    id:"coup_de_pied", name:"Coup de pied", cost:4, range:1, dmg:[4,14], anim:"Kick", type:"damage",
+    id:"coup_de_pied", name:"Coup de pied", cost:4, range:1, minRange:1, line:false, los:true, dmg:[4,14], anim:"Kick", type:"damage",
     aoe:0, animSeq:[], effect:"push", push:1,
     desc:"Donne un coup de pied qui repousse l’ennemi de 1 case",
     steps:[{ anim:"Kick", delay:0, move:"Idle", fps:15, slash:"None", effect:"None", hitTarget:true }],
@@ -4802,7 +5028,7 @@ var Roguelite = (() => {
     },
   };
   const DEFAULT_ROULADE = {
-    id:"roulade", name:"Roulade", cost:4, range:2, dmg:[0,0], anim:"Rolling", type:"buff",
+    id:"roulade", name:"Roulade", cost:4, range:2, minRange:0, line:false, los:false, dmg:[0,0], anim:"Rolling", type:"buff",
     aoe:0, animSeq:[], effect:"roulade", push:0,
     desc:"Roulade : hors corps à corps → se rapproche ; au corps à corps → recule",
     steps:[{ anim:"Rolling", delay:0, move:"Idle", fps:17, slash:"None", effect:"None", hitTarget:false }],
@@ -5038,6 +5264,17 @@ var Roguelite = (() => {
     if(!sp) return 0;
     const evo = evoBonusesFor(sp);
     return Math.max(0, (sp.range|0) + (evo.range|0));
+  }
+  function spellMin(sp){
+    if(!sp || sp.minRange == null) return 0;
+    return Math.max(0, sp.minRange|0);
+  }
+  function spellNeedsLos(sp){
+    if(!sp || isSelfSpell(sp)) return false;
+    return sp.los !== false;
+  }
+  function spellGeom(sp){
+    return { min: spellMin(sp), max: spellRange(sp), line: !!(sp && sp.line), los: spellNeedsLos(sp) };
   }
   function stepFromEvoEntry(ed){
     return normalizeCastStep({
@@ -5276,6 +5513,8 @@ var Roguelite = (() => {
     spellBar: [],
     moves: new Set(),
     range: new Set(),
+    grey: new Set(),
+    blocks: new Set(),
     targets: new Set(),
     aoe: new Set(),
     combo: 0,
@@ -5481,7 +5720,7 @@ var Roguelite = (() => {
   async function loadGeneratedGrimoire(){
     dropGeneratedSpells();
     try{
-      const arr = [{"id":"punch","name":"Coup brut","cost":2,"range":1,"dmg":[8,12],"anim":"Attack2","type":"damage","aoe":0,"animSeq":[],"steps":[{"anim":"Attack1","move":"Idle","slash":"None","effect":"None","delay":0,"fps":17,"hitTarget":true}],"evoConfig":{"1:Brise-Os":{"enabled":true,"anim":"Attack2","slash":"None","effect":"None","fps":12,"delay":0,"blocks":["jabR"],"mode":"modify","overlays":[],"effects":[],"reaction":"stagger"},"1:Boxeur":{"enabled":true,"anim":"Attack6","slash":"None","effect":"None","fps":17,"delay":0,"blocks":["jabR"],"mode":"append","overlays":[],"effects":[],"reaction":"flinch"},"1:Rapide":{"enabled":false,"anim":"Kick","slash":"None","effect":"None","fps":14,"delay":0,"blocks":["bigKick"],"mode":"modify","overlays":[],"effects":[],"reaction":"knockback"},"2:Uppercut":{"enabled":true,"anim":"Special1","slash":"None","effect":"Effect1","fps":17,"delay":0,"blocks":["uppercut"],"mode":"finish","overlays":[],"effects":[],"reaction":"launch"},"2:Percutant":{"enabled":true,"anim":"Attack6","slash":"None","effect":"None","fps":14,"delay":0,"blocks":["bigKick"],"mode":"append","overlays":[],"effects":["knockback"],"reaction":"knockback"},"2:Double Impact":{"enabled":false,"anim":"Attack5","slash":"Slash2","effect":"None","fps":17,"delay":0,"blocks":["shockwave"],"mode":"append","overlays":[],"effects":["multi"],"reaction":"multi"},"3:Brasier":{"enabled":false,"anim":"Special1","slash":"None","effect":"Effect1","fps":14,"delay":0,"mode":"finish","blocks":["explosion"],"overlays":["fire"],"effects":[],"reaction":"blast"},"3:Montante":{"enabled":false,"anim":"Special1","slash":"None","effect":"Effect1","fps":17,"delay":0,"mode":"finish","blocks":["uppercut"],"overlays":["fire"],"effects":[],"reaction":"launch"},"3:Éclairs":{"enabled":false,"anim":"Special1","slash":"None","effect":"Effect3","fps":15,"delay":0,"mode":"append","blocks":[],"overlays":["lightning"],"effects":["dot"],"reaction":"shock"}}},{"id":"coup_de_pied","name":"Coup de pied","cost":4,"range":1,"dmg":[4,14],"anim":"Kick","type":"damage","aoe":0,"animSeq":[],"effect":"push","push":1,"desc":"Donne un coup de pied qui repousse l’ennemi de 1 case","steps":[{"anim":"Kick","delay":0,"move":"Idle","fps":15,"slash":"None","effect":"None","hitTarget":true}],"evoConfig":{"1:Brise-Os":{"enabled":true,"anim":"Kick","slash":"None","effect":"None","fps":15,"delay":0},"1:Boxeur":{"enabled":false,"anim":"Kick","slash":"None","effect":"None","fps":15,"delay":0},"1:Rapide":{"enabled":true,"anim":"Kick","slash":"None","effect":"None","fps":15,"delay":0},"2:Uppercut":{"enabled":true,"anim":"Kick","slash":"None","effect":"None","fps":15,"delay":0},"2:Percutant":{"enabled":true,"anim":"Kick","slash":"None","effect":"None","fps":15,"delay":0},"2:Double Impact":{"enabled":false,"anim":"Kick","slash":"None","effect":"None","fps":15,"delay":0}}},{"id":"roulade","name":"Roulade","cost":4,"range":2,"dmg":[0,0],"anim":"Rolling","type":"buff","aoe":0,"animSeq":[],"effect":"roulade","push":0,"desc":"Roulade : hors corps à corps → se rapproche ; au corps à corps → recule","steps":[{"anim":"Rolling","delay":0,"move":"Idle","fps":17,"slash":"None","effect":"None","hitTarget":false}],"evoConfig":{"1:Brise-Os":{"enabled":false,"anim":"Rolling","slash":"None","effect":"None","fps":16,"delay":0},"1:Boxeur":{"enabled":true,"anim":"Rolling","slash":"None","effect":"None","fps":16,"delay":0},"1:Rapide":{"enabled":true,"anim":"Rolling","slash":"None","effect":"None","fps":16,"delay":0},"2:Uppercut":{"enabled":false,"anim":"Rolling","slash":"None","effect":"None","fps":16,"delay":0},"2:Percutant":{"enabled":false,"anim":"Rolling","slash":"None","effect":"None","fps":16,"delay":0},"2:Double Impact":{"enabled":false,"anim":"Rolling","slash":"None","effect":"None","fps":16,"delay":0}}}];
+      const arr = [{"id":"punch","name":"Coup brut","cost":2,"range":1,"minRange":1,"line":false,"los":true,"dmg":[8,12],"anim":"Attack2","type":"damage","aoe":0,"animSeq":[],"steps":[{"anim":"Attack1","move":"Idle","slash":"None","effect":"None","delay":0,"fps":17,"hitTarget":true}],"evoConfig":{"1:Brise-Os":{"enabled":true,"anim":"Attack2","slash":"None","effect":"None","fps":12,"delay":0,"blocks":["jabR"],"mode":"modify","overlays":[],"effects":[],"reaction":"stagger"},"1:Boxeur":{"enabled":true,"anim":"Attack6","slash":"None","effect":"None","fps":17,"delay":0,"blocks":["jabR"],"mode":"append","overlays":[],"effects":[],"reaction":"flinch"},"1:Rapide":{"enabled":false,"anim":"Kick","slash":"None","effect":"None","fps":14,"delay":0,"blocks":["bigKick"],"mode":"modify","overlays":[],"effects":[],"reaction":"knockback"},"2:Uppercut":{"enabled":true,"anim":"Special1","slash":"None","effect":"Effect1","fps":17,"delay":0,"blocks":["uppercut"],"mode":"finish","overlays":[],"effects":[],"reaction":"launch"},"2:Percutant":{"enabled":true,"anim":"Attack6","slash":"None","effect":"None","fps":14,"delay":0,"blocks":["bigKick"],"mode":"append","overlays":[],"effects":["knockback"],"reaction":"knockback"},"2:Double Impact":{"enabled":false,"anim":"Attack5","slash":"Slash2","effect":"None","fps":17,"delay":0,"blocks":["shockwave"],"mode":"append","overlays":[],"effects":["multi"],"reaction":"multi"},"3:Brasier":{"enabled":false,"anim":"Special1","slash":"None","effect":"Effect1","fps":14,"delay":0,"mode":"finish","blocks":["explosion"],"overlays":["fire"],"effects":[],"reaction":"blast"},"3:Montante":{"enabled":false,"anim":"Special1","slash":"None","effect":"Effect1","fps":17,"delay":0,"mode":"finish","blocks":["uppercut"],"overlays":["fire"],"effects":[],"reaction":"launch"},"3:Éclairs":{"enabled":false,"anim":"Special1","slash":"None","effect":"Effect3","fps":15,"delay":0,"mode":"append","blocks":[],"overlays":["lightning"],"effects":["dot"],"reaction":"shock"}}},{"id":"coup_de_pied","name":"Coup de pied","cost":4,"range":1,"minRange":1,"line":false,"los":true,"dmg":[4,14],"anim":"Kick","type":"damage","aoe":0,"animSeq":[],"effect":"push","push":1,"desc":"Donne un coup de pied qui repousse l’ennemi de 1 case","steps":[{"anim":"Kick","delay":0,"move":"Idle","fps":15,"slash":"None","effect":"None","hitTarget":true}],"evoConfig":{"1:Brise-Os":{"enabled":true,"anim":"Kick","slash":"None","effect":"None","fps":15,"delay":0},"1:Boxeur":{"enabled":false,"anim":"Kick","slash":"None","effect":"None","fps":15,"delay":0},"1:Rapide":{"enabled":true,"anim":"Kick","slash":"None","effect":"None","fps":15,"delay":0},"2:Uppercut":{"enabled":true,"anim":"Kick","slash":"None","effect":"None","fps":15,"delay":0},"2:Percutant":{"enabled":true,"anim":"Kick","slash":"None","effect":"None","fps":15,"delay":0},"2:Double Impact":{"enabled":false,"anim":"Kick","slash":"None","effect":"None","fps":15,"delay":0}}},{"id":"roulade","name":"Roulade","cost":4,"range":2,"minRange":0,"line":false,"los":false,"dmg":[0,0],"anim":"Rolling","type":"buff","aoe":0,"animSeq":[],"effect":"roulade","push":0,"desc":"Roulade : hors corps à corps → se rapproche ; au corps à corps → recule","steps":[{"anim":"Rolling","delay":0,"move":"Idle","fps":17,"slash":"None","effect":"None","hitTarget":false}],"evoConfig":{"1:Brise-Os":{"enabled":false,"anim":"Rolling","slash":"None","effect":"None","fps":16,"delay":0},"1:Boxeur":{"enabled":true,"anim":"Rolling","slash":"None","effect":"None","fps":16,"delay":0},"1:Rapide":{"enabled":true,"anim":"Rolling","slash":"None","effect":"None","fps":16,"delay":0},"2:Uppercut":{"enabled":false,"anim":"Rolling","slash":"None","effect":"None","fps":16,"delay":0},"2:Percutant":{"enabled":false,"anim":"Rolling","slash":"None","effect":"None","fps":16,"delay":0},"2:Double Impact":{"enabled":false,"anim":"Rolling","slash":"None","effect":"None","fps":16,"delay":0}}}];
       if(!Array.isArray(arr)) return 0;
       let n = 0;
       arr.forEach(s=>{
@@ -5743,6 +5982,7 @@ var Roguelite = (() => {
     }catch(_e){}
     /* Force RideIdle dès le spawn si monté (sinon Idle vide = monture invisible) */
     try{ playAnim(G.enemy, "Idle"); }catch(_e){}
+    try{ rollBlocks(); }catch(_e){}
     const spellNames = (G.enemy.spells||[]).map(id=>{ const s=spellById(id); return s?s.name:id; }).join(" · ");
     const sty = (G.enemy.profile && G.enemy.profile.label) || G.enemy.strategy || "?";
     const mountBit = G.enemy.mount ? " · monté" : "";
@@ -5926,11 +6166,11 @@ var Roguelite = (() => {
     if(pts) pts.textContent = score + " ×" + (G.rl ? (G.rl.combos|0) : (G.combo|0));
     const tim = el("hudTime");
     if(tim){
-      if(G.roguelite && G.turn==="player" && G.turnDeadline){
+      if(G.turn==="player" && G.turnDeadline){
         const left = Math.max(0, (G.turnDeadline - performance.now())/1000);
         const sec = Math.ceil(left);
         tim.textContent = "00:" + String(Math.max(0, sec)).padStart(2, "0");
-        paintSeg("barTime", sec, 30, 18);
+        paintSeg("barTime", sec, 35, 18);
         if(sec<=0 && !G._timingOut && G.turn==="player"){
           G._timingOut = true;
           endTurn();
@@ -5938,7 +6178,7 @@ var Roguelite = (() => {
         }
       } else {
         tim.textContent = "—";
-        paintSeg("barTime", 0, 30, 18);
+        paintSeg("barTime", 0, 35, 18);
       }
     }
     paintOrder();
@@ -6103,26 +6343,55 @@ var Roguelite = (() => {
     const r = Math.floor((y - x) / 2);
     return { c, r };
   }
+  function actingFocus(){
+    if(G.turn==="player" || !G.player) return null;
+    const actor = G._focus || (G.enemy && (G.enemy.alive || G.enemy.anim==="Die") ? G.enemy : null);
+    if(!actor || actor===G.player || actor.c==null) return null;
+    return actor;
+  }
   function updateCamera(){
-    let tc, tr;
-    const crowd = G.roguelite && G.roster && G.roster.length > 2;
-    if(crowd){
-      const live = [];
-      if(G.player && (G.player.alive || G.player.anim==="Die")) live.push(G.player);
-      G.roster.forEach(p=>{ if(p.alive || p.anim==="Die") live.push(p); });
-      tc = live.reduce((s,u)=>s+u.c,0) / Math.max(1, live.length);
-      tr = live.reduce((s,u)=>s+u.r,0) / Math.max(1, live.length);
-    } else {
-      const focusEnt = G.player && G.player.alive
-        ? G.player
-        : (G.enemy && G.enemy.alive ? G.enemy : { c:cam.fx, r:cam.fy });
-      const focus = (focusEnt === G.player) ? entityDrawPos(focusEnt) : { c:focusEnt.c, r:focusEnt.r };
-      tc = focus.c; tr = focus.r;
+    const actor = actingFocus();
+    const ppos = (G.player && (G.player.alive || G.player.anim==="Die"))
+      ? entityDrawPos(G.player)
+      : { c: cam.fx, r: cam.fy };
+    let tc = ppos.c, tr = ppos.r;
+    if(actor){
+      const apos = entityDrawPos(actor);
+      tc = (ppos.c + apos.c) / 2;
+      tr = (ppos.r + apos.r) / 2;
     }
     cam.fx += (tc - cam.fx) * cam.smooth;
     cam.fy += (tr - cam.fy) * cam.smooth;
     if(Math.abs(tc - cam.fx) < 0.02) cam.fx = tc;
     if(Math.abs(tr - cam.fy) < 0.02) cam.fy = tr;
+  }
+  function frameScale(w, h){
+    const actor = actingFocus();
+    if(!actor || !G.player) return null;
+    const ppos = entityDrawPos(G.player);
+    const apos = entityDrawPos(actor);
+    const spanX = Math.abs((ppos.c - apos.c) - (ppos.r - apos.r)) * (TILE_W/2) + TILE_W * 2;
+    const spanY = Math.abs((ppos.c - apos.c) + (ppos.r - apos.r)) * (TILE_H/2) + TILE_H * 4;
+    return Math.max(0.42, Math.min(1.35, w / (spanX + 20), (h - 160) / (spanY + 20)));
+  }
+  function clampPan(){
+    const w = cam._w || canvas.width || 360;
+    const h = cam._h || canvas.height || 640;
+    const margin = 48;
+    const maxX = Math.max(16, w / 2 - margin);
+    const maxY = Math.max(16, h / 2 - margin);
+    const mapX = GRID * TILE_W * (cam.sc || 1) * 0.42;
+    const mapY = GRID * TILE_H * (cam.sc || 1) * 0.42;
+    const limX = Math.min(maxX, Math.max(24, mapX));
+    const limY = Math.min(maxY, Math.max(24, mapY));
+    cam.panX = Math.max(-limX, Math.min(limX, cam.panX || 0));
+    cam.panY = Math.max(-limY, Math.min(limY, cam.panY || 0));
+  }
+  function recenter(){
+    cam.panX = 0;
+    cam.panY = 0;
+    cam.userSc = null;
+    cam._w = 0;
   }
   function fit(){
     const host = canvas.parentElement;
@@ -6136,16 +6405,22 @@ var Roguelite = (() => {
       const viewW = tiles * TILE_W;
       const viewH = tiles * TILE_H * (tall ? 1 : 0.72);
       const sc = Math.min(w / (viewW + 16), h / (viewH + (tall ? 220 : 48)), tall ? 1.45 : 1.55);
-      if(cam.userSc == null) cam.sc = Math.max(0.42, sc);
+      cam.baseSc = Math.max(0.42, sc);
     }
-    if(cam.userSc != null) cam.sc = cam.userSc;
+    const framed = frameScale(w, h);
+    if(G.turn!=="player" && framed != null) cam.sc = framed;
+    else if(cam.userSc != null && G.turn==="player") cam.sc = cam.userSc;
+    else cam.sc = cam.baseSc || cam.sc;
+    if(G.turn==="player") clampPan();
     updateCamera();
     const cx = w / (2 * cam.sc);
     const cy = h / (2 * cam.sc) + (h > w ? -28 : 10);
     const px = (cam.fx - cam.fy) * (TILE_W/2);
     const py = (cam.fx + cam.fy) * (TILE_H/2);
-    cam.ox = cx - px + (cam.panX || 0) / cam.sc;
-    cam.oy = cy - py + (cam.panY || 0) / cam.sc;
+    const panX = G.turn==="player" ? (cam.panX || 0) : 0;
+    const panY = G.turn==="player" ? (cam.panY || 0) : 0;
+    cam.ox = cx - px + panX / cam.sc;
+    cam.oy = cy - py + panY / cam.sc;
   }
   function tileInView(c, r){
     /* cull rapide autour du focus caméra */
@@ -6156,6 +6431,7 @@ var Roguelite = (() => {
   function key(c,r){ return c+","+r; }
   function inBounds(c,r){ return c>=0&&r>=0&&c<GRID&&r<GRID; }
   function occupied(c,r, skip){
+    if(G.blocks && G.blocks.has(key(c,r))) return "block";
     if(G.player.alive && skip!=="player" && G.player.c===c && G.player.r===r) return "player";
     if(G.enemy && G.enemy.alive && skip!=="enemy" && G.enemy.c===c && G.enemy.r===r) return "enemy";
     if(G.clone && G.clone.alive && skip!=="clone" && G.clone.c===c && G.clone.r===r) return "clone";
@@ -6166,35 +6442,93 @@ var Roguelite = (() => {
     }
     return null;
   }
-  function dist(a,b){ return Math.max(Math.abs(a.c-b.c), Math.abs(a.r-b.r)); }
+  function dist(a,b){ return Math.abs(a.c-b.c) + Math.abs(a.r-b.r); }
+  function unitSide(ent){
+    if(!ent || ent===G.player || ent===G.clone) return "a";
+    return ent.side || "b";
+  }
+  function agiOf(ent){
+    const n = ent && ent.stats && ent.stats.agi;
+    return Math.max(1, (n == null ? 5 : n) | 0);
+  }
+  function foeAgisAt(c, r, ent){
+    const side = unitSide(ent);
+    const out = [];
+    const list = [];
+    if(G.player && G.player!==ent && G.player.alive) list.push(G.player);
+    if(G.clone && G.clone!==ent && G.clone.alive) list.push(G.clone);
+    if(G.enemy && G.enemy!==ent && G.enemy.alive) list.push(G.enemy);
+    (G.roster||[]).forEach(p=>{ if(p && p!==ent && p!==G.enemy && p.alive) list.push(p); });
+    list.forEach(u=>{
+      if(unitSide(u)===side) return;
+      if(Math.abs(u.c-c)+Math.abs(u.r-r)===1) out.push(agiOf(u));
+    });
+    return out;
+  }
+  function tackleFor(ent, c, r){
+    const agis = foeAgisAt(c, r, ent);
+    const g = window.CombatGrid;
+    if(!g) return { pm: agis.length ? 2 : 1, pa: 0, hold: agis.length ? 0.5 : 0 };
+    return g.tackleCost(agiOf(ent), agis);
+  }
+  function losBlock(c, r){
+    if(!inBounds(c, r)) return true;
+    if(G.blocks && G.blocks.has(key(c, r))) return true;
+    return !!occupied(c, r);
+  }
+  function spellCellState(from, to, sp){
+    const g = window.CombatGrid;
+    if(!from || !to || !sp) return "out";
+    if(!g) return dist(from, to) <= spellRange(sp) ? "ok" : "out";
+    const state = g.spellReach(spellGeom(sp), from, to, losBlock);
+    if(state !== "out" && G.blocks && G.blocks.has(key(to.c, to.r)) && (from.c !== to.c || from.r !== to.r)) return "blocked";
+    return state;
+  }
+  function spellHitsCell(from, to, sp){ return spellCellState(from, to, sp) === "ok"; }
+  function rollBlocks(){
+    const g = window.CombatGrid;
+    G.blocks = new Set();
+    if(!g || !G.player) return;
+    const opens = [{ c: G.player.c, r: G.player.r, home: true }];
+    if(G.enemy && G.enemy.c != null) opens.push({ c: G.enemy.c, r: G.enemy.r, goal: true });
+    (G.roster||[]).forEach(u=>{
+      if(!u || u.c == null) return;
+      opens.push({ c: u.c, r: u.r, goal: u.side === "b" });
+    });
+    const n = 6 + Math.floor(Math.random() * 7);
+    g.fairBlocks(Math.random, GRID, opens, n).forEach(p=> G.blocks.add(key(p.c, p.r)));
+  }
 
   function recomputeMoves(){
     G.moves.clear();
     if(G.turn!=="player" || G.player.pm<=0 || G.armed) return;
-    /* BFS PM (comme Neuro) */
-    const distM = {};
-    const sk = key(G.player.c, G.player.r);
-    distM[sk]=0;
-    const q=[{c:G.player.c,r:G.player.r}];
+    const start = key(G.player.c, G.player.r);
+    const best = {};
+    best[start] = 0;
+    const q=[{c:G.player.c, r:G.player.r, spent:0, pa:0}];
     const dirs=[[0,-1],[1,0],[0,1],[-1,0]];
     while(q.length){
+      q.sort((a,b)=> a.spent - b.spent);
       const cur=q.shift();
-      const d=distM[key(cur.c,cur.r)];
-      if(d>=G.player.pm) continue;
+      const ck=key(cur.c, cur.r);
+      if(best[ck] !== cur.spent) continue;
+      const price = tackleFor(G.player, cur.c, cur.r);
+      if(G.player.pm < cur.spent + price.pm) continue;
+      if(price.pa && G.player.pa < cur.pa + price.pa) continue;
       for(const [dc,dr] of dirs){
         const nc=cur.c+dc, nr=cur.r+dr;
-        if(!inBounds(nc,nr)) continue;
+        if(!inBounds(nc,nr) || occupied(nc,nr,"player")) continue;
+        const spent = cur.spent + price.pm;
         const k=key(nc,nr);
-        if(k in distM) continue;
-        if(occupied(nc,nr,"player")) continue;
-        distM[k]=d+1;
+        if(k in best && best[k] <= spent) continue;
+        best[k]=spent;
         G.moves.add(k);
-        q.push({c:nc,r:nr});
+        q.push({c:nc, r:nr, spent:spent, pa: cur.pa + (price.pa|0)});
       }
     }
   }
   function recomputeTargets(){
-    G.targets.clear(); G.range.clear(); G.aoe.clear();
+    G.targets.clear(); G.range.clear(); G.grey.clear(); G.aoe.clear();
     const sp = spellById(G.armed);
     if(!sp || G.turn!=="player") return;
     if(isSelfSpell(sp)){
@@ -6203,15 +6537,17 @@ var Roguelite = (() => {
       return;
     }
     for(let c=0;c<GRID;c++) for(let r=0;r<GRID;r++){
-      if(dist(G.player,{c,r})<=spellRange(sp)) G.range.add(key(c,r));
+      const state = spellCellState(G.player, {c,r}, sp);
+      if(state==="ok") G.range.add(key(c,r));
+      else if(state==="blocked") G.grey.add(key(c,r));
     }
     const foes = G.roguelite
       ? (G.roster||[]).filter(p=>p.side==="b" && p.alive)
       : (G.enemy && G.enemy.alive ? [G.enemy] : []);
-    foes.forEach(f=>{ if(G.range.has(key(f.c, f.r))) G.targets.add(key(f.c, f.r)); });
+    foes.forEach(f=>{ if(spellHitsCell(G.player, f, sp)) G.targets.add(key(f.c, f.r)); });
     const focusEnt = (G.enemy && G.enemy.alive) ? G.enemy : foes[0];
     if(!focusEnt) return;
-    const focus = (G.hover && G.range.has(key(G.hover.c,G.hover.r))) ? G.hover : focusEnt;
+    const focus = (G.hover && (G.range.has(key(G.hover.c,G.hover.r)) || G.grey.has(key(G.hover.c,G.hover.r)))) ? G.hover : focusEnt;
     const rad = sp.aoe|0;
     if(G.range.has(key(focus.c, focus.r)) || G.targets.has(key(focus.c, focus.r))){
       for(let c=focus.c-rad;c<=focus.c+rad;c++) for(let r=focus.r-rad;r<=focus.r+rad;r++){
@@ -6298,9 +6634,15 @@ var Roguelite = (() => {
     if(G.player.pm<=0){ setStatus("Plus de PM"); return; }
     const c = G.player.c+dc, r = G.player.r+dr;
     if(!inBounds(c,r) || occupied(c,r,"player")){ setStatus("Case bloquée"); return; }
+    const price = tackleFor(G.player, G.player.c, G.player.r);
+    if(G.player.pm < price.pm || (price.pa && G.player.pa < price.pa)){
+      setStatus(price.hold > 0 ? "−"+price.pm+" PM" : "Plus de PM");
+      return;
+    }
     faceToward(G.player, c, r);
     G.player.slide = null;
-    G.player.c=c; G.player.r=r; G.player.pm-=1;
+    G.player.c=c; G.player.r=r; G.player.pm-=price.pm;
+    if(price.pa) G.player.pa -= price.pa;
     if(G.rl) G.rl.moved = true;
     const seq = ++G.castSeq;
     playAnim(G.player, randomMoveAnim());
@@ -6327,7 +6669,7 @@ var Roguelite = (() => {
     let goal=null;
     while(q.length){
       const cur=q.shift();
-      if(dist(cur, G.enemy) <= spellRange(sp)){ goal=cur; break; }
+      if(spellHitsCell(cur, G.enemy, sp)){ goal=cur; break; }
       const d=distM[key(cur.c,cur.r)];
       if(d>=maxSteps) continue;
       for(const [dc,dr] of dirs){
@@ -6367,8 +6709,12 @@ var Roguelite = (() => {
     G.player.slide = null;
     for(let i=1; i<path.length && G.player.pm>0; i++){
       const n = path[i];
+      if(occupied(n.c, n.r, "player")) break;
+      const price = tackleFor(G.player, G.player.c, G.player.r);
+      if(G.player.pm < price.pm || (price.pa && G.player.pa < price.pa)) break;
       faceToward(G.player, n.c, n.r);
-      G.player.c=n.c; G.player.r=n.r; G.player.pm-=1;
+      G.player.c=n.c; G.player.r=n.r; G.player.pm-=price.pm;
+      if(price.pa) G.player.pa -= price.pa;
     }
     if(G.rl) G.rl.moved = true;
     recomputeMoves(); recomputeTargets(); hud();
@@ -6721,7 +7067,7 @@ var Roguelite = (() => {
   function finishCastEnemy(sp){
     if(!G.enemy.alive){ setStatus("Plus de cible"); return; }
     const evo = evoBonusesFor(sp);
-    if(dist(G.player, G.enemy) > spellRange(sp)){ setStatus("Toujours hors portée"); return; }
+    if(!spellHitsCell(G.player, G.enemy, sp)){ setStatus("Hors de portée"); return; }
     const cost = Math.max(1, sp.cost + (evo.cost|0));
     if(G.player.pa < cost){ setStatus("Pas assez de PA"); return; }
     faceToward(G.player, G.enemy.c, G.enemy.r);
@@ -6868,7 +7214,8 @@ var Roguelite = (() => {
       if(foe) G.enemy = foe;
     }
     if(!G.enemy || !G.enemy.alive || G.enemy.c!==c || G.enemy.r!==r){ setStatus("Pas de cible"); return; }
-    if(dist(G.player, G.enemy) > spellRange(sp)){
+    if(spellCellState(G.player, G.enemy, sp)==="blocked"){ setStatus("Vue bloquée"); return; }
+    if(!spellHitsCell(G.player, G.enemy, sp)){
       approachThen(sp, ()=> finishCastEnemy(sp));
       return;
     }
@@ -6886,7 +7233,7 @@ var Roguelite = (() => {
       tryCastAt(G.player.c, G.player.r);
       return;
     }
-    if(G.enemy.alive && dist(G.player,G.enemy)<=spellRange(sp)){
+    if(G.enemy.alive && spellHitsCell(G.player, G.enemy, sp)){
       tryCastAt(G.enemy.c, G.enemy.r);
     } else if(G.enemy.alive){
       approachThen(sp, ()=> finishCastEnemy(sp));
@@ -6911,7 +7258,7 @@ var Roguelite = (() => {
     if(!sp) return;
     if(isSelfSpell(sp)){ tryCastAt(G.player.c, G.player.r); return; }
     if(G.enemy.alive){
-      if(dist(G.player, G.enemy) > spellRange(sp)) approachThen(sp, ()=> finishCastEnemy(sp));
+      if(!spellHitsCell(G.player, G.enemy, sp)) approachThen(sp, ()=> finishCastEnemy(sp));
       else tryCastAt(G.enemy.c, G.enemy.r);
     } else setStatus("Cible hors portée");
   }
@@ -6923,14 +7270,14 @@ var Roguelite = (() => {
     tickClone();
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     if(!G.enemy.alive){
-      if(rlPromote()){ setStatus(G.enemy.name+" entre en lice"); setTimeout(enemyTurn, 280); return; }
+      if(rlPromote()){ setStatus(G.enemy.name+" entre en lice"); setTimeout(enemyTurn, 60); return; }
       if(!G.awaitingNext) onCombatEnd("win");
       return;
     }
     if(G.rl && (G.rl.casts|0) >= 3) G.rl.combos = (G.rl.combos|0)+1;
     if(G.rl) G.rl.casts = 0;
     setStatus("Tour ennemi…");
-    setTimeout(()=> rlRosterPhase(()=> enemyTurn()), G.roguelite ? 120 : 420);
+    setTimeout(()=> rlRosterPhase(()=> enemyTurn()), G.roguelite ? 40 : 140);
   }
 
   function enemySpellDmg(sp){
@@ -6976,12 +7323,12 @@ var Roguelite = (() => {
       if(sup.length && (!(e.shield>0) || e.pv < e.pvMax*0.4)) return pick(sup);
     }
     if(mode==="control" || prof.controlFirst){
-      const ctrl = all.filter(s=>s.effect && dist(e,p)<=(s.range|0));
-      if(ctrl.length) return ctrl.sort((a,b)=>(b.range|0)-(a.range|0))[0];
+      const ctrl = all.filter(s=>s.effect && spellHitsCell(e, p, s));
+      if(ctrl.length) return ctrl.sort((a,b)=>spellRange(b)-spellRange(a))[0];
     }
 
     const dmg = all.filter(s=>s.dmg);
-    const inRange = dmg.filter(s=>d <= (s.range|0));
+    const inRange = dmg.filter(s=>spellHitsCell(e, p, s));
     if(inRange.length){
       if(prof.waitForKill){
         inRange.sort((a,b)=> enemySpellDmg(b)*policyWeight(b.id)-enemySpellDmg(a)*policyWeight(a.id));
@@ -6994,6 +7341,15 @@ var Roguelite = (() => {
     return dmg[0] || all[0];
   }
 
+  function payMove(ent, o){
+    const price = tackleFor(ent, ent.c, ent.r);
+    if((ent.pm|0) < price.pm) return false;
+    if(price.pa && (ent.pa|0) < price.pa) return false;
+    ent.c=o.c; ent.r=o.r;
+    ent.pm -= price.pm;
+    if(price.pa) ent.pa -= price.pa;
+    return true;
+  }
   function enemyStepToward(goalC, goalR){
     const e = G.enemy;
     if((e.pm|0) <= 0) return false;
@@ -7006,7 +7362,7 @@ var Roguelite = (() => {
       if(G.player.alive && G.player.c===o.c && G.player.r===o.r) continue;
       if(G.clone && G.clone.alive && G.clone.c===o.c && G.clone.r===o.r) continue;
       faceToward(e, o.c, o.r);
-      e.c=o.c; e.r=o.r; e.pm -= 1;
+      if(!payMove(e, o)) return false;
       playAnim(e, "Run");
       return true;
     }
@@ -7025,7 +7381,7 @@ var Roguelite = (() => {
     const o = opts[0];
     if(dist(o,{c:fromC,r:fromR}) <= dist(e,{c:fromC,r:fromR})) return false;
     faceToward(e, o.c, o.r);
-    e.c=o.c; e.r=o.r; e.pm -= 1;
+    if(!payMove(e, o)) return false;
     playAnim(e, "Walk");
     return true;
   }
@@ -7067,7 +7423,7 @@ var Roguelite = (() => {
 
     if(!p.alive) return false;
     faceToward(e, p.c, p.r);
-    if(dist(e,p) > (sp.range|0)){
+    if(!spellHitsCell(e, p, sp)){
       startReaction(p, "dodge", { faceDir: reactionFace(p, e) });
       setStatus(e.name+" rate");
       return false;
@@ -7114,6 +7470,7 @@ var Roguelite = (() => {
   }
 
   function enemyTurn(){
+    G._focus = G.enemy;
     if(!G.enemy.alive){ G.turn="player"; beginPlayerTurn(); return; }
     tickDots(G.enemy);
     if(!G.enemy.alive) return;
@@ -7131,7 +7488,7 @@ var Roguelite = (() => {
       prof.preferMax = 8;
       prof.label = "proche";
     }
-    if(e._stunned){ e._stunned=false; setStatus(e.name+" étourdi"); setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 380); return; }
+    if(e._stunned){ e._stunned=false; setStatus(e.name+" étourdi"); setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 80); return; }
 
     let p = enemyFocus();
     if(!(p.invis>0)) e.lastSeen = { c:p.c, r:p.r };
@@ -7146,8 +7503,8 @@ var Roguelite = (() => {
       setTimeout(()=>{
         stopMoveAnim(e);
         setStatus(e.name+" cherche…");
-        setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 280);
-      }, 240);
+        setTimeout(()=>{ G.turn="player"; beginPlayerTurn(); }, 60);
+      }, 50);
       return;
     }
 
@@ -7171,28 +7528,28 @@ var Roguelite = (() => {
         const sup = enemyPickSpell("support");
         if(sup && (sup.heal || sup.type==="shield" || sup.type==="heal")){
           enemyCast(sup);
-          setTimeout(stepOnce, 360);
+          setTimeout(stepOnce, 80);
           return;
         }
         if(prof.kiteBelow>=0 && enemyStepAway(p.c, p.r)){
-          setTimeout(stepOnce, 200);
+          setTimeout(stepOnce, 45);
           return;
         }
       }
 
       /* 2) kiting sniper/caster : trop près → reculer */
       if(d < (prof.kiteBelow||0) && (e.pm|0)>0){
-        if(enemyStepAway(p.c, p.r)){ setTimeout(stepOnce, 200); return; }
+        if(enemyStepAway(p.c, p.r)){ setTimeout(stepOnce, 45); return; }
       }
 
       /* 3) contrôle d’abord */
       if(prof.controlFirst && !didHit){
         const ctrl = enemyPickSpell("control");
-        if(ctrl && ctrl.effect && d <= (ctrl.range|0)){
+        if(ctrl && ctrl.effect && spellHitsCell(e, p, ctrl)){
           const dead = enemyCast(ctrl);
           if(dead) return;
           didHit = true;
-          setTimeout(stepOnce, 380);
+          setTimeout(stepOnce, 90);
           return;
         }
       }
@@ -7200,46 +7557,46 @@ var Roguelite = (() => {
       /* 4) à bonne distance → cast */
       const preferLo = prof.preferMin|0, preferHi = prof.preferMax|0;
       const sp = enemyPickSpell("damage");
-      const need = sp ? (sp.range|0) : 1;
+      const need = sp ? spellRange(sp) : 1;
 
-      if(sp && d <= need){
+      if(sp && spellHitsCell(e, p, sp)){
         /* skirmisher : frappe puis fuite */
         const dead = enemyCast(sp);
         if(dead) return;
         didHit = true;
         if(prof.hitAndRun && (e.pm|0)>0){
           enemyStepAway(p.c, p.r);
-          setTimeout(stepOnce, 320);
+          setTimeout(stepOnce, 70);
           return;
         }
-        setTimeout(stepOnce, 380);
+        setTimeout(stepOnce, 90);
         return;
       }
 
       /* 5) se placer à la distance préférée */
       if((e.pm|0)>0){
         if(d > preferHi){
-          if(enemyStepToward(p.c, p.r)){ setTimeout(stepOnce, 200); return; }
+          if(enemyStepToward(p.c, p.r)){ setTimeout(stepOnce, 45); return; }
         } else if(d < preferLo){
-          if(enemyStepAway(p.c, p.r)){ setTimeout(stepOnce, 200); return; }
+          if(enemyStepAway(p.c, p.r)){ setTimeout(stepOnce, 45); return; }
         } else if(d > need){
-          if(enemyStepToward(p.c, p.r)){ setTimeout(stepOnce, 200); return; }
+          if(enemyStepToward(p.c, p.r)){ setTimeout(stepOnce, 45); return; }
         }
       }
 
       /* 6) dernier recours cast */
-      if(sp && d <= need){
+      if(sp && spellHitsCell(e, p, sp)){
         const dead = enemyCast(sp);
         if(dead) return;
-        setTimeout(stepOnce, 380);
+        setTimeout(stepOnce, 90);
         return;
       }
 
       setStatus(e.name+" · "+(prof.label||"attend"));
-      setTimeout(finish, 220);
+      setTimeout(finish, 40);
     };
     setStatus(e.name+" · "+(prof.label||e.strategy||"agit")+"…");
-    setTimeout(stepOnce, 260);
+    setTimeout(stepOnce, 50);
   }
 
   function beginPlayerTurn(){
@@ -7251,15 +7608,14 @@ var Roguelite = (() => {
     G.player.pm = G.player.pmMax;
     if(G.player.invis>0) G.player.invis -= 1;
     G.armed=null; G.armedSlot=null;
+    G._focus = null;
     refreshSpellBar();
     recomputeMoves(); recomputeTargets(); renderSpells(); hud();
     const mount = isPlayerMounted() ? " · monture +"+mountPmBonus()+" PM" : "";
     const invis = G.player.invis>0 ? " · voile "+G.player.invis : "";
     setStatus("Ton tour"+mount+invis);
-    if(G.roguelite){
-      G.turnDeadline = performance.now() + 30000;
-      if(G.rl) G.rl.turns = (G.rl.turns|0) + 1;
-    }
+    G.turnDeadline = performance.now() + 35000;
+    if(G.roguelite && G.rl) G.rl.turns = (G.rl.turns|0) + 1;
   }
 
   function offerEvo(forceId, fromVictory){
@@ -7712,6 +8068,9 @@ var Roguelite = (() => {
       if(G.moves.has(k)){
         tileDiamond(t.c, t.r, "rgba(47,111,78,0.28)", "rgba(47,111,78,0.45)");
       }
+      if(G.grey && G.grey.has(k) && G.armed){
+        tileDiamond(t.c, t.r, "rgba(47,49,51,0.38)", "rgba(47,49,51,0.55)");
+      }
       if(G.range.has(k) && G.armed){
         tileDiamond(t.c, t.r, "rgba(90,70,140,0.22)", "rgba(90,70,140,0.4)");
       }
@@ -7723,6 +8082,21 @@ var Roguelite = (() => {
       }
       if(G.hover && G.hover.c===t.c && G.hover.r===t.r){
         tileDiamond(t.c, t.r, "rgba(61,61,58,0.12)", "rgba(61,61,58,0.55)");
+      }
+      if(G.blocks && G.blocks.has(k)){
+        tileDiamond(t.c, t.r, "#3a3530", "#2F3133");
+        const s = toScreen(t.c, t.r);
+        ctx.fillStyle = "#6e655c";
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y - 9);
+        ctx.lineTo(s.x + 8, s.y - 2);
+        ctx.lineTo(s.x + 4, s.y + 5);
+        ctx.lineTo(s.x - 6, s.y + 3);
+        ctx.lineTo(s.x - 7, s.y - 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#c4b49a";
+        ctx.fillRect(s.x - 2, s.y - 3, 3, 3);
       }
     }
 
@@ -7930,18 +8304,19 @@ var Roguelite = (() => {
   function rlRosterPhase(done){
     const list = (G.roster||[]).filter(p=>p.alive && p!==G.enemy);
     if(!G.roguelite || !list.length){ done(); return; }
-    const delay = list.length > 8 ? 42 : 72;
+    const delay = list.length > 8 ? 28 : 36;
     let i = 0;
     const step = ()=>{
       if(i>=list.length || !G.player.alive || G.turn==="over"){ done(); return; }
       const p = list[i++];
       if(!p.alive){ step(); return; }
+      G._focus = p;
       const foes = p.side==="a"
         ? (G.roster||[]).filter(x=>x.side==="b" && x.alive)
         : [G.player].concat((G.roster||[]).filter(x=>x.side==="a" && x.alive)).filter(x=>x && x.alive);
       let target = null, best = 99;
       foes.forEach(f=>{
-        const d = Math.max(Math.abs(f.c-p.c), Math.abs(f.r-p.r));
+        const d = Math.abs(f.c-p.c)+Math.abs(f.r-p.r);
         if(d<best){ best=d; target=f; }
       });
       let visual = delay;
@@ -7952,7 +8327,9 @@ var Roguelite = (() => {
       });
       const hurt = play && p.pv / Math.max(1, p.pvMax) < play.healAt;
       const shouldKite = play && play.kite && ranged && target && best <= 1;
-      if(target && (shouldKite || hurt) && best <= 2){
+      const price = tackleFor(p, p.c, p.r);
+      const locked = price.pm > 1 || price.pa > 0;
+      if(target && !locked && (shouldKite || hurt) && best <= 2){
         const nc = Math.max(0, Math.min(GRID-1, p.c + Math.sign(p.c-target.c)));
         const nr = Math.max(0, Math.min(GRID-1, p.r + Math.sign(p.r-target.r)));
         if((nc!==p.c || nr!==p.r) && !occupied(nc, nr)){
@@ -7960,7 +8337,7 @@ var Roguelite = (() => {
           p.c = nc; p.r = nr;
           try{ playAnim(p, "Walk"); }catch(_e){}
         }
-      } else if(target && best>1){
+      } else if(target && !locked && best>1){
         const nc = Math.max(0, Math.min(GRID-1, p.c + Math.sign(target.c-p.c)));
         const nr = Math.max(0, Math.min(GRID-1, p.r + Math.sign(target.r-p.r)));
         if((nc!==p.c || nr!==p.r) && !occupied(nc, nr)){
@@ -7968,8 +8345,8 @@ var Roguelite = (() => {
           p.c = nc; p.r = nr;
           try{ playAnim(p, "Walk"); }catch(_e){}
         }
-      } else if(target){
-        visual = Math.max(delay, 130);
+      } else if(target && best<=1){
+        visual = Math.max(delay, 64);
         faceToward(p, target.c, target.r);
         try{ playAnim(p, "Attack1"); }catch(_e){}
         let dmg = 4 + Math.floor((p.level||1)/3);
@@ -8050,8 +8427,10 @@ var Roguelite = (() => {
     });
     G.enemy = (G.roster.find(u=>u.side==="b") ) || G.enemy;
     rlWarmRoster();
-    if(G.roster.length >= 9) cam.userSc = 0.58;
-    else if(G.roster.length >= 3) cam.userSc = 0.82;
+    cam.userSc = null;
+    cam.panX = 0;
+    cam.panY = 0;
+    try{ rollBlocks(); }catch(_e){}
     const hint = el("spellHint");
     if(hint) hint.textContent = String(foes.length);
     const flee = el("btnFlee");
@@ -8136,6 +8515,7 @@ var Roguelite = (() => {
     const rlPayload = rlRead();
     if(rlPayload) rlApply(rlPayload);
     else G.enemy = makeEnemy(1);
+    try{ if(!rlPayload) rollBlocks(); }catch(_e){}
     try{ warmFolders((G.enemy.layers||[]).map(L=>L.folder), { mounted: !!G.enemy.mount }); }catch(_e){}
     try{ rlWarmRoster(); }catch(_e){}
     try{ playAnim(G.player, "Idle"); }catch(_e){}
@@ -8162,12 +8542,18 @@ var Roguelite = (() => {
 
     const pointers = new Map();
     let pinch = null;
+    let lastTapAt = 0;
     canvas.addEventListener("pointerdown", (e)=>{
       try{ canvas.setPointerCapture(e.pointerId); }catch(_e){}
       pointers.set(e.pointerId, { x:e.clientX, y:e.clientY, moved:false });
-      if(pointers.size===2){
+      if(pointers.size===2 && G.turn==="player"){
         const pts=[...pointers.values()];
-        pinch = { dist:Math.max(8, Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y)), sc:cam.sc };
+        pinch = {
+          dist:Math.max(8, Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y)),
+          sc:cam.userSc || cam.sc,
+          mx:(pts[0].x+pts[1].x)/2,
+          my:(pts[0].y+pts[1].y)/2,
+        };
       }
     });
     canvas.addEventListener("pointermove", (e)=>{
@@ -8176,21 +8562,30 @@ var Roguelite = (() => {
       const dx=e.clientX-prev.x, dy=e.clientY-prev.y;
       if(Math.abs(dx)+Math.abs(dy)>6) prev.moved = true;
       prev.x=e.clientX; prev.y=e.clientY;
-      if(pointers.size>=2 && pinch){
-        const pts=[...pointers.values()];
-        const d=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
-        cam.userSc = Math.max(0.55, Math.min(2.6, pinch.sc * (d / pinch.dist)));
-        cam.sc = cam.userSc;
-      } else if(pointers.size===1 && prev.moved){
-        cam.panX = (cam.panX||0) + dx;
-        cam.panY = (cam.panY||0) + dy;
-      }
+      if(G.turn!=="player" || pointers.size<2 || !pinch) return;
+      const pts=[...pointers.values()];
+      const d=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+      const mx=(pts[0].x+pts[1].x)/2, my=(pts[0].y+pts[1].y)/2;
+      cam.userSc = Math.max(0.55, Math.min(2.6, pinch.sc * (d / pinch.dist)));
+      cam.sc = cam.userSc;
+      cam.panX = (cam.panX||0) + (mx - pinch.mx);
+      cam.panY = (cam.panY||0) + (my - pinch.my);
+      pinch.mx = mx; pinch.my = my;
+      clampPan();
     });
     canvas.addEventListener("pointerup", (e)=>{
       const prev = pointers.get(e.pointerId);
       pointers.delete(e.pointerId);
       if(pointers.size<2) pinch = null;
-      if(prev && !prev.moved && pointers.size===0) onTap(e);
+      if(!(prev && !prev.moved && pointers.size===0)) return;
+      const now = performance.now();
+      if(now - lastTapAt < 280){
+        lastTapAt = 0;
+        recenter();
+        return;
+      }
+      lastTapAt = now;
+      onTap(e);
     });
     canvas.addEventListener("mousemove", (e)=>{
       const {x,y}=pointer(e); const t=toTile(x,y);
@@ -8198,6 +8593,14 @@ var Roguelite = (() => {
       if(G.armed) recomputeTargets();
     });
     el("btnEnd").onclick=endTurn;
+    const btnRecenter = el("btnRecenter");
+    if(btnRecenter){
+      btnRecenter.addEventListener("click", (e)=>{
+        e.preventDefault();
+        if(G.turn!=="player") return;
+        recenter();
+      });
+    }
     const btnFlee = el("btnFlee");
     if(btnFlee){
       btnFlee.addEventListener("click", ()=>{
@@ -8240,6 +8643,7 @@ var Roguelite = (() => {
       hud: hud,
       renderSpells: renderSpells,
       beginPlayerTurn: beginPlayerTurn,
+      recomputeTargets: recomputeTargets,
       playAnim: playAnim,
       warmFolders: warmFolders,
       el: el,
@@ -8272,6 +8676,7 @@ var Roguelite = (() => {
       try{ warmFolders((G.enemy.layers||[]).map(L=>L.folder), { mounted: !!G.enemy.mount }); }catch(_e){}
       try{ playAnim(G.player, "Idle"); }catch(_e){}
       try{ playAnim(G.enemy, "Idle"); }catch(_e){}
+      try{ rollBlocks(); }catch(_e){}
       G.turn = "player";
       beginPlayerTurn();
       renderSpells(); hud();

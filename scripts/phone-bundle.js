@@ -16,6 +16,7 @@ const bridge = readFileSync("js/fantasy-combat-bridge.js", "utf8");
 const feel = readFileSync("js/cast-feel.js", "utf8");
 const reactions = readFileSync("js/reactions.js", "utf8");
 const combo = readFileSync("js/combo-blocks.js", "utf8");
+const grid = readFileSync("js/combat-grid.js", "utf8");
 let hub = readFileSync("js/hub.js", "utf8");
 let combat = readFileSync("fantasy-combat.html", "utf8");
 let creator = readFileSync("character-creator-fantasy.html", "utf8");
@@ -34,8 +35,8 @@ combat = combat.replace(
   "<style>\n" + skin + "\n</style>",
 );
 combat = combat.replace(
-  '<script src="js/reactions.js"></script>\n<script src="js/combo-blocks.js"></script>\n<script src="js/cast-feel.js"></script>\n<script src="js/fantasy-combat-bridge.js"></script>',
-  "<script>\n" + reactions + "\n" + combo + "\n" + feel + "\n" + bridge + "\n</script>",
+  '<script src="js/reactions.js"></script>\n<script src="js/combo-blocks.js"></script>\n<script src="js/cast-feel.js"></script>\n<script src="js/fantasy-combat-bridge.js"></script>\n<script src="js/combat-grid.js"></script>',
+  "<script>\n" + reactions + "\n" + combo + "\n" + feel + "\n" + bridge + "\n" + grid + "\n</script>",
 );
 if (!combat.includes("resolveCombo")) throw new Error("combat sans combos");
 combat = combat.replace(
