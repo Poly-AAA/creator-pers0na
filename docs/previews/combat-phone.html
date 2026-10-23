@@ -2395,17 +2395,25 @@ html.dark .wave{filter:none;color:#F4B07A}
   .spells button small{font-size:11px;color:var(--ink2);font-weight:700;line-height:1}
   .spells button em{font-style:normal;font-size:12px;font-weight:700;color:var(--acc);line-height:1}
   .spells button b{font-size:16px;font-weight:700;line-height:1}
-  .spells button{position:relative}
   body.skin-d .spells button.on{
     background:var(--glass);color:var(--ink);border-color:#EA7020;
     box-shadow:inset 0 0 0 2px #EA7020;
   }
-  .spells button .xaim{
-    position:absolute;top:0;right:0;width:18px;height:18px;min-width:0;min-height:0;
-    display:flex;align-items:center;justify-content:center;
-    font:700 13px/1 "Pixelify Sans",sans-serif;color:var(--ink);opacity:.55;
-    background:transparent;z-index:2;
+  body.skin-d #aimCancel{
+    pointer-events:auto;position:absolute;z-index:5;
+    width:20vw;height:20vw;min-width:20vw;min-height:20vw;
+    padding:0;margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;
+    color:var(--ink);opacity:.55;
+    display:none;align-items:center;justify-content:center;
+    font:700 16vw/1 "Pixelify Sans","DotGothic16",sans-serif;
+    text-shadow:0 0 6px var(--phosphor);
+    left:calc((max(4px, env(safe-area-inset-left)) + clamp(156px, 40vh, 188px) + 100% - env(safe-area-inset-right)) / 2);
+    top:calc(100% - 112px - clamp(156px, 40vh, 188px) + clamp(156px, 40vh, 188px) * 0.325);
+    transform:translate(-50%, -50%);
   }
+  body.skin-d #aimCancel[hidden]{display:none}
+  body.skin-d #aimCancel:not([hidden]){display:flex}
+  html.dark body.skin-d #aimCancel{text-shadow:0 0 8px var(--phosphor)}
   .spells button.el-feu b{color:var(--acc)}
   .spells button.el-air b{color:var(--acc2)}
   .spells button.el-terre b{color:var(--ink2)}
@@ -2542,6 +2550,10 @@ html.dark .wave{filter:none;color:#F4B07A}
     .endbox{grid-area:end;flex:none;flex-basis:auto;width:auto;height:100%}
     .end-row{flex-direction:column}
     body.skin-d .spells button{min-height:44px;height:44px}
+    body.skin-d #aimCancel{
+      left:calc((max(6px, env(safe-area-inset-left)) + 148px + 100% - env(safe-area-inset-right)) / 2);
+      top:calc(100% - 112px - env(safe-area-inset-bottom) - 148px + 148px * 0.325);
+    }
     body.skin-d .btn-end{min-height:44px;height:44px}
     body.skin-d #btnChat{display:none}
     body.skin-d #btnFlee{width:100%;min-height:40px;height:40px;flex:none}
@@ -5004,6 +5016,7 @@ var Roguelite = (() => {
       <a class="link-cc" data-fcc="spell" href="spell-editor.html" aria-label="Sorts"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1l1.6 4.6L14 7l-4.4 1.4L8 13l-1.6-4.6L2 7l4.4-1.4z"/></svg></a>
       <a class="link-cc" data-fcc="creator" href="character-creator-fantasy.html" aria-label="Créateur"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="4.2" r="2.2" fill="currentColor"/><path fill="currentColor" d="M4 14v-2c0-2 1.8-3.4 4-3.4s4 1.4 4 3.4v2z"/></svg></a>
     </header>
+    <button type="button" id="aimCancel" hidden aria-label="Annuler">✕</button>
     <div class="dpad-slot">
       <div class="dpad" id="dpad">
         <button type="button" class="u" data-dir="u" aria-label="Nord-est"><span class="glyph">▲</span></button>
@@ -7517,8 +7530,11 @@ var Roguelite = (() => {
   }
 
   function syncPad(){
+    const on = !!(G.armed && G.turn==="player");
     const pad = el("dpad");
-    if(pad) pad.classList.toggle("aim", !!(G.armed && G.turn==="player"));
+    if(pad) pad.classList.toggle("aim", on);
+    const x = el("aimCancel");
+    if(x) x.hidden = !on;
   }
   function releaseAim(){
     G.aim = null;
@@ -8280,21 +8296,7 @@ var Roguelite = (() => {
         b.setAttribute("aria-label", name);
         b.disabled = G.turn!=="player" || G.player.pa<sp.cost;
         const armed = G.armed===sp.id && G.armedSlot && G.armedSlot.slot===slot.slot;
-        if(armed){
-          const x = document.createElement("span");
-          x.className = "xaim";
-          x.textContent = "✕";
-          x.setAttribute("role", "button");
-          x.setAttribute("aria-label", "Annuler");
-          x.addEventListener("click", (ev)=>{
-            ev.preventDefault();
-            ev.stopPropagation();
-            cancelAim();
-          });
-          b.appendChild(x);
-        }
-        b.onclick=(ev)=>{
-          if(ev.target && ev.target.classList && ev.target.classList.contains("xaim")) return;
+        b.onclick=()=>{
           if(G.turn!=="player") return;
           const now = performance.now();
           if(armed){
@@ -9281,6 +9283,15 @@ var Roguelite = (() => {
       if(G.armed) recomputeTargets();
     });
     el("btnEnd").onclick=endTurn;
+    const aimCancel = el("aimCancel");
+    if(aimCancel){
+      aimCancel.addEventListener("click", (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        if(!(G.armed && G.turn==="player")) return;
+        cancelAim();
+      });
+    }
     const btnRecenter = el("btnRecenter");
     if(btnRecenter){
       btnRecenter.addEventListener("click", (e)=>{

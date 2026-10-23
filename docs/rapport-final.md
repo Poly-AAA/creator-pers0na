@@ -8,7 +8,7 @@ Le dépôt Litterbox du 23 octobre 2026 vers 11:57 UTC a encore répondu 500, et
 
 La page d’avant la visée reste [https://litter.catbox.moe/gh39m7.html](https://litter.catbox.moe/gh39m7.html). Déposée le 23 octobre 2026 vers 09:52 UTC, en ligne environ 72 heures, jusqu’au 26 octobre 2026 vers 09:52 UTC.
 
-Choisir un sort ouvre la visée, sans lancer tout de suite. Le sort garde un contour orange et une petite croix semi-transparente pour annuler. Une case vide hors de portée annule aussi. Le centre du pavé n’annule pas : il lance la cible verrouillée.
+Choisir un sort ouvre la visée, sans lancer tout de suite. Le sort garde un contour orange. Une grande croix semi-transparente, à droite du pavé, annule. Une case vide hors de portée annule aussi. Le centre du pavé n’annule pas : il lance la cible verrouillée.
 
 S’il y a plusieurs ennemis à portée et en vue, le verrou prend celui qui a le moins de PV, puis le plus proche. Sinon le plus proche, marqué hors d’atteinte s’il ne peut pas être touché. La cible a une lueur rouge, une flèche rouge qui rebondit, et les dégâts prévus en petit. Le pavé passe au rouge et ne déplace plus le personnage : gauche et droite changent de cible, haut et bas prennent la plus proche dans cet axe, un toucher sur la carte aussi. Pour la roulade, la flèche est un curseur de case.
 
