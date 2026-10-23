@@ -2,11 +2,11 @@
 
 ## Jeu jouable
 
-Combat seul, en vertical, avec la visée : [https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/22de6c92d1674ca8723cdf72edee30cac63d0c30/docs/previews/combat-phone.html](https://htmlpreview.github.io/?https://github.com/Poly-AAA/creator-pers0na/blob/22de6c92d1674ca8723cdf72edee30cac63d0c30/docs/previews/combat-phone.html)
+Combat seul, en vertical, avec la visée : [https://litter.catbox.moe/43d6ts.html](https://litter.catbox.moe/43d6ts.html)
 
-Le dépôt Litterbox du 23 octobre 2026 vers 11:57 UTC a encore répondu 500, et « No file! » pour un petit fichier. L’adresse ci-dessus ouvre le même fichier que `docs/previews/combat-phone.html`, SHA-256 `3e9faa6717745bc984d11f36c981105ba9358b68d92eb794203713f0e6876ccd`. Le camp et le combat s’affichent, et la page contient la visée.
+Déposée le 23 octobre 2026 vers 14:00 UTC, en `text/html`, en ligne environ 72 heures, jusqu’au 26 octobre 2026 vers 14:00 UTC. Même fichier que `docs/previews/combat-phone.html`, SHA-256 `25c159fa1b42fe09883371ea0b16b8a72b2e7c460a815fb8663409201cf04f5f`.
 
-La page d’avant la visée reste [https://litter.catbox.moe/gh39m7.html](https://litter.catbox.moe/gh39m7.html). Déposée le 23 octobre 2026 vers 09:52 UTC, en ligne environ 72 heures, jusqu’au 26 octobre 2026 vers 09:52 UTC.
+La page d’avant la grande croix reste [https://litter.catbox.moe/gh39m7.html](https://litter.catbox.moe/gh39m7.html). Déposée le 23 octobre 2026 vers 09:52 UTC, jusqu’au 26 octobre 2026 vers 09:52 UTC.
 
 Choisir un sort ouvre la visée, sans lancer tout de suite. Le sort garde un contour orange. Une grande croix semi-transparente, à droite du pavé, annule. Une case vide hors de portée annule aussi. Le centre du pavé n’annule pas : il lance la cible verrouillée.
 
