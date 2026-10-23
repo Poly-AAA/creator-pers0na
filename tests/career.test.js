@@ -84,6 +84,8 @@ describe("carrière", () => {
     assert.match(html, /35000/);
     assert.match(html, /btnRecenter/);
     assert.match(html, /combat-grid\.js/);
+    assert.match(html, /xaim/);
+    assert.match(html, /#dpad\.aim/);
     assert.match(career, /gear-ico/);
     assert.match(career, /lookOf/);
     assert.match(html, /spriteBase/);

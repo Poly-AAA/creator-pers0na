@@ -4,11 +4,21 @@
 
 Combat seul, en vertical : [https://litter.catbox.moe/gh39m7.html](https://litter.catbox.moe/gh39m7.html)
 
+Cette adresse est la page d’avant la visée. Le dépôt Litterbox du 23 octobre 2026 vers 12:00 UTC a répondu « No file! » puis 500, donc le nouveau fichier n’a pas encore d’adresse publique. Il est dans le dépôt : `docs/previews/combat-phone.html`.
+
+Choisir un sort ouvre la visée, sans lancer tout de suite. Le sort garde un contour orange et une petite croix semi-transparente pour annuler. Une case vide hors de portée annule aussi. Le centre du pavé n’annule pas : il lance la cible verrouillée.
+
+S’il y a plusieurs ennemis à portée et en vue, le verrou prend celui qui a le moins de PV, puis le plus proche. Sinon le plus proche, marqué hors d’atteinte s’il ne peut pas être touché. La cible a une lueur rouge, une flèche rouge qui rebondit, et les dégâts prévus en petit. Le pavé passe au rouge et ne déplace plus le personnage : gauche et droite changent de cible, haut et bas prennent la plus proche dans cet axe, un toucher sur la carte aussi. Pour la roulade, la flèche est un curseur de case.
+
+Un second toucher sur le sort lance la cible verrouillée, sans marche automatique. Deux touches rapprochées lancent tout de suite la cible automatique, en gardant le dernier ennemi touché s’il est encore valide.
+
+Si une autre case du tour frappe plus fort (poussée dans un rocher ou un combattant, ou un ennemi plus bas en PV), un trait fantôme, un fantôme du personnage et les dégâts attendus proposent le déplacement. Un toucher sur la case l’accepte : le personnage s’y rend, puis le sort part. On peut l’ignorer et viser normalement. La proposition n’apparaît que si elle bat l’attaque depuis la case actuelle. Les PM restants, le tacle et les obstacles sont respectés.
+
 La page ouvre le duel. Le téléphone se tient à la verticale. Tourné sur le côté, une icône demande de le redresser. Le personnage reste au centre. Pendant le tour adverse, la caméra cadre l’acteur et le joueur. Au tour du joueur (35 s), deux doigts zooment et déplacent la carte, et une icône la recentre. Les tours ennemis et alliés partent tout de suite.
 
 La carte a des rochers qui bloquent le passage et la vue. La portée des sorts est un diamant : minimum, maximum, ligne droite si le sort le demande, et cases grisées quand la vue est coupée. Quitter une case collée à un ennemi peut coûter des PM, et un PA si son agilité domine.
 
-Au camp, les pastilles sont des glyphes plus un nombre. On choisit le duel ou l’équipe (2v2 à 10v10, sommes de niveaux équilibrées) et jusqu’à trois défis. Les trois sorts et leurs évolutions n’ont pas changé d’animation. Déposée le 23 octobre 2026 vers 09:52 UTC. Elle reste en ligne environ 72 heures, jusqu’au 26 octobre 2026 vers 09:52 UTC.
+Au camp, les pastilles sont des glyphes plus un nombre. On choisit le duel ou l’équipe (2v2 à 10v10, sommes de niveaux équilibrées) et jusqu’à trois défis. Les trois sorts et leurs évolutions n’ont pas changé d’animation. La page précédente, sans la visée, a été déposée le 23 octobre 2026 vers 09:52 UTC. Elle reste en ligne environ 72 heures, jusqu’au 26 octobre 2026 vers 09:52 UTC.
 
 La page précédente, portrait et tenues : [https://litter.catbox.moe/8xsus9.html](https://litter.catbox.moe/8xsus9.html). Déposée le 18 octobre 2026 vers 05:15 UTC.
 

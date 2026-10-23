@@ -124,4 +124,108 @@ describe("grille de combat", () => {
     assert.equal(roll.steps[0].fps, 17);
     assert.equal(roll.evoConfig["1:Boxeur"].anim, "Rolling");
   });
+
+  it("verrouille le PV le plus bas, puis le plus proche, et garde la dernière cible valide", () => {
+    const foes = [
+      { id: "haut", c: 2, r: 0, hp: 30, attackable: true, dist: 2 },
+      { id: "bas", c: 4, r: 0, hp: 8, attackable: true, dist: 4 },
+      { id: "seul-loin", c: 8, r: 0, hp: 1, attackable: false, dist: 8 },
+    ];
+    assert.equal(grid.pickTarget(foes).id, "bas");
+    assert.equal(grid.pickTarget([foes[0], foes[2]]).id, "haut");
+    assert.equal(grid.pickTarget([foes[2]]).reach, false);
+    assert.equal(grid.pickTarget([foes[2]]).id, "seul-loin");
+    const tie = [
+      { id: "loin", c: 5, r: 0, hp: 10, attackable: true, dist: 5 },
+      { id: "pres", c: 1, r: 0, hp: 10, attackable: true, dist: 1 },
+    ];
+    assert.equal(grid.pickTarget(tie).id, "pres");
+    assert.equal(grid.pickTarget(foes, { preferId: "haut" }).id, "haut");
+    assert.equal(grid.pickTarget(foes, { preferId: "seul-loin" }).id, "bas");
+  });
+
+  it("le pavé fait défiler les cibles et choisit la plus proche dans l’axe", () => {
+    const foes = [
+      { id: "ouest", c: 0, r: 2, hp: 20, attackable: true, dist: 2 },
+      { id: "est", c: 4, r: 2, hp: 20, attackable: true, dist: 2 },
+      { id: "nord", c: 2, r: 0, hp: 9, attackable: true, dist: 2 },
+    ];
+    const origin = { c: 2, r: 2 };
+    const next = grid.cycleTarget(foes, "ouest", 1, origin);
+    const prev = grid.cycleTarget(foes, "ouest", -1, origin);
+    assert.notEqual(next.id, "ouest");
+    assert.notEqual(prev.id, "ouest");
+    assert.equal(grid.nearestDir(foes, origin, { dc: 0, dr: -1 }).id, "nord");
+    assert.equal(grid.nearestDir(foes, origin, { dc: 1, dr: 0 }).id, "est");
+    assert.equal(grid.nearestDir(foes, { c: 2, r: 0 }, { dc: 0, dr: -1 }), null);
+  });
+
+  it("la poussée dans un obstacle ajoute 4 dégâts par case restante", () => {
+    const wall = (c) => c === 3;
+    const hit = grid.pushOutcome({ c: 0, r: 0 }, { c: 1, r: 0 }, 1, (c) => wall(c));
+    assert.equal(hit.moved, 1);
+    assert.equal(hit.bonus, 0);
+    const crash = grid.pushOutcome({ c: 0, r: 0 }, { c: 2, r: 0 }, 1, (c) => wall(c));
+    assert.equal(crash.moved, 0);
+    assert.equal(crash.bonus, 4);
+    const far = grid.pushOutcome({ c: 0, r: 0 }, { c: 1, r: 0 }, 3, (c) => c === 3);
+    assert.equal(far.moved, 1);
+    assert.equal(far.bonus, 8);
+    const edge = grid.pushOutcome({ c: 0, r: 0 }, { c: 0, r: 1 }, 1, (c, r) => r > 1);
+    assert.equal(edge.moved, 0);
+    assert.equal(edge.bonus, 4);
+  });
+
+  it("propose un déplacement seulement s’il frappe plus fort que la case actuelle", () => {
+    const foes = [
+      { id: "gros", c: 0, r: 1, hp: 40 },
+      { id: "faible", c: 4, r: 0, hp: 6 },
+    ];
+    const rock = (c, r) => c === 5 && r === 0;
+    const body = (c, r) => (c === 0 && r === 1) || rock(c, r);
+    const melee = (cell, foe) => Math.abs(cell.c - foe.c) + Math.abs(cell.r - foe.r) === 1;
+    const damage = (cell, foe) => {
+      if (!melee(cell, foe)) return 0;
+      const crash = foe.id === "faible" && cell.c === 3 && cell.r === 0;
+      return crash ? 14 : 10;
+    };
+    const better = grid.suggestPlacement({
+      from: { c: 0, r: 0 }, pm: 3, pa: 6, cost: 2, grid: 8,
+      blocked: body,
+      tackle: () => ({ pm: 1, pa: 0 }),
+      foes, hits: melee, damage,
+      current: 10, currentHp: 40,
+    });
+    assert.ok(better);
+    assert.equal(better.foeId, "faible");
+    assert.equal(better.damage, 14);
+    assert.equal(better.dest.c, 3);
+    assert.equal(better.dest.r, 0);
+    assert.equal(better.path[0].c, 0);
+    assert.equal(better.path[better.path.length - 1].c, 3);
+    const same = grid.suggestPlacement({
+      from: { c: 0, r: 0 }, pm: 3, pa: 6, cost: 2, grid: 8,
+      blocked: body,
+      tackle: () => ({ pm: 1, pa: 0 }),
+      foes, hits: melee, damage: () => 10,
+      current: 10, currentHp: 6,
+    });
+    assert.equal(same, null);
+    const tackled = grid.suggestPlacement({
+      from: { c: 0, r: 0 }, pm: 2, pa: 6, cost: 2, grid: 8,
+      blocked: body,
+      tackle: (c, r) => (c === 0 && r === 0 ? { pm: 3, pa: 0 } : { pm: 1, pa: 0 }),
+      foes, hits: melee, damage,
+      current: 10, currentHp: 40,
+    });
+    assert.equal(tackled, null);
+    const poor = grid.suggestPlacement({
+      from: { c: 0, r: 0 }, pm: 3, pa: 4, cost: 4, grid: 8,
+      blocked: body,
+      tackle: () => ({ pm: 1, pa: 1 }),
+      foes, hits: melee, damage,
+      current: 0, currentHp: 99,
+    });
+    assert.equal(poor, null);
+  });
 });
