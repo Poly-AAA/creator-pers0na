@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Variante</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #141618; color: #F6F1E8; font: 13px/1.2 system-ui, sans-serif; }
+  body { overflow: hidden; }
+  .lab { box-sizing: border-box; height: 100%; display: grid; grid-template-columns: minmax(148px, 46vh) minmax(0, 1fr); gap: 6px; padding: 6px; }
+  .stage { background: #23272C; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  canvas { width: min(100%, 70vh); height: auto; image-rendering: pixelated; background: #1c2420; }
+  .side { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 4px; }
+  .row { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+  button, select { background: #23272C; color: #F6F1E8; border: 1px solid #3E444C; height: 28px; padding: 0 6px; max-width: 100%; }
+  button.on { border-color: #EA7020; color: #fff; }
+  #toggle.on { background: #EA7020; border-color: #EA7020; }
+  #status { color: #C9BBA8; white-space: nowrap; overflow: hidden; }
+</style>
+</head>
+<body>
+<div class="lab">
+  <div class="stage"><canvas id="view" width="128" height="128"></canvas></div>
+  <div class="side">
+    <div class="row">
+      <button type="button" id="toggle" class="on" aria-label="Variante">Variante</button>
+      <button type="button" id="play" aria-label="Lecture">▶</button>
+      <span id="status"></span>
+    </div>
+    <div class="row"><select id="anims" aria-label="Animation"></select></div>
+    <div class="row" id="dirs"></div>
+  </div>
+</div>
+<script type="module" src="js/variant-view.js"></script>
+</body>
+</html>

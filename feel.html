@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rythme</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #141618; color: #F6F1E8; font: 13px/1.2 system-ui, sans-serif; overflow: hidden; }
+  .lab { box-sizing: border-box; height: 100%; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) 148px; gap: 4px; padding: 4px; }
+  .side { overflow: hidden; }
+  canvas { width: 100%; height: 100%; image-rendering: pixelated; background: #d8ddd4; }
+  .side { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  button { background: #23272C; color: #F6F1E8; border: 1px solid #EA7020; border-radius: 3px; height: 24px; font-size: 11px; box-shadow: 0 0 4px rgba(234,112,32,.45); }
+  button.on { background: #EA7020; border-color: #EA7020; color: #fff; }
+  .crt{pointer-events:none;position:fixed;inset:0;z-index:20;background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(0,0,0,.12) 3px 4px);box-shadow:inset 0 0 40px rgba(234,112,32,.16);animation:crt-on .42s steps(2,end) 1}
+  @keyframes crt-on{0%{opacity:.15}100%{opacity:1}}
+  #status { color: #C9BBA8; }
+</style>
+</head>
+<body>
+<div class="crt" aria-hidden="true"></div>
+<div class="lab">
+  <canvas id="view" width="640" height="360"></canvas>
+  <div class="side">
+    <button type="button" data-kind="strike" class="on">Frappe</button>
+    <button type="button" data-kind="dash">Dash</button>
+    <button type="button" data-kind="leap">Bond</button>
+    <button type="button" data-kind="summon">Invocation</button>
+    <button type="button" data-kind="knock">Recul</button>
+    <button type="button" data-chain="0">Double coup</button>
+    <button type="button" data-chain="1">Repousse</button>
+    <button type="button" data-chain="2">Feu · explosion</button>
+    <button type="button" data-chain="3">Feu · uppercut</button>
+    <span id="status"></span>
+  </div>
+</div>
+<script src="js/reactions.js"></script>
+<script src="js/combo-blocks.js"></script>
+<script src="js/cast-feel.js"></script>
+<script>
+const canvas = document.getElementById("view");
+const ctx = canvas.getContext("2d");
+const TILE_W = 56, TILE_H = 28;
+const scale = CastFeel.tileScale(TILE_H, 40);
+let kind = "strike";
+let chain = null;
+let chainName = "";
+let t0 = performance.now();
+const sheets = {};
+function sheetOf(anim) {
+  if (!sheets[anim]) {
+    const im = new Image();
+    im.src = "assets/packs/fantasy-cc/spritesheets/NakedBody/" + anim + ".png";
+    im.onerror = function () {
+      im.onerror = null;
+      im.src = "https://cdn.jsdelivr.net/gh/Poly-AAA/creator-pers0na@f2e5a50/assets/packs/fantasy-cc/spritesheets/NakedBody/" + anim + ".png";
+    };
+    sheets[anim] = im;
+  }
+  return sheets[anim];
+}
+const img = sheetOf("Attack1");
+const punch = { id: "punch", steps: [{ anim: "Attack1", fps: 17 }], evoConfig: {} };
+Combo.stamp(punch);
+
+function toScreen(c, r) {
+  return { x: 250 + (c - r) * (TILE_W / 2), y: 150 + (c + r) * (TILE_H / 2) };
+}
+function diamond(c, r, fill, stroke) {
+  const s = toScreen(c, r);
+  ctx.beginPath();
+  ctx.moveTo(s.x, s.y - TILE_H / 2);
+  ctx.lineTo(s.x + TILE_W / 2, s.y);
+  ctx.lineTo(s.x, s.y + TILE_H / 2);
+  ctx.lineTo(s.x - TILE_W / 2, s.y);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
+}
+
+document.querySelectorAll("button").forEach((b) => {
+  b.onclick = () => {
+    t0 = performance.now();
+    if (b.dataset.chain != null) {
+      const ex = Combo.EXAMPLES[Number(b.dataset.chain)];
+      chain = Combo.resolveCombo(punch, ex.picks);
+      chainName = ex.name;
+      kind = "strike";
+    } else {
+      kind = b.dataset.kind;
+      chain = null;
+      chainName = "";
+    }
+    document.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+  };
+});
+
+function frame() {
+  const elapsed = (performance.now() - t0) / 1000;
+  const span = CastFeel.BODY;
+  const slot = chain ? Math.min(chain.steps.length - 1, Math.floor(elapsed / span)) : 0;
+  const step = chain ? chain.steps[slot] : null;
+  const age = chain ? (elapsed - slot * span) : (elapsed % (CastFeel.BODY + CastFeel.LINGER));
+  const useKind = step && step.move ? step.move : kind;
+  const beat = CastFeel.castColumn(age, 15);
+  const u = Math.min(1, age / CastFeel.BODY);
+  const travel = CastFeel.travel(useKind === "knock" ? "knock" : useKind === "dash" ? "dash" : "leap", u);
+  const from = { c: 2, r: 2 };
+  const to = useKind === "dash" || useKind === "knock" ? { c: 4, r: 2 } : from;
+  const c = from.c + (to.c - from.c) * (useKind === "strike" || useKind === "summon" || (chain && !step.move) ? 0 : travel);
+  const r = from.r;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#d8ddd4";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++) {
+    diamond(i, j, ((i + j) & 1) ? "#e8e8e2" : "#dcdcd6", "rgba(80,80,70,0.2)");
+  }
+  const s = toScreen(c, r);
+  const lift = useKind === "leap" ? CastFeel.leapLift(u) * TILE_H : 0;
+  const sq = useKind === "leap" ? CastFeel.landSquash(u) : { x: 1, y: 1 };
+  const dw = 128 * scale * sq.x;
+  const dh = 128 * scale * sq.y;
+  const dx = s.x - dw / 2;
+  const dy = s.y - 88 * scale * sq.y - lift;
+  if (age >= CastFeel.ANTICIPATE) {
+    ctx.globalAlpha = 0.7;
+    const tint = chain && chain.element ? chain.element : (useKind === "summon" ? "air" : "feu");
+    ctx.strokeStyle = "rgb(" + CastFeel.elementColor(tint).join(",") + ")";
+    diamond(kind === "summon" ? 3 : Math.round(c), r, "rgba(0,0,0,0)", ctx.strokeStyle);
+    ctx.globalAlpha = 1;
+  }
+  if (!(img.complete && img.naturalWidth)) {
+    ctx.fillStyle = "#c4a484";
+    ctx.fillRect(s.x - 10 * sq.x, s.y - 49 * sq.y - lift, 20 * sq.x, 40 * sq.y);
+    ctx.fillStyle = "#2a211c";
+    ctx.fillRect(s.x - 12 * sq.x, s.y - 52 * sq.y - lift, 24 * sq.x, 8);
+  }
+  const frameImg = step ? sheetOf(step.anim) : img;
+  if (frameImg.complete && frameImg.naturalWidth) {
+    const col = beat.idle ? 0 : beat.col;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(frameImg, col * 128, 2 * 128, 128, 128, dx, dy, dw, dh);
+    if (beat.smear) ctx.drawImage(frameImg, col * 128, 2 * 128, 128, 128, dx + 10, dy - 4, dw, dh);
+    if (chain && chain.element) {
+      const rgb = CastFeel.elementColor(chain.element);
+      ctx.fillStyle = "rgba(" + rgb.join(",") + ",0.9)";
+      ctx.fillRect(dx + dw * 0.62, dy + dh * 0.42, 5, 5);
+      ctx.fillRect(dx + dw * 0.30, dy + dh * 0.42, 5, 5);
+    }
+  }
+  if (chain && step && step.reaction && age >= CastFeel.ANTICIPATE) {
+    const spec = Reactions.compose(step.reaction, { elementFx: step.elementFx || "" });
+    const pose = Reactions.sample(spec, age - CastFeel.ANTICIPATE, 0);
+    const ts = toScreen(4, 2);
+    const tImg = sheetOf(spec.sheet);
+    const tdx = ts.x - dw / 2 + pose.x;
+    const tdy = ts.y - 88 * scale + pose.y;
+    const frames = spec.frames;
+    const idx = Math.min(frames.length - 1, Math.floor((age - CastFeel.ANTICIPATE) * spec.fps));
+    if (tImg.complete && tImg.naturalWidth) {
+      ctx.drawImage(tImg, frames[idx] * 128, 2 * 128, 128, 128, tdx, tdy, dw, dh);
+    }
+    if (pose.flames) {
+      ctx.fillStyle = "#e24a2a";
+      ctx.fillRect(tdx + dw * 0.46, tdy + dh * 0.2, 4, 7);
+    }
+    if (pose.dust) {
+      ctx.fillStyle = "rgba(196,180,154,0.7)";
+      ctx.beginPath();
+      ctx.ellipse(ts.x, ts.y + 2, 8, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  if (age >= CastFeel.ANTICIPATE && age < CastFeel.ANTICIPATE + 0.45) {
+    const pop = CastFeel.numberMotion(age - CastFeel.ANTICIPATE, kind === "strike" ? 0 : 2);
+    if (pop.alive) {
+      const rgb = kind === "summon" ? CastFeel.NUM.heal : CastFeel.NUM.damage;
+      ctx.save();
+      ctx.translate(s.x + pop.x, s.y - 50 - pop.y);
+      ctx.scale(pop.scale, pop.scale);
+      ctx.globalAlpha = pop.alpha;
+      ctx.fillStyle = "rgb(" + rgb.join(",") + ")";
+      ctx.font = "700 16px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(kind === "summon" ? "+12" : "-18", 0, 0);
+      ctx.restore();
+    }
+  }
+  const label = chain
+    ? chainName + " · " + chain.steps.map((s) => (s.reaction ? s.id + "→" + s.reaction : s.id)).join(" · ") + " · " + (Combo.chainIssues(chain.steps).length ? "saut" : "fluide")
+    : kind + " · " + beat.phase;
+  document.getElementById("status").textContent = label + " · " + (40 * scale / TILE_H).toFixed(2) + " tuiles";
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

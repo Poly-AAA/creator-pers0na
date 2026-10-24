@@ -25,7 +25,8 @@ describe("trois écrans", () => {
     assert.match(editor, /character-creator-fantasy\.html/);
     assert.match(creator, /fantasy-combat\.html/);
     assert.match(creator, /spell-editor\.html/);
-    assert.match(combat, /generated-spells\.json/);
+    assert.match(combat, /user-spells\.json/);
+    assert.doesNotMatch(combat, /generated-spells\.json/);
     assert.match(combat, /ai-policy\.json/);
     assert.match(editor, /btnGrimoire/);
     assert.doesNotMatch(combat, /fantasy-weapon-anim\.html/);

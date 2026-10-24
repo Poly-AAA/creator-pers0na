@@ -484,6 +484,11 @@
         { name: "Double Impact", d: "Frappe 2 fois.", anim: "Attack4", fx: "Slash2", apply: (st) => evoAdd(st, "hits", 1) },
         { name: "Uppercut", d: "+3 dégâts.", anim: "Special1", fx: "Effect1", apply: (st) => evoAdd(st, "dmg", 3) },
       ],
+      3: [
+        { name: "Brasier", d: "Poings de feu, finition explosion.", anim: "Special1", fx: "Effect1", apply: () => {} },
+        { name: "Montante", d: "Poings de feu, finition uppercut.", anim: "Special1", fx: "Effect1", apply: () => {} },
+        { name: "Éclairs", d: "Foudre sur les poings.", anim: "Special1", fx: "Effect3", apply: () => {} },
+      ],
     },
     monofil: {
       1: [
@@ -615,9 +620,9 @@
   EVO_TREE.gravite = EVO_TREE.dash;
   EVO_TREE.parasite = EVO_TREE.monofil;
   /* Coup de pied / Roulade = mêmes paliers mécaniques que Coup brut */
-  EVO_TREE.coup_de_pied = EVO_TREE.punch;
-  EVO_TREE.kick = EVO_TREE.punch;
-  EVO_TREE.roulade = EVO_TREE.punch;
+  EVO_TREE.coup_de_pied = { 1: EVO_TREE.punch[1], 2: EVO_TREE.punch[2] };
+  EVO_TREE.kick = EVO_TREE.coup_de_pied;
+  EVO_TREE.roulade = { 1: EVO_TREE.punch[1], 2: EVO_TREE.punch[2] };
 
   function evoChoicesFor(spellId, tier) {
     const tree = EVO_TREE[spellId];
@@ -625,11 +630,18 @@
     return decorateEvoChoices(tree[tier].slice(0, EVO_CHOICES_PER_TIER));
   }
 
-  function nextEvoTier(spellState) {
+  function evoTierCount(spellId) {
+    const tree = spellId && EVO_TREE[spellId];
+    if (!tree) return EVO_MAX_TIERS;
+    return Object.keys(tree).length;
+  }
+
+  function nextEvoTier(spellState, spellId) {
     const st = spellState || {};
     const taken = (st.tiersTaken || 0) | 0;
-    if (taken >= EVO_MAX_TIERS) return null;
-    return EVO_TIER_LEVELS[taken];
+    if (taken >= evoTierCount(spellId)) return null;
+    if (taken < EVO_TIER_LEVELS.length) return EVO_TIER_LEVELS[taken];
+    return taken + 1;
   }
 
   const MOUNT_PM = {
@@ -854,11 +866,15 @@
   }
 
   /** Complète evoConfig avec les choix manquants du catalogue EVO_TREE. */
+  function treeTiers(tree) {
+    return Object.keys(tree || {}).map(function (k) { return Number(k); }).filter(function (n) { return n > 0; }).sort(function (a, b) { return a - b; });
+  }
+
   function ensureEvoConfig(spellId, evoConfig) {
     const tree = EVO_TREE[spellId];
     const out = Object.assign({}, evoConfig || {});
     if (!tree) return out;
-    [1, 2].forEach(function (tier) {
+    treeTiers(tree).forEach(function (tier) {
       (tree[tier] || []).forEach(function (ch) {
         const k = evoCatalogKey(tier, ch.name);
         if (!out[k]) out[k] = defaultEvoConfigEntry(ch);
@@ -876,7 +892,7 @@
     const tree = EVO_TREE[spellId];
     if (!tree || !evoConfig) return [];
     const out = [];
-    [1, 2].forEach(function (tier) {
+    treeTiers(tree).forEach(function (tier) {
       (tree[tier] || []).forEach(function (ch) {
         const k = evoCatalogKey(tier, ch.name);
         const e = evoConfig[k];
@@ -1014,6 +1030,7 @@
     syncWeaponSpell,
     decorateEvoChoices,
     evoChoicesFor,
+    evoTierCount,
     nextEvoTier,
     EVO_TREE,
     EVO_MAX_TIERS,

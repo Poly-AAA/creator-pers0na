@@ -4,12 +4,21 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <title>Éditeur de sorts</title>
+<script>try{if(localStorage.getItem("roguelite.theme")==="dark")document.documentElement.classList.add("dark");}catch(e){}</script>
 <style>
   :root{
-    --bg:#ecece8;--bg2:#f5f5f2;--ink:#3d3d3a;--ink2:#888884;
-    --line:#d0d0cc;--line2:#e4e4e0;--card:#fafaf8;
-    --sel:#3d3d3a;--soft:#f0f0ec;
-    --acc:#4a3870;--ok:#2f6f4e;--warn:#c45c26;
+    --bg:#FAF7F0;--bg2:#F6F1E8;--ink:#2F3133;--ink2:#8A8278;
+    --line:#E7DFD2;--line2:#E7DFD2;--card:#FFFFFF;
+    --sel:#2F3133;--soft:#EFE6D6;
+    --acc:#EA7020;--ok:#2F6F4E;--warn:#EA7020;
+    --phosphor:rgba(234,112,32,.22);--frame:#2F3133;
+  }
+  html.dark{
+    --bg:#141618;--bg2:#1C1F23;--ink:#F6F1E8;--ink2:#C9BBA8;
+    --line:#3E444C;--line2:#3E444C;--card:#23272C;
+    --sel:#F6F1E8;--soft:#2C3036;
+    --acc:#EA7020;--ok:#F4B07A;--warn:#EA7020;
+    --phosphor:rgba(234,112,32,.8);--frame:#EA7020;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;height:100dvh;background:var(--bg);color:var(--ink);
@@ -17,7 +26,8 @@
   .app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto}
 
   /* ── PREVIEW (haut) ── */
-  .preview-wrap{flex:0 0 220px;min-height:220px;position:relative;background:#d8ddd4;overflow:hidden}
+  .preview-wrap{flex:0 0 220px;min-height:220px;position:relative;background:#C4B49A;overflow:hidden}
+  html.dark .preview-wrap{background:#1C1F23}
   canvas#arena{display:block;width:100%;height:220px;image-rendering:pixelated}
   .preview-status{position:absolute;bottom:4px;left:8px;right:8px;
     font-size:11px;color:rgba(255,255,255,.85);text-shadow:0 1px 3px rgba(0,0,0,.6);
@@ -33,7 +43,8 @@
 
   /* ── PANEL ÉDITEUR (bas, scrollable) ── */
   .editor{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
-  .card{background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:12px}
+  .card{background:var(--card);border:1px solid var(--frame);border-radius:3px;padding:12px;box-shadow:0 0 0 1px rgba(234,112,32,.16)}
+  html.dark .card{box-shadow:0 0 6px var(--phosphor)}
   .card h3{margin:0 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
@@ -55,8 +66,8 @@
   /* évolutions catalogue */
   .evo-tier{margin-top:10px}
   .evo-tier h4{margin:0 0 6px;font-size:12px;font-weight:700;color:var(--acc)}
-  .evo-choice{border:1.5px solid var(--line2);border-radius:10px;padding:8px;margin-top:6px;background:var(--bg2)}
-  .evo-choice.on{border-color:var(--acc);background:#f0eef8}
+  .evo-choice{border:1px solid var(--frame);border-radius:3px;padding:8px;margin-top:6px;background:var(--bg2);box-shadow:0 0 0 1px rgba(234,112,32,.12)}
+  .evo-choice.on{border-color:var(--acc);background:rgba(234,112,32,.12)}
   .evo-choice-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
   .evo-choice-head label{display:flex;align-items:flex-start;gap:6px;cursor:pointer;flex:1}
   .evo-choice-head b{font-size:12px;color:var(--ink)}
@@ -68,12 +79,12 @@
   .body-tokens{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
   .body-tokens button{padding:4px 10px;border:1.5px solid var(--line);border-radius:8px;
     background:var(--soft);font-size:11px;font-weight:700;color:var(--ink)}
-  .body-tokens button.on{background:#6b4a2e;color:#fff;border-color:#6b4a2e}
+  .body-tokens button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 
   /* footer */
   .footer{display:flex;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));
     background:var(--bg2);border-top:1px solid var(--line2);flex-shrink:0}
-  .footer button,.footer a{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);
+  .footer button,.footer a{flex:1;min-height:44px;border-radius:3px;border:1px solid var(--frame);
     background:var(--soft);color:var(--ink);font-size:13px;font-weight:700;
     display:flex;align-items:center;justify-content:center;text-decoration:none}
   .footer .primary{background:var(--acc);color:#fff;border-color:var(--acc)}
@@ -84,6 +95,22 @@
 </style>
 </head>
 <body>
+<div class="crt" aria-hidden="true"></div>
+<div class="bootlines ar" aria-hidden="true"><span>فحص</span><span>سليم</span><span>التزامن</span></div>
+<style>
+  .crt{pointer-events:none;position:fixed;inset:0;z-index:40;background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(47,49,51,.05) 3px 4px);animation:crt-on .42s steps(2,end) 1}
+  html.dark .crt{background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(0,0,0,.12) 3px 4px);box-shadow:inset 0 0 40px rgba(234,112,32,.16)}
+  @keyframes crt-on{0%{opacity:.15}45%{opacity:.7}100%{opacity:1}}
+  .bootlines{pointer-events:none;position:fixed;left:8px;top:6px;z-index:41;display:flex;gap:8px;font-size:11px;color:#EA7020;animation:bootgone 1.1s linear forwards}
+  .bootlines span{opacity:0;animation:bootline .16s linear forwards}
+  .bootlines span:nth-child(2){animation-delay:.12s}
+  .bootlines span:nth-child(3){animation-delay:.24s}
+  @keyframes bootline{to{opacity:1}}
+  @keyframes bootgone{0%,65%{opacity:1}100%{opacity:0}}
+  .ruler{display:flex;justify-content:space-between;height:12px;font-size:9px;color:var(--ink2);background:repeating-linear-gradient(90deg,var(--ink2) 0 1px,transparent 1px 10px);background-size:100% 4px;background-repeat:no-repeat;background-position:bottom}
+  .wave{display:block;width:100%;height:22px;color:#EA7020}
+  html.dark .card h3,html.dark .evo-tier h4{text-shadow:0 0 6px var(--phosphor)}
+</style>
 <div class="app">
   <!-- Prévisualisation combat -->
   <div class="preview-wrap" id="previewWrap" style="height:220px">
@@ -93,6 +120,8 @@
 
   <!-- Navigation sorts -->
   <div class="spell-nav" id="spellNav"></div>
+  <div class="ruler" aria-hidden="true"><span>-50</span><span>0</span><span>+50</span></div>
+  <svg class="wave" viewBox="0 0 200 40" aria-hidden="true"><path d="M0 26C18 26 18 10 36 10s18 18 36 18 18-16 36-16 18 20 36 20 18-14 36-14 20 8 20 8" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M24 16h6M27 13v6M70 28h6M73 25v6M120 12h6M123 9v6M168 26h6M171 23v6" fill="none" stroke="currentColor" stroke-width="1"/></svg>
 
   <!-- Panneau éditeur -->
   <div class="editor" id="editor"></div>
@@ -103,12 +132,14 @@
     <button type="button" class="ok" id="btnCombatGo" style="flex:1 1 40%">Combat ▶</button>
     <button type="button" class="primary" id="btnSave" style="flex:1 1 25%">Sauver</button>
     <button type="button" id="btnCopySave" style="flex:1 1 32%;font-size:11px">Copier config</button>
-    <button type="button" id="btnPasteSave" style="flex:1 1 32%;font-size:11px;background:#6b4a2e;color:#fff;border-color:#6b4a2e">Coller config</button>
-    <button type="button" id="btnRestoreCoup" style="flex:1 1 32%;font-size:11px;background:#c45c26;color:#fff;border-color:#c45c26">Restaurer Coup brut</button>
+    <button type="button" id="btnPasteSave" style="flex:1 1 32%;font-size:11px">Coller config</button>
+    <button type="button" id="btnRestoreCoup" style="flex:1 1 32%;font-size:11px;background:#EA7020;color:#fff;border-color:#EA7020">Restaurer Coup brut</button>
     <button type="button" id="btnGrimoire" style="flex:1 1 32%;font-size:11px;background:#2f6f4e;color:#fff;border-color:#2f6f4e">Grimoire</button>
   </div>
 </div>
 
+<script src="js/reactions.js"></script>
+<script src="js/combo-blocks.js"></script>
 <script src="js/fantasy-combat-bridge.js"></script>
 <script>
 /* Liens Créateur / Combat / Sorts — persistés dans localStorage (neuro.fccNav) */
@@ -275,6 +306,8 @@ function ensurePunchAnims(){
     || !Object.values(punch.evoConfig).some(e=>e && e.enabled);
   if(!punch){
     customSpells = [preset, ...(customSpells||[]).filter(s=>s && s.id!=="punch")];
+    punch = customSpells.find(s=>s && s.id==="punch");
+    if(typeof Combo!=="undefined" && punch) Combo.stamp(punch);
     saveCustom();
     return;
   }
@@ -289,6 +322,7 @@ function ensurePunchAnims(){
     punch.range = punch.range != null ? punch.range : preset.range;
     punch.dmg = punch.dmg || preset.dmg;
     punch.type = punch.type || preset.type;
+    if(typeof Combo!=="undefined") Combo.stamp(punch);
     saveCustom();
     return;
   }
@@ -297,6 +331,7 @@ function ensurePunchAnims(){
     if(!punch.evoConfig[k]){ punch.evoConfig[k]=preset.evoConfig[k]; changed=true; }
   });
   if(changed) saveCustom();
+  if(typeof Combo!=="undefined" && punch && Combo.stamp(punch)) saveCustom();
 }
 /** Migre / seed Coup de pied avec les mêmes évos que Coup brut (anim Kick). */
 function ensureCoupDePied(){
@@ -406,6 +441,7 @@ function loadCustom(){
   /* Hash (#fccSpells=…) = transport explicite — doit écraser le localStorage stale */
   importSpellsFromHash();
   pruneLegacySpells();
+  dropGeneratedCustom();
   ensurePunchAnims();
   ensureCoupDePied();
   ensureRoulade();
@@ -597,7 +633,7 @@ function initEvoConfig(spell){
   } else {
     const tree = getEvoTree(spell.id);
     if(tree){
-      [1,2].forEach(tier=>{
+      Object.keys(tree).map(Number).filter(n=>n>0).sort((a,b)=>a-b).forEach(tier=>{
         (tree[tier]||[]).forEach(ch=>{
           const k=evoKey(tier, ch.name);
           if(!spell.evoConfig[k]){
@@ -649,7 +685,7 @@ function previewEnabledEvos(spellId){
   } else {
     const tree = getEvoTree(spellId);
     if(tree){
-      [1,2].forEach(tier=>{
+      Object.keys(tree).map(Number).filter(n=>n>0).sort((a,b)=>a-b).forEach(tier=>{
         (tree[tier]||[]).forEach(ch=>{
           const e = evoEntry(s, tier, ch);
           if(e && e.enabled){
@@ -1100,15 +1136,18 @@ function renderEditor(){
 
   const sEvo = ensureEditable(activeId);
   initEvoConfig(sEvo);
+  if(sEvo.id==="punch" && typeof Combo!=="undefined") Combo.stamp(sEvo);
   const tree = getEvoTree(activeId);
 
-  if(!tree){
+  if(!tree && sEvo.evoConfig && Object.keys(sEvo.evoConfig).length){
+    renderStoredEvos(evoCard, sEvo);
+  } else if(!tree){
     const noEvo=document.createElement("p");
     noEvo.className="hint";
     noEvo.textContent="Ce sort n'a pas de catalogue d'évolutions dans le jeu.";
     evoCard.appendChild(noEvo);
   } else {
-    [1,2].forEach(tier=>{
+    Object.keys(tree).map(Number).filter(n=>n>0).sort((a,b)=>a-b).forEach(tier=>{
       const choices = tree[tier];
       if(!choices || !choices.length) return;
       const tierWrap=document.createElement("div"); tierWrap.className="evo-tier";
@@ -1183,6 +1222,148 @@ function renderSeq(container, seq){
   }
 }
 
+async function mergeRigSpells(){
+  let arr = null;
+  try{ if(window.__RIG_SPELLS) arr = window.__RIG_SPELLS; }catch(_e){}
+  try{ if(!arr && parent && parent.__RIG_SPELLS) arr = parent.__RIG_SPELLS; }catch(_e){}
+  if(!Array.isArray(arr)){
+    try{
+      const r = await fetch("data/rig-spells.json", { cache:"no-store" });
+      if(r.ok) arr = await r.json();
+    }catch(_e){}
+  }
+  if(!Array.isArray(arr)) return 0;
+  const keep = new Set(["punch","coup_de_pied","roulade"]);
+  let n = 0;
+  arr.forEach(s=>{
+    if(!s || !s.id || keep.has(s.id) || !s.lab) return;
+    if(customSpells.some(x=> x && x.id===s.id)) return;
+    customSpells.push(JSON.parse(JSON.stringify(s)));
+    n++;
+  });
+  if(n){
+    saveCustom();
+    renderNav();
+    renderEditor();
+  }
+  return n;
+}
+function renderStoredEvos(card, spell){
+  const byTier = {};
+  Object.keys(spell.evoConfig).sort().forEach(k=>{
+    const tier = String(k).split(":")[0] || "1";
+    (byTier[tier] || (byTier[tier] = [])).push(k);
+  });
+  Object.keys(byTier).sort().forEach(tier=>{
+    const wrap=document.createElement("div"); wrap.className="evo-tier";
+    const h4=document.createElement("h4"); h4.textContent="Palier "+tier;
+    wrap.appendChild(h4);
+    byTier[tier].forEach(k=> wrap.appendChild(renderStoredEvoRow(spell, k)));
+    card.appendChild(wrap);
+  });
+  if(spell.chain==="append"){
+    const note=document.createElement("p"); note.className="hint";
+    note.textContent="Chaîne : le pas de base, puis chaque évolution cochée, palier après palier. Un seul élément à la fois.";
+    card.appendChild(note);
+  }
+}
+function renderStoredEvoRow(spell, key){
+  const entry = spell.evoConfig[key];
+  const div=document.createElement("div"); div.className="evo-choice";
+  div.classList.toggle("on", !!entry.enabled);
+  const name = key.split(":").slice(1).join(":") || key;
+  const head=document.createElement("div"); head.className="evo-choice-head";
+  const lbl=document.createElement("label");
+  const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=!!entry.enabled;
+  const info=document.createElement("span");
+  const rig = entry.rig ? " · "+entry.rig+(entry.hand ? " "+entry.hand : "") : "";
+  info.innerHTML="<b>"+name+"</b><small>"+rig+"</small>";
+  lbl.appendChild(cb); lbl.appendChild(info);
+  head.appendChild(lbl); div.appendChild(head);
+  cb.onchange=()=>{ entry.enabled=cb.checked; div.classList.toggle("on", cb.checked); scheduleAutoSave(); };
+  div.appendChild(mkSelectRow("Animation", ALL_ANIMS, entry.anim||"Attack1", v=>{ entry.anim=v; scheduleAutoSave(); }));
+  div.appendChild(mkSelectRow("FX Slash", fxSlashList(), entry.slash||"None", v=>{ entry.slash=v; scheduleAutoSave(); }));
+  div.appendChild(mkSelectRow("FX Effect", fxEffectList(), entry.effect||"None", v=>{ entry.effect=v; scheduleAutoSave(); }));
+  div.appendChild(mkNumRow("Vitesse (FPS)", entry.fps!=null?entry.fps:16, 1, 30, 1, v=>{ entry.fps=v; scheduleAutoSave(); }));
+  div.appendChild(mkNumRow("Délai avant (ms)", entry.delay!=null?entry.delay:0, 0, 3000, 50, v=>{ entry.delay=v; scheduleAutoSave(); }));
+  div.appendChild(renderComboFields(spell, key, entry));
+  return div;
+}
+function renderComboFields(spell, key, entry){
+  if(typeof Combo==="undefined" || (spell.id!=="punch" && !entry.blocks)) return document.createElement("span");
+  if(!entry.blocks) entry.blocks=[];
+  if(!entry.overlays) entry.overlays=[];
+  if(!entry.effects) entry.effects=[];
+  const box=document.createElement("div");
+  box.style.cssText="display:flex;flex-direction:column;gap:4px;margin-top:4px";
+  const mode=document.createElement("label"); mode.className="field";
+  const cap=document.createElement("span"); cap.textContent="Blocs";
+  mode.appendChild(cap);
+  const sel=document.createElement("select");
+  [["append","Ajoute"],["modify","Remplace"],["finish","Finition"]].forEach(function(pair){
+    const op=document.createElement("option"); op.value=pair[0]; op.textContent=pair[1];
+    if((entry.mode||"append")===pair[0]) op.selected=true;
+    sel.appendChild(op);
+  });
+  sel.onchange=function(){ entry.mode=sel.value; scheduleAutoSave(); };
+  mode.appendChild(sel);
+  box.appendChild(mode);
+  if(typeof Reactions!=="undefined"){
+    const react=document.createElement("label"); react.className="field";
+    const rc=document.createElement("span"); rc.textContent="Réaction";
+    react.appendChild(rc);
+    const rs=document.createElement("select");
+    const none=document.createElement("option"); none.value=""; none.textContent="—";
+    rs.appendChild(none);
+    Object.keys(Reactions.REACTIONS).forEach(function(id){
+      const op=document.createElement("option");
+      op.value=id; op.textContent=Reactions.REACTIONS[id].label;
+      if((entry.reaction||"")===id) op.selected=true;
+      rs.appendChild(op);
+    });
+    rs.onchange=function(){ entry.reaction=rs.value; scheduleAutoSave(); };
+    react.appendChild(rs);
+    box.appendChild(react);
+  }
+  const chips=document.createElement("div");
+  chips.style.cssText="display:flex;flex-wrap:wrap;gap:3px";
+  function chip(label, on, toggle){
+    const b=document.createElement("button"); b.type="button"; b.textContent=label;
+    b.style.cssText="height:22px;padding:0 6px;font-size:10px;border:1px solid var(--line);background:"+(on?"var(--acc)":"transparent")+";color:"+(on?"#fff":"inherit");
+    b.onclick=function(){ toggle(); scheduleAutoSave(); renderEditor(); };
+    return b;
+  }
+  Object.keys(Combo.BLOCKS).forEach(function(id){
+    const on=entry.blocks.indexOf(id)>=0;
+    chips.appendChild(chip(Combo.BLOCKS[id].label, on, function(){
+      const i=entry.blocks.indexOf(id);
+      if(i>=0) entry.blocks.splice(i,1); else entry.blocks.push(id);
+    }));
+  });
+  Object.keys(Combo.OVERLAYS).forEach(function(id){
+    const on=entry.overlays.indexOf(id)>=0;
+    chips.appendChild(chip(Combo.OVERLAYS[id].label, on, function(){
+      entry.overlays = on ? [] : [id];
+    }));
+  });
+  Object.keys(Combo.EFFECTS).forEach(function(id){
+    const on=entry.effects.indexOf(id)>=0;
+    chips.appendChild(chip(Combo.EFFECTS[id].label, on, function(){
+      const i=entry.effects.indexOf(id);
+      if(i>=0) entry.effects.splice(i,1); else entry.effects.push(id);
+    }));
+  });
+  box.appendChild(chips);
+  const test=document.createElement("button"); test.type="button"; test.className="test-btn"; test.textContent="▶ Chaîne";
+  test.onclick=function(){
+    const chain=Combo.resolveCombo(spell, [{ key:key, tier:Number(String(key).split(":")[0]), name:String(key).split(":").slice(1).join(":") }]);
+    previewAction(chain.steps.map(function(b){
+      return normalizeStep({ anim:b.anim, fps:b.fps, slash:b.slash||"None", effect:b.effect||"None", delay:0, hitTarget:!!b.hit });
+    }));
+  };
+  box.appendChild(test);
+  return box;
+}
 function renderEvoChoice(spellId, tier, choice, spell){
   const div=document.createElement("div"); div.className="evo-choice";
   const entry = evoEntry(spell, tier, choice) || { enabled:false, anim:choice.anim||"Attack1", slash:"None", effect:"None" };
@@ -1224,6 +1405,7 @@ function renderEvoChoice(spellId, tier, choice, spell){
     const s2=ensureEditable(spellId); const e=evoEntry(s2, tier, choice);
     if(e){ e.delay=v; scheduleAutoSave(); }
   }));
+  div.appendChild(renderComboFields(spell, evoKey(tier, choice.name), entry));
 
   const testB=document.createElement("button"); testB.type="button"; testB.className="test-btn";
   testB.textContent="▶ Tester";
@@ -1304,20 +1486,31 @@ function fieldTextAreaEvo(label, val, key, evoIdx){
 /* ────────────────────────────────────────────────────────────
    Init
 ──────────────────────────────────────────────────────────── */
+function dropGeneratedCustom(){
+  const before = customSpells.length;
+  customSpells = (customSpells||[]).filter(s => s && s.id && !s.generated && !/^gen_/.test(s.id) && !/^ov_/.test(s.id));
+  if(customSpells.length !== before) saveCustom();
+}
 async function mergeGrimoire(replace){
   let arr = null;
   try{
-    const r = await fetch("data/generated-spells.json", { cache:"no-store" });
-    if(r.ok) arr = await r.json();
+    if(parent && parent.__PHONE_SPELLS) arr = parent.__PHONE_SPELLS;
   }catch(_e){}
   if(!Array.isArray(arr)){
+    try{
+      const r = await fetch("data/user-spells.json", { cache:"no-store" });
+      if(r.ok) arr = await r.json();
+    }catch(_e){}
+  }
+  if(!Array.isArray(arr)){
     const st = document.getElementById("pvStatus");
-    if(st) st.textContent = "Grimoire introuvable (data/generated-spells.json)";
+    if(st) st.textContent = "Grimoire introuvable (data/user-spells.json)";
     return 0;
   }
+  dropGeneratedCustom();
   let n = 0;
   arr.forEach(s=>{
-    if(!s || !s.id) return;
+    if(!s || !s.id || s.generated || /^gen_/.test(s.id) || /^ov_/.test(s.id)) return;
     const i = customSpells.findIndex(x=>x && x.id===s.id);
     if(i >= 0){
       if(replace){ customSpells[i] = s; n++; }
@@ -1333,7 +1526,7 @@ async function mergeGrimoire(replace){
   renderNav();
   renderEditor();
   const st = document.getElementById("pvStatus");
-  if(st) st.textContent = "Grimoire · " + customSpells.filter(s=>s && s.generated).length + " sorts générés";
+  if(st) st.textContent = "Grimoire · " + customSpells.length + " sorts";
   return n;
 }
 function boot(){
@@ -1405,8 +1598,8 @@ function boot(){
     }
   };
   document.getElementById("btnRestoreCoup").onclick=()=> restorePresetCoupBrut();
-  document.getElementById("btnGrimoire").onclick=()=> mergeGrimoire(true);
-  mergeGrimoire(false);
+  document.getElementById("btnGrimoire").onclick=()=> mergeGrimoire(false);
+  mergeGrimoire(false).then(()=> mergeRigSpells());
   if(/(?:^|[?&])restore=(coup-brut|spells)/i.test(location.search||"")) restorePresetCoupBrut();
   showSavedStatus();
 

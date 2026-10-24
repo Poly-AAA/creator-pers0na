@@ -1,0 +1,60 @@
+{
+  "phase": "done",
+  "balanceMs": 28370,
+  "passTotal": 100008,
+  "passes": [
+    {
+      "pass": 1,
+      "fights": 100008,
+      "mean": 0.5427665786737061,
+      "adjusted": 14,
+      "ms": 5714
+    },
+    {
+      "pass": 2,
+      "fights": 100008,
+      "mean": 0.5364370850331973,
+      "adjusted": 14,
+      "ms": 5704
+    },
+    {
+      "pass": 3,
+      "fights": 100008,
+      "mean": 0.5912626989840812,
+      "adjusted": 14,
+      "ms": 5655
+    },
+    {
+      "pass": 4,
+      "fights": 100008,
+      "mean": 0.5590052795776338,
+      "adjusted": 13,
+      "ms": 5656
+    },
+    {
+      "pass": 5,
+      "fights": 100008,
+      "mean": 0.564604831613471,
+      "adjusted": 12,
+      "ms": 5639
+    }
+  ],
+  "aiFights": 1500000,
+  "aiMs": 639954,
+  "champion": {
+    "healAt": 0.748,
+    "kite": true,
+    "focus": "nearest"
+  },
+  "stall": 3,
+  "runs": 10000,
+  "runMs": 147300,
+  "clears": 82,
+  "bins": {
+    "50": 82,
+    "1-7": 2519,
+    "8-20": 4746,
+    "21-34": 1856,
+    "35-49": 797
+  }
+}

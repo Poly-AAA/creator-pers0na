@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Créateur</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #141618; color: #F6F1E8; font: 12px/1.2 system-ui, sans-serif; }
+  body { overflow: hidden; }
+  .lab { box-sizing: border-box; height: 100%; display: grid; grid-template-columns: minmax(132px, 42vh) minmax(0, 1fr); gap: 6px; padding: 6px; }
+  .stage { background: #23272C; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  canvas { width: min(100%, 46vh); height: auto; image-rendering: pixelated; background: #2a332c; }
+  .side { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 4px; }
+  .row { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+  button, select { background: #23272C; color: #F6F1E8; border: 1px solid #EA7020; border-radius: 3px; height: 28px; padding: 0 6px; box-shadow: 0 0 4px rgba(234,112,32,.35); }
+  .crt{pointer-events:none;position:fixed;inset:0;z-index:20;background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(0,0,0,.12) 3px 4px);box-shadow:inset 0 0 40px rgba(234,112,32,.16);animation:crt-on .42s steps(2,end) 1}
+  @keyframes crt-on{0%{opacity:.15}100%{opacity:1}}
+  button.on, button:focus { border-color: #EA7020; }
+  button.dice { background: #EA7020; color: #fff; border: 0; width: 36px; }
+  .swatch { width: 22px; height: 22px; border: 1px solid #3E444C; padding: 0; }
+  #status { color: #C9BBA8; white-space: nowrap; overflow: hidden; }
+</style>
+</head>
+<body>
+<div class="crt" aria-hidden="true"></div>
+<div class="lab">
+  <div class="stage"><canvas id="view" width="192" height="192"></canvas></div>
+  <div class="side">
+    <div class="row">
+      <button type="button" class="dice" id="dice" aria-label="Dé">⚄</button>
+      <span id="status"></span>
+    </div>
+    <div class="row" id="species"></div>
+    <div class="row" id="dirs"></div>
+    <div class="row" id="anims"></div>
+    <div class="row">
+      <button type="button" id="play" aria-label="Lecture">▶</button>
+      <button type="button" id="wind" aria-label="Vent">vent</button>
+    </div>
+    <div class="row" id="slots"></div>
+    <div class="row" id="colors"></div>
+  </div>
+</div>
+<script type="module" src="js/creator-app.js"></script>
+</body>
+</html>

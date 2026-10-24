@@ -1,0 +1,339 @@
+[
+  {
+    "id": "punch",
+    "name": "Coup brut",
+    "cost": 2,
+    "range": 1,
+    "minRange": 1,
+    "line": false,
+    "los": true,
+    "dmg": [
+      8,
+      12
+    ],
+    "anim": "Attack2",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [],
+    "steps": [
+      {
+        "anim": "Attack1",
+        "move": "Idle",
+        "slash": "None",
+        "effect": "None",
+        "delay": 0,
+        "fps": 17,
+        "hitTarget": true
+      }
+    ],
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": true,
+        "anim": "Attack2",
+        "slash": "None",
+        "effect": "None",
+        "fps": 12,
+        "delay": 0,
+        "blocks": [
+          "jabR"
+        ],
+        "mode": "modify",
+        "overlays": [],
+        "effects": [],
+        "reaction": "stagger"
+      },
+      "1:Boxeur": {
+        "enabled": true,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "None",
+        "fps": 17,
+        "delay": 0,
+        "blocks": [
+          "jabR"
+        ],
+        "mode": "append",
+        "overlays": [],
+        "effects": [],
+        "reaction": "flinch"
+      },
+      "1:Rapide": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0,
+        "blocks": [
+          "bigKick"
+        ],
+        "mode": "modify",
+        "overlays": [],
+        "effects": [],
+        "reaction": "knockback"
+      },
+      "2:Uppercut": {
+        "enabled": true,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 17,
+        "delay": 0,
+        "blocks": [
+          "uppercut"
+        ],
+        "mode": "finish",
+        "overlays": [],
+        "effects": [],
+        "reaction": "launch"
+      },
+      "2:Percutant": {
+        "enabled": true,
+        "anim": "Attack6",
+        "slash": "None",
+        "effect": "None",
+        "fps": 14,
+        "delay": 0,
+        "blocks": [
+          "bigKick"
+        ],
+        "mode": "append",
+        "overlays": [],
+        "effects": [
+          "knockback"
+        ],
+        "reaction": "knockback"
+      },
+      "2:Double Impact": {
+        "enabled": false,
+        "anim": "Attack5",
+        "slash": "Slash2",
+        "effect": "None",
+        "fps": 17,
+        "delay": 0,
+        "blocks": [
+          "shockwave"
+        ],
+        "mode": "append",
+        "overlays": [],
+        "effects": [
+          "multi"
+        ],
+        "reaction": "multi"
+      },
+      "3:Brasier": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 14,
+        "delay": 0,
+        "mode": "finish",
+        "blocks": [
+          "explosion"
+        ],
+        "overlays": [
+          "fire"
+        ],
+        "effects": [],
+        "reaction": "blast"
+      },
+      "3:Montante": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect1",
+        "fps": 17,
+        "delay": 0,
+        "mode": "finish",
+        "blocks": [
+          "uppercut"
+        ],
+        "overlays": [
+          "fire"
+        ],
+        "effects": [],
+        "reaction": "launch"
+      },
+      "3:Éclairs": {
+        "enabled": false,
+        "anim": "Special1",
+        "slash": "None",
+        "effect": "Effect3",
+        "fps": 15,
+        "delay": 0,
+        "mode": "append",
+        "blocks": [],
+        "overlays": [
+          "lightning"
+        ],
+        "effects": [
+          "dot"
+        ],
+        "reaction": "shock"
+      }
+    }
+  },
+  {
+    "id": "coup_de_pied",
+    "name": "Coup de pied",
+    "cost": 4,
+    "range": 1,
+    "minRange": 1,
+    "line": false,
+    "los": true,
+    "dmg": [
+      4,
+      14
+    ],
+    "anim": "Kick",
+    "type": "damage",
+    "aoe": 0,
+    "animSeq": [],
+    "effect": "push",
+    "push": 1,
+    "desc": "Donne un coup de pied qui repousse l’ennemi de 1 case",
+    "steps": [
+      {
+        "anim": "Kick",
+        "delay": 0,
+        "move": "Idle",
+        "fps": 15,
+        "slash": "None",
+        "effect": "None",
+        "hitTarget": true
+      }
+    ],
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": true,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": false,
+        "anim": "Kick",
+        "slash": "None",
+        "effect": "None",
+        "fps": 15,
+        "delay": 0
+      }
+    }
+  },
+  {
+    "id": "roulade",
+    "name": "Roulade",
+    "cost": 4,
+    "range": 2,
+    "minRange": 0,
+    "line": false,
+    "los": false,
+    "dmg": [
+      0,
+      0
+    ],
+    "anim": "Rolling",
+    "type": "buff",
+    "aoe": 0,
+    "animSeq": [],
+    "effect": "roulade",
+    "push": 0,
+    "desc": "Roulade : hors corps à corps → se rapproche ; au corps à corps → recule",
+    "steps": [
+      {
+        "anim": "Rolling",
+        "delay": 0,
+        "move": "Idle",
+        "fps": 17,
+        "slash": "None",
+        "effect": "None",
+        "hitTarget": false
+      }
+    ],
+    "evoConfig": {
+      "1:Brise-Os": {
+        "enabled": false,
+        "anim": "Rolling",
+        "slash": "None",
+        "effect": "None",
+        "fps": 16,
+        "delay": 0
+      },
+      "1:Boxeur": {
+        "enabled": true,
+        "anim": "Rolling",
+        "slash": "None",
+        "effect": "None",
+        "fps": 16,
+        "delay": 0
+      },
+      "1:Rapide": {
+        "enabled": true,
+        "anim": "Rolling",
+        "slash": "None",
+        "effect": "None",
+        "fps": 16,
+        "delay": 0
+      },
+      "2:Uppercut": {
+        "enabled": false,
+        "anim": "Rolling",
+        "slash": "None",
+        "effect": "None",
+        "fps": 16,
+        "delay": 0
+      },
+      "2:Percutant": {
+        "enabled": false,
+        "anim": "Rolling",
+        "slash": "None",
+        "effect": "None",
+        "fps": 16,
+        "delay": 0
+      },
+      "2:Double Impact": {
+        "enabled": false,
+        "anim": "Rolling",
+        "slash": "None",
+        "effect": "None",
+        "fps": 16,
+        "delay": 0
+      }
+    }
+  }
+]

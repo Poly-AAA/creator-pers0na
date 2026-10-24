@@ -25,7 +25,7 @@ export const FX_SLASH = ["None", "Slash1", "Slash2"];
 export const FX_EFFECT = ["None", "Effect1", "Effect2", "Effect3", "Effect4", "Effect5"];
 
 const TYPES = new Set(["damage", "heal", "shield", "buff", "clone", "summon"]);
-const EFFECTS = new Set(["", "none", "push", "roulade", "drainPA"]);
+const EFFECTS = new Set(["", "none", "push", "roulade", "drainPA", "drainPM", "glyph", "trap", "summon"]);
 
 /**
  * Arbres d’évolution — mêmes noms, anims et bonus que js/fantasy-combat-bridge.js.
@@ -147,6 +147,10 @@ const RECIPES = [
   { role: "heal", type: "heal", evo: "nanites", cost: 4, range: 0, heal: [18, 24], anims: ["Taunt", "Special1"], effect: "" },
   { role: "shield", type: "shield", evo: "bouclier", cost: 3, range: 0, heal: [8, 12], anims: ["Special1"], effect: "" },
   { role: "shield", type: "shield", evo: "bouclier", cost: 4, range: 0, heal: [10, 14], anims: ["Taunt"], effect: "" },
+  { role: "summon", type: "summon", evo: "mine", cost: 4, range: 2, dmg: [6, 9], anims: ["Special1", "Attack3"], effect: "summon", overlay: "squelette", element: "neutre" },
+  { role: "control", type: "damage", evo: "arc", cost: 3, range: 4, dmg: [6, 9], anims: ["Special1"], effect: "drainPM", overlay: "spectre", element: "air" },
+  { role: "aoe", type: "damage", evo: "surchauffe", cost: 4, range: 3, dmg: [7, 11], aoe: 1, anims: ["Attack5", "Special1"], effect: "glyph", overlay: "spectre", element: "feu" },
+  { role: "control", type: "damage", evo: "mine", cost: 3, range: 3, dmg: [8, 12], anims: ["Kick", "Special1"], effect: "trap", overlay: "squelette", element: "terre" },
 ];
 
 const NOUNS = {
@@ -157,6 +161,7 @@ const NOUNS = {
   mobility: ["Roulade", "Glissade", "Bond", "Élan", "Pas", "Charge"],
   heal: ["Baume", "Lueur", "Soin", "Ondée", "Grâce", "Sève"],
   shield: ["Égide", "Rempart", "Carapace", "Aurore", "Mur", "Bulle"],
+  summon: ["Ossuaire", "Spectre", "Glyphe", "Piège", "Ombre", "Relique"],
 };
 const ADJECTIVES = ["runique", "magique", "sombre", "rouge", "rapide", "funeste", "lunaire", "solaire", "fragile", "calme"];
 
@@ -197,15 +202,19 @@ export function combineAnimations(anims, extras) {
   const opt = extras || {};
   const list = (anims && anims.length ? anims : ["Attack1"]).filter((a) => ALL_ANIMS.includes(a));
   const seq = list.length ? list : ["Attack1"];
-  return seq.map((anim, i) => ({
-    anim,
-    move: i === 0 ? "Idle" : (opt.move && ALL_ANIMS.includes(opt.move) ? opt.move : "Idle"),
-    slash: FX_SLASH.includes(opt.slash) ? opt.slash : "None",
-    effect: FX_EFFECT.includes(opt.effect) ? opt.effect : "None",
-    delay: i === 0 ? 0 : clampInt(opt.delay != null ? opt.delay : 40 + i * 20, 0, 3000, 40),
-    fps: clampInt(opt.fps != null ? opt.fps : 14, 1, 30, 14),
-    hitTarget: i === seq.length - 1 && opt.hit !== false && !/Rolling|Slide|Taunt/.test(anim),
-  }));
+  return seq.map((anim, i) => {
+    const step = {
+      anim,
+      move: i === 0 ? "Idle" : (opt.move && ALL_ANIMS.includes(opt.move) ? opt.move : "Idle"),
+      slash: FX_SLASH.includes(opt.slash) ? opt.slash : "None",
+      effect: FX_EFFECT.includes(opt.effect) ? opt.effect : "None",
+      delay: i === 0 ? 0 : clampInt(opt.delay != null ? opt.delay : 40 + i * 20, 0, 3000, 40),
+      fps: clampInt(opt.fps != null ? opt.fps : 14, 1, 30, 14),
+      hitTarget: i === seq.length - 1 && opt.hit !== false && !/Rolling|Slide|Taunt/.test(anim),
+    };
+    if (opt.overlay === "squelette" || opt.overlay === "spectre") step.overlay = opt.overlay;
+    return step;
+  });
 }
 
 function blankEvoConfig(archetype) {
@@ -328,6 +337,9 @@ export function generateCatalog(options) {
     }
     const slash = rng() < 0.45 ? pick(rng, ["Slash1", "Slash2"]) : "None";
     const fx = rng() < 0.4 ? pick(rng, FX_EFFECT.filter((x) => x !== "None")) : "None";
+    const overlay = recipe.overlay || (rng() < 0.12 ? (rng() < 0.5 ? "squelette" : "spectre") : null);
+    const ELEMENTS = ["terre", "feu", "eau", "air", "neutre"];
+    const element = recipe.element || ELEMENTS[i % ELEMENTS.length];
     const spell = {
       id: "gen_" + String(i + 1).padStart(3, "0"),
       name,
@@ -340,8 +352,11 @@ export function generateCatalog(options) {
       animSeq: anims.slice(),
       effect: recipe.effect || "",
       push: recipe.push || 0,
+      element,
+      overlay,
+      rare: recipe.rare || false,
       desc: name + " — " + recipe.role + ", anims " + anims.join(" → "),
-      steps: combineAnimations(anims, { slash, effect: fx, fps: 12 + Math.floor(rng() * 8), hit: recipe.type === "damage" }),
+      steps: combineAnimations(anims, { slash, effect: fx, fps: 12 + Math.floor(rng() * 8), hit: recipe.type === "damage" || recipe.type === "summon", overlay }),
       evoArchetype: recipe.evo,
       role: recipe.role,
       generated: true,
@@ -353,6 +368,7 @@ export function generateCatalog(options) {
     const picks = [];
     if (rng() < 0.85) picks.push({ tier: 1, name: pick(rng, tree[1]).name });
     if (rng() < 0.7) picks.push({ tier: 2, name: pick(rng, tree[2]).name });
+    if (!picks.length) picks.push({ tier: 1, name: tree[1][0].name });
     applyUpgrades(spell, picks);
     spells.push(spell);
   }
@@ -590,6 +606,16 @@ function castSpell(rng, caster, foe, spell, log) {
     pushAway(foe, caster, Math.max(1, spell.push | 0), caster);
   }
   if (spell.effect === "drainPA") foe.pa = Math.max(0, foe.pa - 1);
+  if (spell.effect === "drainPM") foe.pm = Math.max(0, (foe.pm || 0) - 1);
+  if (spell.effect === "summon" || spell.type === "summon") {
+    if (log) log.summoned = (log.summoned || 0) + 1;
+  }
+  if (spell.effect === "glyph" || spell.effect === "trap") {
+    const extra = Math.max(1, Math.floor(dealt * 0.35) || rollPair(rng, spell.dmg || [4, 6]));
+    foe.pv = Math.max(0, foe.pv - extra);
+    dealt += extra;
+    if (log) log.zones = (log.zones || 0) + 1;
+  }
   if (log) log.dealt += dealt;
   return { ok: true, dealt };
 }
@@ -690,7 +716,8 @@ export function probeSpell(spell, seed) {
     }
   }
   const res = castSpell(rng, caster, foe, s, log);
-  const useful = log.dealt > 0 || log.healed > 0 || log.moved > 0 || (s.type === "shield" && caster.shield > 0);
+  const special = s.effect === "summon" || s.type === "summon" || s.effect === "glyph" || s.effect === "trap" || s.effect === "drainPM" || s.effect === "drainPA";
+  const useful = log.dealt > 0 || log.healed > 0 || log.moved > 0 || log.summoned > 0 || log.zones > 0 || (s.type === "shield" && caster.shield > 0) || (special && res && res.ok);
   return { ok: !!(res && res.ok && useful), errors: useful ? [] : ["aucune effet en sonde"], dealt: log.dealt, healed: log.healed, moved: log.moved, spell: s };
 }
 
